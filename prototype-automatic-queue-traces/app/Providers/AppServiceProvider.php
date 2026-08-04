@@ -13,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(SkylinePrototype::class, fn () => new SkylinePrototype(
-            storage_path('app/skyline-prototype-spans.jsonl'),
+            storage_path('app/skyline-prototype-spans.sqlite'),
         ));
     }
 

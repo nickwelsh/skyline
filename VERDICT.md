@@ -13,4 +13,4 @@ A real Laravel 12 database queue worker automatically produced official OpenTele
 - queue time above one second
 - normal Laravel success, retry, and failed-job outcomes preserved
 
-This validates ADR 0002's payload-envelope, private-provider, queue-event, active-Attempt, and SQL-listener seams. Production persistence remains governed by ADR 0003; the JSONL exporter is prototype-only.
+This validates ADR 0002's payload-envelope, private-provider, queue-event, active-Attempt, and SQL-listener seams. Production persistence remains governed by ADR 0003; this SQLite exporter is prototype-only.

@@ -31,7 +31,13 @@ final class RunSkylinePrototype extends Command
 
         while (true) {
             $this->renderTui($state, $view);
-            $key = strtolower(trim((string) fgets(STDIN)));
+            $input = fgets(STDIN);
+
+            if ($input === false) {
+                return self::SUCCESS;
+            }
+
+            $key = strtolower(trim($input));
 
             if ($key === 'q') {
                 return self::SUCCESS;
@@ -119,7 +125,7 @@ final class RunSkylinePrototype extends Command
                 ['Failure outcomes', implode(' → ', $this->outcomes($failure))],
                 ['Root queue time', round($rootConsumer['attributes']['skyline.queue_time_ms']).'ms'],
                 ['Job source telemetry calls', 'none'],
-                ['External collector', 'none; local JSONL exporter'],
+                ['External collector', 'none; dedicated SQLite exporter'],
                 ['Laravel outcomes', 'root/child/retry succeeded; terminal failure persisted'],
             ],
             'graph' => [
