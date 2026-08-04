@@ -3,6 +3,9 @@
 use Illuminate\Support\Facades\Route;
 use NickWelsh\Skyline\Http\Controllers\AssetController;
 use NickWelsh\Skyline\Http\Controllers\DashboardController;
+use NickWelsh\Skyline\Http\Controllers\NodeController;
+use NickWelsh\Skyline\Http\Controllers\RunsController;
+use NickWelsh\Skyline\Http\Controllers\TraceController;
 use NickWelsh\Skyline\Http\Middleware\Authorize;
 
 $path = trim((string) config('skyline.path', 'skyline'), '/');
@@ -14,6 +17,11 @@ Route::prefix($path)
         Route::get('assets/{asset}', AssetController::class)
             ->where('asset', '[A-Za-z0-9._-]+')
             ->name('skyline.asset');
+
+        Route::get('api/runs', [RunsController::class, 'index'])->name('skyline.api.runs.index');
+        Route::get('api/runs/updates', [RunsController::class, 'updates'])->name('skyline.api.runs.updates');
+        Route::get('api/runs/{run}', TraceController::class)->name('skyline.api.runs.show');
+        Route::get('api/runs/{run}/nodes/{node}', NodeController::class)->name('skyline.api.nodes.show');
 
         Route::get('{view?}', DashboardController::class)
             ->where('view', '.*')

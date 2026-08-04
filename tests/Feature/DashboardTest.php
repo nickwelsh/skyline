@@ -5,11 +5,13 @@ use Illuminate\Support\Facades\Gate;
 it('serves the skyline shell and precompiled assets locally', function (): void {
     $entry = skylineAssetEntry();
 
-    $this->get('/skyline')
+    $response = $this->get('/skyline')
         ->assertOk()
         ->assertSee('id="skyline"', false)
         ->assertSee('/skyline/assets/'.$entry['file'], false)
         ->assertSee('/skyline/assets/'.$entry['css'][0], false);
+
+    expect($response->headers->get('Cache-Control'))->toContain('private')->toContain('no-store');
 
     $this->get('/skyline/assets/'.$entry['file'])
         ->assertOk()
@@ -27,6 +29,9 @@ it('denies non-local requests by default', function (): void {
 
     $this->get('/skyline')->assertForbidden();
     $this->get('/skyline/assets/'.skylineAssetEntry()['file'])->assertForbidden();
+    $this->getJson('/skyline/api/runs')
+        ->assertForbidden()
+        ->assertJsonPath('error.code', 'forbidden');
 });
 
 it('uses the host viewSkyline gate outside local environments', function (): void {

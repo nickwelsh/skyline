@@ -13,7 +13,18 @@ final readonly class Authorize
 
     public function handle(Request $request, Closure $next): Response
     {
-        $this->gate->authorize('viewSkyline');
+        if (! $this->gate->allows('viewSkyline')) {
+            if ($request->routeIs('skyline.api.*')) {
+                return response()->json([
+                    'error' => [
+                        'code' => 'forbidden',
+                        'message' => 'This request is not authorized to view Skyline.',
+                    ],
+                ], 403, ['Cache-Control' => 'private, no-store']);
+            }
+
+            abort(403);
+        }
 
         return $next($request);
     }

@@ -2,6 +2,7 @@
 
 namespace NickWelsh\Skyline\Persistence;
 
+use NickWelsh\Skyline\Support\Utf8;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 
 final readonly class SpanRepository
@@ -125,6 +126,6 @@ final readonly class SpanRepository
 
     private function truncate(string $value, int $length): string
     {
-        return substr($value, 0, $length);
+        return Utf8::truncate($value, $length);
     }
 }
