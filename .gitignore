@@ -7,3 +7,7 @@
 /fixtures/laravel/database/*.sqlite*
 /fixtures/laravel/vendor
 /vendor
+/.trigger-import
+/node_modules
+/playwright-report
+/test-results

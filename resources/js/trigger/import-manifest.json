@@ -1,0 +1,150 @@
+{
+  "repository": "https://github.com/triggerdotdev/trigger.dev.git",
+  "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "license": "Apache-2.0",
+  "adaptedTargets": {
+    "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
+    "resources/js/trigger/Timeline.tsx": "fb91f3540f0ce923c4a1bef111371c1a65178607f43cf33ad6db42f804d5d996",
+    "resources/js/trigger/TriggerInterface.tsx": "0f180b8ceab8770ec2f9dae48548a97458768aa7668ff347de9b05fef00e5712",
+    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
+  },
+  "files": [
+    {
+      "source": "LICENSE",
+      "sha256": "9e9e22db5ae77f7ce1119294d0386cbbab2791cc77fb68d97c90627d7d96c5e1",
+      "target": "licenses/trigger.dev-APACHE-2.0.txt",
+      "mode": "exact"
+    },
+    {
+      "source": "patches/@window-splitter__state@1.1.3.patch",
+      "sha256": "ecf02927f78361c14d8f8347604fd355ba36f2fc4f9ba9a08cd63adc101b7327",
+      "target": "patches/@window-splitter__state@1.1.3.patch",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/root.tsx",
+      "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Removed Remix document/auth/analytics; retained height, theme, font, and shell contracts."
+    },
+    {
+      "source": "apps/webapp/app/components/layout/AppLayout.tsx",
+      "sha256": "a0d88fc2e144b5455bd2c2ec44da172d926d41302f0b72ea8a642cc301dc835c",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained two-column shell; replaced Trigger routing with package-local history routing."
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/SideMenu.tsx",
+      "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained 44/224/400px resize and snap behavior; removed unsupported destinations and Trigger trademarks; added Skyline branding."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PageHeader.tsx",
+      "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained header geometry; removed agent, docs, replay, cancel, and organization controls."
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
+      "sha256": "f33c21454703fc9023a50cac8194e26710c82587ab99f4ab51797cdb7b82ade2",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Replaced Remix loader and Trigger presenters with Skyline Runs DTO adapter fixtures."
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunsTable.tsx",
+      "sha256": "d354bfdb3dbe2c19e8a29f307d4e89870ac50fb430344a2bdb84c8c3988b633d",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained dense sticky row navigation; removed version, machine, region, cost, test, tags, cancel, replay, and output columns/actions."
+    },
+    {
+      "source": "apps/webapp/app/components/ListPagination.tsx",
+      "sha256": "8188a2e2ff4c79d4567bc7512b46fd7683c1082a72c4f2848dea4332656e7071",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained 25-row cursor controls and j/k shortcuts against fixture cursors."
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts",
+      "sha256": "b9c316fb0421c73d95164334e66512c0cb1b9995c88bcba15fd850f04186721c",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained 3s active-row and 6s new-Run polling cadence through the adapter boundary."
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx",
+      "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Replaced Remix data/routing with Skyline Trace DTO fixtures; retained tree, timeline, filters, keyboard controls, selection, and panel layout."
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
+      "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
+      "sha256": "eb9e7fe5809bd0a7e6f9b231ca10cc038875b8282215f9754d89a506a15f5eab",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Narrowed flat tree to Skyline DTOs while retaining selection, expansion, filtering, and keyboard behavior."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/reducer.ts",
+      "sha256": "5098140eef133d482b1b3c0c9067ee57fae47ad69cfba5902d04d2eb322c5ada",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Inlined the reduced expansion and visibility state required by Skyline."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/utils.ts",
+      "sha256": "2de2e91f3b52a48d96c9fa7f07af2f0f4a2bd4806d877ecba07aa6c41b2e134e",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Inlined only descendant, depth, and visible-row helpers."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Timeline.tsx",
+      "sha256": "1bfef56606dbb7b9ae9fcc65a7a05f9ad1898692e6415d8c9069f9f65d2f1e6d",
+      "target": "resources/js/trigger/Timeline.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the lerp import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Resizable.tsx",
+      "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837",
+      "target": "resources/js/trigger/Resizable.tsx",
+      "mode": "adapted",
+      "modifications": "Retained two independent 3px drag handles and controlled collapse; replaced Remix browser detection/persistence with client behavior."
+    },
+    {
+      "source": "apps/webapp/app/components/run/RunTimeline.tsx",
+      "sha256": "7abf99cd6f09bc237e80900f5dccd72685faec8cb4a81137cd46517955705929",
+      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "mode": "adapted",
+      "modifications": "Mapped Skyline lifecycle timestamps into the retained inspector timeline."
+    },
+    {
+      "source": "apps/webapp/app/tailwind.css",
+      "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121",
+      "target": "resources/js/trigger/tailwind.css",
+      "mode": "adapted",
+      "modifications": "Removed only unreachable react-grid-layout, react-resizable, and streamdown imports."
+    },
+    {
+      "source": "apps/webapp/app/utils/lerp.ts",
+      "sha256": "7c73d632e97268f7bc0a30c0e5e4c6170db207c0124164596bc0f655c34c62ce",
+      "target": "resources/js/trigger/lerp.ts",
+      "mode": "exact"
+    }
+  ]
+}

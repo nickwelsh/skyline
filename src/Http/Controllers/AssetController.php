@@ -15,6 +15,7 @@ final readonly class AssetController
         $contentType = match (pathinfo($path, PATHINFO_EXTENSION)) {
             'css' => 'text/css; charset=UTF-8',
             'js' => 'text/javascript; charset=UTF-8',
+            'woff2' => 'font/woff2',
             default => 'application/octet-stream',
         };
 
