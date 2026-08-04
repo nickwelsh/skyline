@@ -1,0 +1,3 @@
+# Isolate queue telemetry in a private OpenTelemetry trace
+
+Skyline will use its own non-global OpenTelemetry provider and explicit context propagation, representing each Run as a short producer span plus one consumer span per Attempt rather than holding one span open across processes or retries. A versioned payload envelope carries W3C context and Laravel's payload UUID, while an idempotent lifecycle reducer, process-local Attempt stack, and active-Attempt SQL listener emit immutable records through a storage-independent sink. This preserves automatic child-Run relationships and real OTel semantics without Job changes, `ext-opentelemetry`, host-provider mutation, or direct persistence inside capture hooks.
