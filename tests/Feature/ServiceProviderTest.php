@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Support\ServiceProvider;
+use NickWelsh\Skyline\SkylineServiceProvider;
+
+it('registers package defaults', function (): void {
+    expect(config('skyline'))->toMatchArray([
+        'path' => 'skyline',
+        'middleware' => ['web'],
+    ]);
+});
+
+it('publishes config and the migration directory', function (): void {
+    $config = ServiceProvider::pathsToPublish(SkylineServiceProvider::class, 'skyline-config');
+    $migrations = ServiceProvider::pathsToPublish(SkylineServiceProvider::class, 'skyline-migrations');
+
+    expect($config)->toBe([
+        realpath(__DIR__.'/../../config/skyline.php') => config_path('skyline.php'),
+    ])->and($migrations)->toBe([
+        realpath(__DIR__.'/../../database/migrations') => database_path('migrations'),
+    ]);
+});
+
+it('declares Laravel package discovery', function (): void {
+    $composer = json_decode(file_get_contents(__DIR__.'/../../composer.json'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($composer['extra']['laravel']['providers'])->toContain(SkylineServiceProvider::class);
+});

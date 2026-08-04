@@ -1,1 +1,9 @@
-.DS_Store
+**/.DS_Store
+/.phpunit.cache
+/.phpunit.result.cache
+/composer.lock
+/fixtures/laravel/.env
+/fixtures/laravel/composer.lock
+/fixtures/laravel/database/*.sqlite*
+/fixtures/laravel/vendor
+/vendor

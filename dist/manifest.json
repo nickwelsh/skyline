@@ -1,0 +1,9 @@
+{
+    "resources/js/app.tsx": {
+        "file": "skyline-foundation.7d581e1.js",
+        "css": [
+            "skyline-foundation.4ab391c.css"
+        ],
+        "isEntry": true
+    }
+}
