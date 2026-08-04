@@ -2,8 +2,13 @@
 
 namespace NickWelsh\Skyline;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Support\ServiceProvider;
+use NickWelsh\Skyline\Console\PruneCommand;
+use NickWelsh\Skyline\Persistence\FailureReporter;
+use NickWelsh\Skyline\Persistence\PersistenceGuard;
+use NickWelsh\Skyline\Persistence\SkylineConnection;
 use NickWelsh\Skyline\Support\AssetManifest;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
@@ -29,6 +34,15 @@ final class SkylineServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(QueueInstrumentation::class);
+        $this->app->singleton(PersistenceGuard::class);
+        $this->app->singleton(SkylineConnection::class);
+        $this->app->singleton(
+            FailureReporter::class,
+            fn ($app) => new FailureReporter(
+                $app->make(LoggerInterface::class),
+                max(0, (int) $app['config']->get('skyline.failure_log_interval_seconds', 60)),
+            ),
+        );
     }
 
     public function boot(GateContract $gate): void
@@ -42,6 +56,8 @@ final class SkylineServiceProvider extends ServiceProvider
         $this->bootInstrumentation();
 
         if ($this->app->runningInConsole()) {
+            $this->commands([PruneCommand::class]);
+
             $this->publishes([
                 $this->packagePath('config/skyline.php') => config_path('skyline.php'),
             ], 'skyline-config');
@@ -49,6 +65,12 @@ final class SkylineServiceProvider extends ServiceProvider
             $this->publishes([
                 $this->packagePath('database/migrations') => database_path('migrations'),
             ], 'skyline-migrations');
+
+            if ((bool) $this->app['config']->get('skyline.prune.schedule', true)) {
+                $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
+                    $schedule->command('skyline:prune')->daily()->withoutOverlapping();
+                });
+            }
         }
     }
 

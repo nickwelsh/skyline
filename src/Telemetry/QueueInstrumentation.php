@@ -15,6 +15,8 @@ use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Queue\Events\JobReleasedAfterException;
 use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Queue;
+use NickWelsh\Skyline\Persistence\PersistenceGuard;
+use NickWelsh\Skyline\Persistence\SkylineConnection;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -41,6 +43,8 @@ final class QueueInstrumentation
         private readonly LifecycleEmitter $lifecycle,
         private readonly TelemetrySink $sink,
         private readonly LoggerInterface $logger,
+        private readonly PersistenceGuard $persistenceGuard,
+        private readonly SkylineConnection $persistenceConnection,
     ) {
         $provider = new TracerProvider(
             new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger)),
@@ -123,6 +127,7 @@ final class QueueInstrumentation
             null,
             $queuedAt,
             [
+                'trace_id' => $span->getContext()->getTraceId(),
                 'parent_run_id' => $parent?->runId,
                 'job_name' => $job,
                 'connection' => $connection,
@@ -218,6 +223,8 @@ final class QueueInstrumentation
             $active->number,
             $now,
             [
+                'trace_id' => $span->getContext()->getTraceId(),
+                'parent_run_id' => $envelope->parentRunId,
                 'job_name' => $job,
                 'connection' => $event->connectionName,
                 'confirmation_source' => 'processing',
@@ -380,6 +387,10 @@ final class QueueInstrumentation
 
     private function query(QueryExecuted $query): void
     {
+        if ($this->persistenceGuard->active() || $this->persistenceConnection->owns($query->connectionName)) {
+            return;
+        }
+
         $active = $this->attempts->current();
 
         if ($active === null) {

@@ -14,6 +14,15 @@ The package serves its precompiled interface at `/skyline`. Local requests are a
 
 Consumer applications do not need Node.js or a frontend build. Skyline ships fingerprinted JavaScript, CSS, and fonts in `dist/`.
 
+Publish and run Skyline's migrations before processing queued work:
+
+```sh
+php artisan vendor:publish --tag=skyline-migrations
+php artisan migrate
+```
+
+Telemetry uses an isolated clone of the default database connection. Set `SKYLINE_DB_CONNECTION` to choose another configured connection. Retention defaults to 24 hours; `skyline:prune` runs daily and is also available manually.
+
 ### Interface development
 
 Requires Node.js 24.18.0 and pnpm 10.33.2.
