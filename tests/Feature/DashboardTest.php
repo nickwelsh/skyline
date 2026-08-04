@@ -8,6 +8,7 @@ it('serves the skyline shell and precompiled assets locally', function (): void 
     $response = $this->get('/skyline')
         ->assertOk()
         ->assertSee('id="skyline"', false)
+        ->assertSee('data-base-path="/skyline"', false)
         ->assertSee('/skyline/assets/'.$entry['file'], false)
         ->assertSee('/skyline/assets/'.$entry['css'][0], false);
 

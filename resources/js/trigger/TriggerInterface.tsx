@@ -1,6 +1,6 @@
 /*!
  * Derived from Trigger.dev at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Modified for Skyline: client routing, Skyline DTO fixtures/branding, and unsupported actions removed.
+ * Modified for Skyline: client routing, Skyline DTO adapters/branding, and unsupported actions removed.
  * See resources/js/trigger/import-manifest.json and THIRD_PARTY_NOTICES.md.
  */
 import {
@@ -21,12 +21,10 @@ import {
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FixtureAdapter } from "../skyline/FixtureAdapter";
-import type { RunStatus, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
+import { SkylineApiError } from "../skyline/HttpAdapter";
+import type { InspectorDto, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import * as Timeline from "./Timeline";
 import { RESIZABLE_PANEL_ANIMATION, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./Resizable";
-
-const fixtureAdapter = new FixtureAdapter();
 
 const statusStyles: Record<RunStatus | "released", string> = {
   queued: "text-blue-400",
@@ -53,17 +51,17 @@ function useLocation() {
   return { location, navigate };
 }
 
-export function App({ adapter = fixtureAdapter }: { adapter?: SkylineDtoAdapter }) {
+export function App({ adapter, basePath = "/skyline" }: { adapter: SkylineDtoAdapter; basePath?: string }) {
   const { location, navigate } = useLocation();
-  const runMatch = window.location.pathname.match(/\/skyline\/runs\/([^/]+)/);
+  const runMatch = window.location.pathname.match(new RegExp(`${escapeRegExp(basePath)}/runs/([^/]+)`));
   const runId = runMatch ? decodeURIComponent(runMatch[1]) : undefined;
 
   return (
     <div className="h-screen overflow-hidden bg-background-dimmed text-[0.8125rem] text-text-dimmed">
       {runId ? (
-        <TracePage adapter={adapter} runId={runId} navigate={navigate} />
+        <TracePage adapter={adapter} basePath={basePath} runId={runId} navigate={navigate} />
       ) : (
-        <RunsPage adapter={adapter} navigate={navigate} />
+        <RunsPage adapter={adapter} basePath={basePath} navigate={navigate} />
       )}
     </div>
   );
@@ -72,10 +70,12 @@ export function App({ adapter = fixtureAdapter }: { adapter?: SkylineDtoAdapter 
 function Shell({
   children,
   current,
+  basePath,
   navigate,
 }: {
   children: React.ReactNode;
   current: "runs";
+  basePath: string;
   navigate: (to: string) => void;
 }) {
   const [width, setWidth] = useState(() => clamp(Number(localStorage.getItem("skyline:sidemenu-width")) || 224, 44, 400));
@@ -164,7 +164,7 @@ function Shell({
         <nav className="px-2">
           <button
             className={`flex h-8 w-full items-center gap-2 rounded px-1 ${current === "runs" ? "bg-background-raised text-text-bright" : "hover:bg-background-hover"}`}
-            onClick={() => navigate("/skyline")}
+            onClick={() => navigate(basePath)}
           >
             <IconPlayerPlayFilled className="size-5 shrink-0 text-runs" />
             <span className="overflow-hidden whitespace-nowrap" style={{ opacity: labelOpacity, maxWidth: `${labelOpacity * 160}px` }}>Runs</span>
@@ -190,62 +190,106 @@ function PageHeader({ children }: { children: React.ReactNode }) {
   return <header className="flex h-11 items-center border-b border-grid-bright bg-background-dimmed px-3 text-sm">{children}</header>;
 }
 
-function RunsPage({ adapter, navigate }: { adapter: SkylineDtoAdapter; navigate: (to: string, replace?: boolean) => void }) {
+function RunsPage({ adapter, basePath, navigate }: { adapter: SkylineDtoAdapter; basePath: string; navigate: (to: string, replace?: boolean) => void }) {
   const params = new URLSearchParams(window.location.search);
   const [search, setSearch] = useState(params.get("search") ?? "");
   const [status, setStatus] = useState<RunStatus | "all">((params.get("status") as RunStatus | null) ?? "all");
   const cursor = params.get("cursor") ?? undefined;
-  const query = useMemo(() => ({ cursor, limit: 25 as const, search, status: status === "all" ? undefined : [status] }), [cursor, search, status]);
-  const [page, setPage] = useState(() => adapter.runs(query));
+  const query = useMemo(() => ({ cursor, search, status: status === "all" ? undefined : [status] }), [cursor, search, status]);
+  const [page, setPage] = useState<RunsPageDto>();
+  const pageRef = useRef<RunsPageDto>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>();
   const [newRuns, setNewRuns] = useState(0);
+  const loadPage = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const next = await adapter.runs(query, signal);
+      setPage(next);
+      setNewRuns(0);
+    } catch (reason) {
+      if (!isAbort(reason)) setError(reason);
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, [adapter, query]);
   const goToCursor = useCallback((nextCursor?: string) => {
     const next = new URLSearchParams(window.location.search);
     nextCursor && nextCursor !== "0" ? next.set("cursor", nextCursor) : next.delete("cursor");
-    navigate(`/skyline${next.size ? `?${next}` : ""}`);
-  }, [navigate]);
-
-  useEffect(() => setPage(adapter.runs(query)), [query]);
+    navigate(`${basePath}${next.size ? `?${next}` : ""}`);
+  }, [basePath, navigate]);
 
   useEffect(() => {
-    const activeTimer = window.setInterval(() => setPage(adapter.runs(query)), 3_000);
-    const newRunsTimer = window.setInterval(() => {
-      const latest = adapter.runs(query);
-      setNewRuns(Math.max(0, latest.runs.length - page.runs.length));
-    }, 6_000);
+    const controller = new AbortController();
+    void loadPage(controller.signal);
+    return () => controller.abort();
+  }, [loadPage]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  useEffect(() => {
+    if (!page) return;
+    const controller = new AbortController();
+    let activeCursor = page.pollCursor;
+    const activeTimer = window.setInterval(async () => {
+      const current = pageRef.current;
+      if (!current) return;
+      const activeIds = current.runs.filter((run) => ["queued", "running", "retrying"].includes(run.status)).map((run) => run.id);
+      if (!activeIds.length) return;
+      try {
+        const updates = await adapter.updates(query, activeCursor, activeIds, controller.signal);
+        activeCursor = updates.pollCursor;
+        setPage((value) => value ? { ...value, runs: mergeRunUpdates(value.runs, updates.runs, query.status) } : value);
+      } catch (reason) {
+        if (!isAbort(reason)) setError(reason);
+      }
+    }, page.polling.activeRunsIntervalMs);
+    const newRunsTimer = window.setInterval(async () => {
+      try {
+        const updates = await adapter.updates(query, page.pollCursor, [], controller.signal);
+        setNewRuns(updates.newRunCount);
+      } catch (reason) {
+        if (!isAbort(reason)) setError(reason);
+      }
+    }, page.polling.newRunsIntervalMs);
     return () => {
+      controller.abort();
       window.clearInterval(activeTimer);
       window.clearInterval(newRunsTimer);
     };
-  }, [page.runs.length, query]);
+  }, [adapter, page?.pollCursor, page?.polling.activeRunsIntervalMs, page?.polling.newRunsIntervalMs, query]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).matches("input, textarea, [contenteditable='true']")) return;
-      if (event.key.toLowerCase() === "j" && page.pagination.next) goToCursor(page.pagination.next);
-      if (event.key.toLowerCase() === "k" && page.pagination.previous) goToCursor(page.pagination.previous);
+      if (event.key.toLowerCase() === "j" && page?.pagination.next) goToCursor(page.pagination.next);
+      if (event.key.toLowerCase() === "k" && page?.pagination.previous) goToCursor(page.pagination.previous);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goToCursor, page.pagination.next, page.pagination.previous]);
+  }, [goToCursor, page?.pagination.next, page?.pagination.previous]);
 
   const updateFilters = (nextSearch: string, nextStatus: RunStatus | "all") => {
     const next = new URLSearchParams(window.location.search);
     next.delete("cursor");
     nextSearch ? next.set("search", nextSearch) : next.delete("search");
     nextStatus === "all" ? next.delete("status") : next.set("status", nextStatus);
-    navigate(`/skyline${next.size ? `?${next}` : ""}`, true);
+    navigate(`${basePath}${next.size ? `?${next}` : ""}`, true);
   };
 
   return (
-    <Shell current="runs" navigate={navigate}>
+    <Shell current="runs" basePath={basePath} navigate={navigate}>
       <div className="flex h-full flex-col overflow-hidden">
         <PageHeader>
           <div className="flex items-center gap-2 text-text-bright">
             <IconPlayerPlayFilled className="size-4 text-runs" />
             <span className="font-medium">Runs</span>
           </div>
-          {newRuns > 0 && <button className="ml-auto rounded bg-indigo-500 px-2 py-1 text-xs text-white" onClick={() => { setPage(adapter.runs(query)); setNewRuns(0); }}>{newRuns} new Runs</button>}
-          <button className={`${newRuns ? "ml-2" : "ml-auto"} flex h-7 items-center gap-1 rounded border border-grid-bright bg-background-bright px-2 text-xs hover:bg-background-hover`} onClick={() => setPage(adapter.runs(query))}>
+          {newRuns > 0 && <button className="ml-auto rounded bg-indigo-500 px-2 py-1 text-xs text-white" onClick={() => cursor ? goToCursor(undefined) : void loadPage()}>{newRuns} new Runs</button>}
+          <button className={`${newRuns ? "ml-2" : "ml-auto"} flex h-7 items-center gap-1 rounded border border-grid-bright bg-background-bright px-2 text-xs hover:bg-background-hover`} onClick={() => void loadPage()}>
             <IconRefresh className="size-3.5" /> Refresh
           </button>
         </PageHeader>
@@ -260,7 +304,7 @@ function RunsPage({ adapter, navigate }: { adapter: SkylineDtoAdapter; navigate:
               onChange={(event) => { setSearch(event.target.value); updateFilters(event.target.value, status); }}
             />
           </label>
-          {(["all", "running", "retrying", "completed", "failed"] as const).map((value) => (
+          {(["all", "queued", "running", "retrying", "completed", "failed"] as const).map((value) => (
             <button
               key={value}
               onClick={() => { setStatus(value); updateFilters(search, value); }}
@@ -285,13 +329,18 @@ function RunsPage({ adapter, navigate }: { adapter: SkylineDtoAdapter; navigate:
                 <th className="px-3 text-right font-medium">Duration</th>
               </tr>
             </thead>
-            <tbody>
-              {page.runs.map((run) => (
+            <tbody aria-busy={loading}>
+              {page?.runs.map((run) => (
                 <tr
                   key={run.id}
                   className="h-12 cursor-pointer border-b border-grid-dimmed hover:bg-background-hover"
                   onClick={() => {
-                    navigate(`/skyline/runs/${encodeURIComponent(run.id)}?span=${encodeURIComponent(run.id)}&tableState=${encodeURIComponent(window.location.search)}`);
+                    const detail = new URLSearchParams({
+                      node: `run_${run.id}`,
+                      tableState: page.tableState,
+                      returnTo: window.location.search,
+                    });
+                    navigate(`${basePath}/runs/${encodeURIComponent(run.id)}?${detail}`);
                   }}
                 >
                   <td className="max-w-md px-3">
@@ -304,23 +353,25 @@ function RunsPage({ adapter, navigate }: { adapter: SkylineDtoAdapter; navigate:
                     </div>
                   </td>
                   <td className="px-3"><Status status={run.status} /></td>
-                  <td className="px-3"><span className="text-text-bright">{run.queue}</span><span className="ml-1 text-xs text-text-faint">{run.connection}</span></td>
+                  <td className="px-3"><span className="text-text-bright">{run.queue ?? "—"}</span><span className="ml-1 text-xs text-text-faint">{run.connection ?? ""}</span></td>
                   <td className="px-3 tabular-nums">{run.attemptCount}</td>
-                  <td className="px-3 tabular-nums">{formatTime(run.queuedAt)}</td>
-                  <td className="px-3 tabular-nums">{formatOptionalDuration(run.queueDurationMs)}</td>
-                  <td className="px-3 text-right font-mono tabular-nums text-text-bright">{formatOptionalDuration(run.durationMs)}</td>
+                  <td className="px-3 tabular-nums">{formatTime(run.triggeredAt)}</td>
+                  <td className="px-3 tabular-nums">{formatOptionalDurationUs(run.queueDurationUs)}</td>
+                  <td className="px-3 text-right font-mono tabular-nums text-text-bright">{formatOptionalDurationUs(run.durationUs ?? run.activeDurationUs)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {page.runs.length === 0 && <div className="grid h-48 place-items-center text-text-faint">No Runs match these filters.</div>}
+          {loading && !page && <LoadingState label="Loading Runs…" />}
+          {error !== undefined && <ErrorState error={error} onRetry={() => void loadPage()} />}
+          {!loading && !error && page?.runs.length === 0 && <div className="grid h-48 place-items-center text-text-faint">{page.hasAnyRuns ? "No Runs match these filters." : "No Runs yet."}</div>}
         </div>
 
         <div className="flex h-11 items-center border-t border-grid-bright px-3 text-xs">
-          <button disabled={!page.pagination.previous} onClick={() => goToCursor(page.pagination.previous)} className="rounded border border-grid-bright px-2 py-1 disabled:opacity-50">Previous <kbd className="ml-1">K</kbd></button>
+          <button disabled={!page?.pagination.previous} onClick={() => goToCursor(page?.pagination.previous ?? undefined)} className="rounded border border-grid-bright px-2 py-1 disabled:opacity-50">Previous <kbd className="ml-1">K</kbd></button>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-text-faint">1–{page.runs.length}</span>
-            <button disabled={!page.pagination.next} onClick={() => goToCursor(page.pagination.next)} className="rounded border border-grid-bright px-2 py-1 hover:bg-background-hover disabled:opacity-50">Next <kbd className="ml-1">J</kbd></button>
+            <span className="text-text-faint">1–{page?.runs.length ?? 0}</span>
+            <button disabled={!page?.pagination.next} onClick={() => goToCursor(page?.pagination.next ?? undefined)} className="rounded border border-grid-bright px-2 py-1 hover:bg-background-hover disabled:opacity-50">Next <kbd className="ml-1">J</kbd></button>
           </div>
         </div>
       </div>
@@ -328,29 +379,61 @@ function RunsPage({ adapter, navigate }: { adapter: SkylineDtoAdapter; navigate:
   );
 }
 
-function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; runId: string; navigate: (to: string, replace?: boolean) => void }) {
+function TracePage({ adapter, basePath, runId, navigate }: { adapter: SkylineDtoAdapter; basePath: string; runId: string; navigate: (to: string, replace?: boolean) => void }) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const tracePage = useMemo(() => adapter.trace(runId), [adapter, refreshKey, runId]);
+  const [tracePage, setTracePage] = useState<TracePageDto>();
+  const [error, setError] = useState<unknown>();
+  const tableState = new URLSearchParams(window.location.search).get("tableState") ?? undefined;
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    const load = async () => {
+      try {
+        const next = await adapter.trace(runId, tableState, controller.signal);
+        setTracePage(next);
+        setError(undefined);
+        if (next.trace.polling) timer = window.setTimeout(() => void load(), next.trace.pollIntervalMs);
+      } catch (reason) {
+        if (!isAbort(reason)) setError(reason);
+      }
+    };
+    void load();
+    return () => {
+      controller.abort();
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [adapter, refreshKey, runId, tableState]);
+
+  if (!tracePage) {
+    return (
+      <Shell current="runs" basePath={basePath} navigate={navigate}>
+        {error ? <ErrorState error={error} onRetry={() => setRefreshKey((value) => value + 1)} /> : <LoadingState label="Loading Trace…" />}
+      </Shell>
+    );
+  }
+
+  return <TraceContent adapter={adapter} basePath={basePath} runId={runId} navigate={navigate} tracePage={tracePage} onRefresh={() => setRefreshKey((value) => value + 1)} />;
+}
+
+function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh }: {
+  adapter: SkylineDtoAdapter;
+  basePath: string;
+  runId: string;
+  navigate: (to: string, replace?: boolean) => void;
+  tracePage: TracePageDto;
+  onRefresh: () => void;
+}) {
   const run = tracePage.run;
-  const nodes = useMemo<TraceNode[]>(() => tracePage.trace.events.map((event) => ({
-    id: event.id,
-    parentId: event.parentId,
-    runId: event.runId ?? runId,
-    kind: event.data.kind,
-    label: event.data.message,
-    level: event.level,
-    offsetMs: event.data.offsetNs / 1_000_000,
-    durationMs: (event.data.durationNs ?? 0) / 1_000_000,
-    status: event.data.status,
-    isError: event.data.isError,
-    isPartial: event.data.isPartial,
-    metadata: {},
-  })), [runId, tracePage.trace.events]);
+  const nodes = tracePage.trace.nodes;
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [queueTime, setQueueTime] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get("span") ?? nodes[0]?.id);
+  const [selectedId, setSelectedId] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get("node") ?? nodes[0]?.id);
+  const [selectedNode, setSelectedNode] = useState<InspectorDto>();
+  const [inspectorError, setInspectorError] = useState<unknown>();
+  const [inspectorKey, setInspectorKey] = useState(0);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [zoom, setZoom] = useState(0.08);
   const treeScrollRef = useRef<HTMLDivElement>(null);
@@ -362,9 +445,13 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
   }, [searchInput]);
 
   useEffect(() => {
-    setSelectedId(new URLSearchParams(window.location.search).get("span") ?? nodes[0]?.id);
+    setSelectedId((current) => {
+      const requested = new URLSearchParams(window.location.search).get("node") ?? undefined;
+      const next = requested ?? current ?? nodes[0]?.id;
+      return nodes.some((node) => node.id === next) ? next : nodes[0]?.id;
+    });
     setCollapsed(new Set());
-  }, [nodes, runId]);
+  }, [runId]);
 
   const childrenByParent = useMemo(() => {
     const result = new Map<string, TraceNode[]>();
@@ -384,7 +471,7 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
         let parent = node.parentId;
         while (parent) {
           match.add(parent);
-          parent = nodes.find((candidate) => candidate.id === parent)?.parentId;
+          parent = nodes.find((candidate) => candidate.id === parent)?.parentId ?? null;
         }
       }
     }
@@ -393,23 +480,48 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
       let parent = node.parentId;
       while (parent) {
         if (collapsed.has(parent)) return false;
-        parent = nodes.find((candidate) => candidate.id === parent)?.parentId;
+        parent = nodes.find((candidate) => candidate.id === parent)?.parentId ?? null;
       }
       return true;
     });
   }, [nodes, search, errorsOnly, collapsed]);
 
   const selectedTraceNode = nodes.find((node) => node.id === selectedId);
-  const selectedNode = selectedTraceNode ? adapter.inspector(selectedTraceNode.id, runId) : undefined;
-  const totalDuration = Math.max(...nodes.map((node) => node.offsetMs + node.durationMs), 1);
-  const queueDuration = (tracePage.trace.queuedDurationNs ?? 0) / 1_000_000;
-  const queueOffset = queueTime ? 0 : Math.min(queueDuration, totalDuration / 4);
+
+  useEffect(() => {
+    if (!selectedTraceNode) {
+      setSelectedNode(undefined);
+      setInspectorError(undefined);
+      return;
+    }
+    const controller = new AbortController();
+    setSelectedNode(undefined);
+    setInspectorError(undefined);
+    void adapter.inspector(selectedTraceNode.id, runId, controller.signal)
+      .then(setSelectedNode)
+      .catch((reason) => { if (!isAbort(reason)) setInspectorError(reason); });
+    return () => controller.abort();
+  }, [adapter, inspectorKey, runId, selectedTraceNode?.id, tracePage.trace.revision]);
+
+  const totalDuration = Math.max(
+    (tracePage.trace.durationUs ?? tracePage.trace.activeDurationUs ?? 0) / 1_000,
+    ...nodes.map((node) => (node.offsetUs + (node.durationUs ?? 0)) / 1_000),
+    1,
+  );
+  const queueDuration = (tracePage.trace.queuedDurationUs ?? 0) / 1_000;
+  const queueOffset = queueTime ? 0 : Math.min(queueDuration, totalDuration);
   const displayedDuration = Math.max(1, totalDuration - queueOffset);
+
+  const navigateRun = useCallback((nextRunId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("node", `run_${nextRunId}`);
+    navigate(`${basePath}/runs/${encodeURIComponent(nextRunId)}?${params}`);
+  }, [basePath, navigate]);
 
   const selectNode = useCallback((id?: string) => {
     setSelectedId(id);
     const params = new URLSearchParams(window.location.search);
-    if (id) params.set("span", id); else params.delete("span");
+    if (id) params.set("node", id); else params.delete("node");
     navigate(`${window.location.pathname}?${params.toString()}`, true);
   }, [navigate]);
 
@@ -449,7 +561,7 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
       if (event.key === "ArrowLeft" && selectedId) {
         event.preventDefault();
         if (childrenByParent.has(selectedId) && !collapsed.has(selectedId)) toggleNode(selectedId);
-        else selectNode(nodes.find((node) => node.id === selectedId)?.parentId);
+        else selectNode(nodes.find((node) => node.id === selectedId)?.parentId ?? undefined);
       }
       if (event.key === "ArrowRight" && selectedId) {
         event.preventDefault();
@@ -457,14 +569,13 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
         else selectNode(childrenByParent.get(selectedId)?.[0]?.id ?? selectedId);
       }
       if (event.key.toLowerCase() === "p" && tracePage.run.parentRunId) {
-        navigate(`/skyline/runs/${tracePage.run.parentRunId}?span=${tracePage.run.parentRunId}`);
+        navigateRun(tracePage.run.parentRunId);
       }
       if (["j", "k"].includes(event.key.toLowerCase())) {
-        const runs = adapter.runs().runs;
-        const index = runs.findIndex((candidate) => candidate.id === runId);
-        const offset = event.key.toLowerCase() === "j" ? 1 : -1;
-        const adjacent = runs[index + offset];
-        if (adjacent) navigate(`/skyline/runs/${adjacent.id}?span=${adjacent.id}`);
+        const adjacent = event.key.toLowerCase() === "j"
+          ? tracePage.navigation.nextRunId
+          : tracePage.navigation.previousRunId;
+        if (adjacent) navigateRun(adjacent);
       }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
@@ -475,26 +586,30 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [adapter, childrenByParent, collapsed, navigate, nodes, runId, selectNode, selectedId, toggleNode, tracePage.run.parentRunId, visibleNodes]);
+  }, [childrenByParent, collapsed, navigateRun, nodes, selectNode, selectedId, toggleNode, tracePage.navigation.nextRunId, tracePage.navigation.previousRunId, tracePage.run.parentRunId, visibleNodes]);
 
   return (
-    <Shell current="runs" navigate={navigate}>
+    <Shell current="runs" basePath={basePath} navigate={navigate}>
       <div className="flex h-full flex-col overflow-hidden">
         <PageHeader>
-          <button className="text-text-faint hover:text-text-bright" onClick={() => navigate(`/skyline${new URLSearchParams(window.location.search).get("tableState") ?? ""}`)}>Runs</button>
+          <button className="text-text-faint hover:text-text-bright" onClick={() => {
+            const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+            navigate(`${basePath}${returnTo ?? ""}`);
+          }}>Runs</button>
           <span className="mx-2 text-text-faint">/</span>
           <span className="font-mono text-text-bright">{run.id}</span>
           <div className="ml-auto flex items-center gap-2">
-            <button className="flex h-7 items-center gap-1 rounded border border-grid-bright bg-background-bright px-2 text-xs hover:bg-background-hover" onClick={() => setRefreshKey((value) => value + 1)}><IconRefresh className="size-3.5" /> Refresh</button>
+            <button className="flex h-7 items-center gap-1 rounded border border-grid-bright bg-background-bright px-2 text-xs hover:bg-background-hover" onClick={onRefresh}><IconRefresh className="size-3.5" /> Refresh</button>
           </div>
         </PageHeader>
 
         <div className="flex h-10 shrink-0 items-center gap-2 border-b border-grid-bright px-3">
           {tracePage.run.parentRunId ? (
-            <button className="flex items-center gap-1 text-xs text-text-faint hover:text-text-bright" onClick={() => navigate(`/skyline/runs/${tracePage.run.parentRunId}?span=${tracePage.run.parentRunId}`)}>
+            <button className="flex items-center gap-1 text-xs text-text-faint hover:text-text-bright" onClick={() => navigateRun(tracePage.run.parentRunId!)}>
               <IconStack2 className="size-4" /> Root/parent Run <span className="rounded border border-grid-bright px-1 font-mono text-xxs">P</span>
             </button>
           ) : <div className="text-xs text-text-faint">Root Run</div>}
+          {tracePage.trace.isTruncated && <div className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">Trace truncated to {nodes.length.toLocaleString()} nodes</div>}
           <label className="ml-auto flex h-7 w-64 items-center gap-2 rounded border border-grid-bright bg-input-bg px-2">
             <IconSearch className="size-3.5 text-text-faint" />
             <input className="w-full border-0 bg-transparent p-0 text-xs text-text-bright placeholder:text-text-faint focus:ring-0" placeholder="Search Trace" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
@@ -525,11 +640,16 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
                       <div>
                         {visibleNodes.map((node) => (
                           <Timeline.Row key={node.id} className={`h-8 border-b border-grid-dimmed ${selectedId === node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(node.id)}>
-                            <Timeline.Span startMs={Math.max(0, node.offsetMs - queueOffset)} durationMs={Math.max(2, node.durationMs)} className="top-[7px] h-[18px] min-w-1 px-1">
+                            <Timeline.Span startMs={Math.max(0, node.offsetUs / 1_000 - queueOffset)} durationMs={Math.max(2, nodeDurationMs(node, totalDuration, queueOffset))} className="top-[7px] h-[18px] min-w-1 px-1">
                               <div className={`h-full rounded-sm ${barClass(node)} ${node.kind === "run" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" : ""}`}>
-                                {node.durationMs > totalDuration * 0.08 && <span className="px-1 font-mono text-xxs text-white/90">{formatDuration(node.durationMs)}</span>}
+                                {nodeDurationMs(node, totalDuration, queueOffset) > totalDuration * 0.08 && <span className="px-1 font-mono text-xxs text-white/90">{formatDuration(nodeDurationMs(node, totalDuration, queueOffset))}</span>}
                               </div>
                             </Timeline.Span>
+                            {node.timelineEvents.map((event, index) => (
+                              <Timeline.Point key={`${event.name}:${event.offsetUs}:${index}`} ms={Math.max(0, event.offsetUs / 1_000 - queueOffset)} className="top-[13px] z-10">
+                                {() => <span title={event.name} className="block size-1.5 rounded-full border border-background-dimmed bg-text-bright" />}
+                              </Timeline.Point>
+                            ))}
                           </Timeline.Row>
                         ))}
                       </div>
@@ -538,13 +658,13 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
                 </ResizablePanel>
               </ResizablePanelGroup>
             </ResizablePanel>
-            <ResizableHandle id="parent-handle" className={!selectedNode ? "pointer-events-none opacity-0" : ""} />
+            <ResizableHandle id="parent-handle" className={!selectedTraceNode ? "pointer-events-none opacity-0" : ""} />
             <ResizablePanel
               id="inspector"
               default="500px"
               min="250px"
               collapsible
-              collapsed={!selectedNode}
+              collapsed={!selectedTraceNode}
               onCollapseChange={() => {}}
               collapsedSize="0px"
               collapseAnimation={RESIZABLE_PANEL_ANIMATION}
@@ -552,6 +672,8 @@ function TracePage({ adapter, runId, navigate }: { adapter: SkylineDtoAdapter; r
             >
               <div className="h-full" style={{ minWidth: 250 }}>
                 {selectedNode && <Inspector node={selectedNode} run={run} onClose={() => selectNode(undefined)} />}
+                {!selectedNode && inspectorError !== undefined && <ErrorState error={inspectorError} onRetry={() => setInspectorKey((value) => value + 1)} />}
+                {!selectedNode && !inspectorError && selectedTraceNode && <LoadingState label="Loading inspector…" />}
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
@@ -602,7 +724,7 @@ function TimelineHeader({ duration }: { duration: number }) {
   );
 }
 
-function Inspector({ node, run, onClose }: { node: TraceNode; run: TracePageDto["run"]; onClose: () => void }) {
+function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageDto["run"]; onClose: () => void }) {
   const [tab, setTab] = useState("Overview");
   useEffect(() => setTab("Overview"), [node.id]);
   const tabs = ["Overview", "Detail", "Context", "Metadata"];
@@ -620,24 +742,24 @@ function Inspector({ node, run, onClose }: { node: TraceNode; run: TracePageDto[
         <div role="tabpanel" className="min-h-0 flex-1 overflow-auto p-4">
           {tab === "Overview" && <Overview node={node} run={run} />}
           {tab === "Detail" && <Detail node={node} run={run} />}
-          {tab === "Context" && <PropertyList values={{ runId: node.runId, nodeId: node.id, parentId: node.parentId ?? "—", kind: node.kind }} />}
-          {tab === "Metadata" && <pre className="overflow-auto rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{JSON.stringify(node.metadata, null, 2)}</pre>}
+          {tab === "Context" && <PropertyList values={{ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId ?? "—", kind: node.kind }} />}
+          {tab === "Metadata" && <pre className="overflow-auto rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{JSON.stringify(node.metadata.value, null, 2)}</pre>}
         </div>
       </div>
     </aside>
   );
 }
 
-function Overview({ node, run }: { node: TraceNode; run: TracePageDto["run"] }) {
+function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
   return (
     <div className="space-y-4">
       <Status status={node.status} />
       {node.kind === "run" && (
         <div className="rounded border border-grid-bright bg-background-dimmed p-3">
-          <Lifecycle label="Triggered" value={formatTime(run.queuedAt)} first />
-          <Lifecycle label="Queued" value={run.queueDurationMs ? `${formatDuration(run.queueDurationMs)} queue time` : "Waiting"} />
+          <Lifecycle label="Triggered" value={formatTime(run.triggeredAt)} first />
+          {run.queuedAt && <Lifecycle label="Queued" value={run.queueDurationUs ? `${formatDuration(run.queueDurationUs / 1_000)} queue time` : "Queued"} />}
           <Lifecycle label="Started" value={run.startedAt ? "Worker received Job" : "Not started"} />
-          <Lifecycle label={run.status === "failed" ? "Failed" : "Finished"} value={formatOptionalDuration(run.durationMs)} last />
+          <Lifecycle label={run.status === "failed" ? "Failed" : "Finished"} value={formatOptionalDurationUs(run.durationUs)} last />
         </div>
       )}
       {node.exception && (
@@ -645,22 +767,22 @@ function Overview({ node, run }: { node: TraceNode; run: TracePageDto["run"] }) 
           <div className="font-mono text-xs text-error">{node.exception.class}</div>
           <p className="mt-2 text-sm text-text-bright">{node.exception.message}</p>
           <div className="mt-3 space-y-2 border-t border-error/20 pt-3 font-mono text-xxs">
-            {node.exception.frames.map((frame) => <div key={`${frame.file}:${frame.line}`}><div className="text-text-bright">{frame.call}</div><div className="text-text-faint">{frame.file}:{frame.line}</div></div>)}
+            {node.exception.frames.map((frame, index) => <div key={`${frame.file}:${frame.line}:${index}`}><div className="text-text-bright">{formatFrameCall(frame)}</div><div className="text-text-faint">{frame.file}:{frame.line}</div></div>)}
           </div>
         </div>
       )}
-      {node.kind !== "run" && <PropertyList values={{ Started: formatDuration(node.offsetMs), Duration: formatDuration(node.durationMs), Status: node.status }} />}
+      {node.kind !== "run" && <PropertyList values={{ Started: formatDuration(node.offsetUs / 1_000), Duration: node.durationUs === null ? "Running" : formatDuration(node.durationUs / 1_000), Status: node.status }} />}
     </div>
   );
 }
 
-function Detail({ node, run }: { node: TraceNode; run: TracePageDto["run"] }) {
-  if (node.kind === "query") return <div><div className="mb-2 text-xs text-text-faint">Parameterized SQL</div><pre className="whitespace-pre-wrap rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{node.sql}</pre></div>;
-  return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDuration(run.durationMs) }} />;
+function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
+  if (node.kind === "query") return <div><div className="mb-2 text-xs text-text-faint">Parameterized SQL</div><pre className="whitespace-pre-wrap rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{node.sql?.value}</pre></div>;
+  return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
 }
 
-function PropertyList({ values }: { values: Record<string, string | number | undefined> }) {
-  return <dl className="divide-y divide-grid-dimmed rounded border border-grid-bright">{Object.entries(values).map(([key, value]) => <div key={key} className="grid grid-cols-[8rem_1fr] gap-3 px-3 py-2"><dt className="text-xs text-text-faint">{key}</dt><dd className="min-w-0 break-all font-mono text-xs text-text-bright">{value}</dd></div>)}</dl>;
+function PropertyList({ values }: { values: Record<string, string | number | null | undefined> }) {
+  return <dl className="divide-y divide-grid-dimmed rounded border border-grid-bright">{Object.entries(values).map(([key, value]) => <div key={key} className="grid grid-cols-[8rem_1fr] gap-3 px-3 py-2"><dt className="text-xs text-text-faint">{key}</dt><dd className="min-w-0 break-all font-mono text-xs text-text-bright">{value ?? "—"}</dd></div>)}</dl>;
 }
 
 function Lifecycle({ label, value, first, last }: { label: string; value: string; first?: boolean; last?: boolean }) {
@@ -678,7 +800,42 @@ function Status({ status }: { status: RunStatus | "released" }) {
 
 function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
 function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 1 : 2)}s` : `${Math.round(ms)}ms`; }
-function formatOptionalDuration(ms?: number) { return ms ? formatDuration(ms) : "—"; }
-function formatTime(iso: string) { return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }); }
+function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
+function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
 function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; return "bg-charcoal-550"; }
+function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
+  const duration = node.durationUs === null ? Math.max(0, totalDuration - node.offsetUs / 1_000) : node.durationUs / 1_000;
+  return node.parentId === null ? Math.max(0, duration - queueOffset) : duration;
+}
+function escapeRegExp(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function isAbort(reason: unknown) { return reason instanceof DOMException && reason.name === "AbortError"; }
+function formatFrameCall(frame: NonNullable<InspectorDto["exception"]>["frames"][number]) {
+  return `${frame.class ?? ""}${frame.type ?? ""}${frame.function}`;
+}
+function mergeRunUpdates(current: RunsPageDto["runs"], updates: RunsPageDto["runs"], statuses?: RunStatus[]) {
+  const changed = new Map(updates.map((run) => [run.id, run]));
+  return current.flatMap((run) => {
+    const next = changed.get(run.id) ?? run;
+    return statuses && !statuses.includes(next.status) ? [] : [next];
+  });
+}
+
+function LoadingState({ label }: { label: string }) {
+  return <div className="grid h-full min-h-48 place-items-center text-text-faint"><div className="flex items-center gap-2"><IconRefresh className="size-4 animate-spin" />{label}</div></div>;
+}
+
+function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  const forbidden = error instanceof SkylineApiError && error.status === 403;
+  const message = error instanceof Error ? error.message : "Skyline could not load telemetry.";
+  return (
+    <div className="grid h-full min-h-48 place-items-center p-6 text-center">
+      <div>
+        <IconAlertTriangle className="mx-auto mb-3 size-6 text-error" />
+        <div className="font-medium text-text-bright">{forbidden ? "Skyline access denied" : "Unable to load Skyline"}</div>
+        <p className="mt-1 max-w-md text-sm text-text-faint">{message}</p>
+        {!forbidden && <button className="mt-4 rounded border border-grid-bright px-3 py-1.5 text-xs hover:bg-background-hover" onClick={onRetry}>Try again</button>}
+      </div>
+    </div>
+  );
+}

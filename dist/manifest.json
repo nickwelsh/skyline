@@ -8,12 +8,12 @@
     "src": "node_modules/.pnpm/non.geist@1.0.2/node_modules/non.geist/fonts/sans/GeistVariableVF.woff2"
   },
   "resources/js/app.tsx": {
-    "file": "skyline.250ede54.js",
+    "file": "skyline.8c013a80.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "css": [
-      "skyline.7b985eaa.css"
+      "skyline.62649c29.css"
     ],
     "assets": [
       "skyline-GeistVariableVF.2eac40ce.woff2",

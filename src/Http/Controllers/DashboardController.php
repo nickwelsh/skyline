@@ -14,6 +14,7 @@ final readonly class DashboardController
         $entry = $this->manifest->entry('resources/js/app.tsx');
 
         return response()->view('skyline::index', [
+            'basePath' => '/'.trim((string) config('skyline.path', 'skyline'), '/'),
             'script' => route('skyline.asset', ['asset' => $entry['file']]),
             'styles' => array_map(
                 fn (string $asset): string => route('skyline.asset', ['asset' => $asset]),

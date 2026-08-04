@@ -9,7 +9,7 @@ const entry = manifest["resources/js/app.tsx"];
 const assets = new Set(Object.values(manifest).flatMap((item) => [item.file, ...(item.css ?? []), ...(item.assets ?? [])]));
 const contentTypes = { ".css": "text/css", ".js": "text/javascript", ".woff2": "font/woff2" };
 
-const html = `<!doctype html><html lang="en" data-theme="classic"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skyline</title>${entry.css.map((file) => `<link rel="stylesheet" href="/skyline/assets/${file}">`).join("")}</head><body><div id="skyline"></div><script type="module" src="/skyline/assets/${entry.file}"></script></body></html>`;
+const html = (fixtures) => `<!doctype html><html lang="en" data-theme="classic"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skyline</title>${entry.css.map((file) => `<link rel="stylesheet" href="/skyline/assets/${file}">`).join("")}</head><body><div id="skyline" data-base-path="/skyline" data-fixtures="${fixtures}"></div><script type="module" src="/skyline/assets/${entry.file}"></script></body></html>`;
 
 createServer((request, response) => {
   const asset = new URL(request.url ?? "/", "http://127.0.0.1").pathname.match(/^\/skyline\/assets\/([^/]+)$/)?.[1];
@@ -20,7 +20,7 @@ createServer((request, response) => {
   }
   if ((request.url ?? "").startsWith("/skyline")) {
     response.writeHead(200, { "Content-Type": "text/html; charset=UTF-8" });
-    response.end(html);
+    response.end(html(!new URL(request.url ?? "/", "http://127.0.0.1").searchParams.has("production")));
     return;
   }
   response.writeHead(404).end();

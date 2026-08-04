@@ -3,114 +3,167 @@ import type {
   InspectorDto,
   RunsPageDto,
   RunsQuery,
+  RunsUpdatesDto,
   Scenario,
   SkylineDtoAdapter,
+  TraceNode,
   TracePageDto,
 } from "./dto";
 
-const queuedAtByRun = new Map([
-  ["run_01J8R4NQX6K3PV4W0A1H2Z7M9C", "2026-08-04T20:01:21.000Z"],
-  ["run_01J8R4H9S9J12V04CNH6F6JQ3M", "2026-08-04T20:01:26.000Z"],
-  ["run_01J8R47YYNA4GFVDMTQ9P59BJW", "2026-08-04T20:00:58.000Z"],
-  ["run_01J8R3XK1YV76N3Q51RPXQ0VC2", "2026-08-04T19:59:42.000Z"],
-  ["run_01J8R3RXZ6A7J19G4Y53CXF7F4", "2026-08-04T19:58:11.000Z"],
+const triggeredAtByRun = new Map([
+  ["run_01J8R4NQX6K3PV4W0A1H2Z7M9C", "2026-08-04T20:01:21.000000000Z"],
+  ["run_01J8R4H9S9J12V04CNH6F6JQ3M", "2026-08-04T20:01:26.000000000Z"],
+  ["run_01J8R47YYNA4GFVDMTQ9P59BJW", "2026-08-04T20:00:58.000000000Z"],
+  ["run_01J8R3XK1YV76N3Q51RPXQ0VC2", "2026-08-04T19:59:42.000000000Z"],
+  ["run_01J8R3RXZ6A7J19G4Y53CXF7F4", "2026-08-04T19:58:11.000000000Z"],
 ]);
 
 export class FixtureAdapter implements SkylineDtoAdapter {
-  runs(query: RunsQuery = {}): RunsPageDto {
+  async runs(query: RunsQuery = {}): Promise<RunsPageDto> {
     const source = scenarios[0].runs;
     const search = query.search?.toLowerCase();
     const filtered = source.filter((run) => {
       const matchesSearch = !search || run.id.toLowerCase().includes(search) || run.name.toLowerCase().includes(search);
       return matchesSearch && (!query.status || query.status.includes(run.status));
     });
-
-    const limit = query.limit ?? 25;
     const requestedOffset = Number.parseInt(query.cursor ?? "0", 10);
     const offset = Number.isFinite(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;
 
     return {
-      runs: filtered.slice(offset, offset + limit).map((run, index) => ({
-        id: run.id,
-        name: run.name,
-        status: run.status,
-        connection: run.connection,
-        queue: run.queue,
-        attemptCount: run.attemptCount,
-        queuedAt: queuedAtByRun.get(run.id) ?? generatedTimestamp(offset + index),
-        startedAt: run.status === "queued" ? undefined : (queuedAtByRun.get(run.id) ?? generatedTimestamp(offset + index)),
-        finishedAt: ["completed", "failed"].includes(run.status) ? (queuedAtByRun.get(run.id) ?? generatedTimestamp(offset + index)) : undefined,
-        queueDurationMs: parseDuration(run.queueDuration),
-        durationMs: parseDuration(run.duration),
-      })),
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      observedAt: "2026-08-04T20:02:00.000000000Z",
+      runs: filtered.slice(offset, offset + 25).map((run, index) => this.summary(run, offset + index)),
       pagination: {
-        next: offset + limit < filtered.length ? String(offset + limit) : undefined,
-        previous: offset > 0 ? String(Math.max(0, offset - limit)) : undefined,
+        next: offset + 25 < filtered.length ? String(offset + 25) : null,
+        previous: offset > 0 ? String(Math.max(0, offset - 25)) : null,
+      },
+      pollCursor: "fixture-poll",
+      polling: { activeRunsIntervalMs: 3_000, newRunsIntervalMs: 6_000 },
+      tableState: query.cursor ?? "",
+      filters: query,
+      options: {
+        statuses: ["queued", "running", "retrying", "completed", "failed"],
+        jobNames: [...new Set(source.map((run) => run.name))].sort(),
+        queueTargets: [...new Map(source.map((run) => [`${run.connection}:${run.queue}`, {
+          connection: run.connection,
+          queue: run.queue,
+        }])).values()],
       },
       hasAnyRuns: source.length > 0,
     };
   }
 
-  trace(runId: string): TracePageDto {
-    const { nodes, parentRunId, rootRunId, run } = this.fixtureForRun(runId);
-    const root = nodes[0];
-    const children = new Map<string, string[]>();
+  async updates(query: RunsQuery, _since: string, runIds: string[] = []): Promise<RunsUpdatesDto> {
+    const page = await this.runs(query);
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      observedAt: page.observedAt,
+      runs: runIds.length ? page.runs.filter((run) => runIds.includes(run.id)) : [],
+      newRunCount: 0,
+      pollCursor: "fixture-poll-next",
+    };
+  }
 
-    for (const node of nodes) {
-      if (node.parentId) children.set(node.parentId, [...(children.get(node.parentId) ?? []), node.id]);
-    }
+  async trace(runId: string, tableState?: string): Promise<TracePageDto> {
+    const { nodes: rawNodes, parentRunId, rootRunId, run } = this.fixtureForRun(runId);
+    const nodes = normalizeNodes(rawNodes);
+    const summary = this.summary(run, 0);
+    const runs = scenarios[0].runs;
+    const index = runs.findIndex((candidate) => candidate.id === runId);
 
     return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      observedAt: "2026-08-04T20:02:00.000000000Z",
       run: {
-        id: run.id,
-        name: run.name,
-        status: run.status,
-        connection: run.connection,
-        queue: run.queue,
-        attemptCount: run.attemptCount,
-        queuedAt: queuedAtByRun.get(run.id) ?? generatedTimestamp(0),
-        startedAt: run.status === "queued" ? undefined : (queuedAtByRun.get(run.id) ?? generatedTimestamp(0)),
-        finishedAt: ["completed", "failed"].includes(run.status) ? (queuedAtByRun.get(run.id) ?? generatedTimestamp(0)) : undefined,
-        queueDurationMs: parseDuration(run.queueDuration),
-        durationMs: parseDuration(run.duration),
-        traceId: String(root.metadata.traceId ?? "fixture-trace"),
+        ...summary,
+        traceId: String(rawNodes[0].metadata.traceId ?? "fixture-trace"),
         rootRunId,
-        parentRunId,
+        parentRunId: parentRunId ?? null,
       },
       trace: {
-        rootSpanStatus: root.status === "failed" ? "failed" : root.status === "running" ? "executing" : "completed",
-        durationNs: Math.max(...nodes.map((node) => node.offsetMs + node.durationMs)) * 1_000_000,
-        rootStartedAt: queuedAtByRun.get(run.id) ?? "2026-08-04T20:00:00.000Z",
-        queuedDurationNs: parseDuration(run.queueDuration) * 1_000_000,
-        events: nodes.map((node) => ({
-          id: node.id,
-          parentId: node.parentId,
-          runId: node.runId,
-          children: children.get(node.id) ?? [],
-          hasChildren: children.has(node.id),
-          level: node.level,
-          data: {
-            message: node.label,
-            kind: node.kind,
-            status: node.status,
-            level: node.isError ? "ERROR" : "INFO",
-            offsetNs: node.offsetMs * 1_000_000,
-            durationNs: node.durationMs * 1_000_000,
-            isError: node.isError ?? false,
-            isPartial: node.isPartial ?? false,
-            isCancelled: false,
-            timelineEvents: [],
-          },
-        })),
+        revision: 1,
+        rootStatus: rawNodes[0].status === "failed" ? "failed" : rawNodes[0].status === "running" ? "executing" : "completed",
+        durationUs: Math.max(...rawNodes.map((node) => node.offsetMs + node.durationMs)) * 1_000,
+        activeDurationUs: null,
+        rootStartedAt: summary.triggeredAt,
+        queuedDurationUs: summary.queueDurationUs,
+        nodes,
+        nodeCount: nodes.length,
+        isTruncated: false,
+        polling: false,
+        pollIntervalMs: 3_000,
+        pollUntil: null,
+      },
+      navigation: {
+        previousRunId: runs[index - 1]?.id ?? null,
+        nextRunId: runs[index + 1]?.id ?? null,
+        tableState: tableState ?? "",
+        listCursor: tableState || null,
       },
     };
   }
 
-  inspector(nodeId: string, runId?: string): InspectorDto {
-    const source = runId ? this.fixtureForRun(runId).nodes : scenarios.flatMap((scenario) => scenario.nodes);
-    const node = source.find((candidate) => candidate.id === nodeId);
-    if (!node) throw new Error(`Unknown fixture inspector node: ${nodeId}`);
-    return node;
+  async inspector(nodeId: string, runId: string): Promise<InspectorDto> {
+    const raw = this.fixtureForRun(runId).nodes;
+    const nodes = normalizeNodes(raw);
+    const index = nodes.findIndex((node) => node.id === nodeId);
+    if (index < 0) throw new Error(`Unknown fixture inspector node: ${nodeId}`);
+    const node = nodes[index];
+    const fixture = raw[index];
+
+    return {
+      ...node,
+      overview: { runId: node.runId, nodeId: node.id, kind: node.kind },
+      exception: fixture.exception ? {
+        class: fixture.exception.class,
+        message: fixture.exception.message,
+        messageTruncated: false,
+        messageOriginalBytes: fixture.exception.message.length,
+        code: null,
+        location: {
+          file: fixture.exception.frames[0]?.file ?? "unknown",
+          line: fixture.exception.frames[0]?.line ?? null,
+        },
+        frames: fixture.exception.frames.map((frame) => ({
+          file: frame.file,
+          line: frame.line,
+          class: null,
+          type: null,
+          function: frame.call,
+        })),
+        framesTruncated: false,
+      } : null,
+      sql: fixture.sql ? { value: fixture.sql, isTruncated: false, originalBytes: fixture.sql.length } : undefined,
+      metadata: { value: fixture.metadata, isTruncated: false, truncated: [] },
+    };
+  }
+
+  private summary(run: Scenario["runs"][number], index: number) {
+    const triggeredAt = triggeredAtByRun.get(run.id) ?? generatedTimestamp(index);
+    const queueDurationUs = parseDuration(run.queueDuration) * 1_000;
+    const durationUs = parseDuration(run.duration) * 1_000;
+    const started = !["queued"].includes(run.status);
+    const terminal = ["completed", "failed"].includes(run.status);
+
+    return {
+      id: run.id,
+      name: run.name,
+      status: run.status,
+      connection: run.connection,
+      queue: run.queue,
+      attemptCount: run.attemptCount,
+      triggeredAt,
+      queuedAt: run.status === "queued" ? null : triggeredAt,
+      startedAt: started ? triggeredAt : null,
+      finishedAt: terminal ? triggeredAt : null,
+      queueDurationUs: queueDurationUs || null,
+      durationUs: durationUs || null,
+      activeDurationUs: !terminal && started ? durationUs || null : null,
+      revision: 1,
+    };
   }
 
   private fixtureForRun(runId: string): { run: Scenario["runs"][number]; nodes: Scenario["nodes"]; rootRunId: string; parentRunId?: string } {
@@ -139,6 +192,27 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       }],
     };
   }
+}
+
+function normalizeNodes(source: Scenario["nodes"]): TraceNode[] {
+  const runNodeIds = new Set(source.filter((node) => node.kind === "run").map((node) => node.id));
+  return source.map((node) => ({
+    id: node.kind === "run" ? `run_${node.id}` : node.id,
+    parentId: node.parentId ? (runNodeIds.has(node.parentId) ? `run_${node.parentId}` : node.parentId) : null,
+    runId: node.runId,
+    kind: node.kind,
+    label: node.label,
+    level: node.level,
+    offsetUs: node.offsetMs * 1_000,
+    durationUs: node.durationMs * 1_000,
+    status: node.status,
+    isError: node.isError ?? false,
+    isPartial: node.isPartial ?? false,
+    hasErrorDescendant: node.isPartial ?? false,
+    children: source.filter((candidate) => candidate.parentId === node.id).map((candidate) => candidate.kind === "run" ? `run_${candidate.id}` : candidate.id),
+    hasChildren: source.some((candidate) => candidate.parentId === node.id),
+    timelineEvents: [],
+  }));
 }
 
 function generatedTimestamp(index: number): string {

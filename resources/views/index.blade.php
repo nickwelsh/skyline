@@ -9,7 +9,7 @@
     @endforeach
 </head>
 <body>
-    <div id="skyline"></div>
+    <div id="skyline" data-base-path="{{ $basePath }}"></div>
     <script type="module" src="{{ $script }}"></script>
 </body>
 </html>

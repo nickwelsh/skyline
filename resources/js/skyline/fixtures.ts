@@ -1,6 +1,9 @@
-import type { RunSummary, Scenario, TraceNode } from "./dto";
+import type { Scenario } from "./dto";
 
-const representativeRuns: RunSummary[] = [
+type FixtureRun = Scenario["runs"][number];
+type FixtureNode = Scenario["nodes"][number];
+
+const representativeRuns: FixtureRun[] = [
   {
     id: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
     name: "App\\Jobs\\GenerateMonthlyInvoices",
@@ -58,9 +61,9 @@ const representativeRuns: RunSummary[] = [
   },
 ];
 
-const runs: RunSummary[] = [
+const runs: FixtureRun[] = [
   ...representativeRuns,
-  ...Array.from({ length: 25 }, (_, index): RunSummary => {
+  ...Array.from({ length: 25 }, (_, index): FixtureRun => {
     const number = index + 6;
 
     return {
@@ -77,7 +80,7 @@ const runs: RunSummary[] = [
   }),
 ];
 
-const retryNodes: TraceNode[] = [
+const retryNodes: FixtureNode[] = [
   {
     id: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
     runId: runs[0].id,
@@ -201,7 +204,7 @@ const retryNodes: TraceNode[] = [
   },
 ];
 
-const successNodes: TraceNode[] = retryNodes.filter((node) =>
+const successNodes: FixtureNode[] = retryNodes.filter((node) =>
   [runs[1].id, "attempt_01J8R4H9S9J12V04CNH6F6JQ3M_1", "span_a866b446b5df56e3"].includes(node.id),
 ).map((node, index) => ({
   ...node,
@@ -210,7 +213,7 @@ const successNodes: TraceNode[] = retryNodes.filter((node) =>
   offsetMs: Math.max(0, node.offsetMs - 5150),
 }));
 
-const failureNodes: TraceNode[] = [
+const failureNodes: FixtureNode[] = [
   {
     id: runs[3].id,
     runId: runs[3].id,
