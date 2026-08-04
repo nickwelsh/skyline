@@ -2,6 +2,7 @@
 
 namespace NickWelsh\Skyline\Persistence;
 
+use Illuminate\Database\Query\Expression;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
 use NickWelsh\Skyline\Telemetry\LifecycleRecord;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
@@ -28,6 +29,8 @@ final readonly class TraceRepository
         ?string $parentRunId,
         int $observedAt,
         string $jobName = 'unknown',
+        ?string $connectionName = null,
+        ?string $queue = null,
     ): bool {
         $connection = $this->database->get();
         $timestamp = now();
@@ -44,6 +47,8 @@ final readonly class TraceRepository
             'trace_id' => $traceId,
             'parent_run_id' => $parentRunId,
             'job_name' => $jobName,
+            'connection' => $connectionName,
+            'queue' => $queue,
             'status' => 'dispatched',
             'triggered_at' => $observedAt,
             'created_at' => $timestamp,
@@ -54,33 +59,20 @@ final readonly class TraceRepository
             $this->touch($traceId, $observedAt);
         }
 
-        return $traceInserted || $runInserted;
+        return $runInserted;
     }
 
     public function touch(string $traceId, int $observedAt): void
     {
-        $connection = $this->database->get();
-
-        for ($attempt = 0; $attempt < 3; $attempt++) {
-            $trace = $connection->table('skyline_traces')->where('trace_id', $traceId)->first();
-
-            if ($trace === null) {
-                return;
-            }
-
-            $changed = $connection->table('skyline_traces')
-                ->where('trace_id', $traceId)
-                ->where('revision', $trace->revision)
-                ->update([
-                    'revision' => (int) $trace->revision + 1,
-                    'last_activity_at' => max((int) $trace->last_activity_at, $observedAt),
-                    'updated_at' => now(),
-                ]);
-
-            if ($changed > 0) {
-                return;
-            }
-        }
+        $this->database->get()->table('skyline_traces')
+            ->where('trace_id', $traceId)
+            ->update([
+                'revision' => new Expression('revision + 1'),
+                'last_activity_at' => new Expression(
+                    "CASE WHEN last_activity_at < {$observedAt} THEN {$observedAt} ELSE last_activity_at END",
+                ),
+                'updated_at' => now(),
+            ]);
     }
 
     public function ensureAttemptFromSpan(SpanDataInterface $span): void
@@ -118,13 +110,19 @@ final readonly class TraceRepository
             return;
         }
 
-        $this->ensureRun(
+        $inserted = $this->ensureRun(
             $traceId,
             $record->runId,
             $this->stringAttribute($record, 'parent_run_id'),
             $record->observedAt,
             $this->stringAttribute($record, 'job_name') ?? 'unknown',
+            $this->stringAttribute($record, 'connection'),
+            $this->stringAttribute($record, 'queue'),
         );
+
+        if ($inserted) {
+            return;
+        }
 
         $this->updateRun($record->runId, function (object $run) use ($record): array {
             $updates = [];
@@ -143,72 +141,79 @@ final readonly class TraceRepository
 
     private function queue(LifecycleRecord $record): void
     {
-        $this->updateRun($record->runId, function (object $run) use ($record): array {
-            $updates = [];
+        $updates = [
+            'status' => 'queued',
+            'queued_at' => $record->observedAt,
+            'confirmed_at' => $record->observedAt,
+            'updated_at' => now(),
+        ];
 
-            if ($run->status === 'dispatched') {
-                $updates['status'] = 'queued';
+        foreach (['connection', 'queue', 'driver_id', 'queue_time_source'] as $attribute) {
+            if (($value = $this->stringAttribute($record, $attribute)) !== null) {
+                $updates[$attribute] = $value;
             }
+        }
 
-            if ($run->queued_at === null) {
-                $updates['queued_at'] = $record->observedAt;
-            }
+        $changed = $this->database->get()->table('skyline_runs')
+            ->where('run_id', $record->runId)
+            ->where('status', 'dispatched')
+            ->update($updates) > 0;
 
-            if ($run->confirmed_at === null) {
-                $updates['confirmed_at'] = $record->observedAt;
-            }
-
-            foreach (['connection', 'queue', 'driver_id', 'queue_time_source'] as $attribute) {
-                $value = $this->stringAttribute($record, $attribute);
-
-                if ($value !== null && $run->{$attribute} !== $value) {
-                    $updates[$attribute] = $value;
-                }
-            }
-
-            return $updates;
-        }, $record->observedAt);
+        if ($changed && ($traceId = $this->stringAttribute($record, 'trace_id')) !== null) {
+            $this->touch($traceId, $record->observedAt);
+        }
     }
 
     private function process(LifecycleRecord $record): void
     {
         $traceId = $this->stringAttribute($record, 'trace_id');
 
-        if ($traceId !== null) {
-            $this->ensureRun(
+        $updates = [
+            'status' => 'running',
+            'started_at' => new Expression(
+                "CASE WHEN started_at IS NULL THEN {$record->observedAt} ELSE started_at END",
+            ),
+            'confirmed_at' => new Expression(
+                "CASE WHEN confirmed_at IS NULL THEN {$record->observedAt} ELSE confirmed_at END",
+            ),
+            'updated_at' => now(),
+        ];
+
+        foreach (['job_name', 'connection'] as $attribute) {
+            if (($value = $this->stringAttribute($record, $attribute)) !== null) {
+                $updates[$attribute] = $value;
+            }
+        }
+
+        $changed = $this->database->get()->table('skyline_runs')
+            ->where('run_id', $record->runId)
+            ->whereNotIn('status', ['completed', 'failed'])
+            ->update($updates) > 0;
+
+        if (! $changed && $traceId !== null) {
+            $inserted = $this->ensureRun(
                 $traceId,
                 $record->runId,
                 $this->stringAttribute($record, 'parent_run_id'),
                 $record->observedAt,
                 $this->stringAttribute($record, 'job_name') ?? 'unknown',
+                $this->stringAttribute($record, 'connection'),
             );
+
+            if ($inserted) {
+                $this->database->get()->table('skyline_runs')
+                    ->where('run_id', $record->runId)
+                    ->update($updates);
+                $changed = true;
+            }
         }
 
-        $this->updateRun($record->runId, function (object $run) use ($record): array {
-            $updates = [];
-
-            if (! in_array($run->status, ['completed', 'failed'], true) && $run->status !== 'running') {
-                $updates['status'] = 'running';
-            }
-
-            if ($run->started_at === null) {
-                $updates['started_at'] = $record->observedAt;
-            }
-
-            if ($run->confirmed_at === null) {
-                $updates['confirmed_at'] = $record->observedAt;
-            }
-
-            foreach (['job_name', 'connection'] as $attribute) {
-                $value = $this->stringAttribute($record, $attribute);
-
-                if ($value !== null && $run->{$attribute} !== $value) {
-                    $updates[$attribute] = $value;
-                }
-            }
-
-            return $updates;
-        }, $record->observedAt);
+        if ($changed
+            && $traceId !== null
+            && ($record->attributes['defer_touch'] ?? false) !== true
+        ) {
+            $this->touch($traceId, $record->observedAt);
+        }
     }
 
     private function startAttempt(LifecycleRecord $record): void
@@ -230,12 +235,8 @@ final readonly class TraceRepository
             'updated_at' => $timestamp,
         ]) > 0;
 
-        if ($inserted) {
-            $traceId = $this->traceId($record->runId);
-
-            if ($traceId !== null) {
-                $this->touch($traceId, $record->observedAt);
-            }
+        if ($inserted && ($traceId = $this->stringAttribute($record, 'trace_id')) !== null) {
+            $this->touch($traceId, $record->observedAt);
         }
     }
 
@@ -294,7 +295,9 @@ final readonly class TraceRepository
                 'updated_at' => now(),
             ]) > 0;
 
-        if (($attemptChanged || $runChanged) && ($traceId = $this->traceId($record->runId)) !== null) {
+        if (($attemptChanged || $runChanged)
+            && ($traceId = $this->stringAttribute($record, 'trace_id')) !== null
+        ) {
             $this->touch($traceId, $record->observedAt);
         }
     }

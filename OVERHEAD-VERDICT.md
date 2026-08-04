@@ -9,3 +9,5 @@ Validated by Nick on 2026-08-04: **adopt the measured guardrail**.
 - Additional guardrail: ≤10% relative overhead when baseline work is at least 10ms.
 - Method: seven alternating 100-Job trials per supported SQL engine.
 - Failure policy: block release and optimize; never sample eligible Runs.
+
+Integrated production-package proof on 2026-08-04 passed all gates with bounded no-sampling persistence: 0.432ms added for no-op, 1.018ms for ten SQL queries, and 6.0% relative overhead for representative work. See `MEASUREMENTS.md`.

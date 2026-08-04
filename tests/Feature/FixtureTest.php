@@ -6,6 +6,10 @@ it('provides a composer-only Laravel fixture', function (): void {
 
     expect($composer['require']['nickwelsh/skyline'])->toBe('@dev')
         ->and($composer['repositories'][0]['type'])->toBe('path')
+        ->and($composer['autoload']['psr-4']['App\\'])->toBe('app/')
         ->and(file_exists($fixture.'/package.json'))->toBeFalse()
-        ->and(file_exists($fixture.'/vite.config.js'))->toBeFalse();
+        ->and(file_exists($fixture.'/vite.config.js'))->toBeFalse()
+        ->and(file_exists($fixture.'/prove.php'))->toBeTrue()
+        ->and(file_exists($fixture.'/benchmark.php'))->toBeTrue()
+        ->and(glob($fixture.'/app/Jobs/*Job.php'))->toHaveCount(8);
 });

@@ -5,6 +5,7 @@
 /fixtures/laravel/.env
 /fixtures/laravel/composer.lock
 /fixtures/laravel/database/*.sqlite*
+/fixtures/laravel/database/migrations/*_create_skyline_telemetry_tables.php
 /fixtures/laravel/vendor
 /vendor
 /.trigger-import

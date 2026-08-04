@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.2'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+          - php: '8.3'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+          - php: '8.4'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+          - php: '8.5'
+            laravel: '^12.0'
+            testbench: '^10.0'
+            pest: '^3.8'
+          - php: '8.3'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+          - php: '8.4'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+          - php: '8.5'
+            laravel: '^13.0'
+            testbench: '^11.0'
+            pest: '^4.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - run: composer update --no-interaction --prefer-dist --with-all-dependencies "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" "pestphp/pest:${{ matrix.pest }}"
+      - run: composer test
+
+  database:
+    name: ${{ matrix.label }} migration and persistence
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: MySQL 8.4
+            image: mysql:8.4
+            driver: mysql
+            extension: pdo_mysql
+            port: 3306
+            username: root
+            health: mysqladmin ping -h 127.0.0.1 -pskyline
+          - label: MariaDB 11.8
+            image: mariadb:11.8
+            driver: mariadb
+            extension: pdo_mysql
+            port: 3306
+            username: root
+            health: healthcheck.sh --connect --innodb_initialized
+          - label: PostgreSQL 17
+            image: postgres:17
+            driver: pgsql
+            extension: pdo_pgsql
+            port: 5432
+            username: postgres
+            health: pg_isready -U postgres -d skyline
+    services:
+      database:
+        image: ${{ matrix.image }}
+        env:
+          MYSQL_DATABASE: skyline
+          MYSQL_ROOT_PASSWORD: skyline
+          POSTGRES_DB: skyline
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: skyline
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        options: >-
+          --health-cmd "${{ matrix.health }}"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ${{ matrix.extension }}
+          coverage: none
+      - run: composer update --no-interaction --prefer-dist --with-all-dependencies "laravel/framework:^13.0" "orchestra/testbench:^11.0" "pestphp/pest:^4.0"
+      - run: vendor/bin/pest tests/Compatibility
+        env:
+          SKYLINE_TEST_DB_DRIVER: ${{ matrix.driver }}
+          SKYLINE_TEST_DB_HOST: 127.0.0.1
+          SKYLINE_TEST_DB_PORT: ${{ matrix.port }}
+          SKYLINE_TEST_DB_DATABASE: skyline
+          SKYLINE_TEST_DB_USERNAME: ${{ matrix.username }}
+          SKYLINE_TEST_DB_PASSWORD: skyline
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm typecheck
+      - run: corepack pnpm test
+      - run: corepack pnpm build
+      - run: corepack pnpm exec playwright install --with-deps chromium
+      - run: corepack pnpm test:browser
+      - run: corepack pnpm trigger:check

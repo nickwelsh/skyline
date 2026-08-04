@@ -39,6 +39,13 @@ final class SkylineConnection
             return $this->connection = $this->database->connection($source);
         }
 
+        if (($configuration['driver'] ?? null) === 'sqlite') {
+            $configuration['synchronous'] = (string) $this->config->get(
+                'skyline.sqlite_synchronous',
+                'NORMAL',
+            );
+        }
+
         $this->config->set("database.connections.{$name}", $configuration);
         $this->database->purge($name);
         $this->dedicated = true;

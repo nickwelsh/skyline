@@ -27,6 +27,7 @@ abstract class PersistenceTestCase extends Orchestra
         ]);
         $app['config']->set('skyline.telemetry_sink', PersistentTelemetrySink::class);
         $app['config']->set('skyline.prune.schedule', false);
+        $app['config']->set('skyline.batch.max_operations', 1);
     }
 
     protected function setUp(): void

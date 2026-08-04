@@ -12,6 +12,30 @@ use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Tests\Fixtures\Jobs\SqlJob;
 
+it('holds a no-sampling batch until an explicit flush', function (): void {
+    config()->set('skyline.batch.max_operations', 5_000);
+
+    SqlJob::dispatchSync();
+
+    expect(DB::table('skyline_runs')->count())->toBe(0);
+
+    app(PersistentTelemetrySink::class)->flush();
+
+    expect(DB::table('skyline_runs')->count())->toBe(1)
+        ->and(DB::table('skyline_attempts')->count())->toBe(1)
+        ->and(DB::table('skyline_spans')->count())->toBe(3);
+});
+
+it('flushes a due batch at a worker-loop boundary', function (): void {
+    config()->set('skyline.batch.max_operations', 5_000);
+    config()->set('skyline.batch.max_delay_ms', 0);
+    SqlJob::dispatchSync();
+
+    app(PersistentTelemetrySink::class)->flushIfDue();
+
+    expect(DB::table('skyline_runs')->count())->toBe(1);
+});
+
 it('persists normalized Run, Attempt, and immutable spans without observing its own writes', function (): void {
     SqlJob::dispatchSync('job-payload-secret');
 

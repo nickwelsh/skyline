@@ -4,10 +4,12 @@ namespace NickWelsh\Skyline;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use NickWelsh\Skyline\Console\PruneCommand;
 use NickWelsh\Skyline\Persistence\FailureReporter;
 use NickWelsh\Skyline\Persistence\PersistenceGuard;
+use NickWelsh\Skyline\Persistence\PersistentTelemetrySink;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
 use NickWelsh\Skyline\Support\AssetManifest;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
@@ -34,6 +36,7 @@ final class SkylineServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(QueueInstrumentation::class);
+        $this->app->singleton(PersistentTelemetrySink::class);
         $this->app->singleton(PersistenceGuard::class);
         $this->app->singleton(SkylineConnection::class);
         $this->app->singleton(
@@ -53,7 +56,11 @@ final class SkylineServiceProvider extends ServiceProvider
 
         $this->loadViewsFrom($this->packagePath('resources/views'), 'skyline');
         $this->loadRoutesFrom($this->packagePath('routes/web.php'));
-        $this->bootInstrumentation();
+
+        if ((bool) $this->app['config']->get('skyline.enabled', true)) {
+            $this->bootInstrumentation();
+            $this->bootBatchFlushing();
+        }
 
         if ($this->app->runningInConsole()) {
             $this->commands([PruneCommand::class]);
@@ -93,5 +100,17 @@ final class SkylineServiceProvider extends ServiceProvider
                 // Monitoring failures cannot alter host behavior.
             }
         }
+    }
+
+    private function bootBatchFlushing(): void
+    {
+        $sink = $this->app->make(TelemetrySink::class);
+
+        if (! $sink instanceof PersistentTelemetrySink) {
+            return;
+        }
+
+        $this->app->terminating(fn () => $sink->flush());
+        $this->app['events']->listen(Looping::class, fn () => $sink->flushIfDue());
     }
 }

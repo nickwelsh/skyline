@@ -23,6 +23,8 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\Context;
+use OpenTelemetry\SDK\Common\Attribute\Attributes;
+use OpenTelemetry\SDK\Resource\ResourceInfo;
 use OpenTelemetry\SDK\Trace\Sampler\AlwaysOnSampler;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -37,6 +39,8 @@ final class QueueInstrumentation
 
     private bool $handling = false;
 
+    private bool $enabled = true;
+
     public function __construct(
         private readonly Dispatcher $events,
         private readonly AttemptRegistry $attempts,
@@ -49,6 +53,7 @@ final class QueueInstrumentation
         $provider = new TracerProvider(
             new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger)),
             new AlwaysOnSampler,
+            ResourceInfo::create(Attributes::create([])),
         );
 
         $this->tracer = $provider->getTracer('nickwelsh/skyline');
@@ -79,6 +84,16 @@ final class QueueInstrumentation
         $this->listen(JobAttempted::class, fn (JobAttempted $event) => $this->attempted($event));
 
         $this->listen(QueryExecuted::class, fn (QueryExecuted $query) => $this->query($query));
+    }
+
+    public function enable(): void
+    {
+        $this->enabled = true;
+    }
+
+    public function disable(): void
+    {
+        $this->enabled = false;
     }
 
     /** @return array{skyline: array{v: 1, run_id: string, parent_run_id: ?string, queued_at_ns: int, carrier: array<string, string>}}|array{} */
@@ -161,6 +176,7 @@ final class QueueInstrumentation
             null,
             $timestamp,
             [
+                'trace_id' => $this->traceId($envelope),
                 'connection' => $event->connectionName,
                 'queue' => $event->queue ?? 'default',
                 'driver_id' => $event->id === null ? null : (string) $event->id,
@@ -228,6 +244,7 @@ final class QueueInstrumentation
                 'job_name' => $job,
                 'connection' => $event->connectionName,
                 'confirmation_source' => 'processing',
+                'defer_touch' => true,
             ],
         ));
         $this->lifecycle->record(new LifecycleRecord(
@@ -238,6 +255,7 @@ final class QueueInstrumentation
             [
                 'job_name' => $job,
                 'connection' => $event->connectionName,
+                'trace_id' => $span->getContext()->getTraceId(),
                 'queue_time_ms' => ($now - $ready['timestamp']) / 1_000_000,
                 'queue_time_source' => $ready['source'],
             ],
@@ -491,7 +509,7 @@ final class QueueInstrumentation
 
     private function guard(callable $callback, mixed $fallback = null): mixed
     {
-        if ($this->handling) {
+        if (! $this->enabled || $this->handling) {
             return $fallback;
         }
 
@@ -520,5 +538,18 @@ final class QueueInstrumentation
     private function now(): int
     {
         return (int) round(microtime(true) * 1_000_000_000);
+    }
+
+    private function traceId(PayloadEnvelope $envelope): ?string
+    {
+        $traceparent = $envelope->carrier['traceparent'] ?? null;
+
+        if (! is_string($traceparent)
+            || ! preg_match('/^[a-f0-9]{2}-([a-f0-9]{32})-[a-f0-9]{16}-[a-f0-9]{2}$/', $traceparent, $matches)
+        ) {
+            return null;
+        }
+
+        return $matches[1];
     }
 }

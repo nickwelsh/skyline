@@ -3,6 +3,8 @@
 use NickWelsh\Skyline\Persistence\PersistentTelemetrySink;
 
 return [
+    'enabled' => env('SKYLINE_ENABLED', true),
+
     'path' => env('SKYLINE_PATH', 'skyline'),
 
     'middleware' => ['web'],
@@ -11,11 +13,18 @@ return [
 
     'storage_connection_name' => 'skyline',
 
+    'sqlite_synchronous' => env('SKYLINE_SQLITE_SYNCHRONOUS', 'NORMAL'),
+
     'telemetry_sink' => PersistentTelemetrySink::class,
 
     'retention_hours' => env('SKYLINE_RETENTION_HOURS', 24),
 
     'failure_log_interval_seconds' => 60,
+
+    'batch' => [
+        'max_operations' => env('SKYLINE_BATCH_MAX_OPERATIONS', 5_000),
+        'max_delay_ms' => env('SKYLINE_BATCH_MAX_DELAY_MS', 2_000),
+    ],
 
     'trace_node_limit' => 25_000,
 

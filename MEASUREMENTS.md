@@ -29,3 +29,15 @@ Nick approved on 2026-08-04:
 > Across seven alternating 100-Job trials, median added wall time per Attempt must remain at or below `0.8ms + 0.1ms per captured SQL span`. Workloads with a baseline of at least 10ms must also remain at or below 10% relative overhead.
 
 Run the benchmark for each supported SQL engine. A breach blocks release and requires optimization; it never enables sampling or excludes an otherwise eligible Run.
+
+## Integrated package proof
+
+Environment: arm64 macOS 26.5.2, PHP 8.5.8, Laravel 12.64.0, OpenTelemetry SDK 1.15.0, SQLite 3.45.2. Xdebug is installed but disabled for the measured child process.
+
+Method: the clean Composer-only fixture runs seven alternating baseline/Skyline trials of 100 database-queued Jobs in one warmed Laravel process. Skyline uses the production private provider, bounded no-sampling batch sink, normalized schema, and cloned SQL connection.
+
+| Workload | Baseline | Skyline | Added | Relative | SQL/Job | Gate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| No-op | 1.963ms | 2.395ms | 0.432ms | 22.0% | 2 | pass |
+| 10 SQL | 2.005ms | 3.023ms | 1.018ms | 50.7% | 12 | pass |
+| CPU + 3 SQL | 11.768ms | 12.477ms | 0.709ms | 6.0% | 5 | pass |

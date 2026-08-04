@@ -18,13 +18,46 @@ final readonly class SpanRepository
     }
 
     /** @param list<SpanDataInterface> $spans */
-    public function insertMany(array $spans): int
-    {
-        if ($spans === []) {
-            return 0;
+    public function insertMany(
+        array $spans,
+        bool $ensureRelations = true,
+        bool $touchTraces = true,
+    ): int {
+        $prepared = $this->prepareMany($spans);
+
+        if ($ensureRelations) {
+            foreach ($prepared as $entry) {
+                $span = $entry['span'];
+                $attributes = $entry['attributes'];
+                $parentRunId = $attributes['skyline.parent_run_id'] ?? null;
+                $parentRunId = is_string($parentRunId) && $parentRunId !== '' ? $parentRunId : null;
+                $this->traces->ensureRun(
+                    $entry['row']['trace_id'],
+                    $entry['row']['run_id'],
+                    $parentRunId,
+                    $entry['row']['started_at'],
+                    is_string($attributes['laravel.job.name'] ?? null)
+                        ? $attributes['laravel.job.name']
+                        : 'unknown',
+                );
+
+                if (($attributes['skyline.role'] ?? null) === 'consumer') {
+                    $this->traces->ensureAttemptFromSpan($span);
+                }
+            }
         }
 
-        $rows = [];
+        return $this->insertPrepared($prepared, $touchTraces);
+    }
+
+    /**
+     * @param  list<SpanDataInterface>  $spans
+     * @return list<array{span: SpanDataInterface, attributes: array<string, mixed>, row: array<string, mixed>}>
+     */
+    public function prepareMany(array $spans): array
+    {
+        $prepared = [];
+        $timestamp = now();
 
         foreach ($spans as $span) {
             $attributes = $span->getAttributes()->toArray();
@@ -34,58 +67,64 @@ final readonly class SpanRepository
                 continue;
             }
 
-            $parentRunId = $attributes['skyline.parent_run_id'] ?? null;
-            $parentRunId = is_string($parentRunId) && $parentRunId !== '' ? $parentRunId : null;
-            $this->traces->ensureRun(
-                $span->getTraceId(),
-                $runId,
-                $parentRunId,
-                $span->getStartEpochNanos(),
-                is_string($attributes['laravel.job.name'] ?? null)
-                    ? $attributes['laravel.job.name']
-                    : 'unknown',
-            );
-
-            if (($attributes['skyline.role'] ?? null) === 'consumer') {
-                $this->traces->ensureAttemptFromSpan($span);
-            }
-            $scope = $span->getInstrumentationScope();
-            $rows[] = [
-                'trace_id' => $span->getTraceId(),
-                'run_id' => $runId,
-                'attempt_number' => is_numeric($attributes['skyline.attempt'] ?? null)
-                    ? (int) $attributes['skyline.attempt']
-                    : null,
-                'span_id' => $span->getSpanId(),
-                'parent_span_id' => $span->getParentSpanId() ?: null,
-                'name' => $this->truncate($span->getName(), 512),
-                'role' => is_string($attributes['skyline.role'] ?? null)
-                    ? $this->truncate($attributes['skyline.role'], 32)
-                    : null,
-                'kind' => $span->getKind(),
-                'status_code' => $span->getStatus()->getCode(),
-                'status_description' => $span->getStatus()->getDescription() ?: null,
-                'started_at' => $span->getStartEpochNanos(),
-                'ended_at' => $span->getEndEpochNanos(),
-                'attributes' => $this->json($attributes),
-                'events' => $this->json($this->events($span)),
-                'links' => $this->json($this->links($span)),
-                'resource_attributes' => $this->json($span->getResource()->getAttributes()->toArray()),
-                'scope_name' => $scope->getName() ?: null,
-                'scope_version' => $scope->getVersion() ?: null,
-                'created_at' => now(),
-                'updated_at' => now(),
+            $role = is_string($attributes['skyline.role'] ?? null)
+                ? $this->truncate($attributes['skyline.role'], 32)
+                : null;
+            $isSql = $role === 'sql';
+            $status = $span->getStatus();
+            $prepared[] = [
+                'span' => $span,
+                'attributes' => $attributes,
+                'row' => [
+                    'trace_id' => $span->getTraceId(),
+                    'run_id' => $runId,
+                    'attempt_number' => is_numeric($attributes['skyline.attempt'] ?? null)
+                        ? (int) $attributes['skyline.attempt']
+                        : null,
+                    'span_id' => $span->getSpanId(),
+                    'parent_span_id' => $span->getParentSpanId() ?: null,
+                    'name' => $this->truncate($span->getName(), 512),
+                    'role' => $role,
+                    'kind' => $span->getKind(),
+                    'status_code' => $status->getCode(),
+                    'status_description' => $status->getDescription() ?: null,
+                    'started_at' => $span->getStartEpochNanos(),
+                    'ended_at' => $span->getEndEpochNanos(),
+                    'attributes' => $this->json($attributes),
+                    'events' => $isSql ? '[]' : $this->json($this->events($span)),
+                    'links' => $isSql ? '[]' : $this->json($this->links($span)),
+                    'resource_attributes' => '{}',
+                    'scope_name' => 'nickwelsh/skyline',
+                    'scope_version' => null,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ],
             ];
         }
 
-        if ($rows === []) {
+        return $prepared;
+    }
+
+    /**
+     * @param  list<array{span: SpanDataInterface, attributes: array<string, mixed>, row: array<string, mixed>}>  $prepared
+     */
+    public function insertPrepared(array $prepared, bool $touchTraces = true): int
+    {
+        if ($prepared === []) {
             return 0;
         }
 
-        $inserted = $this->database->get()->table('skyline_spans')->insertOrIgnore($rows);
+        $rows = array_column($prepared, 'row');
+        $connection = $this->database->get();
+        $chunkSize = $connection->getDriverName() === 'sqlite' ? 1_000 : 2_000;
+        $inserted = 0;
 
-        foreach (collect($rows)->unique('trace_id') as $row) {
-            if ($inserted > 0) {
+        foreach (array_chunk($rows, $chunkSize) as $chunk) {
+            $inserted += $connection->table('skyline_spans')->insertOrIgnore($chunk);
+        }
+
+        if ($touchTraces && $inserted > 0) {
+            foreach (collect($rows)->unique('trace_id') as $row) {
                 $this->traces->touch($row['trace_id'], (int) $row['ended_at']);
             }
         }
