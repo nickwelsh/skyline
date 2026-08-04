@@ -8,4 +8,4 @@ Run:
 ./prototype-automatic-queue-traces/run
 ```
 
-The disposable Laravel 12 fixture uses the official OpenTelemetry PHP SDK, a private provider, a versioned payload envelope, Laravel queue events, and a local JSONL exporter. The command migrates a scratch SQLite database, runs a real database queue worker, verifies the full trace graph and outcomes, then prints its state and verdict.
+The disposable Laravel 12 fixture uses the official OpenTelemetry PHP SDK, a private provider, a versioned payload envelope, Laravel queue events, and a dedicated SQLite exporter. The command migrates a scratch SQLite database, runs a real database queue worker, verifies the full trace graph and outcomes, then prints its state and verdict.

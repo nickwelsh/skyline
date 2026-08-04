@@ -26,6 +26,12 @@ final class SkylinePrototype
 {
     private readonly TracerInterface $tracer;
 
+    private readonly TracerProvider $provider;
+
+    private readonly BufferedSqlSpanExporter $exporter;
+
+    private bool $enabled = true;
+
     /** @var array<string, array{span: SpanInterface, scope: ScopeInterface, run_id: string, exception: ?Throwable}> */
     private array $attempts = [];
 
@@ -34,8 +40,9 @@ final class SkylinePrototype
 
     public function __construct(private readonly string $path)
     {
-        $provider = new TracerProvider(new SimpleSpanProcessor(new JsonlSpanExporter($path)));
-        $this->tracer = $provider->getTracer('skyline.prototype', '0.1.0');
+        $this->exporter = new BufferedSqlSpanExporter($path);
+        $this->provider = new TracerProvider(new SimpleSpanProcessor($this->exporter));
+        $this->tracer = $this->provider->getTracer('skyline.prototype', '0.1.0');
     }
 
     public function boot(): void
@@ -54,27 +61,36 @@ final class SkylinePrototype
 
     public function reset(): void
     {
-        file_put_contents($this->path, '');
+        $this->exporter->reset();
         $this->attempts = [];
         $this->releasedAt = [];
+    }
+
+    public function enable(): void
+    {
+        $this->enabled = true;
+    }
+
+    public function disable(): void
+    {
+        $this->enabled = false;
     }
 
     /** @return list<array<string, mixed>> */
     public function spans(): array
     {
-        if (! file_exists($this->path)) {
-            return [];
-        }
+        $this->provider->forceFlush();
 
-        return array_values(array_map(
-            static fn (string $line) => json_decode($line, true, flags: JSON_THROW_ON_ERROR),
-            array_filter(explode(PHP_EOL, file_get_contents($this->path))),
-        ));
+        return $this->exporter->spans();
     }
 
     /** @return array<string, mixed> */
     private function payload(string $connection, ?string $queue, array $payload): array
     {
+        if (! $this->enabled) {
+            return [];
+        }
+
         try {
             $parent = end($this->attempts) ?: null;
             $runId = (string) Str::ulid();
@@ -114,6 +130,10 @@ final class SkylinePrototype
 
     private function processing(JobProcessing $event): void
     {
+        if (! $this->enabled) {
+            return;
+        }
+
         $envelope = $event->job->payload()['skyline'] ?? null;
 
         if (! is_array($envelope) || ($envelope['v'] ?? null) !== 1) {
@@ -187,6 +207,7 @@ final class SkylinePrototype
         $attempt['scope']->detach();
         $attempt['span']->end();
         unset($this->attempts[$key]);
+        $this->provider->forceFlush();
 
         if ($outcome === 'retry') {
             $this->releasedAt[$attempt['run_id']] = $this->now();
@@ -195,7 +216,7 @@ final class SkylinePrototype
 
     private function query(QueryExecuted $query): void
     {
-        if ($this->attempts === []) {
+        if (! $this->enabled || $this->attempts === []) {
             return;
         }
 
