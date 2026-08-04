@@ -1,45 +1,78 @@
-# Issue tracker: GitHub
+# Issue tracker: Linear
 
-Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues and PRDs live in Linear workspace `nickwelsh`, team `NW`, project `Skyline`. Use the `linear` CLI for all issue operations.
+
+The repo's `.linear.toml` selects the workspace and team. Linear has no default-project config, so always pass `--project Skyline` when creating or querying issues.
+
+## Authentication
+
+Verify access before issue work:
+
+```sh
+linear auth whoami
+```
+
+This installed CLI uses `linear --help` and `linear <command> --help`; `linear help` is not a valid command in version 2.3.0.
+
+The API key is stored in the macOS Keychain. In a sandboxed agent process, a missing-keyring warning can mean Keychain access is blocked even though the user's terminal is authenticated. Rerun the command with host/Keychain access. Do not copy the key into the repo, set `LINEAR_API_KEY`, or use `linear auth login --plaintext`.
 
 ## Conventions
 
-- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
-- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
-- **Comment on an issue**: `gh issue comment <number> --body "..."`
-- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+Use full Linear identifiers such as `NW-123`, not GitHub-style `#123` references.
 
-Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+- **Create in Backlog**: `linear issue create --team NW --project Skyline --state Backlog --title "..." --description-file <path> --no-interactive`
+- **Read**: `linear issue view NW-123 --json`
+- **List/search**: `linear issue query --team NW --project Skyline --all-states --json --limit 0`; add `--search "..."` or type filters such as `--state backlog --state unstarted` as needed.
+- **Comment**: `linear issue comment add NW-123 --body-file <path>`
+- **Update**: `linear issue update NW-123 --state "..."`; include `--assignee self` only when claiming work.
+- **Link a PR or artifact**: `linear issue link NW-123 <url>`
+- **Add a dependency**: `linear issue relation add NW-123 blocked-by NW-100`
+- **Mark a duplicate**: `linear issue relation add NW-123 duplicate NW-100`, then set `Duplicate`.
 
-## Pull requests as a triage surface
+Prefer `--description-file` and `--body-file` for Markdown. Never delete an issue to finish it; use its terminal workflow state.
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+## Workflow states
 
-When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
+Update state when the work changes phase, not later in a batch.
 
-- **Read a PR**: `gh pr view <number> --comments` and `gh pr diff <number>` for the diff.
-- **List external PRs for triage**: `gh pr list --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
-- **Comment / label / close**: `gh pr comment`, `gh pr edit --add-label`/`--remove-label`, `gh pr close`.
+| Situation | State |
+| --- | --- |
+| Newly captured, not yet selected | `Backlog` |
+| Nick should work on it next | `Todo` |
+| Work has started | `In Progress` |
+| Implementation is waiting on review or QA | `In Review` |
+| Work and required review are complete | `Done` |
+| Work will not be done | `Canceled` |
+| Another issue already represents the work | `Duplicate` |
 
-GitHub shares one number space across issues and PRs, so a bare `#42` may be either — resolve with `gh pr view 42` and fall back to `gh issue view 42`.
+`Canceled` is Linear's configured spelling of “Cancelled.” When beginning an issue, set `In Progress` before changing code. At a review handoff, set `In Review`; do not set `Done` while review remains. Use `Done`, `Canceled`, or `Duplicate` only as appropriate.
 
-## When a skill says "publish to the issue tracker"
+```sh
+linear issue update NW-123 --state Todo
+linear issue update NW-123 --state "In Progress" --assignee self
+linear issue update NW-123 --state "In Review"
+linear issue update NW-123 --state Done
+```
 
-Create a GitHub issue.
+## Pull requests
 
-## When a skill says "fetch the relevant ticket"
+PRs are not a request or triage surface. Track the work in Linear and link the PR to its issue. Use GitHub tooling only for PR operations.
 
-Run `gh issue view <number> --comments`.
+## Skill translations
+
+When a skill says “publish to the issue tracker,” create a `Skyline` issue in `Backlog` unless the skill or user explicitly selected it for work.
+
+When a skill says “fetch the relevant ticket,” run `linear issue view <NW-id> --json` so the body, comments, status, relations, and metadata are available.
+
+When a skill asks to apply a canonical triage label, use the workflow-state mapping in `docs/agents/triage-labels.md`; Skyline does not use triage labels as workflow state.
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
+Used by `/wayfinder`. The **map** is one Linear issue with **sub-issues** as decision tickets.
 
-- **Map**: a single issue labelled `wayfinder:map`, holding the Notes / Decisions-so-far / Fog body. `gh issue create --label wayfinder:map`.
-- **Child ticket**: an issue linked to the map as a GitHub sub-issue (`gh api` on the sub-issues endpoint). Where sub-issues aren't enabled, add the child to a task list in the map body and put `Part of #<map>` at the top of the child body. Labels: `wayfinder:<type>` (`research`/`prototype`/`grilling`/`task`). Once claimed, the ticket is assigned to the driving dev.
-- **Blocking**: GitHub's **native issue dependencies** — the canonical, UI-visible representation. Add an edge with `gh api --method POST repos/<owner>/<repo>/issues/<child>/dependencies/blocked_by -F issue_id=<blocker-db-id>`, where `<blocker-db-id>` is the blocker's numeric **database id** (`gh api repos/<owner>/<repo>/issues/<n> --jq .id`, _not_ the `#number` or `node_id`). GitHub reports `issue_dependencies_summary.blocked_by` (open blockers only — the live gate). Where dependencies aren't available, fall back to a `Blocked by: #<n>, #<n>` line at the top of the child body. A ticket is unblocked when every blocker is closed.
-- **Frontier query**: list the map's open children (`gh issue list --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or an assignee; first in map order wins.
-- **Claim**: `gh issue edit <n> --add-assignee @me` — the session's first write.
-- **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
+- **Map**: create a `Skyline` issue labelled `wayfinder:map`, with Notes / Decisions-so-far / Fog in its description.
+- **Child ticket**: create with `--parent <map-id>` and the appropriate `wayfinder:<type>` label (`research`, `prototype`, `grilling`, or `task`). Keep it in `Backlog` until selected; use `Todo` when queued.
+- **Blocking**: use native relations: `linear issue relation add <child-id> blocked-by <blocker-id>`.
+- **Frontier query**: run `linear issue query --team NW --project Skyline --state backlog --state unstarted --json --limit 0`, keep the map's children, then exclude assigned issues and any with unresolved `blocked-by` relations from `linear issue relation list <id>`. First in map order wins.
+- **Claim**: `linear issue update <id> --state "In Progress" --assignee self` — the session's first write.
+- **Resolve**: post the answer as a comment, update the ticket to `Done`, then update the map's Decisions-so-far with a pointer to the durable context.

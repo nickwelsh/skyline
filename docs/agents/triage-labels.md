@@ -1,15 +1,13 @@
-# Triage Labels
+# Triage roles
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+Engineering skills speak in five canonical triage roles. Skyline uses Linear workflow states for these transitions instead of triage labels.
 
-| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
-| -------------------------- | -------------------- | ---------------------------------------- |
-| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
-| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
-| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
-| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
-| `wontfix`                  | `wontfix`            | Will not be actioned                     |
+| Canonical role | Linear state | Meaning |
+| --- | --- | --- |
+| `needs-triage` | `Backlog` | Nick still needs to evaluate it |
+| `needs-info` | `Backlog` | Waiting for requested information; explain the wait in a comment |
+| `ready-for-agent` | `Todo` | Fully specified and ready for an agent |
+| `ready-for-human` | `Todo` | Ready for Nick; explain the required human work in a comment |
+| `wontfix` | `Canceled` | Will not be actioned; explain why in a comment |
 
-When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
-
-Edit the right-hand column to match whatever vocabulary you actually use.
+These mappings are routing defaults. Once work starts, review begins, or work ends, use `In Progress`, `In Review`, `Done`, `Canceled`, or `Duplicate` as documented in `docs/agents/issue-tracker.md`.
