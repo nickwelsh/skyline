@@ -9,7 +9,7 @@ final class Capabilities
     {
         return [
             'navigation' => [
-                'jobs' => false,
+                'jobs' => true,
                 'runs' => true,
                 'errors' => false,
                 'logs' => false,
@@ -23,6 +23,12 @@ final class Capabilities
                 'replay' => false,
                 'bulkCancel' => false,
                 'bulkReplay' => false,
+            ],
+            'jobs' => [
+                'view' => true,
+                'testJob' => false,
+                'configure' => false,
+                'schedule' => false,
             ],
             'shell' => [
                 'appearance' => false,
