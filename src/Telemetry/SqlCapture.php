@@ -53,7 +53,7 @@ final class SqlCapture
         }
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, string|int> */
     public function attributes(QueryExecuted $query, bool $include): array
     {
         $result = $this->results->consume($query->sql);
@@ -72,7 +72,36 @@ final class SqlCapture
             $attributes['skyline.sql.result'] = $this->json($result);
         }
 
+        if ((bool) $this->config->get('skyline.sql.capture_source', false)) {
+            $attributes = [...$attributes, ...$this->source()];
+        }
+
         return $attributes;
+    }
+
+    /** @return array<string, string|int> */
+    private function source(): array
+    {
+        $packageSource = rtrim(str_replace('\\', '/', dirname(__DIR__)), '/').'/';
+
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 50) as $frame) {
+            $file = isset($frame['file']) ? str_replace('\\', '/', $frame['file']) : null;
+
+            if ($file === null
+                || ! isset($frame['line'])
+                || str_contains($file, '/vendor/')
+                || str_starts_with($file, $packageSource)
+            ) {
+                continue;
+            }
+
+            return [
+                'skyline.sql.source.file' => $file,
+                'skyline.sql.source.line' => (int) $frame['line'],
+            ];
+        }
+
+        return [];
     }
 
     private function install(Connection $connection): void

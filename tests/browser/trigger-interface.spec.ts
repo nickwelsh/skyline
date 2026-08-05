@@ -125,6 +125,9 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect(page.locator('[data-node-id="span_live_sql"]')).toBeVisible();
   await page.locator('[data-node-id="span_live_sql"]').click();
   await page.getByRole("tab", { name: "Detail" }).click();
+  await expect(page.getByRole("region", { name: "Query source" })).toContainText("app/Jobs/LiveInvoiceJob.php:42");
+  await expect(page.getByRole("link", { name: "Open app/Jobs/LiveInvoiceJob.php:42 in editor" }))
+    .toHaveAttribute("href", "vscode://file//workspace/app/Jobs/LiveInvoiceJob.php:42");
   const sqlPreview = page.getByRole("region", { name: "Parameterized SQL preview", exact: true });
   await expect(sqlPreview.locator("pre")).toHaveText("select * from invoices where id = ?");
   expect(await sqlPreview.locator("pre span").count()).toBeGreaterThan(3);
@@ -239,6 +242,7 @@ const inspectorResponse = {
     ...traceNodes[2],
     overview: { runId: "live-run", spanId: "live_sql" },
     sql: { value: "select * from invoices where id = ?", isTruncated: false, originalBytes: 35 },
+    source: { file: "app/Jobs/LiveInvoiceJob.php", line: 42, href: "vscode://file//workspace/app/Jobs/LiveInvoiceJob.php:42" },
     bindings: { items: [{ position: 0, column: "id", value: 42 }], truncated: false },
     result: { kind: "rows", rows: [{ id: 42, reference: "invoice-42" }], rowCount: 1, truncated: false },
     metadata: { value: { attributes: { "db.system.name": "mysql" } }, isTruncated: false, truncated: [] },

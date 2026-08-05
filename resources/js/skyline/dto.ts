@@ -133,6 +133,7 @@ export type InspectorDto = TraceNode & {
     framesTruncated: boolean;
   } | null;
   sql?: { value: string; isTruncated: boolean; originalBytes: number };
+  source?: { file: string; line: number; href: string | null } | null;
   bindings?: {
     items: SqlBinding[];
     truncated: boolean;

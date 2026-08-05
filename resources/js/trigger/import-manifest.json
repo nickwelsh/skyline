@@ -89,7 +89,7 @@
       "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968",
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
-      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL previews and metadata with highlighted modes, JSON tree/text views, and copy actions."
+      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL previews and metadata with highlighted modes, JSON tree/text views, copy actions, and query source editor links."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",

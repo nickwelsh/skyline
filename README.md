@@ -34,9 +34,12 @@ SQL bindings and outputs are sensitive and disabled by default. Enable either in
 ```dotenv
 SKYLINE_SQL_CAPTURE_BINDINGS=true
 SKYLINE_SQL_CAPTURE_RESULTS=true
+SKYLINE_SQL_CAPTURE_SOURCE=true
 ```
 
-Result capture stores a redacted preview of up to 25 returned rows or the affected-row count for writes, bounded to 64KB per query. It never consumes cursors or streams. Configure `SKYLINE_SQL_MAX_BINDING_BYTES`, `SKYLINE_SQL_MAX_RESULT_ROWS`, `SKYLINE_SQL_MAX_RESULT_BYTES`, and `sql.redact_columns` in the published Skyline config. Leave both capture switches disabled in production unless storing query data is explicitly approved.
+Result capture stores a redacted preview of up to 25 returned rows or the affected-row count for writes, bounded to 64KB per query. It never consumes cursors or streams. Configure `SKYLINE_SQL_MAX_BINDING_BYTES`, `SKYLINE_SQL_MAX_RESULT_ROWS`, `SKYLINE_SQL_MAX_RESULT_BYTES`, and `sql.redact_columns` in the published Skyline config. Leave optional capture disabled in production unless its data is explicitly approved.
+
+Source capture stores the first application `file:line` frame for each query. Set `SKYLINE_EDITOR` to `cursor`, `phpstorm`, `vscode`, or `zed` for clickable links. In containers, set `SKYLINE_EDITOR_BASE_PATH` to the matching local project path. Skyline also honors Laravel's `app.editor` string or array configuration, including custom `href` templates.
 
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 

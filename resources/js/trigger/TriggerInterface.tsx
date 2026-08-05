@@ -12,6 +12,7 @@ import {
   IconChevronRight,
   IconClock,
   IconDatabase,
+  IconExternalLink,
   IconListDetails,
   IconPlayerPlayFilled,
   IconRefresh,
@@ -784,6 +785,7 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
 function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
   if (node.kind === "query") return (
     <div className="space-y-4">
+      {node.source && <QuerySource source={node.source} />}
       <SqlCapturePreview
         sql={node.sql?.value ?? ""}
         bindings={node.bindings?.items}
@@ -796,6 +798,24 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
     </div>
   );
   return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
+}
+
+function QuerySource({ source }: { source: NonNullable<InspectorDto["source"]> }) {
+  const location = `${source.file}:${source.line}`;
+  const content = <><span className="min-w-0 truncate font-mono text-xs">{location}</span>{source.href && <IconExternalLink className="size-4 shrink-0" />}</>;
+
+  return (
+    <section aria-label="Query source" className="flex min-w-0 flex-col gap-2">
+      <div className="text-xs text-text-faint">Source</div>
+      {source.href ? (
+        <a href={source.href} aria-label={`Open ${location} in editor`} title="Open in editor" className="flex min-h-9 min-w-0 items-center gap-2 rounded border border-grid-bright bg-background-deep px-3 text-text-bright hover:border-indigo-500/60 hover:bg-background-hover">
+          {content}
+        </a>
+      ) : (
+        <div className="flex min-h-9 min-w-0 items-center rounded border border-grid-bright bg-background-deep px-3 text-text-bright">{content}</div>
+      )}
+    </section>
+  );
 }
 
 function PropertyList({ values }: { values: Record<string, string | number | null | undefined> }) {

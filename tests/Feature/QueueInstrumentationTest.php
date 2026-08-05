@@ -70,7 +70,8 @@ it('emits a producer, Attempt consumer, and parameterized SQL span for an unchan
         ->and($spans['sql']->getKind())->toBe(SpanKind::KIND_CLIENT)
         ->and($spans['consumer']->getParentSpanId())->toBe($spans['producer']->getSpanId())
         ->and($spans['sql']->getParentSpanId())->toBe($spans['consumer']->getSpanId())
-        ->and($spans['sql']->getAttributes()->get('db.query.text'))->toBe('select ? as private_value');
+        ->and($spans['sql']->getAttributes()->get('db.query.text'))->toBe('select ? as private_value')
+        ->and($spans['sql']->getAttributes()->get('skyline.sql.source.file'))->toBeNull();
 
     $capturedAttributes = [
         ...array_map(fn ($record) => $record->attributes, $sink->lifecycle),
@@ -100,6 +101,7 @@ it('emits a producer, Attempt consumer, and parameterized SQL span for an unchan
 it('captures bounded redacted SQL bindings and outputs only when opted in', function (): void {
     config()->set('skyline.sql.capture_bindings', true);
     config()->set('skyline.sql.capture_results', true);
+    config()->set('skyline.sql.capture_source', true);
     config()->set('skyline.sql.max_result_rows', 1);
     app(SqlCapture::class)->boot();
 
@@ -121,6 +123,7 @@ it('captures bounded redacted SQL bindings and outputs only when opted in', func
     $bindings = json_decode($insert->getAttributes()->get('skyline.sql.bindings'), true, flags: JSON_THROW_ON_ERROR);
     $write = json_decode($insert->getAttributes()->get('skyline.sql.result'), true, flags: JSON_THROW_ON_ERROR);
     $result = json_decode($select->getAttributes()->get('skyline.sql.result'), true, flags: JSON_THROW_ON_ERROR);
+    $source = $select->getAttributes()->get('skyline.sql.source.file');
 
     expect($bindings['items'])->toContain([
         'position' => 0,
@@ -132,6 +135,8 @@ it('captures bounded redacted SQL bindings and outputs only when opted in', func
         ->and($result['rowCount'])->toBe(2)
         ->and($result['truncated'])->toBeTrue()
         ->and($result['rows'])->toHaveCount(1)
+        ->and($source)->toEndWith('tests/Fixtures/Jobs/SqlOutputJob.php')
+        ->and($select->getAttributes()->get('skyline.sql.source.line'))->toBeInt()->toBeGreaterThan(0)
         ->and($result['rows'][0])->toMatchArray([
             'name' => 'first-visible',
             'password' => '[REDACTED]',

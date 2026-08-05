@@ -10,6 +10,7 @@ final readonly class NodeQuery
         private TraceSnapshotQuery $snapshots,
         private TraceViewBuilder $builder,
         private ApiMetadata $metadata,
+        private EditorLink $editorLink,
     ) {}
 
     /** @return array<string, mixed> */
@@ -123,6 +124,7 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'sql' => $sql,
+            'source' => $this->source($attributes),
             'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
             'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
             'metadata' => $this->spanMetadata($span),
@@ -138,7 +140,12 @@ final readonly class NodeQuery
 
         $sanitizer = new PrivacySanitizer;
         $attributes = $this->json($span->attributes);
-        unset($attributes['skyline.sql.bindings'], $attributes['skyline.sql.result']);
+        unset(
+            $attributes['skyline.sql.bindings'],
+            $attributes['skyline.sql.result'],
+            $attributes['skyline.sql.source.file'],
+            $attributes['skyline.sql.source.line'],
+        );
         $events = collect($this->json($span->events))->map(function (array $event) use ($sanitizer): array {
             return [
                 'name' => $event['name'] ?? 'Event',
@@ -191,6 +198,25 @@ final readonly class NodeQuery
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** @param array<string, mixed> $attributes @return array{file: string, line: int, href: string|null}|null */
+    private function source(array $attributes): ?array
+    {
+        $file = $attributes['skyline.sql.source.file'] ?? null;
+        $line = $attributes['skyline.sql.source.line'] ?? null;
+
+        if (! is_string($file) || $file === '' || (! is_int($line) && ! is_numeric($line))) {
+            return null;
+        }
+
+        $line = (int) $line;
+
+        return [
+            'file' => $this->relativeSourceFile($file),
+            'line' => $line,
+            'href' => $this->editorLink->href($file, $line),
+        ];
     }
 
     /** @return array<string, mixed> */
@@ -261,6 +287,16 @@ final readonly class NodeQuery
         }
 
         return basename($normalized);
+    }
+
+    private function relativeSourceFile(string $file): string
+    {
+        $normalized = str_replace('\\', '/', $file);
+        $package = rtrim(str_replace('\\', '/', dirname(__DIR__, 2)), '/').'/';
+
+        return str_starts_with($normalized, $package)
+            ? substr($normalized, strlen($package))
+            : $this->relativeFile($file);
     }
 
     /** @return array<string, mixed> */

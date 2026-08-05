@@ -29,6 +29,7 @@ return [
     'sql' => [
         'capture_bindings' => env('SKYLINE_SQL_CAPTURE_BINDINGS', false),
         'capture_results' => env('SKYLINE_SQL_CAPTURE_RESULTS', false),
+        'capture_source' => env('SKYLINE_SQL_CAPTURE_SOURCE', false),
         'max_binding_bytes' => env('SKYLINE_SQL_MAX_BINDING_BYTES', 16_384),
         'max_result_rows' => env('SKYLINE_SQL_MAX_RESULT_ROWS', 25),
         'max_result_bytes' => env('SKYLINE_SQL_MAX_RESULT_BYTES', 65_536),
@@ -47,6 +48,12 @@ return [
             'cvv',
             'ssn',
         ],
+    ],
+
+    'editor' => [
+        'name' => env('SKYLINE_EDITOR'),
+        'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),
+        'href' => env('SKYLINE_EDITOR_HREF'),
     ],
 
     'trace_node_limit' => 25_000,

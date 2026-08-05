@@ -169,6 +169,8 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
 it('serves opt-in SQL bindings and result previews outside generic metadata', function (): void {
     config()->set('skyline.sql.capture_bindings', true);
     config()->set('skyline.sql.capture_results', true);
+    config()->set('skyline.sql.capture_source', true);
+    config()->set('app.editor', ['name' => 'phpstorm', 'base_path' => '/workspace/skyline']);
     app(SqlCapture::class)->boot();
     SqlJob::dispatchSync();
     $run = DB::table('skyline_runs')->where('job_name', SqlJob::class)->first();
@@ -182,10 +184,15 @@ it('serves opt-in SQL bindings and result previews outside generic metadata', fu
         ->assertJsonPath('node.result.kind', 'rows')
         ->assertJsonPath('node.result.rowCount', 1)
         ->assertJsonPath('node.result.rows.0.private_value', 'do-not-capture')
-        ->assertJsonPath('node.result.truncated', false);
+        ->assertJsonPath('node.result.truncated', false)
+        ->assertJsonPath('node.source.file', 'tests/Fixtures/Jobs/SqlJob.php');
 
     expect(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.bindings'))->toBeNull()
-        ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.result'))->toBeNull();
+        ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.result'))->toBeNull()
+        ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.source.file'))->toBeNull()
+        ->and($inspector->json('node.source.line'))->toBeInt()->toBeGreaterThan(0)
+        ->and($inspector->json('node.source.href'))->toStartWith('phpstorm://open?file=')
+        ->toContain('/tests/Fixtures/Jobs/SqlJob.php&line=');
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

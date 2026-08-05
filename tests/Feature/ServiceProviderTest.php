@@ -9,6 +9,7 @@ it('registers package defaults', function (): void {
         'middleware' => ['web'],
     ])->and(config('skyline.sql.capture_bindings'))->toBeFalse()
         ->and(config('skyline.sql.capture_results'))->toBeFalse()
+        ->and(config('skyline.sql.capture_source'))->toBeFalse()
         ->and(config('skyline.sql.max_result_rows'))->toBe(25)
         ->and(config('skyline.sql.max_result_bytes'))->toBe(65_536);
 });
