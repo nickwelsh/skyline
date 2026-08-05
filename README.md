@@ -86,6 +86,20 @@ SKYLINE_CACHE_CAPTURE_SOURCE=true
 
 Laravel does not emit lifecycle events for increment/decrement or individual lock acquire/release operations, so those remain visible only as direct Redis commands when applicable. Set `SKYLINE_CACHE_ENABLED=false` to disable cache and Redis spans.
 
+Applications can add domain-specific spans and events to the active Attempt:
+
+```php
+use NickWelsh\Skyline\Facades\Skyline;
+
+$pdf = Skyline::measure('Generate PDF', fn () => $generator->render(), [
+    'template' => 'receipt',
+]);
+
+Skyline::event('Imported chunk', ['rows' => 500]);
+```
+
+`measure()` supports synchronous values and Guzzle promises, preserves resolved values and failures, and nests spans created by synchronous callbacks. Both APIs safely no-op outside an active Attempt or when `SKYLINE_CUSTOM_ENABLED=false`. Attribute names and scalar values are bounded; arrays, objects, resources, and null are stored only as type summaries. Callable arguments and return values are never captured.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

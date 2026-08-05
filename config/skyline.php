@@ -107,6 +107,12 @@ return [
         'max_key_bytes' => env('SKYLINE_CACHE_MAX_KEY_BYTES', 256),
     ],
 
+    'custom' => [
+        'enabled' => env('SKYLINE_CUSTOM_ENABLED', true),
+        'max_attributes' => env('SKYLINE_CUSTOM_MAX_ATTRIBUTES', 32),
+        'max_attribute_bytes' => env('SKYLINE_CUSTOM_MAX_ATTRIBUTE_BYTES', 1_024),
+    ],
+
     'editor' => [
         'name' => env('SKYLINE_EDITOR'),
         'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),

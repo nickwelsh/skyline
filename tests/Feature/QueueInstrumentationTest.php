@@ -15,6 +15,7 @@ use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
@@ -25,6 +26,7 @@ use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Tests\Fixtures\Jobs\CacheJob;
+use Tests\Fixtures\Jobs\CustomTelemetryJob;
 use Tests\Fixtures\Jobs\ExceptionRetryJob;
 use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
@@ -36,6 +38,40 @@ use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
 use Tests\Fixtures\RecordingTelemetrySink;
+
+it('captures nested custom spans and events while preserving application behavior', function (): void {
+    CustomTelemetryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $custom = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'custom')
+        ->keyBy(fn ($span) => $span->getName());
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+
+    expect($custom)->toHaveKeys(['Generate PDF', 'Upload PDF', 'Async export', 'Fail safely'])
+        ->and($custom['Generate PDF']->getParentSpanId())->toBe($consumer->getSpanId())
+        ->and($custom['Upload PDF']->getParentSpanId())->toBe($custom['Generate PDF']->getSpanId())
+        ->and($custom['Fail safely']->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($custom['Generate PDF']->getEvents())->toHaveCount(1)
+        ->and($custom['Generate PDF']->getEvents()[0]->getName())->toBe('Rendered page')
+        ->and($custom['Generate PDF']->getAttributes()->get('skyline.custom.source.file'))->toEndWith('CustomTelemetryJob.php')
+        ->and(json_encode($custom['Generate PDF']->getEvents()[0]->getAttributes()->toArray()))
+        ->not->toContain('stdClass');
+});
+
+it('is a no-op outside an active Attempt', function (): void {
+    $value = Skyline::measure('Outside', fn (): string => 'unchanged');
+    Skyline::event('Outside event');
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+
+    expect($value)->toBe('unchanged')
+        ->and($sink->spans)->toBe([]);
+});
 
 it('captures cache operations without values or raw keys', function (): void {
     CacheJob::dispatchSync();
