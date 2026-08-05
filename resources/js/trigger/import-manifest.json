@@ -9,6 +9,7 @@
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
     "resources/js/trigger/assets/icons/TaskIcon.tsx": "36c9c8bbf4c88d9de209fea8cb9ff77f56287a25de12721e5a5491f81acbf1f6",
     "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
+    "resources/js/trigger/components/primitives/Buttons.tsx": "1c26f52ed48d40ff48a5468bb503148d60d41bf3c2a9a99b548fdf66479ce9ef",
     "resources/js/trigger/components/primitives/Callout.tsx": "fa4d4fbd02434ed7d2ab357688857bc2c6b9746e7040c6f8ead60d51fb1b0cd6",
     "resources/js/trigger/components/primitives/CopyableText.tsx": "ea02a6a08c6f2619776b779d3c77fedc41f9547c34323ce9e9b2a8673ab4bb2c",
     "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
@@ -16,6 +17,7 @@
     "resources/js/trigger/components/primitives/InfoPanel.tsx": "dd9bda9df0717ca42e484d9e1aea0352fd403bd5051a442defc86e02518a572c",
     "resources/js/trigger/components/primitives/Input.tsx": "dc9231eb95381c8fb0a4b857f24a790ad3a99668e1b5083ca993766ddb65cfe9",
     "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
+    "resources/js/trigger/components/primitives/Popover.tsx": "e0b30e6d159b3f576326de3c8c2f15a3e13302607043ce711de6980079108586",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
     "resources/js/trigger/components/primitives/Resizable.tsx": "998d2529c8c0d8cee0f973583c46d9a8becfade2ca71e240b4290ba57752c4d7",
     "resources/js/trigger/components/primitives/SearchInput.tsx": "5f0259884d97ec6ea0fe6b260634a856e91e79241f65a7635f17c8c310b54d3d",
@@ -335,6 +337,20 @@
       "modifications": "Changed only package-local asset, hook, and cn import paths and added provenance."
     },
     {
+      "source": "apps/webapp/app/components/primitives/Buttons.tsx",
+      "sha256": "ad6e5c75e1967dfd60d332337bc5e128b8a455cebc2466614c7757072f70ae27",
+      "target": "resources/js/trigger/components/primitives/Buttons.tsx",
+      "mode": "adapted",
+      "modifications": "Retained Button, LinkButton, ButtonContent, shortcut/loading/tooltip behavior, run-view secondary, tertiary, minimal, and danger variants, plus external/resource new-tab and width semantics; replaced Remix navigation with a plain anchor and omitted AgentDotMatrix, NavLinkButton, ExtLink, replace routing, primary/warning/docs/ask-ai/menu variants, and large sizes."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Popover.tsx",
+      "sha256": "3f165f32b1af75952dd7688fd301db9a62423a893c1bbcac0d3111a2f8221397",
+      "target": "resources/js/trigger/components/primitives/Popover.tsx",
+      "mode": "adapted",
+      "modifications": "Retained Popover, PopoverTrigger, PopoverContent, PopoverArrowTrigger, markup, collision behavior, and arrow variants; omitted Remix-backed menu items and unrelated section, custom, side-menu, and ellipse triggers."
+    },
+    {
       "source": "apps/webapp/app/components/primitives/SearchInput.tsx",
       "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338",
       "target": "resources/js/trigger/components/primitives/SearchInput.tsx",
@@ -408,6 +424,12 @@
       "target": "resources/js/trigger/assets/icons/TaskIcon.tsx",
       "mode": "adapted",
       "modifications": "Retained the pinned TaskIcon geometry and omitted unused cached and small variants."
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/DropdownIcon.tsx",
+      "sha256": "0786a6bd293bc2f0c6e7c63d8335971bebac743f3f4b8c1aa83abf8aff3a540b",
+      "target": "resources/js/trigger/assets/icons/DropdownIcon.tsx",
+      "mode": "exact"
     },
     {
       "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx",
