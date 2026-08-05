@@ -6,7 +6,12 @@
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
-import type { QueueTimeRangeOption } from "../../../skyline/dto";
+
+export type QueueTimeRangeOption = {
+  value: string;
+  label: string;
+  durationSeconds: number | null;
+};
 
 export function QueueTargetFilters({
   connections,

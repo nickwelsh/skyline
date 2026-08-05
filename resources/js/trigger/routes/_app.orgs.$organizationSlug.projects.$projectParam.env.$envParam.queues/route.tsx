@@ -6,8 +6,7 @@ import { useLoaderData, useNavigation, useRouteError } from "@remix-run/react";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
-import { QueueTargetsPresenter } from "~/components/queues/QueueTargetsPresenter";
-import type { QueueTargetsPresentation } from "../../../skyline/QueueTargetPresentation";
+import { QueueTargetsPresenter, type QueueTargetsPresentation } from "~/components/queues/QueueTargetsPresenter";
 
 export type QueueTargetsRouteData = QueueTargetsPresentation;
 

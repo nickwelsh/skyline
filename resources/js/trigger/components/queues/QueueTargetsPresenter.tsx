@@ -17,9 +17,35 @@ import {
   TableRow,
 } from "~/components/primitives/Table";
 import { Spinner } from "~/components/primitives/Spinner";
-import type { QueueTargetsPresentation, PresentedQueueTarget } from "../../../skyline/QueueTargetPresentation";
-import type { RunStatus } from "../../../skyline/dto";
-import { QueueTargetFilters } from "./QueueTargetFilters";
+import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
+import { QueueTargetFilters, type QueueTimeRangeOption } from "./QueueTargetFilters";
+
+export type PresentedQueueTarget = {
+  id: string;
+  path: string;
+  connection: string;
+  queue: string;
+  destination: string;
+  state: "Idle" | "Busy";
+  recordedRuns: string;
+  recordedRunCounts: Record<RunStatus, number>;
+  queueTimeSampleCount: number;
+  medianQueueTime: string;
+  p95QueueTime: string;
+  maximumQueueTime: string;
+  firstObservedAt: string | null;
+  lastObservedAt: string | null;
+};
+
+export type QueueTargetsPresentation = {
+  generatedAt: string;
+  queueTargets: PresentedQueueTarget[];
+  pagination: { previous?: string; next?: string };
+  connectionOptions: string[];
+  timeRanges: QueueTimeRangeOption[];
+  hasAnyQueueTargets: boolean;
+  hasFilters: boolean;
+};
 
 export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPresentation; loading: boolean }) {
   return (

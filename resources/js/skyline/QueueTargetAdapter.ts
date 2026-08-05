@@ -1,5 +1,6 @@
 import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
-import type { QueueTargetDetailPresentation, QueueTargetsPresentation } from "./QueueTargetPresentation";
+import type { QueueTargetDetailPresentation } from "../trigger/components/queues/QueueTargetDetailPresenter";
+import type { QueueTargetsPresentation } from "../trigger/components/queues/QueueTargetsPresenter";
 import type {
   QueueTargetDetailDto,
   QueueTargetRunsQuery,

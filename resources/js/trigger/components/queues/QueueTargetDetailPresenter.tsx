@@ -9,12 +9,28 @@ import { MetricsLayout } from "~/components/layout/MetricsLayout";
 import { DateTimeShort } from "~/components/primitives/DateTime";
 import { Header3 } from "~/components/primitives/Headers";
 import { Spinner } from "~/components/primitives/Spinner";
-import { TaskRunsTable } from "~/components/runs/v3/TaskRunsTable";
+import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
+import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import type { ReactNode } from "react";
-import type { QueueTargetDetailPresentation } from "../../../skyline/QueueTargetPresentation";
 import { QueueTargetCharts } from "./QueueTargetCharts";
-import { QueueTargetFilters } from "./QueueTargetFilters";
-import { RecordedStatusBreakdown } from "./QueueTargetsPresenter";
+import { QueueTargetFilters, type QueueTimeRangeOption } from "./QueueTargetFilters";
+import { RecordedStatusBreakdown, type PresentedQueueTarget } from "./QueueTargetsPresenter";
+
+type ActivityPoint = { timestamp: string; recordedRuns: number; recordedRunCounts: Record<RunStatus, number> };
+type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number; p95Us: number; maximumUs: number };
+
+export type QueueTargetDetailPresentation = {
+  generatedAt: string;
+  queueTarget: PresentedQueueTarget;
+  activity: ActivityPoint[];
+  queueTime: QueueTimePoint[];
+  runs: PresentedRun[];
+  pagination: { previous?: string; next?: string };
+  statusOptions: RunStatus[];
+  timeRanges: QueueTimeRangeOption[];
+  hasAnyRuns: boolean;
+  hasFilters: boolean;
+};
 
 export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTargetDetailPresentation; loading: boolean }) {
   const target = data.queueTarget;
