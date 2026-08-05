@@ -398,9 +398,11 @@ final readonly class NodeQuery
             ARRAY_FILTER_USE_BOTH,
         );
 
+        $sanitized = (new PrivacySanitizer)->metadata($application);
+
         return [
             'name' => $span->name,
-            'attributes' => (new PrivacySanitizer)->attributes($application),
+            'attributes' => $sanitized['value'],
         ];
     }
 

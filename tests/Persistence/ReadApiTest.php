@@ -510,14 +510,14 @@ it('discriminates custom and summary inspector presentations', function (): void
     $customSpan = DB::table('skyline_spans')
         ->where('run_id', $customRun->run_id)
         ->where('role', 'custom')
-        ->where('name', 'Generate PDF')
+        ->where('name', 'Upload PDF')
         ->first();
 
     $this->getJson('/skyline/api/runs/'.$customRun->run_id.'/nodes/span_'.$customSpan->span_id)
         ->assertOk()
         ->assertJsonPath('node.presentation.type', 'custom')
-        ->assertJsonPath('node.presentation.custom.name', 'Generate PDF')
-        ->assertJsonPath('node.presentation.custom.attributes', []);
+        ->assertJsonPath('node.presentation.custom.name', 'Upload PDF')
+        ->assertJsonPath('node.presentation.custom.attributes.bytes', 512);
 
     SummaryJob::dispatchSync();
     $summaryRun = DB::table('skyline_runs')->where('job_name', SummaryJob::class)->first();
