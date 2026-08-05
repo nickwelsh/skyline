@@ -1,0 +1,28 @@
+{
+  "generatedBy": "node scripts/extract-trigger-inspector-baseline.mjs",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "spanRoute": {
+      "path": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
+      "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968"
+    },
+    "codeBlock": {
+      "path": "apps/webapp/app/components/code/CodeBlock.tsx",
+      "sha256": "dcde4f986fe25fd44668d5efb8659f24eace2bbf70c2fede58445ba5018c7b37"
+    }
+  },
+  "contract": {
+    "inspector": {
+      "overflowY": "auto",
+      "paddedContent": true
+    },
+    "capture": {
+      "visibleLineLimit": 20,
+      "overflowY": "auto",
+      "copy": true,
+      "wrap": true,
+      "expand": true,
+      "focusManagedDialog": true
+    }
+  }
+}

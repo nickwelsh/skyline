@@ -5,6 +5,7 @@ import { FixtureAdapter } from "../../resources/js/skyline/FixtureAdapter";
 import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto";
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
 import inspectorOracle from "./fixtures/nw-220-external-inspectors.json" with { type: "json" };
+import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseline.json" with { type: "json" };
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const rootNodeId = `run_${runId}`;
@@ -201,8 +202,10 @@ test("long inspector metadata remains readable in the constrained panel", async 
 
 test("paired external and custom inspectors preserve visible, interaction, focus, and accessibility behavior", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  const sourceRoute = readFileSync(new URL("../../../trigger.dev/apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx", import.meta.url));
-  expect(createHash("sha256").update(sourceRoute).digest("hex")).toBe(inspectorOracle.sourceRouteSha256);
+  for (const source of Object.values(triggerInspectorBaseline.sourceFiles)) {
+    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
+  }
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
   let activeCase = inspectorOracle.cases[0].key;
@@ -226,6 +229,10 @@ test("paired external and custom inspectors preserve visible, interaction, focus
     await expect(wrap).toBeFocused();
     await wrap.click();
     await expect(page.getByRole("button", { name: `Unwrap ${scenario.preview}` })).toBeVisible();
+
+    if (scenario.key === "process") {
+      await expectIndependentInspectorScrolling(page, scenario.preview);
+    }
 
     const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
     await copy.click();
@@ -272,7 +279,7 @@ function inspectorPresentation(key: string): NonNullable<InspectorDto["presentat
     case "storage":
       return { type: "storage", timing, failure: { type: "UnableToReadFile", message: "Unable to read file" }, storage: { operation: "read", disk: "documents", driver: "local", path: "private/report.txt", pathCaptured: true, destination: null, destinationCaptured: false, bytes: null, outcome: "failed", url: null, destinationUrl: null, localFile: null, destinationLocalFile: null, content: captured("captured content"), result: { exists: null, lastModified: null, mimeType: null, visibility: null } } };
     case "process":
-      return { type: "process", timing, failure: null, process: { executable: "php", async: false, timeoutSeconds: 10, exitCode: 0, timedOut: false, outcome: "completed", command: captured(["php", "artisan", "queue:work"]), environment: null, input: null, stdout: captured("processed 100 records"), stderr: captured("warning") } };
+      return { type: "process", timing, failure: null, process: { executable: "php", async: false, timeoutSeconds: 10, exitCode: 0, timedOut: false, outcome: "completed", command: captured(["php", "artisan", "queue:work"]), environment: null, input: null, stdout: captured(longProcessOutput()), stderr: captured("warning") } };
     case "breadcrumb":
       return { type: "breadcrumb", breadcrumb: { timestamp: timing.startedAt, level: "warning", channel: "stack", message: "Import delayed", context: { code: 429 } } };
     case "custom":
@@ -282,4 +289,47 @@ function inspectorPresentation(key: string): NonNullable<InspectorDto["presentat
     default:
       return { type: "generic", timing, failure: null };
   }
+}
+
+function longProcessOutput(): string {
+  return Array.from(
+    { length: triggerInspectorBaseline.contract.capture.visibleLineLimit * 6 },
+    (_, index) => `processed record ${String(index + 1).padStart(3, "0")} with independently scrollable inspector evidence`,
+  ).join("\n");
+}
+
+async function expectIndependentInspectorScrolling(page: Page, previewLabel: string): Promise<void> {
+  expect(triggerInspectorBaseline.contract.inspector.overflowY).toBe("auto");
+  expect(triggerInspectorBaseline.contract.capture.overflowY).toBe("auto");
+  expect(triggerInspectorBaseline.contract.capture.copy).toBe(true);
+  expect(triggerInspectorBaseline.contract.capture.wrap).toBe(true);
+  expect(triggerInspectorBaseline.contract.capture.expand).toBe(true);
+  expect(triggerInspectorBaseline.contract.capture.focusManagedDialog).toBe(true);
+
+  const inspector = page.getByRole("tabpanel", { name: "Detail" });
+  const capture = page.getByRole("region", { name: `${previewLabel} preview` }).locator("pre");
+  const inspectorGeometry = await inspector.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    overflowY: getComputedStyle(element).overflowY,
+    scrollHeight: element.scrollHeight,
+  }));
+  const captureGeometry = await capture.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    overflowY: getComputedStyle(element).overflowY,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(inspectorGeometry.overflowY).toBe(triggerInspectorBaseline.contract.inspector.overflowY);
+  expect(inspectorGeometry.scrollHeight).toBeGreaterThan(inspectorGeometry.clientHeight);
+  expect(captureGeometry.overflowY).toBe(triggerInspectorBaseline.contract.capture.overflowY);
+  expect(captureGeometry.scrollHeight).toBeGreaterThan(captureGeometry.clientHeight);
+
+  const inspectorStart = await inspector.evaluate((element) => element.scrollTop);
+  await capture.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  const captureScrolled = await capture.evaluate((element) => element.scrollTop);
+  expect(captureScrolled).toBeGreaterThan(0);
+  await expect.poll(() => inspector.evaluate((element) => element.scrollTop)).toBe(inspectorStart);
+
+  await inspector.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  await expect.poll(() => inspector.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  expect(await capture.evaluate((element) => element.scrollTop)).toBe(captureScrolled);
 }

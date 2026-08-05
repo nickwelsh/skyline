@@ -13,7 +13,9 @@
     "test": "vitest run",
     "test:browser": "playwright test",
     "trigger:import": "node scripts/import-trigger.mjs",
-    "trigger:check": "node scripts/import-trigger.mjs --check"
+    "trigger:check": "node scripts/import-trigger.mjs --check",
+    "trigger:inspector-baseline": "node scripts/extract-trigger-inspector-baseline.mjs",
+    "trigger:inspector-baseline:check": "node scripts/extract-trigger-inspector-baseline.mjs --check"
   },
   "dependencies": {
     "@heroicons/react": "2.0.13",
