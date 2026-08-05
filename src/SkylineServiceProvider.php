@@ -21,6 +21,7 @@ use NickWelsh\Skyline\Telemetry\DatabaseTransactionInstrumentation;
 use NickWelsh\Skyline\Telemetry\DeliveryInstrumentation;
 use NickWelsh\Skyline\Telemetry\InstrumentedFilesystemManager;
 use NickWelsh\Skyline\Telemetry\InstrumentedProcessFactory;
+use NickWelsh\Skyline\Telemetry\LogBreadcrumbInstrumentation;
 use NickWelsh\Skyline\Telemetry\OutgoingHttpInstrumentation;
 use NickWelsh\Skyline\Telemetry\ProcessInstrumentation;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
@@ -59,6 +60,7 @@ final class SkylineServiceProvider extends ServiceProvider
         $this->app->singleton(DeliveryInstrumentation::class);
         $this->app->singleton(ProcessInstrumentation::class);
         $this->app->singleton(StorageInstrumentation::class);
+        $this->app->singleton(LogBreadcrumbInstrumentation::class);
         $this->app->singleton(
             ProcessFactory::class,
             fn ($app) => new InstrumentedProcessFactory($app->make(ProcessInstrumentation::class)),

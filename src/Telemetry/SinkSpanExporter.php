@@ -14,12 +14,25 @@ final readonly class SinkSpanExporter implements SpanExporterInterface
     public function __construct(
         private TelemetrySink $sink,
         private LoggerInterface $logger,
+        private AttemptRegistry $attempts,
     ) {}
 
     public function export(iterable $batch, ?CancellationInterface $cancellation = null): FutureInterface
     {
         try {
             foreach ($batch as $span) {
+                $attributes = $span->getAttributes();
+                $runId = $attributes->get('skyline.run_id');
+                $attemptNumber = $attributes->get('skyline.attempt');
+                $role = $attributes->get('skyline.role');
+
+                if (is_string($runId) && is_numeric($attemptNumber) && is_string($role)) {
+                    $this->attempts->get($runId, (int) $attemptNumber)?->recordSpan(
+                        $role,
+                        $span->getEndEpochNanos() - $span->getStartEpochNanos(),
+                    );
+                }
+
                 $this->sink->recordSpan($span);
             }
 

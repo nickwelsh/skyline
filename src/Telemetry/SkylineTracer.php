@@ -14,10 +14,10 @@ final readonly class SkylineTracer
 {
     private TracerInterface $tracer;
 
-    public function __construct(TelemetrySink $sink, LoggerInterface $logger)
+    public function __construct(TelemetrySink $sink, LoggerInterface $logger, AttemptRegistry $attempts)
     {
         $provider = new TracerProvider(
-            new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger)),
+            new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger, $attempts)),
             new AlwaysOnSampler,
             ResourceInfo::create(Attributes::create([])),
         );

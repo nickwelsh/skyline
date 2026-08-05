@@ -46,6 +46,7 @@ use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
 use Tests\Fixtures\Jobs\StorageProcessJob;
+use Tests\Fixtures\Jobs\SummaryJob;
 use Tests\Fixtures\Jobs\TransactionJob;
 use Tests\Fixtures\Mail\QueuedTestMailable;
 use Tests\Fixtures\Mail\TestMailable;
@@ -140,6 +141,40 @@ it('captures storage and process operations without content paths arguments or o
         ->not->toContain('private contents')
         ->not->toContain('private output')
         ->not->toContain('exit(7)');
+});
+
+it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
+    config()->set('skyline.logging.enabled', true);
+
+    SummaryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+    $breadcrumbs = collect($consumer->getEvents())
+        ->filter(fn ($event) => $event->getName() === 'log')
+        ->values();
+    $attributes = $consumer->getAttributes();
+
+    expect($breadcrumbs)->toHaveCount(2)
+        ->and($breadcrumbs->map(fn ($event) => $event->getAttributes()->get('log.level'))->all())->toBe(['warning', 'error'])
+        ->and($breadcrumbs[0]->getEpochNanos())->toBeLessThanOrEqual($breadcrumbs[1]->getEpochNanos())
+        ->and($breadcrumbs[0]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
+        ->and($breadcrumbs[0]->getAttributes()->get('log.context'))->toContain('"code":429')
+        ->and($attributes->get('skyline.summary.sql.count'))->toBe(1)
+        ->and($attributes->get('skyline.summary.cache.count'))->toBe(1)
+        ->and($attributes->get('skyline.summary.custom.count'))->toBe(1)
+        ->and($attributes->get('skyline.summary.memory_peak_bytes'))->toBeGreaterThan(0)
+        ->and($attributes->get('skyline.summary.cpu_time_us'))->toBeGreaterThanOrEqual(0);
+
+    expect(json_encode([
+        ...$breadcrumbs->map(fn ($event) => $event->getAttributes()->toArray())->all(),
+        ...$attributes->toArray(),
+    ]))->not->toContain('private-token')
+        ->not->toContain('private-password')
+        ->not->toContain('ignored info');
 });
 
 it('records handled mail transport failures without changing application control flow', function (): void {

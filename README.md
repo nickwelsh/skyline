@@ -108,6 +108,14 @@ Laravel Storage disks record reads, writes, deletes, copies, moves, streams, and
 
 Laravel Process records synchronous and asynchronous execution duration, executable basename, timeout, exit code, and outcome. Arguments, environment, input, stdout, and stderr are never captured or consumed. Source capture requires `SKYLINE_PROCESS_CAPTURE_SOURCE=true`. Process fakes use the same wrapper. Direct Symfony Process instances cannot be intercepted safely; wrap those calls in `Skyline::measure()` when they need a domain span.
 
+Attempt Overview reconciles child-span counts and cumulative durations by type and shows measured peak memory, memory delta, and CPU time. Warning-and-higher log breadcrumbs are available as an explicit opt-in:
+
+```dotenv
+SKYLINE_LOGGING_ENABLED=true
+```
+
+Breadcrumbs store timestamp, level, the effective default channel, a bounded message, and allowlisted scalar context (`code` and `status` by default). Debug/info are excluded by default. Common secret assignments and bearer tokens are redacted; exceptions, arbitrary objects, structured payloads, and non-allowlisted context are discarded. Configure `logging.levels`, `logging.context_allowlist`, and `SKYLINE_LOGGING_MAX_MESSAGE_BYTES` in the published config.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

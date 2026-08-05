@@ -47,6 +47,7 @@ final class QueueInstrumentation
         private readonly DatabaseTransactionInstrumentation $transactions,
         private readonly DeliveryInstrumentation $delivery,
         private readonly ProcessInstrumentation $processes,
+        private readonly LogBreadcrumbInstrumentation $logs,
     ) {}
 
     public function boot(): void
@@ -61,6 +62,7 @@ final class QueueInstrumentation
         $this->cache->boot();
         $this->transactions->boot();
         $this->delivery->boot();
+        $this->logs->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(
@@ -377,6 +379,7 @@ final class QueueInstrumentation
         }
 
         $finishedAt = $this->now();
+        $active->span->setAttributes($active->summaryAttributes());
         $active->span->setAttribute('skyline.outcome', $attemptOutcome);
         $active->span->addEvent('attempt.finished', ['skyline.outcome' => $attemptOutcome], $finishedAt);
         $active->span->end($finishedAt);

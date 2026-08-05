@@ -782,6 +782,27 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
         </div>
       )}
       {node.exception && <ExceptionPreview exception={node.exception} />}
+      {node.kind === "attempt" && node.summary && (
+        <section className="space-y-2">
+          <h3 className="font-medium text-text-bright">Resources</h3>
+          <PropertyList values={{ "Peak memory": formatBytes(node.summary.resources.peakMemoryBytes), "Memory delta": formatBytes(node.summary.resources.memoryDeltaBytes), "CPU time": `${node.summary.resources.cpuTimeUs.toLocaleString()}μs` }} />
+          {Object.keys(node.summary.operations).length > 0 && <PropertyList values={Object.fromEntries(Object.entries(node.summary.operations).map(([role, value]) => [role, `${value.count.toLocaleString()} · ${formatDuration(value.durationMs)}`]))} />}
+        </section>
+      )}
+      {node.kind === "attempt" && node.breadcrumbs && node.breadcrumbs.length > 0 && (
+        <details className="rounded border border-grid-bright bg-background-dimmed">
+          <summary className="cursor-pointer px-3 py-2 font-medium text-text-bright">Breadcrumbs ({node.breadcrumbs.length})</summary>
+          <div className="divide-y divide-grid-dimmed border-t border-grid-bright">
+            {node.breadcrumbs.map((breadcrumb, index) => (
+              <div key={`${breadcrumb.timestamp}:${index}`} className="space-y-1 px-3 py-2 text-xs">
+                <div className="flex gap-2 text-text-faint"><span className="uppercase">{breadcrumb.level}</span><span>{breadcrumb.channel}</span><span className="ml-auto">{formatTime(breadcrumb.timestamp)}</span></div>
+                <div className="break-words text-text-bright">{breadcrumb.message}</div>
+                {Object.keys(breadcrumb.context).length > 0 && <JsonCapturePreview label="Context" value={breadcrumb.context} />}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
       {node.kind !== "run" && <PropertyList values={{ Started: formatDuration(node.offsetUs / 1_000), Duration: node.durationUs === null ? "Running" : formatDuration(node.durationUs / 1_000), Status: node.status }} />}
     </div>
   );
@@ -871,6 +892,7 @@ function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
 function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 1 : 2)}s` : `${Math.round(ms)}ms`; }
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
+function formatBytes(bytes: number) { const absolute = Math.abs(bytes); if (absolute >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; if (absolute >= 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${bytes} B`; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
 function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; if (node.kind === "storage") return "bg-emerald-500"; if (node.kind === "process") return "bg-orange-500"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {

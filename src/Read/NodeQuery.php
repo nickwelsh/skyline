@@ -81,6 +81,7 @@ final readonly class NodeQuery
             && (int) $span->attempt_number === (int) $attempt->attempt_number
             && $span->role === 'consumer');
         $run = $snapshot->runs->firstWhere('run_id', $attempt->run_id);
+        $consumerAttributes = $consumer === null ? [] : $this->json($consumer->attributes);
 
         return [
             'overview' => [
@@ -95,8 +96,68 @@ final readonly class NodeQuery
             'exception' => $attempt->exception_class === null
                 ? null
                 : $this->exceptions->present($attempt, $run?->job_name),
+            'summary' => $this->attemptSummary($consumerAttributes),
+            'breadcrumbs' => $this->breadcrumbs($consumer),
             'metadata' => $this->spanMetadata($consumer),
         ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed>|null */
+    private function attemptSummary(array $attributes): ?array
+    {
+        if (! isset($attributes['skyline.summary.memory_peak_bytes'])) {
+            return null;
+        }
+
+        $operations = [];
+
+        foreach ($attributes as $key => $count) {
+            if (! is_string($key) || ! preg_match('/^skyline\.summary\.([^.]+)\.count$/', $key, $matches)) {
+                continue;
+            }
+
+            $duration = $attributes['skyline.summary.'.$matches[1].'.duration_ms'] ?? 0;
+            $operations[$matches[1]] = [
+                'count' => is_numeric($count) ? (int) $count : 0,
+                'durationMs' => is_numeric($duration) ? (float) $duration : 0.0,
+            ];
+        }
+
+        return [
+            'resources' => [
+                'peakMemoryBytes' => (int) $attributes['skyline.summary.memory_peak_bytes'],
+                'memoryDeltaBytes' => (int) ($attributes['skyline.summary.memory_delta_bytes'] ?? 0),
+                'cpuTimeUs' => (int) ($attributes['skyline.summary.cpu_time_us'] ?? 0),
+            ],
+            'operations' => $operations,
+        ];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function breadcrumbs(?object $consumer): array
+    {
+        if ($consumer === null) {
+            return [];
+        }
+
+        return collect($this->json($consumer->events))
+            ->filter(fn (mixed $event): bool => is_array($event) && ($event['name'] ?? null) === 'log')
+            ->map(function (array $event): array {
+                $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
+                $context = is_string($attributes['log.context'] ?? null)
+                    ? $this->json($attributes['log.context'])
+                    : [];
+
+                return [
+                    'timestamp' => Nanoseconds::toRfc3339(isset($event['timestamp']) ? (int) $event['timestamp'] : null),
+                    'level' => is_string($attributes['log.level'] ?? null) ? $attributes['log.level'] : 'warning',
+                    'channel' => is_string($attributes['log.channel'] ?? null) ? $attributes['log.channel'] : 'default',
+                    'message' => is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : '',
+                    'context' => $context,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /** @return array<string, mixed> */

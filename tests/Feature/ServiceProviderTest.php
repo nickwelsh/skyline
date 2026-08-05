@@ -33,7 +33,10 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.storage.capture_paths'))->toBeFalse()
         ->and(config('skyline.storage.capture_source'))->toBeFalse()
         ->and(config('skyline.process.enabled'))->toBeTrue()
-        ->and(config('skyline.process.capture_source'))->toBeFalse();
+        ->and(config('skyline.process.capture_source'))->toBeFalse()
+        ->and(config('skyline.logging.enabled'))->toBeFalse()
+        ->and(config('skyline.logging.levels'))->toBe(['warning', 'error', 'critical', 'alert', 'emergency'])
+        ->and(config('skyline.logging.context_allowlist'))->toBe(['code', 'status']);
 });
 
 it('publishes config and the migration directory', function (): void {

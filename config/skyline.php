@@ -130,6 +130,13 @@ return [
         'capture_source' => env('SKYLINE_PROCESS_CAPTURE_SOURCE', false),
     ],
 
+    'logging' => [
+        'enabled' => env('SKYLINE_LOGGING_ENABLED', false),
+        'levels' => ['warning', 'error', 'critical', 'alert', 'emergency'],
+        'context_allowlist' => ['code', 'status'],
+        'max_message_bytes' => env('SKYLINE_LOGGING_MAX_MESSAGE_BYTES', 1_024),
+    ],
+
     'editor' => [
         'name' => env('SKYLINE_EDITOR'),
         'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),

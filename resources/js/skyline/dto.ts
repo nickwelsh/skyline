@@ -166,6 +166,17 @@ export type InspectorDto = TraceNode & {
     request: HttpMessageCapture;
     response: HttpMessageCapture;
   };
+  summary?: {
+    resources: { peakMemoryBytes: number; memoryDeltaBytes: number; cpuTimeUs: number };
+    operations: Record<string, { count: number; durationMs: number }>;
+  } | null;
+  breadcrumbs?: Array<{
+    timestamp: string;
+    level: string;
+    channel: string;
+    message: string;
+    context: Record<string, unknown>;
+  }>;
   metadata: {
     value: Record<string, unknown>;
     isTruncated: boolean;
