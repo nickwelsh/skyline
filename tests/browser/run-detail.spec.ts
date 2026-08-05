@@ -14,6 +14,8 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   expect(createHash("sha256").update(sourceRoute).digest("hex")).toBe(oracle.sourceRouteSha256);
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId, "cursor=opaque");
+  detail.attempts[0].finishedAt = null;
+  detail.attempts[0].queueDurationUs = null;
   await routeDetail(page, detail, (nodeId) => adapter.inspector(nodeId, runId));
   await page.setViewportSize(oracle.viewport);
   await page.goto(`${oracle.path}?tableState=cursor%3Dopaque`);
@@ -46,6 +48,8 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(new RegExp(`node=${oracle.expected.nextNode}`));
   await expect(page.getByText("Illuminate\\Database\\DeadlockException", { exact: true })).toBeVisible();
+  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Finished" }).locator("+ dd")).toHaveText("—");
+  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Queue duration" }).locator("+ dd")).toHaveText("—");
 
   const timeline = page.locator("[data-timeline-root]");
   const attempt = page.locator(`[data-timeline-node-id="${failedAttemptId}"]`);

@@ -587,12 +587,12 @@ function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: 
         <Property name="Attempts" value={isRouteRun ? data.run.attemptCount : null} />
         <Property name="Triggered" value={isRouteRun ? data.run.triggeredAt : null} />
         <Property name="Queued" value={isRouteRun ? data.run.queuedAt : null} />
-        <Property name="Started" value={attempt?.startedAt ?? (isRouteRun ? data.run.startedAt : null)} />
-        <Property name="Finished" value={attempt?.finishedAt ?? (isRouteRun ? data.run.finishedAt : null)} />
-        <Property name="Queue duration" value={formatDuration(attempt?.queueDurationUs ?? (isRouteRun ? data.run.queueDurationUs : null))} />
+        <Property name="Started" value={attempt ? attempt.startedAt : (isRouteRun ? data.run.startedAt : null)} />
+        <Property name="Finished" value={attempt ? attempt.finishedAt : (isRouteRun ? data.run.finishedAt : null)} />
+        <Property name="Queue duration" value={formatDuration(attempt ? attempt.queueDurationUs : (isRouteRun ? data.run.queueDurationUs : null))} />
         {attempt && <Property name="Attempt" value={attempt.number} />}
         {attempt && <Property name="Attempt queue source" value={attempt.queueTimeSource} />}
-        <Property name="Duration" value={formatDuration(node?.durationUs ?? data.run.durationUs)} />
+        <Property name="Duration" value={formatDuration(node ? node.durationUs : data.run.durationUs)} />
       </dl>
     </div>
   );
