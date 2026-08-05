@@ -40,7 +40,7 @@ export function presentRuns(page: RunsPageDto): RunsRouteData {
   };
 }
 
-function presentRun(run: RunSummary, tableState: string) {
+export function presentRun(run: RunSummary, tableState: string) {
   const params = new URLSearchParams({ tableState });
   return {
     id: run.id,

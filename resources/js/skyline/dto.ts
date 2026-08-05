@@ -110,8 +110,62 @@ export type RunsQuery = {
   triggeredTo?: string;
 };
 
+export type JobsQuery = {
+  search?: string;
+  period?: "1h" | "24h" | "7d" | "30d" | "all";
+};
+
+export type JobRunsQuery = {
+  status?: RunStatus[];
+  cursor?: string;
+  period?: JobsQuery["period"];
+};
+
+export type JobStatusCounts = Record<RunStatus, number>;
+
+export type JobSummary = {
+  id: string;
+  name: string;
+  href: string;
+  firstObservedAt: string;
+  lastObservedAt: string;
+  runCount: number;
+  statusCounts: JobStatusCounts;
+  latestRun: { id: string; status: RunStatus; triggeredAt: string; href: string };
+};
+
+export type TimeRangeOption = { value: NonNullable<JobsQuery["period"]>; label: string };
+
+export type JobsPageDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  jobs: JobSummary[];
+  filters: { search: string | null; period: NonNullable<JobsQuery["period"]> };
+  options: { timeRanges: TimeRangeOption[] };
+  hasAnyJobs: boolean;
+};
+
+export type JobDetailDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  job: JobSummary;
+  queueTargets: Array<{ id: string; connection: string; queue: string; runCount: number; href: string }>;
+  activity: Array<{ timestamp: string; total: number; statusCounts: JobStatusCounts }>;
+  runs: RunSummary[];
+  pagination: { next: string | null; previous: string | null };
+  tableState: string;
+  filters: { status: RunStatus[]; period: NonNullable<JobsQuery["period"]> };
+  options: { statuses: RunStatus[]; timeRanges: TimeRangeOption[] };
+  hasAnyRuns: boolean;
+};
+
 export type SkylineCapabilities = {
   navigation: Record<string, boolean> & { runs: boolean };
+  jobs?: Record<string, boolean> & { view: boolean; testJob: boolean };
   runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean };
   shell: Record<string, boolean> & { shortcuts: boolean };
 };
@@ -349,6 +403,8 @@ export type Scenario = {
 };
 
 export interface SkylineDtoAdapter {
+  jobs(query?: JobsQuery, signal?: AbortSignal): Promise<JobsPageDto>;
+  job(jobId: string, query?: JobRunsQuery, signal?: AbortSignal): Promise<JobDetailDto>;
   runs(query?: RunsQuery, signal?: AbortSignal): Promise<RunsPageDto>;
   updates(query: RunsQuery, since: string, runIds?: string[], signal?: AbortSignal): Promise<RunsUpdatesDto>;
   trace(runId: string, tableState?: string, signal?: AbortSignal): Promise<TracePageDto>;

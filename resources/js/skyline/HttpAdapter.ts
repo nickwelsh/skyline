@@ -1,5 +1,9 @@
 import type {
   InspectorDto,
+  JobDetailDto,
+  JobRunsQuery,
+  JobsPageDto,
+  JobsQuery,
   RunsPageDto,
   RunsQuery,
   RunsUpdatesDto,
@@ -24,6 +28,14 @@ export class HttpAdapter implements SkylineDtoAdapter {
   private readonly cache = new Map<string, { etag: string; value: unknown }>();
 
   constructor(private readonly basePath: string) {}
+
+  jobs(query: JobsQuery = {}, signal?: AbortSignal): Promise<JobsPageDto> {
+    return this.get<JobsPageDto>("api/jobs", this.jobsQuery(query), signal);
+  }
+
+  job(jobId: string, query: JobRunsQuery = {}, signal?: AbortSignal): Promise<JobDetailDto> {
+    return this.get<JobDetailDto>(`api/jobs/${encodeURIComponent(jobId)}`, this.jobQuery(query), signal);
+  }
 
   runs(query: RunsQuery = {}, signal?: AbortSignal): Promise<RunsPageDto> {
     return this.get<RunsPageDto>("api/runs", this.query(query), signal);
@@ -64,6 +76,21 @@ export class HttpAdapter implements SkylineDtoAdapter {
     if (query.rootOnly !== undefined) params.set("rootOnly", String(query.rootOnly));
     if (query.triggeredFrom) params.set("triggeredFrom", query.triggeredFrom);
     if (query.triggeredTo) params.set("triggeredTo", query.triggeredTo);
+    return params;
+  }
+
+  private jobsQuery(query: JobsQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.search) params.set("search", query.search);
+    if (query.period) params.set("period", query.period);
+    return params;
+  }
+
+  private jobQuery(query: JobRunsQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.cursor) params.set("cursor", query.cursor);
+    query.status?.forEach((status) => params.append("status[]", status));
+    if (query.period) params.set("period", query.period);
     return params;
   }
 

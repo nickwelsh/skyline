@@ -1,6 +1,10 @@
 import { scenarios } from "./fixtures";
 import type {
   InspectorDto,
+  JobDetailDto,
+  JobRunsQuery,
+  JobsPageDto,
+  JobsQuery,
   RunsPageDto,
   RunsQuery,
   RunsUpdatesDto,
@@ -19,12 +23,70 @@ const triggeredAtByRun = new Map([
 ]);
 
 const capabilities = {
-  navigation: { runs: true },
+  navigation: { jobs: true, runs: true },
+  jobs: { view: true, testJob: false },
   runs: { view: true, cancel: false, replay: false },
   shell: { shortcuts: true },
 };
 
 export class FixtureAdapter implements SkylineDtoAdapter {
+  async jobs(query: JobsQuery = {}): Promise<JobsPageDto> {
+    const grouped = Map.groupBy(scenarios[0].runs, (run) => run.name);
+    const search = query.search?.toLowerCase();
+    const jobs = [...grouped.entries()]
+      .filter(([name]) => !search || name.toLowerCase().includes(search))
+      .map(([name, runs]) => this.jobSummary(name, runs))
+      .sort((left, right) => left.name.localeCompare(right.name));
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
+      jobs,
+      filters: { search: query.search ?? null, period: query.period ?? "all" },
+      options: { timeRanges: fixtureTimeRanges },
+      hasAnyJobs: grouped.size > 0,
+    };
+  }
+
+  async job(jobId: string, query: JobRunsQuery = {}): Promise<JobDetailDto> {
+    const grouped = Map.groupBy(scenarios[0].runs, (run) => run.name);
+    const entry = [...grouped.entries()].find(([name]) => fixtureJobId(name) === jobId);
+    if (!entry) throw new Error(`Unknown fixture Job: ${jobId}`);
+    const [name, source] = entry;
+    const runs = source.filter((run) => !query.status || query.status.includes(run.status));
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
+      job: this.jobSummary(name, source),
+      queueTargets: [...new Map(source.map((run) => [`${run.connection}\0${run.queue}`, {
+        id: fixtureQueueId(run.connection, run.queue),
+        connection: run.connection,
+        queue: run.queue,
+        runCount: source.filter((candidate) => candidate.connection === run.connection && candidate.queue === run.queue).length,
+        href: `/skyline/queues/${fixtureQueueId(run.connection, run.queue)}`,
+      }])).values()],
+      activity: [{
+        timestamp: "2026-08-04T00:00:00Z",
+        total: runs.length,
+        statusCounts: statusCounts(runs),
+      }],
+      runs: runs.map((run, index) => this.summary(run, index)),
+      pagination: { next: null, previous: null },
+      tableState: "fixture-job",
+      filters: { status: query.status ?? [], period: query.period ?? "all" },
+      options: {
+        statuses: ["queued", "running", "retrying", "completed", "failed"],
+        timeRanges: fixtureTimeRanges,
+      },
+      hasAnyRuns: source.length > 0,
+    };
+  }
+
   async runs(query: RunsQuery = {}): Promise<RunsPageDto> {
     const source = scenarios[0].runs;
     const search = query.search?.toLowerCase();
@@ -224,6 +286,28 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     };
   }
 
+  private jobSummary(name: string, runs: Scenario["runs"]) {
+    const sorted = [...runs].sort((left, right) => (triggeredAtByRun.get(right.id) ?? "").localeCompare(triggeredAtByRun.get(left.id) ?? ""));
+    const latest = sorted[0];
+    const observed = sorted.map((run, index) => triggeredAtByRun.get(run.id) ?? generatedTimestamp(index)).sort();
+    const id = fixtureJobId(name);
+    return {
+      id,
+      name,
+      href: `/skyline/jobs/${id}`,
+      firstObservedAt: observed[0],
+      lastObservedAt: observed.at(-1) ?? observed[0],
+      runCount: runs.length,
+      statusCounts: statusCounts(runs),
+      latestRun: {
+        id: latest.id,
+        status: latest.status,
+        triggeredAt: triggeredAtByRun.get(latest.id) ?? generatedTimestamp(0),
+        href: `/skyline/runs/${encodeURIComponent(latest.id)}`,
+      },
+    };
+  }
+
   private fixtureForRun(runId: string): { run: Scenario["runs"][number]; nodes: Scenario["nodes"]; rootRunId: string; parentRunId?: string } {
     const source = scenarios[0].runs;
     const run = source.find((candidate) => candidate.id === runId);
@@ -302,4 +386,32 @@ function parseDuration(value: string): number {
   const amount = Number.parseFloat(value);
   if (value.endsWith("ms")) return amount;
   return value.endsWith("s") ? amount * 1_000 : amount;
+}
+
+const fixtureTimeRanges = [
+  { value: "1h" as const, label: "Last hour" },
+  { value: "24h" as const, label: "Last 24 hours" },
+  { value: "7d" as const, label: "Last 7 days" },
+  { value: "30d" as const, label: "Last 30 days" },
+  { value: "all" as const, label: "All time" },
+];
+
+function fixtureJobId(name: string) {
+  return `job_${fixtureHash(name)}`;
+}
+
+function fixtureQueueId(connection: string, queue: string) {
+  return `queue_${fixtureHash(`${connection}\0${queue}`)}`;
+}
+
+function fixtureHash(value: string) {
+  let hash = 5381;
+  for (const character of value) hash = ((hash * 33) ^ character.charCodeAt(0)) >>> 0;
+  return hash.toString(16).padStart(8, "0");
+}
+
+function statusCounts(runs: Scenario["runs"]) {
+  const counts = { queued: 0, running: 0, retrying: 0, completed: 0, failed: 0 };
+  for (const run of runs) counts[run.status] += 1;
+  return counts;
 }
