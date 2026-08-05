@@ -26,7 +26,9 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.cache.max_key_bytes'))->toBe(256)
         ->and(config('skyline.custom.enabled'))->toBeTrue()
         ->and(config('skyline.custom.max_attributes'))->toBe(32)
-        ->and(config('skyline.custom.max_attribute_bytes'))->toBe(1_024);
+        ->and(config('skyline.custom.max_attribute_bytes'))->toBe(1_024)
+        ->and(config('skyline.delivery.enabled'))->toBeTrue()
+        ->and(config('skyline.delivery.capture_source'))->toBeFalse();
 });
 
 it('publishes config and the migration directory', function (): void {

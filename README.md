@@ -102,6 +102,8 @@ Skyline::event('Imported chunk', ['rows' => 500]);
 
 Laravel database transactions are captured automatically. Nested transactions bracket their SQL children and record connection, depth, outcome, total duration, and cumulative query time. Rollbacks are marked as failed transaction nodes without failing a successful Attempt that catches the rollback. Locking clauses are identified on captured SQL spans. Laravel's transaction events do not expose callback exceptions, retry numbers, or driver lock-wait timing, so Skyline records those only when they are independently available from SQL/Attempt telemetry and never guesses them.
 
+Laravel mail and notification delivery is captured automatically for synchronous and queued work. Mail records mailable class, mailer, recipient count, duration, and outcome. Notifications produce one span per channel and recipient. Addresses, subjects, rendered bodies, attachments, routes, responses, and payloads are never captured. Set `SKYLINE_DELIVERY_CAPTURE_SOURCE=true` for bounded application source locations or `SKYLINE_DELIVERY_ENABLED=false` to disable delivery spans. Laravel mail does not emit a failure event, so a send started without a matching sent event is marked incomplete when its Attempt ends.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

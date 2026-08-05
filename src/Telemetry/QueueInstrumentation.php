@@ -45,6 +45,7 @@ final class QueueInstrumentation
         private readonly OutgoingHttpInstrumentation $http,
         private readonly CacheInstrumentation $cache,
         private readonly DatabaseTransactionInstrumentation $transactions,
+        private readonly DeliveryInstrumentation $delivery,
     ) {}
 
     public function boot(): void
@@ -58,6 +59,7 @@ final class QueueInstrumentation
         $this->http->boot();
         $this->cache->boot();
         $this->transactions->boot();
+        $this->delivery->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(
@@ -361,6 +363,7 @@ final class QueueInstrumentation
 
     private function finish(ActiveAttempt $active): void
     {
+        $this->delivery->finishAttempt($active);
         $result = $active->result ?? AttemptResult::Completed;
         $attemptOutcome = $result->attemptOutcome();
         $runStatus = $result->runStatus();

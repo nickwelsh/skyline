@@ -14,6 +14,7 @@ use Illuminate\Queue\Worker;
 use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
@@ -25,9 +26,16 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\RawMessage;
 use Tests\Fixtures\Jobs\CacheJob;
 use Tests\Fixtures\Jobs\CustomTelemetryJob;
+use Tests\Fixtures\Jobs\DeliveryJob;
 use Tests\Fixtures\Jobs\ExceptionRetryJob;
+use Tests\Fixtures\Jobs\FailingDeliveryJob;
 use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\FailingSqlJob;
@@ -38,6 +46,8 @@ use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
 use Tests\Fixtures\Jobs\TransactionJob;
+use Tests\Fixtures\Mail\QueuedTestMailable;
+use Tests\Fixtures\Mail\TestMailable;
 use Tests\Fixtures\RecordingTelemetrySink;
 
 it('captures nested custom spans and events while preserving application behavior', function (): void {
@@ -61,6 +71,85 @@ it('captures nested custom spans and events while preserving application behavio
         ->and($custom['Generate PDF']->getAttributes()->get('skyline.custom.source.file'))->toEndWith('CustomTelemetryJob.php')
         ->and(json_encode($custom['Generate PDF']->getEvents()[0]->getAttributes()->toArray()))
         ->not->toContain('stdClass');
+});
+
+it('captures mail and per-channel notification delivery without recipient identity or content', function (): void {
+    config()->set('mail.default', 'array');
+    config()->set('mail.mailers.array', ['transport' => 'array']);
+
+    DeliveryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $delivery = collect($sink->spans)
+        ->filter(fn ($span) => in_array($span->getAttributes()->get('skyline.role'), ['mail', 'notification'], true))
+        ->values();
+    $mail = $delivery->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'mail')->values();
+    $notifications = $delivery->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'notification')->values();
+
+    expect($delivery)->toHaveCount(4)
+        ->and($mail)->toHaveCount(2)
+        ->and($mail[0]->getAttributes()->get('messaging.message.type'))->toBe(TestMailable::class)
+        ->and($mail[0]->getAttributes()->get('messaging.destination.recipient_count'))->toBe(2)
+        ->and($mail[1]->getAttributes()->get('messaging.message.type'))->toBe(QueuedTestMailable::class)
+        ->and($mail[1]->getParentSpanId())->not->toBe($mail[0]->getParentSpanId())
+        ->and($notifications->map(fn ($span) => $span->getName())->all())->toBe(['Notification database', 'Notification slack'])
+        ->and($notifications[0]->getStatus()->getCode())->toBe(StatusCode::STATUS_OK)
+        ->and($notifications[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR);
+
+    expect(json_encode($delivery->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('example.test')
+        ->not->toContain('private subject')
+        ->not->toContain('private body')
+        ->not->toContain('private-route');
+});
+
+it('records handled mail transport failures without changing application control flow', function (): void {
+    app('mail.manager')->extend('skyline-failing', fn () => new class implements TransportInterface
+    {
+        public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
+        {
+            throw new TransportException('private transport failure');
+        }
+
+        public function __toString(): string
+        {
+            return 'skyline-failing';
+        }
+    });
+    config()->set('mail.default', 'failure');
+    config()->set('mail.mailers.failure', ['transport' => 'skyline-failing']);
+
+    FailingDeliveryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $mail = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'mail',
+    );
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+
+    expect($mail->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($mail->getAttributes()->get('messaging.operation.outcome'))->toBe('incomplete')
+        ->and($consumer->getStatus()->getCode())->toBe(StatusCode::STATUS_OK)
+        ->and(json_encode($mail->getAttributes()->toArray()))->not->toContain('private transport failure');
+});
+
+it('leaves Laravel mail fakes unchanged and does not invent delivery spans', function (): void {
+    Mail::fake();
+
+    FailingDeliveryJob::dispatchSync();
+
+    Mail::assertSent(TestMailable::class);
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+
+    expect(collect($sink->spans)->contains(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'mail',
+    ))->toBeFalse();
 });
 
 it('captures nested rolled-back and multi-connection database transactions', function (): void {

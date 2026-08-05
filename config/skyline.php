@@ -113,6 +113,11 @@ return [
         'max_attribute_bytes' => env('SKYLINE_CUSTOM_MAX_ATTRIBUTE_BYTES', 1_024),
     ],
 
+    'delivery' => [
+        'enabled' => env('SKYLINE_DELIVERY_ENABLED', true),
+        'capture_source' => env('SKYLINE_DELIVERY_CAPTURE_SOURCE', false),
+    ],
+
     'editor' => [
         'name' => env('SKYLINE_EDITOR'),
         'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),
