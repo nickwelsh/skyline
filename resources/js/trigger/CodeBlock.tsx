@@ -6,7 +6,7 @@
 import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
-import { forwardRef, useCallback, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
@@ -82,7 +82,6 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   const [modalCopied, setModalCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWrapped, setIsWrapped] = useState(wrap);
-  const expandButton = useRef<HTMLButtonElement>(null);
   const code = rawCode?.trim() ?? "";
 
   const copy = useCallback((modal: boolean) => {
@@ -143,7 +142,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           {showOpenInModal && (
             <TooltipProvider>
               <Tooltip disableHoverableContent>
-                <TooltipTrigger ref={expandButton} aria-label={`Expand ${label}`} onClick={() => setIsModalOpen(true)}>
+                <TooltipTrigger aria-label={`Expand ${label}`} onClick={() => setIsModalOpen(true)}>
                   <ArrowsPointingOutIcon className="size-4 transition-colors hover:text-text-bright" />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-xs">Expand</TooltipContent>
@@ -169,10 +168,6 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent
           className="flex flex-col gap-0 p-0 pt-[2.9rem] sm:h-[80vh] sm:max-h-[80vh] sm:!w-[80vw] sm:!max-w-[80vw]"
-          onCloseAutoFocus={(event) => {
-            event.preventDefault();
-            expandButton.current?.focus();
-          }}
         >
           <DialogHeader className="h-fit">
             <DialogTitle className={fileName || rowTitle ? "absolute left-3.5 top-2.5" : "sr-only"}>

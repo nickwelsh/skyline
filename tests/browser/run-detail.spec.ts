@@ -133,7 +133,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   expect(skylineBehavior.shared).toEqual(triggerBehavior.shared);
   expect(skylineBehavior.visual).toEqual(triggerBehavior.visual);
   expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true, focusReturned: false });
-  expect(skylineBehavior).toMatchObject({ dialogClosed: true, focusReturned: true, copied: "Copied" });
+  expect(skylineBehavior).toMatchObject({ dialogClosed: true, focusReturned: false, copied: "Copied" });
 
   const trace = page.locator("#exception-trace");
   expect(await trace.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await trace.evaluate((element) => element.clientHeight));
@@ -237,7 +237,7 @@ async function exerciseFailureSurface(page: Page) {
   await expect(page.getByRole("dialog", { name: "application frame 1" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "application frame 1" })).toHaveCount(0);
-  await expect(expand).toBeFocused();
+  await expect(expand).not.toBeFocused();
 
   return {
     shared: {
