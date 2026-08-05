@@ -5,6 +5,7 @@ use NickWelsh\Skyline\Http\Controllers\AssetController;
 use NickWelsh\Skyline\Http\Controllers\DashboardController;
 use NickWelsh\Skyline\Http\Controllers\JobsController;
 use NickWelsh\Skyline\Http\Controllers\NodeController;
+use NickWelsh\Skyline\Http\Controllers\QueueTargetsController;
 use NickWelsh\Skyline\Http\Controllers\RunsController;
 use NickWelsh\Skyline\Http\Controllers\TraceController;
 use NickWelsh\Skyline\Http\Middleware\Authorize;
@@ -25,6 +26,8 @@ Route::prefix($path)
         Route::get('api/runs/{run}/nodes/{node}', NodeController::class)->name('skyline.api.nodes.show');
         Route::get('api/jobs', [JobsController::class, 'index'])->name('skyline.api.jobs.index');
         Route::get('api/jobs/{job}', [JobsController::class, 'show'])->name('skyline.api.jobs.show');
+        Route::get('api/queues', [QueueTargetsController::class, 'index'])->name('skyline.api.queues.index');
+        Route::get('api/queues/{queue}', [QueueTargetsController::class, 'show'])->name('skyline.api.queues.show');
 
         Route::get('{view?}', DashboardController::class)
             ->where('view', '.*')
