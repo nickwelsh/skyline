@@ -31,6 +31,7 @@ final class SqlCapture
         private readonly Dispatcher $events,
         private readonly DatabaseManager $database,
         private readonly SqlResultRegistry $results,
+        private readonly SourceLocator $sourceLocator,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -73,35 +74,10 @@ final class SqlCapture
         }
 
         if ((bool) $this->config->get('skyline.sql.capture_source', false)) {
-            $attributes = [...$attributes, ...$this->source()];
+            $attributes = [...$attributes, ...$this->sourceLocator->attributes('skyline.sql.source')];
         }
 
         return $attributes;
-    }
-
-    /** @return array<string, string|int> */
-    private function source(): array
-    {
-        $packageSource = rtrim(str_replace('\\', '/', dirname(__DIR__)), '/').'/';
-
-        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 50) as $frame) {
-            $file = isset($frame['file']) ? str_replace('\\', '/', $frame['file']) : null;
-
-            if ($file === null
-                || ! isset($frame['line'])
-                || str_contains($file, '/vendor/')
-                || str_starts_with($file, $packageSource)
-            ) {
-                continue;
-            }
-
-            return [
-                'skyline.sql.source.file' => $file,
-                'skyline.sql.source.line' => (int) $frame['line'],
-            ];
-        }
-
-        return [];
     }
 
     private function install(Connection $connection): void

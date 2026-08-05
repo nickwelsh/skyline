@@ -41,6 +41,40 @@ Result capture stores a redacted preview of up to 25 returned rows or the affect
 
 Source capture stores the first application `file:line` frame for each query. Set `SKYLINE_EDITOR` to `cursor`, `phpstorm`, `vscode`, or `zed` for clickable links. In containers, set `SKYLINE_EDITOR_BASE_PATH` to the matching local project path. Skyline also honors Laravel's `app.editor` string or array configuration, including custom `href` templates.
 
+Outgoing Laravel HTTP requests are captured automatically as Attempt child spans. Direct Guzzle clients can use the same middleware without replacing Guzzle's default stack:
+
+```php
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use NickWelsh\Skyline\Telemetry\OutgoingHttpInstrumentation;
+
+$stack = HandlerStack::create();
+$stack->push(app(OutgoingHttpInstrumentation::class), 'skyline');
+
+$client = new Client(['handler' => $stack]);
+```
+
+Saloon's default Guzzle sender uses the same integration. Add it once in a connector constructor:
+
+```php
+$this->sender()->getHandlerStack()->push(
+    app(OutgoingHttpInstrumentation::class)->forClient('saloon'),
+    'skyline',
+);
+```
+
+Method, bounded URL, status, and duration are captured by default. Query names remain visible but values are redacted. Headers, bodies, raw query values, and source are independent opt-ins:
+
+```dotenv
+SKYLINE_HTTP_CAPTURE_REQUEST_HEADERS=true
+SKYLINE_HTTP_CAPTURE_REQUEST_BODY=true
+SKYLINE_HTTP_CAPTURE_RESPONSE_HEADERS=true
+SKYLINE_HTTP_CAPTURE_RESPONSE_BODY=true
+SKYLINE_HTTP_CAPTURE_SOURCE=true
+```
+
+Only allowlisted headers and redacted sensitive headers are stored. Body previews accept bounded seekable text, JSON, XML, form, and GraphQL content; configured sensitive JSON fields are redacted. Configure allowlists, redaction fields, and byte limits in the published config. Set `SKYLINE_HTTP_ENABLED=false` to disable all outgoing HTTP spans.
+
 Failed Attempts show a collapsed Laravel-style exception preview. Expanding it reveals highlighted application source, folded vendor frames, and editor links. Copy as Markdown produces a bounded exception report suitable for issues or debugging. Source is read on demand from the host filesystem and is not persisted by Skyline.
 
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.

@@ -21,20 +21,12 @@ use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
-use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\Context\Context;
-use OpenTelemetry\SDK\Common\Attribute\Attributes;
-use OpenTelemetry\SDK\Resource\ResourceInfo;
-use OpenTelemetry\SDK\Trace\Sampler\AlwaysOnSampler;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
-use OpenTelemetry\SDK\Trace\TracerProvider;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
 final class QueueInstrumentation
 {
-    private readonly TracerInterface $tracer;
-
     private bool $booted = false;
 
     private bool $handling = false;
@@ -45,20 +37,13 @@ final class QueueInstrumentation
         private readonly Dispatcher $events,
         private readonly AttemptRegistry $attempts,
         private readonly LifecycleEmitter $lifecycle,
-        private readonly TelemetrySink $sink,
+        private readonly SkylineTracer $tracer,
         private readonly LoggerInterface $logger,
         private readonly PersistenceGuard $persistenceGuard,
         private readonly SkylineConnection $persistenceConnection,
         private readonly SqlCapture $sqlCapture,
-    ) {
-        $provider = new TracerProvider(
-            new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger)),
-            new AlwaysOnSampler,
-            ResourceInfo::create(Attributes::create([])),
-        );
-
-        $this->tracer = $provider->getTracer('nickwelsh/skyline');
-    }
+        private readonly OutgoingHttpInstrumentation $http,
+    ) {}
 
     public function boot(): void
     {
@@ -68,6 +53,7 @@ final class QueueInstrumentation
 
         $this->booted = true;
         $this->sqlCapture->boot();
+        $this->http->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(
@@ -110,7 +96,7 @@ final class QueueInstrumentation
         $job = $this->jobName($payload);
         $parent = $this->attempts->current();
         $queuedAt = $this->now();
-        $builder = $this->tracer->spanBuilder($job.' dispatch')
+        $builder = $this->tracer->get()->spanBuilder($job.' dispatch')
             ->setParent($parent?->context ?? false)
             ->setSpanKind(SpanKind::KIND_PRODUCER)
             ->setAttributes([
@@ -208,7 +194,7 @@ final class QueueInstrumentation
             context: Context::getRoot(),
         );
         $job = $event->job->resolveName();
-        $span = $this->tracer->spanBuilder($job.' attempt '.$attempt)
+        $span = $this->tracer->get()->spanBuilder($job.' attempt '.$attempt)
             ->setParent($parent)
             ->setSpanKind(SpanKind::KIND_CONSUMER)
             ->setAttributes([
@@ -418,7 +404,7 @@ final class QueueInstrumentation
 
         $end = $this->now();
         $operation = strtoupper(strtok(ltrim($query->sql), " \t\n\r") ?: 'QUERY');
-        $span = $this->tracer->spanBuilder('SQL '.$operation)
+        $span = $this->tracer->get()->spanBuilder('SQL '.$operation)
             ->setParent($active->context)
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setStartTimestamp($end - max(0, (int) round($query->time * 1_000_000)))

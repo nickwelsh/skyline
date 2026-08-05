@@ -184,6 +184,28 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"db.system.name": "mysql"');
 });
 
+test("outgoing HTTP rows expose request and response captures", async ({ page }) => {
+  await page.route("**/skyline/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith("/nodes/span_live_http")
+      ? httpInspectorResponse
+      : url.pathname.endsWith("/runs/live-run")
+        ? httpTraceResponse
+        : runsResponse;
+    await route.fulfill({ json: body });
+  });
+
+  await page.goto("/skyline/runs/live-run?production=1&node=span_live_http");
+  await expect(page.locator('[data-node-id="span_live_http"]')).toBeVisible();
+  await expect(page.locator('[data-timeline-node-id="span_live_http"]')).toHaveClass(/bg-cyan-500/);
+  await page.getByRole("tab", { name: "Detail" }).click();
+  await expect(page.getByRole("region", { name: "Request source" })).toContainText("app/Jobs/LiveInvoiceJob.php:55");
+  await expect(page.getByRole("tabpanel")).toContainText("https://api.example.test/invoices");
+  await expect(page.getByRole("tree", { name: "Request headers JSON tree" })).toContainText("[REDACTED]");
+  await expect(page.getByRole("tree", { name: "Request body JSON tree" })).toContainText("invoice-42");
+  await expect(page.getByRole("tree", { name: "Response body JSON tree" })).toContainText("accepted");
+});
+
 test("production adapter renders authorization failures", async ({ page }) => {
   await page.route("**/skyline/api/**", (route) => route.fulfill({
     status: 403,
@@ -265,6 +287,42 @@ const inspectorResponse = {
     bindings: { items: [{ position: 0, column: "id", value: 42 }], truncated: false },
     result: { kind: "rows", rows: [{ id: 42, reference: "invoice-42" }], rowCount: 1, truncated: false },
     metadata: { value: { attributes: { "db.system.name": "mysql" } }, isTruncated: false, truncated: [] },
+  },
+};
+
+const httpNode = {
+  id: "span_live_http", parentId: "attempt_live-run_1", runId: "live-run", kind: "request", label: "POST https://api.example.test/invoices", level: 2, offsetUs: 350_000, durationUs: 25_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
+} as const;
+
+const httpTraceResponse = {
+  ...traceResponse,
+  trace: {
+    ...traceResponse.trace,
+    nodes: [traceNodes[0], { ...traceNodes[1], children: [httpNode.id] }, httpNode],
+  },
+};
+
+const httpInspectorResponse = {
+  ...metadata,
+  traceRevision: 1,
+  node: {
+    ...httpNode,
+    overview: { method: "POST", url: "https://api.example.test/invoices", statusCode: 202 },
+    source: { file: "app/Jobs/LiveInvoiceJob.php", line: 55, href: "vscode://file//workspace/app/Jobs/LiveInvoiceJob.php:55" },
+    http: {
+      method: "POST",
+      url: "https://api.example.test/invoices",
+      statusCode: 202,
+      request: {
+        headers: { items: { Authorization: ["[REDACTED]"], "Content-Type": ["application/json"] }, truncated: false },
+        body: { value: '{"reference":"invoice-42"}', contentType: "application/json", originalBytes: 26, truncated: false, isJson: true, json: { reference: "invoice-42" } },
+      },
+      response: {
+        headers: { items: { "Content-Type": ["application/json"] }, truncated: false },
+        body: { value: '{"accepted":true}', contentType: "application/json", originalBytes: 17, truncated: false, isJson: true, json: { accepted: true } },
+      },
+    },
+    metadata: { value: { attributes: { "http.request.method": "POST" } }, isTruncated: false, truncated: [] },
   },
 };
 

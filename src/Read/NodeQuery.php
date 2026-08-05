@@ -29,7 +29,7 @@ final readonly class NodeQuery
         $details = match ($node['kind']) {
             'run' => $this->run($snapshot, $node['runId']),
             'attempt' => $this->attempt($snapshot, $nodeId),
-            'query' => $this->span($snapshot, $nodeId),
+            'query', 'request' => $this->span($snapshot, $nodeId),
             default => throw new RecordNotFound('The node was not found.'),
         };
 
@@ -104,14 +104,23 @@ final readonly class NodeQuery
     private function span(TraceSnapshot $snapshot, string $nodeId): array
     {
         $span = $snapshot->spans->first(fn (object $span): bool => NodeIds::span($span->span_id) === $nodeId
-            && $span->role === 'sql');
+            && in_array($span->role, ['sql', 'http'], true));
 
         if ($span === null) {
             throw new RecordNotFound('The span node was not found.');
         }
 
-        $sanitizer = new PrivacySanitizer;
         $attributes = $this->json($span->attributes);
+
+        return $span->role === 'http'
+            ? $this->http($span, $attributes)
+            : $this->sql($span, $attributes);
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function sql(object $span, array $attributes): array
+    {
+        $sanitizer = new PrivacySanitizer;
         $sql = $sanitizer->string(
             is_string($attributes['db.query.text'] ?? null) ? $attributes['db.query.text'] : $span->name,
             max(1, (int) config('skyline.privacy.sql_bytes', 65_536)),
@@ -128,9 +137,46 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'sql' => $sql,
-            'source' => $this->source($attributes),
+            'source' => $this->source($attributes, 'skyline.sql.source'),
             'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
             'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
+            'metadata' => $this->spanMetadata($span),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function http(object $span, array $attributes): array
+    {
+        $method = is_string($attributes['http.request.method'] ?? null) ? $attributes['http.request.method'] : 'HTTP';
+        $url = is_string($attributes['url.full'] ?? null) ? $attributes['url.full'] : '';
+        $status = $attributes['http.response.status_code'] ?? null;
+
+        return [
+            'overview' => [
+                'runId' => $span->run_id,
+                'attemptNumber' => $span->attempt_number === null ? null : (int) $span->attempt_number,
+                'traceId' => $span->trace_id,
+                'spanId' => $span->span_id,
+                'parentSpanId' => $span->parent_span_id,
+                'method' => $method,
+                'url' => $url,
+                'statusCode' => is_numeric($status) ? (int) $status : null,
+                'statusDescription' => $span->status_description,
+            ],
+            'source' => $this->source($attributes, 'skyline.http.source'),
+            'http' => [
+                'method' => $method,
+                'url' => $url,
+                'statusCode' => is_numeric($status) ? (int) $status : null,
+                'request' => [
+                    'headers' => $this->httpHeaders($attributes, 'skyline.http.request.headers'),
+                    'body' => $this->httpBody($attributes, 'skyline.http.request.body'),
+                ],
+                'response' => [
+                    'headers' => $this->httpHeaders($attributes, 'skyline.http.response.headers'),
+                    'body' => $this->httpBody($attributes, 'skyline.http.response.body'),
+                ],
+            ],
             'metadata' => $this->spanMetadata($span),
         ];
     }
@@ -149,6 +195,12 @@ final readonly class NodeQuery
             $attributes['skyline.sql.result'],
             $attributes['skyline.sql.source.file'],
             $attributes['skyline.sql.source.line'],
+            $attributes['skyline.http.request.headers'],
+            $attributes['skyline.http.request.body'],
+            $attributes['skyline.http.response.headers'],
+            $attributes['skyline.http.response.body'],
+            $attributes['skyline.http.source.file'],
+            $attributes['skyline.http.source.line'],
         );
         $events = collect($this->json($span->events))->map(function (array $event) use ($sanitizer): array {
             return [
@@ -205,10 +257,10 @@ final readonly class NodeQuery
     }
 
     /** @param array<string, mixed> $attributes @return array{file: string, line: int, href: string|null}|null */
-    private function source(array $attributes): ?array
+    private function source(array $attributes, string $prefix): ?array
     {
-        $file = $attributes['skyline.sql.source.file'] ?? null;
-        $line = $attributes['skyline.sql.source.line'] ?? null;
+        $file = $attributes[$prefix.'.file'] ?? null;
+        $line = $attributes[$prefix.'.line'] ?? null;
 
         if (! is_string($file) || $file === '' || (! is_int($line) && ! is_numeric($line))) {
             return null;
@@ -220,6 +272,47 @@ final readonly class NodeQuery
             'file' => $this->relativeSourceFile($file),
             'line' => $line,
             'href' => $this->editorLink->href($file, $line),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array{items: array<string, list<string>>, truncated: bool}|null */
+    private function httpHeaders(array $attributes, string $key): ?array
+    {
+        $capture = $this->sqlCapture($attributes, $key);
+
+        return is_array($capture['items'] ?? null) ? [
+            'items' => $capture['items'],
+            'truncated' => (bool) ($capture['truncated'] ?? false),
+        ] : null;
+    }
+
+    /** @param array<string, mixed> $attributes @return array{value: string, contentType: string|null, originalBytes: int, truncated: bool, isJson: bool, json: mixed}|null */
+    private function httpBody(array $attributes, string $key): ?array
+    {
+        $capture = $this->sqlCapture($attributes, $key);
+        $value = $capture['value'] ?? null;
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $json = null;
+        $isJson = false;
+
+        try {
+            $json = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+            $isJson = true;
+        } catch (Throwable) {
+            // Text bodies remain available as text.
+        }
+
+        return [
+            'value' => $value,
+            'contentType' => is_string($capture['contentType'] ?? null) ? $capture['contentType'] : null,
+            'originalBytes' => is_numeric($capture['originalBytes'] ?? null) ? (int) $capture['originalBytes'] : strlen($value),
+            'truncated' => (bool) ($capture['truncated'] ?? false),
+            'isJson' => $isJson,
+            'json' => $json,
         ];
     }
 

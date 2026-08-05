@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use NickWelsh\Skyline\Read\Nanoseconds;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use Tests\Fixtures\Jobs\ChildJob;
 use Tests\Fixtures\Jobs\FailingJob;
+use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\SqlJob;
 
@@ -193,6 +195,46 @@ it('serves opt-in SQL bindings and result previews outside generic metadata', fu
         ->and($inspector->json('node.source.line'))->toBeInt()->toBeGreaterThan(0)
         ->and($inspector->json('node.source.href'))->toStartWith('phpstorm://open?file=')
         ->toContain('/tests/Fixtures/Jobs/SqlJob.php&line=');
+});
+
+it('serves outgoing HTTP timeline nodes and captured request response details', function (): void {
+    config()->set('skyline.http.capture_request_headers', true);
+    config()->set('skyline.http.capture_request_body', true);
+    config()->set('skyline.http.capture_response_headers', true);
+    config()->set('skyline.http.capture_response_body', true);
+    config()->set('skyline.http.capture_source', true);
+    config()->set('app.editor', 'vscode');
+    Http::fake([
+        'api.example.test/*' => Http::response(['id' => 42], 201, [
+            'Content-Type' => 'application/json',
+            'Set-Cookie' => 'session=response-secret',
+        ]),
+    ]);
+
+    HttpJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', HttpJob::class)->first();
+    $span = DB::table('skyline_spans')->where('role', 'http')->orderBy('started_at')->first();
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id)
+        ->assertOk()
+        ->assertJsonPath('trace.nodes.2.kind', 'request')
+        ->assertJsonPath('trace.nodes.2.label', 'POST https://api.example.test/people?token=%5BREDACTED%5D');
+
+    $inspector = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.kind', 'request')
+        ->assertJsonPath('node.http.method', 'POST')
+        ->assertJsonPath('node.http.url', 'https://api.example.test/people?token=%5BREDACTED%5D')
+        ->assertJsonPath('node.http.statusCode', 201)
+        ->assertJsonPath('node.http.request.headers.items.Authorization.0', '[REDACTED]')
+        ->assertJsonPath('node.http.request.body.json.name', 'Laravel')
+        ->assertJsonPath('node.http.response.headers.items.Set-Cookie.0', '[REDACTED]')
+        ->assertJsonPath('node.http.response.body.json.id', 42)
+        ->assertJsonPath('node.source.file', 'tests/Fixtures/Jobs/HttpJob.php');
+
+    expect(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.request.body'))->toBeNull()
+        ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.response.body'))->toBeNull()
+        ->and($inspector->json('node.source.href'))->toStartWith('vscode://file/');
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

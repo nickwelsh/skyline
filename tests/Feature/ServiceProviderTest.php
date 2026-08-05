@@ -11,7 +11,15 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.sql.capture_results'))->toBeFalse()
         ->and(config('skyline.sql.capture_source'))->toBeFalse()
         ->and(config('skyline.sql.max_result_rows'))->toBe(25)
-        ->and(config('skyline.sql.max_result_bytes'))->toBe(65_536);
+        ->and(config('skyline.sql.max_result_bytes'))->toBe(65_536)
+        ->and(config('skyline.http.enabled'))->toBeTrue()
+        ->and(config('skyline.http.capture_query'))->toBeFalse()
+        ->and(config('skyline.http.capture_request_headers'))->toBeFalse()
+        ->and(config('skyline.http.capture_request_body'))->toBeFalse()
+        ->and(config('skyline.http.capture_response_headers'))->toBeFalse()
+        ->and(config('skyline.http.capture_response_body'))->toBeFalse()
+        ->and(config('skyline.http.capture_source'))->toBeFalse()
+        ->and(config('skyline.http.max_body_bytes'))->toBe(65_536);
 });
 
 it('publishes config and the migration directory', function (): void {

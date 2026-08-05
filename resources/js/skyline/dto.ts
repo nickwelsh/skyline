@@ -1,6 +1,6 @@
 export type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 export type AttemptStatus = "running" | "completed" | "released" | "failed";
-export type NodeKind = "run" | "attempt" | "query";
+export type NodeKind = "run" | "attempt" | "query" | "request";
 
 export type RunSummary = {
   id: string;
@@ -159,11 +159,30 @@ export type InspectorDto = TraceNode & {
     affectedRows: number;
     truncated: boolean;
   } | null;
+  http?: {
+    method: string;
+    url: string;
+    statusCode: number | null;
+    request: HttpMessageCapture;
+    response: HttpMessageCapture;
+  };
   metadata: {
     value: Record<string, unknown>;
     isTruncated: boolean;
     truncated: Array<{ path: string; originalBytes: number }>;
   };
+};
+
+export type HttpMessageCapture = {
+  headers: { items: Record<string, string[]>; truncated: boolean } | null;
+  body: {
+    value: string;
+    contentType: string | null;
+    originalBytes: number;
+    truncated: boolean;
+    isJson: boolean;
+    json: unknown;
+  } | null;
 };
 
 export type Scenario = {

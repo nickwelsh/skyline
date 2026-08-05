@@ -19,12 +19,13 @@ import {
   IconSearch,
   IconServer,
   IconStack2,
+  IconWorldWww,
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
-import type { InspectorDto, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
-import { JsonCapturePreview, SqlCapturePreview } from "./CapturePreview";
+import type { HttpMessageCapture, InspectorDto, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
+import { JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
 import { ExceptionPreview } from "./ExceptionPreview";
 import * as Timeline from "./Timeline";
 import { RESIZABLE_PANEL_ANIMATION, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./Resizable";
@@ -643,11 +644,11 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
                       <div>
                         {visibleNodes.map((node) => (
                           <Timeline.Row key={node.id} className={`h-8 border-b border-grid-dimmed ${selectedId === node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(node.id)}>
-                            <Timeline.Span startMs={Math.max(0, node.offsetUs / 1_000 - queueOffset)} durationMs={Math.max(2, nodeDurationMs(node, totalDuration, queueOffset))} className={`top-[7px] h-[18px] ${node.kind === "query" ? "min-w-[6px]" : "min-w-1"}`}>
+                            <Timeline.Span startMs={Math.max(0, node.offsetUs / 1_000 - queueOffset)} durationMs={Math.max(2, nodeDurationMs(node, totalDuration, queueOffset))} className={`top-[7px] h-[18px] ${node.kind === "query" || node.kind === "request" ? "min-w-[6px]" : "min-w-1"}`}>
                               <div
                                 data-timeline-node-id={node.id}
                                 title={`${node.label} · Started ${formatDuration(Math.max(0, node.offsetUs / 1_000 - queueOffset))} · Duration ${formatDuration(nodeDurationMs(node, totalDuration, queueOffset))}`}
-                                className={`h-full rounded-sm px-1 ${barClass(node)} ${node.kind === "run" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" : node.kind === "query" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" : ""}`}
+                                className={`h-full rounded-sm px-1 ${barClass(node)} ${node.kind === "run" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" : node.kind === "query" || node.kind === "request" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" : ""}`}
                               >
                                 {nodeDurationMs(node, totalDuration, queueOffset) > totalDuration * 0.08 && <span className="px-1 font-mono text-xxs text-white/90">{formatDuration(nodeDurationMs(node, totalDuration, queueOffset))}</span>}
                               </div>
@@ -714,7 +715,8 @@ function TreeRow({ node, selected, hasChildren, collapsed, onToggle, onSelect }:
 function NodeIcon({ node }: { node: TraceNode }) {
   if (node.kind === "run") return <span className="grid size-5 shrink-0 place-items-center rounded bg-blue-500 text-xxs font-bold text-white">J</span>;
   if (node.kind === "attempt") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-600 text-xxs font-bold text-charcoal-200">A</span>;
-  return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-query"><IconDatabase className="size-3.5" /></span>;
+  if (node.kind === "query") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-query"><IconDatabase className="size-3.5" /></span>;
+  return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-cyan-400"><IconWorldWww className="size-3.5" /></span>;
 }
 
 function TimelineHeader({ duration }: { duration: number }) {
@@ -778,7 +780,7 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
 function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
   if (node.kind === "query") return (
     <div className="space-y-4">
-      {node.source && <QuerySource source={node.source} />}
+      {node.source && <NodeSource source={node.source} label="Query source" />}
       <SqlCapturePreview
         sql={node.sql?.value ?? ""}
         bindings={node.bindings?.items}
@@ -790,15 +792,36 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
       {node.result?.kind === "affected" && <JsonCapturePreview label="Result" summary={`${node.result.affectedRows.toLocaleString()} ${node.result.affectedRows === 1 ? "row" : "rows"} affected`} value={{ affectedRows: node.result.affectedRows }} />}
     </div>
   );
+  if (node.kind === "request" && node.http) return (
+    <div className="space-y-5">
+      {node.source && <NodeSource source={node.source} label="Request source" />}
+      <PropertyList values={{ Method: node.http.method, URL: node.http.url, Status: node.http.statusCode }} />
+      <HttpMessagePreview label="Request" capture={node.http.request} />
+      <HttpMessagePreview label="Response" capture={node.http.response} />
+    </div>
+  );
   return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
 }
 
-function QuerySource({ source }: { source: NonNullable<InspectorDto["source"]> }) {
+function HttpMessagePreview({ label, capture }: { label: string; capture: HttpMessageCapture }) {
+  return (
+    <section aria-label={label} className="space-y-3">
+      <h3 className="font-medium text-text-bright">{label}</h3>
+      {capture.headers && <JsonCapturePreview label={`${label} headers`} value={capture.headers.items} truncated={capture.headers.truncated} />}
+      {capture.body && (capture.body.isJson
+        ? <JsonCapturePreview label={`${label} body`} value={capture.body.json} summary={capture.body.contentType ?? undefined} truncated={capture.body.truncated} />
+        : <TextCapturePreview label={`${label} body`} value={capture.body.value} summary={capture.body.contentType ?? undefined} truncated={capture.body.truncated} />)}
+      {!capture.headers && !capture.body && <div className="rounded border border-grid-bright bg-background-dimmed p-3 text-xs text-text-faint">Capture disabled</div>}
+    </section>
+  );
+}
+
+function NodeSource({ source, label = "Source" }: { source: NonNullable<InspectorDto["source"]>; label?: string }) {
   const location = `${source.file}:${source.line}`;
   const content = <><span className="min-w-0 truncate font-mono text-xs">{location}</span>{source.href && <IconExternalLink className="size-4 shrink-0" />}</>;
 
   return (
-    <section aria-label="Query source" className="flex min-w-0 flex-col gap-2">
+    <section aria-label={label} className="flex min-w-0 flex-col gap-2">
       <div className="text-xs text-text-faint">Source</div>
       {source.href ? (
         <a href={source.href} aria-label={`Open ${location} in editor`} title="Open in editor" className="flex min-h-9 min-w-0 items-center gap-2 rounded border border-grid-bright bg-background-deep px-3 text-text-bright hover:border-indigo-500/60 hover:bg-background-hover">
@@ -833,7 +856,7 @@ function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
-function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; return "bg-charcoal-550"; }
+function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
   const duration = node.durationUs === null ? Math.max(0, totalDuration - node.offsetUs / 1_000) : node.durationUs / 1_000;
   return node.parentId === null ? Math.max(0, duration - queueOffset) : duration;

@@ -88,6 +88,20 @@ export function JsonCapturePreview({ label, value, summary, truncated = false }:
   );
 }
 
+export function TextCapturePreview({ label, value, summary, truncated = false, language = "markup" }: {
+  label: string;
+  value: string;
+  summary?: string;
+  truncated?: boolean;
+  language?: Language;
+}) {
+  return (
+    <CapturePanel label={label} summary={summary} truncated={truncated} copyValue={value}>
+      <HighlightedCode code={value} language={language} />
+    </CapturePanel>
+  );
+}
+
 function CapturePanel({ label, summary, truncated, copyValue, actions, children }: {
   label: string;
   summary?: string;

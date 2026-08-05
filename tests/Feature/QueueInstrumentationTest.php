@@ -1,5 +1,6 @@
 <?php
 
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Queue\Events\JobAttempted;
@@ -12,6 +13,7 @@ use Illuminate\Queue\SyncQueue;
 use Illuminate\Queue\Worker;
 use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
@@ -23,8 +25,10 @@ use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Tests\Fixtures\Jobs\ExceptionRetryJob;
+use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\FailingSqlJob;
+use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
@@ -142,6 +146,104 @@ it('captures bounded redacted SQL bindings and outputs only when opted in', func
             'password' => '[REDACTED]',
             'api_token' => '[REDACTED]',
         ]);
+});
+
+it('captures Laravel and direct Guzzle requests without sensitive output by default', function (): void {
+    Http::fake([
+        'api.example.test/*' => Http::response(['id' => 42], 201, [
+            'Content-Type' => 'application/json',
+            'Set-Cookie' => 'session=response-secret',
+        ]),
+    ]);
+
+    HttpJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $spans = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'http')
+        ->values();
+
+    expect($spans)->toHaveCount(2)
+        ->and($spans[0]->getKind())->toBe(SpanKind::KIND_CLIENT)
+        ->and($spans[0]->getParentSpanId())->not->toBe('')
+        ->and($spans[0]->getAttributes()->get('http.request.method'))->toBe('POST')
+        ->and($spans[0]->getAttributes()->get('skyline.http.client'))->toBe('laravel')
+        ->and($spans[0]->getAttributes()->get('url.full'))->toBe('https://api.example.test/people?token=%5BREDACTED%5D')
+        ->and($spans[0]->getAttributes()->get('http.response.status_code'))->toBe(201)
+        ->and($spans[1]->getAttributes()->get('http.request.method'))->toBe('PUT')
+        ->and($spans[1]->getAttributes()->get('skyline.http.client'))->toBe('guzzle')
+        ->and($spans[1]->getAttributes()->get('url.full'))->toBe('https://direct.example.test/jobs/42?signature=%5BREDACTED%5D')
+        ->and($spans[1]->getAttributes()->get('http.response.status_code'))->toBe(202);
+
+    expect(json_encode($spans->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('request-secret')
+        ->not->toContain('response-secret')
+        ->not->toContain('query-secret')
+        ->not->toContain('direct-secret')
+        ->not->toContain('body-secret')
+        ->not->toContain('Laravel')
+        ->not->toContain('accepted');
+});
+
+it('captures bounded redacted HTTP headers bodies query and source when opted in', function (): void {
+    config()->set('skyline.http.capture_query', true);
+    config()->set('skyline.http.capture_request_headers', true);
+    config()->set('skyline.http.capture_request_body', true);
+    config()->set('skyline.http.capture_response_headers', true);
+    config()->set('skyline.http.capture_response_body', true);
+    config()->set('skyline.http.capture_source', true);
+    config()->set('skyline.http.header_allowlist', [...config('skyline.http.header_allowlist'), 'x-visible']);
+
+    Http::fake([
+        'api.example.test/*' => Http::response(['id' => 42], 201, [
+            'Content-Type' => 'application/json',
+            'Set-Cookie' => 'session=response-secret',
+        ]),
+    ]);
+
+    HttpJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $span = collect($sink->spans)
+        ->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'http');
+    $attributes = $span->getAttributes();
+    $requestHeaders = json_decode($attributes->get('skyline.http.request.headers'), true, flags: JSON_THROW_ON_ERROR);
+    $requestBody = json_decode($attributes->get('skyline.http.request.body'), true, flags: JSON_THROW_ON_ERROR);
+    $responseHeaders = json_decode($attributes->get('skyline.http.response.headers'), true, flags: JSON_THROW_ON_ERROR);
+    $responseBody = json_decode($attributes->get('skyline.http.response.body'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($attributes->get('url.full'))->toBe('https://api.example.test/people?token=query-secret')
+        ->and($requestHeaders['items']['Authorization'])->toBe(['[REDACTED]'])
+        ->and($requestHeaders['items']['X-Visible'])->toBe(['laravel'])
+        ->and(json_decode($requestBody['value'], true))->toMatchArray(['name' => 'Laravel', 'api_token' => '[REDACTED]'])
+        ->and($requestBody)->toMatchArray(['contentType' => 'application/json', 'truncated' => false])
+        ->and($responseHeaders['items']['Set-Cookie'])->toBe(['[REDACTED]'])
+        ->and($responseBody)->toMatchArray(['value' => '{"id":42}', 'contentType' => 'application/json', 'truncated' => false])
+        ->and($attributes->get('skyline.http.source.file'))->toEndWith('tests/Fixtures/Jobs/HttpJob.php')
+        ->and($attributes->get('skyline.http.source.line'))->toBeInt()->toBeGreaterThan(0);
+
+    expect(json_encode([$requestHeaders, $responseHeaders]))
+        ->not->toContain('request-secret')
+        ->not->toContain('response-secret')
+        ->and($requestBody['value'])->not->toContain('body-secret');
+});
+
+it('records asynchronous Guzzle failures without changing the rejection', function (): void {
+    FailingHttpJob::$preserved = false;
+
+    FailingHttpJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $span = collect($sink->spans)
+        ->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'http');
+
+    expect(FailingHttpJob::$preserved)->toBeTrue()
+        ->and($span->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($span->getAttributes()->get('error.type'))->toBe(RequestException::class)
+        ->and(json_encode($span->getAttributes()->toArray()))->not->toContain('transport-secret');
 });
 
 it('keeps one Run across queued retry Attempts with exact and estimated queue-time provenance', function (): void {

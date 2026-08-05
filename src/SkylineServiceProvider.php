@@ -12,7 +12,11 @@ use NickWelsh\Skyline\Persistence\PersistenceGuard;
 use NickWelsh\Skyline\Persistence\PersistentTelemetrySink;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
 use NickWelsh\Skyline\Support\AssetManifest;
+use NickWelsh\Skyline\Telemetry\AttemptRegistry;
+use NickWelsh\Skyline\Telemetry\OutgoingHttpInstrumentation;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
+use NickWelsh\Skyline\Telemetry\SkylineTracer;
+use NickWelsh\Skyline\Telemetry\SourceLocator;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use NickWelsh\Skyline\Telemetry\SqlResultRegistry;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
@@ -38,6 +42,10 @@ final class SkylineServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(QueueInstrumentation::class);
+        $this->app->singleton(AttemptRegistry::class);
+        $this->app->singleton(OutgoingHttpInstrumentation::class);
+        $this->app->singleton(SkylineTracer::class);
+        $this->app->singleton(SourceLocator::class);
         $this->app->singleton(SqlCapture::class);
         $this->app->singleton(SqlResultRegistry::class);
         $this->app->singleton(PersistentTelemetrySink::class);
