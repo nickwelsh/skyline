@@ -7,7 +7,9 @@ use NickWelsh\Skyline\Telemetry\SqlCapture;
 use Tests\Fixtures\Jobs\CacheJob;
 use Tests\Fixtures\Jobs\CacheStrategyJob;
 use Tests\Fixtures\Jobs\ChildJob;
+use Tests\Fixtures\Jobs\CustomTelemetryJob;
 use Tests\Fixtures\Jobs\DeliveryJob;
+use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
@@ -226,6 +228,7 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     $inspector = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
         ->assertOk()
         ->assertJsonPath('node.kind', 'query')
+        ->assertJsonPath('node.presentation.type', 'generic')
         ->assertJsonPath('node.sql.value', 'select ? as private_value')
         ->assertJsonPath('node.sql.isTruncated', false)
         ->assertJsonPath('node.overview.spanId', $span->span_id);
@@ -319,6 +322,9 @@ it('serves outgoing HTTP timeline nodes and captured request response details', 
     $inspector = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
         ->assertOk()
         ->assertJsonPath('node.kind', 'request')
+        ->assertJsonPath('node.presentation.type', 'http')
+        ->assertJsonPath('node.presentation.http.method', 'POST')
+        ->assertJsonPath('node.presentation.failure', null)
         ->assertJsonPath('node.http.method', 'POST')
         ->assertJsonPath('node.http.url', 'https://api.example.test/people?token=%5BREDACTED%5D')
         ->assertJsonPath('node.http.statusCode', 201)
@@ -327,6 +333,9 @@ it('serves outgoing HTTP timeline nodes and captured request response details', 
         ->assertJsonPath('node.http.response.headers.items.Set-Cookie.0', '[REDACTED]')
         ->assertJsonPath('node.http.response.body.json.id', 42)
         ->assertJsonPath('node.source.file', 'tests/Fixtures/Jobs/HttpJob.php');
+
+    expect($inspector->json('node.presentation.timing.startedAt'))->toEndWith('Z')
+        ->and($inspector->json('node.presentation.timing.durationUs'))->toBeInt()->toBeGreaterThanOrEqual(0);
 
     expect(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.request.body'))->toBeNull()
         ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.response.body'))->toBeNull()
@@ -368,6 +377,8 @@ it('serves operation-specific cache and storage details', function (): void {
 
     $this->getJson('/skyline/api/runs/'.$storageRun->run_id.'/nodes/span_'.$storageSpan->span_id)
         ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'storage')
+        ->assertJsonPath('node.presentation.storage.operation', 'write')
         ->assertJsonPath('node.storage.operation', 'write')
         ->assertJsonPath('node.storage.path', 'reports/customer report.txt')
         ->assertJsonPath('node.storage.pathCaptured', true)
@@ -415,12 +426,16 @@ it('serves captured cache values and delivery content', function (): void {
 
     $this->getJson('/skyline/api/runs/'.$deliveryRun->run_id.'/nodes/span_'.$mailSpan->span_id)
         ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'delivery')
+        ->assertJsonPath('node.presentation.delivery.kind', 'mail')
         ->assertJsonPath('node.delivery.recipients.0.address', 'first@example.test')
         ->assertJsonPath('node.delivery.subject.value', 'private subject')
         ->assertJsonPath('node.delivery.html.value', '<p>private body</p>');
 
     $this->getJson('/skyline/api/runs/'.$deliveryRun->run_id.'/nodes/span_'.$notificationSpan->span_id)
         ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'delivery')
+        ->assertJsonPath('node.presentation.delivery.kind', 'notification')
         ->assertJsonPath('node.delivery.recipientIdentity.value.type', 'stdClass')
         ->assertJsonPath('node.delivery.operationData.value.route', 'private-route');
 });
@@ -436,6 +451,8 @@ it('serves captured process command environment input and output', function (): 
 
     $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
         ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'process')
+        ->assertJsonPath('node.presentation.process.executable', basename(PHP_BINARY))
         ->assertJsonPath('node.process.command.value.1', '-r')
         ->assertJsonPath('node.process.environment.value.SKYLINE_PRIVATE_ENV', 'private environment')
         ->assertJsonPath('node.process.input.value', 'private input')
@@ -478,11 +495,72 @@ it('presents log breadcrumbs as chronological selectable nodes with details', fu
     $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/'.$breadcrumbs[0]['id'])
         ->assertOk()
         ->assertJsonPath('node.kind', 'breadcrumb')
+        ->assertJsonPath('node.presentation.type', 'breadcrumb')
+        ->assertJsonPath('node.presentation.breadcrumb.message', 'Import token=[REDACTED] delayed')
         ->assertJsonPath('node.breadcrumb.level', 'warning')
         ->assertJsonPath('node.breadcrumb.channel', 'stack')
         ->assertJsonPath('node.breadcrumb.message', 'Import token=[REDACTED] delayed')
         ->assertJsonPath('node.breadcrumb.context.code', 429)
         ->assertJsonMissingPath('node.breadcrumb.context.password');
+});
+
+it('discriminates custom and summary inspector presentations', function (): void {
+    CustomTelemetryJob::dispatchSync();
+    $customRun = DB::table('skyline_runs')->where('job_name', CustomTelemetryJob::class)->first();
+    $customSpan = DB::table('skyline_spans')
+        ->where('run_id', $customRun->run_id)
+        ->where('role', 'custom')
+        ->where('name', 'Generate PDF')
+        ->first();
+
+    $this->getJson('/skyline/api/runs/'.$customRun->run_id.'/nodes/span_'.$customSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'custom')
+        ->assertJsonPath('node.presentation.custom.name', 'Generate PDF')
+        ->assertJsonPath('node.presentation.custom.attributes', []);
+
+    SummaryJob::dispatchSync();
+    $summaryRun = DB::table('skyline_runs')->where('job_name', SummaryJob::class)->first();
+    $attempt = DB::table('skyline_attempts')->where('run_id', $summaryRun->run_id)->first();
+
+    $this->getJson('/skyline/api/runs/'.$summaryRun->run_id.'/nodes/attempt_'.$summaryRun->run_id.'_'.$attempt->attempt_number)
+        ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'summary')
+        ->assertJsonPath('node.presentation.summary.operations.sql.count', 1)
+        ->assertJsonPath('node.presentation.summary.operations.cache.count', 1)
+        ->assertJsonPath('node.presentation.summary.operations.custom.count', 1);
+});
+
+it('preserves captured operation failures in the discriminated presentation', function (): void {
+    FailingHttpJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', FailingHttpJob::class)->first();
+    $span = DB::table('skyline_spans')->where('run_id', $run->run_id)->where('role', 'http')->first();
+
+    $response = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.presentation.type', 'http')
+        ->assertJsonPath('node.presentation.failure.type', 'GuzzleHttp\\Exception\\RequestException');
+
+    expect($response->json('node.presentation.failure.message'))->toBe('HTTP request failed')
+        ->and($response->json('node.presentation.http.response.headers'))->toBeNull()
+        ->and($response->json('node.presentation.http.response.body'))->toBeNull();
+});
+
+it('falls back to generic presentation for recorded telemetry without a specialized presenter', function (): void {
+    CustomTelemetryJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', CustomTelemetryJob::class)->first();
+    $span = DB::table('skyline_spans')
+        ->where('run_id', $run->run_id)
+        ->where('role', 'custom')
+        ->where('name', 'Generate PDF')
+        ->first();
+    DB::table('skyline_spans')->where('id', $span->id)->update(['role' => 'framework']);
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.kind', 'framework')
+        ->assertJsonPath('node.presentation.type', 'generic')
+        ->assertJsonPath('node.presentation.timing.durationUs', fn (mixed $duration): bool => is_int($duration) && $duration >= 0);
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

@@ -85,6 +85,8 @@ final readonly class NodeQuery
         $run = $snapshot->runs->firstWhere('run_id', $attempt->run_id);
         $consumerAttributes = $consumer === null ? [] : $this->json($consumer->attributes);
 
+        $summary = $this->attemptSummary($consumerAttributes);
+
         return [
             'overview' => [
                 'runId' => $attempt->run_id,
@@ -98,7 +100,10 @@ final readonly class NodeQuery
             'exception' => $attempt->exception_class === null
                 ? null
                 : $this->exceptions->present($attempt, $run?->job_name),
-            'summary' => $this->attemptSummary($consumerAttributes),
+            'summary' => $summary,
+            'presentation' => $summary === null
+                ? ['type' => 'generic']
+                : ['type' => 'summary', 'summary' => $summary],
             'metadata' => $this->spanMetadata($consumer),
         ];
     }
@@ -170,6 +175,16 @@ final readonly class NodeQuery
                         'message' => $message,
                         'context' => $context,
                     ],
+                    'presentation' => [
+                        'type' => 'breadcrumb',
+                        'breadcrumb' => [
+                            'timestamp' => Nanoseconds::toRfc3339($timestamp),
+                            'level' => $level,
+                            'channel' => $channel,
+                            'message' => $message,
+                            'context' => $context,
+                        ],
+                    ],
                     'metadata' => ['value' => [], 'isTruncated' => false, 'truncated' => []],
                 ];
             }
@@ -210,6 +225,13 @@ final readonly class NodeQuery
             'custom' => ['custom' => $this->custom($span, $attributes)],
             default => [],
         };
+        $presentation = match ($span->role) {
+            'storage' => ['type' => 'storage', 'storage' => $details['storage']],
+            'mail', 'notification' => ['type' => 'delivery', 'delivery' => $details['delivery']],
+            'process' => ['type' => 'process', 'process' => $details['process']],
+            'custom' => ['type' => 'custom', 'custom' => $details['custom']],
+            default => ['type' => 'generic'],
+        };
 
         return [
             'overview' => [
@@ -238,6 +260,11 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'source' => $this->source($attributes, 'skyline.'.($span->role ?: 'span').'.source'),
+            'presentation' => [
+                ...$presentation,
+                'timing' => $this->timing($span),
+                'failure' => $this->failure($span, $attributes),
+            ],
             ...$details,
             'metadata' => $this->spanMetadata($span),
         ];
@@ -400,6 +427,11 @@ final readonly class NodeQuery
             'source' => $this->source($attributes, 'skyline.sql.source'),
             'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
             'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
+            'presentation' => [
+                'type' => 'generic',
+                'timing' => $this->timing($span),
+                'failure' => $this->failure($span, $attributes),
+            ],
             'metadata' => $this->spanMetadata($span),
         ];
     }
@@ -410,6 +442,20 @@ final readonly class NodeQuery
         $method = is_string($attributes['http.request.method'] ?? null) ? $attributes['http.request.method'] : 'HTTP';
         $url = is_string($attributes['url.full'] ?? null) ? $attributes['url.full'] : '';
         $status = $attributes['http.response.status_code'] ?? null;
+
+        $http = [
+            'method' => $method,
+            'url' => $url,
+            'statusCode' => is_numeric($status) ? (int) $status : null,
+            'request' => [
+                'headers' => $this->httpHeaders($attributes, 'skyline.http.request.headers'),
+                'body' => $this->httpBody($attributes, 'skyline.http.request.body'),
+            ],
+            'response' => [
+                'headers' => $this->httpHeaders($attributes, 'skyline.http.response.headers'),
+                'body' => $this->httpBody($attributes, 'skyline.http.response.body'),
+            ],
+        ];
 
         return [
             'overview' => [
@@ -424,20 +470,42 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'source' => $this->source($attributes, 'skyline.http.source'),
-            'http' => [
-                'method' => $method,
-                'url' => $url,
-                'statusCode' => is_numeric($status) ? (int) $status : null,
-                'request' => [
-                    'headers' => $this->httpHeaders($attributes, 'skyline.http.request.headers'),
-                    'body' => $this->httpBody($attributes, 'skyline.http.request.body'),
-                ],
-                'response' => [
-                    'headers' => $this->httpHeaders($attributes, 'skyline.http.response.headers'),
-                    'body' => $this->httpBody($attributes, 'skyline.http.response.body'),
-                ],
+            'http' => $http,
+            'presentation' => [
+                'type' => 'http',
+                'http' => $http,
+                'timing' => $this->timing($span),
+                'failure' => $this->failure($span, $attributes),
             ],
             'metadata' => $this->spanMetadata($span),
+        ];
+    }
+
+    /** @return array{startedAt: string|null, endedAt: string|null, durationUs: int|null} */
+    private function timing(object $span): array
+    {
+        $startedAt = isset($span->started_at) ? (int) $span->started_at : null;
+        $endedAt = isset($span->ended_at) ? (int) $span->ended_at : null;
+
+        return [
+            'startedAt' => Nanoseconds::toRfc3339($startedAt),
+            'endedAt' => Nanoseconds::toRfc3339($endedAt),
+            'durationUs' => $startedAt === null || $endedAt === null ? null : intdiv(max(0, $endedAt - $startedAt), 1000),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array{type: string|null, message: string|null}|null */
+    private function failure(object $span, array $attributes): ?array
+    {
+        if (strtolower((string) $span->status_code) !== 'error'
+            && ! is_string($attributes['error.type'] ?? null)
+            && ! is_string($span->status_description)) {
+            return null;
+        }
+
+        return [
+            'type' => is_string($attributes['error.type'] ?? null) ? $attributes['error.type'] : null,
+            'message' => is_string($span->status_description) ? $span->status_description : null,
         ];
     }
 
