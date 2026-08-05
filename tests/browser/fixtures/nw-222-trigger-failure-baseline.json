@@ -19,20 +19,350 @@
       "sha256": "afbf82a91e70af3a11ebcb25d0aca3bed56ee148de3068c49ae630f385d5d62f"
     }
   },
-  "contract": {
-    "failure": {
-      "visibleLineLimit": 20,
-      "structuredFrames": "skyline-extension"
+  "reference": {
+    "viewport": {
+      "width": 520,
+      "height": 900
     },
-    "capture": {
-      "copy": true,
-      "wrap": true,
-      "expand": true,
-      "focusManagedDialog": true
-    },
-    "copyFeedback": {
-      "idle": "Copy",
-      "copied": "Copied"
+    "exception": {
+      "class": "Illuminate\\Database\\DeadlockException",
+      "message": "Deadlock found when trying to get lock; retry transaction",
+      "messageTruncated": false,
+      "messageOriginalBytes": 57,
+      "code": "1213",
+      "location": {
+        "file": "app/Jobs/GenerateMonthlyInvoices.php",
+        "line": 58,
+        "href": "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58"
+      },
+      "frames": [
+        {
+          "file": "app/Jobs/GenerateMonthlyInvoices.php",
+          "line": 58,
+          "class": "App\\Jobs\\GenerateMonthlyInvoices",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58",
+          "snippet": {
+            "code": "public function handle(): void\n{\n    throw new DeadlockException('retry transaction');\n}",
+            "startingLine": 56,
+            "highlightedLine": 58
+          }
+        },
+        {
+          "file": "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php",
+          "line": 124,
+          "class": "Illuminate\\Queue\\CallQueuedHandler",
+          "type": "->",
+          "function": "call",
+          "isVendor": true,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step1.php",
+          "line": 1,
+          "class": "App\\Jobs\\Step1",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step2.php",
+          "line": 2,
+          "class": "App\\Jobs\\Step2",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step3.php",
+          "line": 3,
+          "class": "App\\Jobs\\Step3",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step4.php",
+          "line": 4,
+          "class": "App\\Jobs\\Step4",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step5.php",
+          "line": 5,
+          "class": "App\\Jobs\\Step5",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step6.php",
+          "line": 6,
+          "class": "App\\Jobs\\Step6",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step7.php",
+          "line": 7,
+          "class": "App\\Jobs\\Step7",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step8.php",
+          "line": 8,
+          "class": "App\\Jobs\\Step8",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step9.php",
+          "line": 9,
+          "class": "App\\Jobs\\Step9",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step10.php",
+          "line": 10,
+          "class": "App\\Jobs\\Step10",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step11.php",
+          "line": 11,
+          "class": "App\\Jobs\\Step11",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step12.php",
+          "line": 12,
+          "class": "App\\Jobs\\Step12",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step13.php",
+          "line": 13,
+          "class": "App\\Jobs\\Step13",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step14.php",
+          "line": 14,
+          "class": "App\\Jobs\\Step14",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step15.php",
+          "line": 15,
+          "class": "App\\Jobs\\Step15",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step16.php",
+          "line": 16,
+          "class": "App\\Jobs\\Step16",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step17.php",
+          "line": 17,
+          "class": "App\\Jobs\\Step17",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step18.php",
+          "line": 18,
+          "class": "App\\Jobs\\Step18",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step19.php",
+          "line": 19,
+          "class": "App\\Jobs\\Step19",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step20.php",
+          "line": 20,
+          "class": "App\\Jobs\\Step20",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step21.php",
+          "line": 21,
+          "class": "App\\Jobs\\Step21",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step22.php",
+          "line": 22,
+          "class": "App\\Jobs\\Step22",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step23.php",
+          "line": 23,
+          "class": "App\\Jobs\\Step23",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step24.php",
+          "line": 24,
+          "class": "App\\Jobs\\Step24",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step25.php",
+          "line": 25,
+          "class": "App\\Jobs\\Step25",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step26.php",
+          "line": 26,
+          "class": "App\\Jobs\\Step26",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step27.php",
+          "line": 27,
+          "class": "App\\Jobs\\Step27",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step28.php",
+          "line": 28,
+          "class": "App\\Jobs\\Step28",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step29.php",
+          "line": 29,
+          "class": "App\\Jobs\\Step29",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        },
+        {
+          "file": "app/Jobs/Step30.php",
+          "line": 30,
+          "class": "App\\Jobs\\Step30",
+          "type": "->",
+          "function": "handle",
+          "isVendor": false,
+          "href": null,
+          "snippet": null
+        }
+      ],
+      "framesTruncated": false,
+      "markdown": "# DeadlockException - Job failed\n\nRetry transaction.\n"
     }
   }
 }

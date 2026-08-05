@@ -17,5 +17,5 @@
     "target": "ES2023",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "scripts/**/*.mjs", "tests/browser/**/*.ts", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "scripts/**/*.mjs", "tests/browser/**/*.ts", "tests/browser/**/*.tsx", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

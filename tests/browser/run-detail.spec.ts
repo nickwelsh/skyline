@@ -90,6 +90,12 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
 
+  const referencePage = await page.context().newPage();
+  await referencePage.setViewportSize(triggerFailureBaseline.reference.viewport);
+  await referencePage.goto("http://127.0.0.1:4175");
+  const triggerBehavior = await exerciseFailureSurface(referencePage);
+  await referencePage.close();
+
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
   const retryId = `attempt_${runId}_2`;
@@ -115,63 +121,137 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
         markdown: "# LogicException - Job failed\n\nRetry failed differently.\n",
       };
     } else if (inspector.exception) {
-      inspector.exception.markdown = "# DeadlockException - Job failed\n\nRetry transaction.\n";
-      inspector.exception.frames.push(...Array.from({ length: 30 }, (_, index) => ({
-        file: `app/Jobs/Step${index + 1}.php`,
-        line: index + 1,
-        class: `App\\Jobs\\Step${index + 1}`,
-        type: "->",
-        function: "handle",
-        isVendor: false,
-        href: null,
-        snippet: null,
-      })));
+      inspector.exception = structuredClone(triggerFailureBaseline.reference.exception) as InspectorDto["exception"];
     }
     return inspector;
   });
 
   await page.goto(`/skyline/runs/${runId}?node=${failedAttemptId}`);
   await expect(page.getByLabel("Loading inspector")).toBeVisible();
-  const exception = page.getByRole("region", { name: "Exception" });
-  await expect(exception).toContainText("Illuminate\\Database\\DeadlockException");
-  await expect(exception).toContainText("app/Jobs/GenerateMonthlyInvoices.php:58");
+  const skylineBehavior = await exerciseFailureSurface(page);
+  expect(skylineBehavior).toEqual(triggerBehavior);
 
-  const copy = page.getByRole("button", { name: "Copy exception as Markdown" });
-  await copy.click();
-  await expect(copy).toContainText(triggerFailureBaseline.contract.copyFeedback.copied);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("# DeadlockException - Job failed\n\nRetry transaction.\n");
-
-  const frames = page.locator('button[aria-controls="exception-trace"]');
-  await expect(frames).toHaveAttribute("aria-expanded", "false");
-  await frames.click();
-  await expect(frames).toHaveAttribute("aria-expanded", "true");
   const trace = page.locator("#exception-trace");
   expect(await trace.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await trace.evaluate((element) => element.clientHeight));
 
-  const vendor = page.getByRole("button", { name: /1 vendor frame/ });
-  await expect(vendor).toHaveAttribute("aria-expanded", "false");
-  await vendor.click();
-  await expect(exception).toContainText("CallQueuedHandler->call");
-
-  const wrap = page.getByRole("button", { name: "Wrap application frame 1" });
-  await wrap.click();
-  await expect(page.getByRole("button", { name: "Unwrap application frame 1" })).toBeVisible();
-  const expand = page.getByRole("button", { name: "Expand application frame 1" });
-  await expand.focus();
-  await expand.click();
-  await expect(page.getByRole("dialog", { name: "Expanded application frame 1" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "Expanded application frame 1" })).toHaveCount(0);
-  await expect(expand).toBeFocused();
-
-  await page.locator(`[data-node-id="${retryId}"]`).click();
+  await page.getByRole("switch", { name: "Errors only" }).click();
+  await page.locator(`[data-node-id="${failedAttemptId}"]`).click();
+  const tree = page.getByRole("tree", { name: "Run trace" });
+  await tree.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(page).toHaveURL(/node=span_17ba81b7da8f8b64/);
+  await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
   await expect(page.getByLabel("Loading inspector")).toBeVisible();
+  const exception = page.getByRole("region", { name: "Exception" });
   await expect(exception).toContainText("Retry failed differently.");
   await expect(exception).toContainText("Source location not captured");
   await expect(exception).toContainText("Stack trace not captured");
   await expect(exception).not.toContainText("DeadlockException");
+  await page.reload();
+  await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
+  await expect(exception).toContainText("Retry failed differently.");
 });
+
+test("failed Attempt inspector reports request, copy, and source-link outcomes", async ({ page }) => {
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  let requestFails = true;
+  await routeDetail(page, detail, async (nodeId) => {
+    if (requestFails) throw new Error("Exception evidence unavailable.");
+    const inspector = await adapter.inspector(nodeId, runId);
+    inspector.exception = structuredClone(triggerFailureBaseline.reference.exception) as InspectorDto["exception"];
+    return inspector;
+  });
+
+  await page.goto(`/skyline/runs/${runId}?node=${failedAttemptId}`);
+  await expect(page.getByRole("alert")).toContainText("Exception evidence unavailable.");
+
+  requestFails = false;
+  await page.reload();
+  const source = page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" });
+  await expect(source).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58");
+  await expect(source).toHaveAttribute("title", "Open app/Jobs/GenerateMonthlyInvoices.php:58 in editor");
+  await source.focus();
+  await expect(source).toBeFocused();
+
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error("denied")) },
+    });
+  });
+  const copy = page.getByRole("button", { name: "Copy exception as Markdown" });
+  await copy.click();
+  await expect(copy).toContainText("Copy failed");
+  await expect(copy).toHaveAttribute("title", "Copy failed");
+});
+
+async function exerciseFailureSurface(page: Page) {
+  const exception = page.getByRole("region", { name: "Exception" });
+  await expect(exception).toContainText("Illuminate\\Database\\DeadlockException");
+  await expect(exception).toContainText("Deadlock found when trying to get lock; retry transaction");
+
+  const source = exception.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" }).first();
+  await source.focus();
+  await expect(source).toBeFocused();
+
+  const traceButton = exception.locator('button[aria-controls="exception-trace"]');
+  const initialTraceExpanded = await traceButton.getAttribute("aria-expanded");
+  await traceButton.focus();
+  await expect(traceButton).toBeFocused();
+  await traceButton.click();
+  const tracePanelId = await traceButton.getAttribute("aria-controls");
+  const tracePanel = exception.locator(`#${tracePanelId}`);
+  await expect(tracePanel).toBeVisible();
+
+  const application = exception.getByRole("button", { name: "App\\Jobs\\GenerateMonthlyInvoices->handle" });
+  const applicationPanelId = await application.getAttribute("aria-controls");
+  await expect(exception.locator(`#${applicationPanelId}`)).toBeVisible();
+  await traceButton.focus();
+  await page.keyboard.press("Tab");
+  await expect(application).toBeFocused();
+
+  const vendor = exception.getByRole("button", { name: "1 vendor frame" });
+  const initialVendorExpanded = await vendor.getAttribute("aria-expanded");
+  await vendor.click();
+  const vendorPanelId = await vendor.getAttribute("aria-controls");
+  const vendorPanel = exception.locator(`#${vendorPanelId}`);
+  await expect(vendorPanel).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
+
+  const copy = exception.getByRole("button", { name: "Copy exception as Markdown" });
+  await copy.click();
+  await expect(copy).toContainText("Copied");
+
+  const wrap = exception.getByRole("button", { name: "Wrap application frame 1" });
+  await wrap.click();
+  await expect(exception.getByRole("button", { name: "Unwrap application frame 1" })).toBeVisible();
+  const expand = exception.getByRole("button", { name: "Expand application frame 1" });
+  await expand.focus();
+  await expand.click();
+  await expect(page.getByRole("dialog", { name: "application frame 1" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "application frame 1" })).toHaveCount(0);
+  await expect(expand).toBeFocused();
+
+  return {
+    heading: await exception.getByRole("heading", { level: 3 }).textContent(),
+    sourceHref: await source.getAttribute("href"),
+    sourceTitle: await source.getAttribute("title"),
+    initialTraceExpanded,
+    tracePanelId,
+    traceExpanded: await traceButton.getAttribute("aria-expanded"),
+    applicationPanelId,
+    applicationExpanded: await application.getAttribute("aria-expanded"),
+    initialVendorExpanded,
+    vendorPanelId,
+    vendorExpanded: await vendor.getAttribute("aria-expanded"),
+    copied: await copy.textContent(),
+    wrapped: await exception.getByRole("button", { name: "Unwrap application frame 1" }).isVisible(),
+    dialogClosed: await page.getByRole("dialog", { name: "application frame 1" }).count() === 0,
+    focusReturned: await expand.evaluate((element) => element === document.activeElement),
+  };
+}
 
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {
   const adapter = new FixtureAdapter();
@@ -351,7 +431,11 @@ async function routeDetail(
   await page.route("**/skyline/api/runs/**", async (route) => {
     const match = new URL(route.request().url()).pathname.match(/\/nodes\/([^/]+)$/);
     if (match) {
-      await route.fulfill({ json: { node: await inspector(decodeURIComponent(match[1])) } });
+      try {
+        await route.fulfill({ json: { node: await inspector(decodeURIComponent(match[1])) } });
+      } catch (error) {
+        await route.fulfill({ status: 500, json: { error: { message: error instanceof Error ? error.message : "Inspector unavailable." } } });
+      }
       return;
     }
     await route.fulfill({ json: await trace() });

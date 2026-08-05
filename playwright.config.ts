@@ -15,12 +15,20 @@ export default defineConfig({
     timezoneId: "America/New_York",
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: "node scripts/serve-fixture.mjs",
-    reuseExistingServer: true,
-    timeout: 30_000,
-    url: "http://127.0.0.1:4174/skyline",
-  },
+  webServer: [
+    {
+      command: "node scripts/serve-fixture.mjs",
+      reuseExistingServer: true,
+      timeout: 30_000,
+      url: "http://127.0.0.1:4174/skyline",
+    },
+    {
+      command: "bunx vite tests/browser/trigger-failure-reference --host 127.0.0.1 --port 4175",
+      reuseExistingServer: true,
+      timeout: 30_000,
+      url: "http://127.0.0.1:4175",
+    },
+  ],
   projects: [
     {
       name: "chromium",
