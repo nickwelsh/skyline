@@ -34,6 +34,17 @@ describe("FixtureAdapter", () => {
     }
   });
 
+  it("applies Job time-range and cursor queries instead of only echoing them", async () => {
+    const adapter = new FixtureAdapter();
+    const job = (await adapter.jobs({ period: "1h" })).jobs[0];
+    const page = await adapter.job(job.id, { period: "1h", cursor: "1" });
+
+    expect(page.runs).toEqual([]);
+    expect(page.activity).toMatchObject([{ total: 1 }]);
+    expect(page.pagination).toEqual({ next: null, previous: "0" });
+    expect(page.filters).toEqual({ status: [], period: "1h" });
+  });
+
   it("adapts retry, child Run, SQL, and exception fixtures at trace and inspector seams", async () => {
     const adapter = new FixtureAdapter();
     const trace = await adapter.trace("run_01J8R4NQX6K3PV4W0A1H2Z7M9C");

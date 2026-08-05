@@ -25,6 +25,8 @@ const triggeredAtByRun = new Map([
   ["run_01J8R3XK1YV76N3Q51RPXQ0VC2", "2026-08-04T19:59:42.000000000Z"],
   ["run_01J8R3RXZ6A7J19G4Y53CXF7F4", "2026-08-04T19:58:11.000000000Z"],
 ]);
+const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
+const pageSize = 25;
 
 const capabilities = {
   navigation: { jobs: true, runs: true, queues: true },
@@ -108,7 +110,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
   }
 
   async jobs(query: JobsQuery = {}): Promise<JobsPageDto> {
-    const grouped = Map.groupBy(scenarios[0].runs, (run) => run.name);
+    const grouped = Map.groupBy(scenarios[0].runs.filter((run) => withinPeriod(run, query.period)), (run) => run.name);
     const search = query.search?.toLowerCase();
     const jobs = [...grouped.entries()]
       .filter(([name]) => !search || name.toLowerCase().includes(search))
@@ -118,12 +120,12 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
-      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      generatedAt: fixtureGeneratedAt,
       capabilities,
       jobs,
       filters: { search: query.search ?? null, period: query.period ?? "all" },
       options: { timeRanges: fixtureTimeRanges },
-      hasAnyJobs: grouped.size > 0,
+      hasAnyJobs: scenarios[0].runs.length > 0,
     };
   }
 
@@ -132,12 +134,14 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const entry = [...grouped.entries()].find(([name]) => fixtureJobId(name) === jobId);
     if (!entry) throw new Error(`Unknown fixture Job: ${jobId}`);
     const [name, source] = entry;
-    const runs = source.filter((run) => !query.status || query.status.includes(run.status));
+    const filtered = source.filter((run) => (!query.status || query.status.includes(run.status)) && withinPeriod(run, query.period));
+    const offset = fixtureOffset(query.cursor);
+    const runs = filtered.slice(offset, offset + pageSize);
 
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
-      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      generatedAt: fixtureGeneratedAt,
       capabilities,
       job: this.jobSummary(name, source),
       queueTargets: [...new Map(source.map((run) => [`${run.connection}\0${run.queue}`, {
@@ -147,14 +151,17 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         runCount: source.filter((candidate) => candidate.connection === run.connection && candidate.queue === run.queue).length,
         href: `/skyline/queues/${fixtureQueueId(run.connection, run.queue)}`,
       }])).values()],
-      activity: [{
+      activity: filtered.length > 0 ? [{
         timestamp: "2026-08-04T00:00:00Z",
-        total: runs.length,
-        statusCounts: statusCounts(runs),
-      }],
-      runs: runs.map((run, index) => this.summary(run, index)),
-      pagination: { next: null, previous: null },
-      tableState: "fixture-job",
+        total: filtered.length,
+        statusCounts: statusCounts(filtered),
+      }] : [],
+      runs: runs.map((run) => this.summary(run, scenarios[0].runs.indexOf(run))),
+      pagination: {
+        next: offset + pageSize < filtered.length ? String(offset + pageSize) : null,
+        previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
+      },
+      tableState: query.cursor ?? "fixture-job",
       filters: { status: query.status ?? [], period: query.period ?? "all" },
       options: {
         statuses: ["queued", "running", "retrying", "completed", "failed"],
@@ -456,6 +463,21 @@ function addMilliseconds(timestamp: string, milliseconds: number): string {
 
 function generatedTimestamp(index: number): string {
   return new Date(Date.UTC(2026, 7, 4, 19, 57 - index)).toISOString();
+}
+
+function fixtureTimestamp(run: Scenario["runs"][number]): string {
+  return triggeredAtByRun.get(run.id) ?? generatedTimestamp(scenarios[0].runs.indexOf(run));
+}
+
+function withinPeriod(run: Scenario["runs"][number], period: JobsQuery["period"]): boolean {
+  const durations = { "1h": 3_600_000, "24h": 86_400_000, "7d": 604_800_000, "30d": 2_592_000_000 };
+  if (!period || period === "all") return true;
+  return new Date(fixtureTimestamp(run)).getTime() >= new Date(fixtureGeneratedAt).getTime() - durations[period];
+}
+
+function fixtureOffset(cursor: string | undefined): number {
+  const offset = Number.parseInt(cursor ?? "0", 10);
+  return Number.isFinite(offset) && offset >= 0 ? offset : 0;
 }
 
 function parseDuration(value: string): number {
