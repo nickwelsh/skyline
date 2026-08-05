@@ -733,7 +733,7 @@ function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageD
   useEffect(() => setTab("Overview"), [node.id]);
   const tabs = ["Overview", "Detail", "Context", "Metadata"];
   return (
-    <aside className="min-w-0 overflow-hidden bg-background-bright">
+    <aside className="h-full min-w-0 overflow-hidden bg-background-bright">
       <div className="flex h-full flex-col">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b border-grid-bright px-3">
           <NodeIcon node={node} />

@@ -73,6 +73,26 @@ test("SQL queries have distinct minimum-width timeline marks", async ({ page }) 
   expect((await queryMark.boundingBox())?.width).toBeGreaterThanOrEqual(6);
 });
 
+test("long inspector content scrolls independently", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 480 });
+  await page.route("**/skyline/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith("/nodes/attempt_live-run_1")
+      ? longExceptionInspectorResponse
+      : traceResponse;
+    await route.fulfill({ json: body });
+  });
+  await page.goto("/skyline/runs/live-run?production=1&node=attempt_live-run_1");
+
+  const inspector = page.getByRole("tabpanel");
+  await expect(inspector).toBeVisible();
+  expect(await inspector.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+
+  await inspector.hover();
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => inspector.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+});
+
 test("fixed fixtures retain reviewed Runs and trace visuals", async ({ page }) => {
   await page.goto("/skyline");
   await expect(page).toHaveScreenshot("runs.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
@@ -186,5 +206,26 @@ const inspectorResponse = {
     overview: { runId: "live-run", spanId: "live_sql" },
     sql: { value: "select * from invoices where id = ?", isTruncated: false, originalBytes: 35 },
     metadata: { value: { attributes: { "db.system.name": "mysql" } }, isTruncated: false, truncated: [] },
+  },
+};
+
+const longExceptionInspectorResponse = {
+  ...metadata,
+  traceRevision: 1,
+  node: {
+    ...traceNodes[1],
+    overview: { runId: "live-run", attemptNumber: 1, spanId: "live_attempt" },
+    exception: {
+      class: "RuntimeException",
+      message: "A deliberately long failure stack",
+      frames: Array.from({ length: 40 }, (_, index) => ({
+        file: `vendor/laravel/framework/src/Illuminate/Queue/Worker${index}.php`,
+        line: index + 1,
+        class: "Illuminate\\Queue\\Worker",
+        type: "->",
+        function: `frame${index}`,
+      })),
+    },
+    metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
   },
 };
