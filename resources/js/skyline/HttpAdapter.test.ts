@@ -4,6 +4,19 @@ import { HttpAdapter, SkylineApiError } from "./HttpAdapter";
 afterEach(() => vi.restoreAllMocks());
 
 describe("HttpAdapter", () => {
+  it("encodes Queue-target list and detail URL state", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse({ queueTargets: [] }))
+      .mockResolvedValueOnce(jsonResponse({ queueTarget: {}, runs: [] }));
+    const adapter = new HttpAdapter("/monitoring");
+
+    await adapter.queueTargets({ connection: "redis", search: "billing", from: "2026-08-01T00:00:00Z", to: "2026-08-02T00:00:00Z" });
+    await adapter.queueTarget("queue/opaque", { status: ["failed"], cursor: "next" });
+
+    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/queues?connection=redis&search=billing&from=2026-08-01T00%3A00%3A00Z&to=2026-08-02T00%3A00%3A00Z");
+    expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/queues/queue%2Fopaque?cursor=next&status%5B%5D=failed");
+  });
+
   it("encodes Job list and detail URL state", async () => {
     const fetch = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(jsonResponse({ jobs: [] }))

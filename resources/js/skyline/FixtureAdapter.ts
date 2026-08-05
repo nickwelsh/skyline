@@ -5,6 +5,10 @@ import type {
   JobRunsQuery,
   JobsPageDto,
   JobsQuery,
+  QueueTargetDetailDto,
+  QueueTargetRunsQuery,
+  QueueTargetsPageDto,
+  QueueTargetsQuery,
   RunsPageDto,
   RunsQuery,
   RunsUpdatesDto,
@@ -23,13 +27,86 @@ const triggeredAtByRun = new Map([
 ]);
 
 const capabilities = {
-  navigation: { jobs: true, runs: true },
+  navigation: { jobs: true, runs: true, queues: true },
   jobs: { view: true, testJob: false },
   runs: { view: true, cancel: false, replay: false },
   shell: { shortcuts: true },
 };
 
 export class FixtureAdapter implements SkylineDtoAdapter {
+  async queueTargets(query: QueueTargetsQuery = {}): Promise<QueueTargetsPageDto> {
+    const grouped = Map.groupBy(scenarios[0].runs, (run) => `${run.connection}\0${run.queue}`);
+    const search = query.search?.toLowerCase();
+    const queueTargets = [...grouped.values()]
+      .filter((runs) => (!query.connection || runs[0].connection === query.connection)
+        && (!search || `${runs[0].connection} ${runs[0].queue}`.toLowerCase().includes(search)))
+      .map((runs) => fixtureQueueSummary(runs))
+      .sort((left, right) => `${left.connection}\0${left.queue}`.localeCompare(`${right.connection}\0${right.queue}`));
+    const connections = [...new Set(scenarios[0].runs.map((run) => run.connection))].sort();
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
+      queueTargets,
+      pagination: { next: null, previous: null },
+      filters: { connection: query.connection ?? null, search: query.search ?? null, from: query.from ?? null, to: query.to ?? null, status: [] },
+      options: { connections },
+      hasAnyQueueTargets: grouped.size > 0,
+    };
+  }
+
+  async queueTarget(queueId: string, query: QueueTargetRunsQuery = {}): Promise<QueueTargetDetailDto> {
+    const grouped = Map.groupBy(scenarios[0].runs, (run) => `${run.connection}\0${run.queue}`);
+    const source = [...grouped.values()].find((runs) => fixtureQueueId(runs[0].connection, runs[0].queue) === queueId);
+    if (!source) throw new Error(`Unknown fixture Queue target: ${queueId}`);
+    const runs = source.filter((run) => (!query.status || query.status.includes(run.status))
+      && (!query.search || `${run.name} ${run.id}`.toLowerCase().includes(query.search.toLowerCase())));
+    const queueTarget = fixtureQueueSummary(source);
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
+      queueCapabilities: { pause: false, resume: false, concurrency: false, allocation: false, rateLimit: false, workers: false },
+      queueTarget,
+      series: {
+        activity: source.map((run, index) => ({
+          timestamp: triggeredAtByRun.get(run.id) ?? generatedTimestamp(index),
+          recordedRuns: 1,
+          recordedRunCounts: statusCounts([run]),
+        })),
+        queueTime: source.map((run, index) => {
+          const durationUs = parseDuration(run.queueDuration) * 1_000;
+          return { timestamp: triggeredAtByRun.get(run.id) ?? generatedTimestamp(index), sampleCount: 1, medianUs: durationUs, p95Us: durationUs, maximumUs: durationUs };
+        }),
+      },
+      runs: runs.map((run, index) => {
+        const summary = this.summary(run, index);
+        return {
+          id: summary.id,
+          href: `/skyline/runs/${encodeURIComponent(summary.id)}`,
+          traceId: summary.traceId,
+          name: summary.name,
+          status: summary.status,
+          attemptCount: summary.attemptCount,
+          triggeredAt: summary.triggeredAt,
+          startedAt: summary.startedAt,
+          finishedAt: summary.finishedAt,
+          queueDurationUs: summary.queueDurationUs,
+          durationUs: summary.durationUs,
+          activeDurationUs: summary.activeDurationUs,
+        };
+      }),
+      pagination: { next: null, previous: null },
+      filters: { connection: null, search: query.search ?? null, from: query.from ?? null, to: query.to ?? null, status: query.status ?? [] },
+      options: { statuses: ["queued", "running", "retrying", "completed", "failed"] },
+      hasAnyRuns: source.length > 0,
+    };
+  }
+
   async jobs(query: JobsQuery = {}): Promise<JobsPageDto> {
     const grouped = Map.groupBy(scenarios[0].runs, (run) => run.name);
     const search = query.search?.toLowerCase();
@@ -414,4 +491,25 @@ function statusCounts(runs: Scenario["runs"]) {
   const counts = { queued: 0, running: 0, retrying: 0, completed: 0, failed: 0 };
   for (const run of runs) counts[run.status] += 1;
   return counts;
+}
+
+function fixtureQueueSummary(runs: Scenario["runs"]) {
+  const first = runs[0];
+  const timestamps = runs.map((run, index) => triggeredAtByRun.get(run.id) ?? generatedTimestamp(index)).sort();
+  const queueTimes = runs.map((run) => parseDuration(run.queueDuration) * 1_000).filter((value) => value > 0).sort((left, right) => left - right);
+  return {
+    id: fixtureQueueId(first.connection, first.queue),
+    connection: first.connection,
+    queue: first.queue,
+    firstObservedAt: timestamps[0] ?? null,
+    lastObservedAt: timestamps.at(-1) ?? null,
+    recordedRunCount: runs.length,
+    recordedRunCounts: statusCounts(runs),
+    queueTime: {
+      sampleCount: queueTimes.length,
+      medianUs: queueTimes[Math.floor((queueTimes.length - 1) * 0.5)] ?? null,
+      p95Us: queueTimes[Math.floor((queueTimes.length - 1) * 0.95)] ?? null,
+      maximumUs: queueTimes.at(-1) ?? null,
+    },
+  };
 }

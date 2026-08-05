@@ -163,6 +163,76 @@ export type JobDetailDto = {
   hasAnyRuns: boolean;
 };
 
+export type QueueTargetsQuery = {
+  cursor?: string;
+  connection?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+};
+
+export type QueueTargetRunsQuery = QueueTargetsQuery & { status?: RunStatus[] };
+export type QueueTimeStats = { sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null };
+export type QueueTargetSummary = {
+  id: string;
+  connection: string;
+  queue: string;
+  firstObservedAt: string | null;
+  lastObservedAt: string | null;
+  recordedRunCount: number;
+  recordedRunCounts: Record<RunStatus, number>;
+  queueTime: QueueTimeStats;
+};
+export type QueueTargetFilters = {
+  connection: string | null;
+  search: string | null;
+  from: string | null;
+  to: string | null;
+  status: RunStatus[];
+};
+export type QueueTargetsPageDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  queueTargets: QueueTargetSummary[];
+  pagination: { next: string | null; previous: string | null };
+  filters: QueueTargetFilters;
+  options: { connections: string[] };
+  hasAnyQueueTargets: boolean;
+};
+export type QueueTargetRunSummary = {
+  id: string;
+  href: string;
+  traceId: string;
+  name: string;
+  status: RunStatus;
+  attemptCount: number;
+  triggeredAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  queueDurationUs: number | null;
+  durationUs: number | null;
+  activeDurationUs: number | null;
+};
+export type QueueTargetDetailDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  queueCapabilities: Record<string, boolean>;
+  queueTarget: QueueTargetSummary;
+  series: {
+    activity: Array<{ timestamp: string; recordedRuns: number; recordedRunCounts: Record<RunStatus, number> }>;
+    queueTime: Array<{ timestamp: string } & QueueTimeStats>;
+  };
+  runs: QueueTargetRunSummary[];
+  pagination: { next: string | null; previous: string | null };
+  filters: QueueTargetFilters;
+  options: { statuses: RunStatus[] };
+  hasAnyRuns: boolean;
+};
+
 export type SkylineCapabilities = {
   navigation: Record<string, boolean> & { runs: boolean };
   jobs?: Record<string, boolean> & { view: boolean; testJob: boolean };
@@ -417,6 +487,8 @@ export type Scenario = {
 };
 
 export interface SkylineDtoAdapter {
+  queueTargets(query?: QueueTargetsQuery, signal?: AbortSignal): Promise<QueueTargetsPageDto>;
+  queueTarget(queueId: string, query?: QueueTargetRunsQuery, signal?: AbortSignal): Promise<QueueTargetDetailDto>;
   jobs(query?: JobsQuery, signal?: AbortSignal): Promise<JobsPageDto>;
   job(jobId: string, query?: JobRunsQuery, signal?: AbortSignal): Promise<JobDetailDto>;
   runs(query?: RunsQuery, signal?: AbortSignal): Promise<RunsPageDto>;

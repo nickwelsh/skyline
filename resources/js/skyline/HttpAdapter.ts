@@ -4,6 +4,10 @@ import type {
   JobRunsQuery,
   JobsPageDto,
   JobsQuery,
+  QueueTargetDetailDto,
+  QueueTargetRunsQuery,
+  QueueTargetsPageDto,
+  QueueTargetsQuery,
   RunsPageDto,
   RunsQuery,
   RunsUpdatesDto,
@@ -28,6 +32,14 @@ export class HttpAdapter implements SkylineDtoAdapter {
   private readonly cache = new Map<string, { etag: string; value: unknown }>();
 
   constructor(private readonly basePath: string) {}
+
+  queueTargets(query: QueueTargetsQuery = {}, signal?: AbortSignal): Promise<QueueTargetsPageDto> {
+    return this.get<QueueTargetsPageDto>("api/queues", this.queueTargetsQuery(query), signal);
+  }
+
+  queueTarget(queueId: string, query: QueueTargetRunsQuery = {}, signal?: AbortSignal): Promise<QueueTargetDetailDto> {
+    return this.get<QueueTargetDetailDto>(`api/queues/${encodeURIComponent(queueId)}`, this.queueTargetQuery(query), signal);
+  }
 
   jobs(query: JobsQuery = {}, signal?: AbortSignal): Promise<JobsPageDto> {
     return this.get<JobsPageDto>("api/jobs", this.jobsQuery(query), signal);
@@ -83,6 +95,22 @@ export class HttpAdapter implements SkylineDtoAdapter {
     const params = new URLSearchParams();
     if (query.search) params.set("search", query.search);
     if (query.period) params.set("period", query.period);
+    return params;
+  }
+
+  private queueTargetsQuery(query: QueueTargetsQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.cursor) params.set("cursor", query.cursor);
+    if (query.connection) params.set("connection", query.connection);
+    if (query.search) params.set("search", query.search);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+    return params;
+  }
+
+  private queueTargetQuery(query: QueueTargetRunsQuery): URLSearchParams {
+    const params = this.queueTargetsQuery(query);
+    query.status?.forEach((status) => params.append("status[]", status));
     return params;
   }
 
