@@ -1,6 +1,6 @@
 export type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 export type AttemptStatus = "running" | "completed" | "released" | "failed";
-export type NodeKind = "run" | "attempt" | "query" | "request" | "cache" | "redis" | "custom" | "transaction" | "mail" | "notification" | "storage" | "process" | "span";
+export type NodeKind = "run" | "attempt" | "breadcrumb" | "query" | "request" | "cache" | "redis" | "custom" | "transaction" | "mail" | "notification" | "storage" | "process" | "span";
 
 export type RunSummary = {
   id: string;
@@ -68,7 +68,8 @@ export type TraceNode = {
   hasErrorDescendant: boolean;
   children: string[];
   hasChildren: boolean;
-  timelineEvents: Array<{ name: string; offsetUs: number; kind?: "event" | "breadcrumb"; level?: string }>;
+  timelineEvents: Array<{ name: string; offsetUs: number; kind?: "event" }>;
+  logLevel?: string;
 };
 
 export type RunsQuery = {
@@ -204,13 +205,13 @@ export type InspectorDto = TraceNode & {
     resources: { peakMemoryBytes: number; memoryDeltaBytes: number; cpuTimeUs: number };
     operations: Record<string, { count: number; durationMs: number }>;
   } | null;
-  breadcrumbs?: Array<{
+  breadcrumb?: {
     timestamp: string;
     level: string;
     channel: string;
     message: string;
     context: Record<string, unknown>;
-  }>;
+  };
   metadata: {
     value: Record<string, unknown>;
     isTruncated: boolean;

@@ -168,6 +168,40 @@ final class TraceViewBuilder
             );
         }
 
+        foreach ($snapshot->spans->where('role', 'consumer') as $consumer) {
+            if ($consumer->attempt_number === null) {
+                continue;
+            }
+
+            foreach ($this->json($consumer->events) as $index => $event) {
+                if (($event['name'] ?? null) !== 'log') {
+                    continue;
+                }
+
+                $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
+                $level = is_string($attributes['log.level'] ?? null) ? strtolower($attributes['log.level']) : 'warning';
+                $message = is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : 'Log breadcrumb';
+                $startedAt = isset($event['timestamp']) ? (int) $event['timestamp'] : (int) $consumer->started_at;
+                $id = NodeIds::breadcrumb($consumer->span_id, (int) $index);
+                $nodes[$id] = [
+                    ...$this->node(
+                        $id,
+                        NodeIds::attempt($consumer->run_id, (int) $consumer->attempt_number),
+                        $consumer->run_id,
+                        'breadcrumb',
+                        $this->truncate(strtoupper($level).' · '.$message, 512),
+                        'completed',
+                        $startedAt,
+                        $startedAt,
+                        (int) $selected->triggered_at,
+                        false,
+                        [],
+                    ),
+                    'logLevel' => $level,
+                ];
+            }
+        }
+
         $visibleSpanIds = $snapshot->spans
             ->whereNotIn('role', ['producer', 'consumer'])
             ->pluck('span_id')
@@ -210,7 +244,7 @@ final class TraceViewBuilder
         return $nodes;
     }
 
-    /** @param list<array{name: string, offsetUs: int, kind: string, level?: string}> $timeline */
+    /** @param list<array{name: string, offsetUs: int, kind: string}> $timeline */
     private function node(
         string $id,
         ?string $parentId,
@@ -292,7 +326,7 @@ final class TraceViewBuilder
         return $events;
     }
 
-    /** @return list<array{name: string, offsetUs: int, kind: string, level?: string}> */
+    /** @return list<array{name: string, offsetUs: int, kind: string}> */
     private function attemptTimeline(object $attempt, int $origin, ?object $consumer): array
     {
         $events = [['name' => 'Started', 'offsetUs' => intdiv((int) $attempt->started_at - $origin, 1000), 'kind' => 'event']];
@@ -317,16 +351,14 @@ final class TraceViewBuilder
                     continue;
                 }
 
-                $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
-                $level = is_string($attributes['log.level'] ?? null) ? strtolower($attributes['log.level']) : 'warning';
-                $message = is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : 'Log breadcrumb';
-                $breadcrumb = $name === 'log';
+                if ($name === 'log') {
+                    continue;
+                }
 
                 $events[] = [
-                    'name' => $this->truncate($breadcrumb ? strtoupper($level).' · '.$message : $name, 512),
+                    'name' => $this->truncate($name, 512),
                     'offsetUs' => intdiv((int) ($event['timestamp'] ?? $consumer->started_at) - $origin, 1000),
-                    'kind' => $breadcrumb ? 'breadcrumb' : 'event',
-                    ...($breadcrumb ? ['level' => $level] : []),
+                    'kind' => 'event',
                 ];
             }
         }

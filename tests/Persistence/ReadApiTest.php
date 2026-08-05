@@ -283,19 +283,34 @@ it('serves operation-specific cache and storage details', function (): void {
         ->assertJsonPath('node.storage.outcome', 'completed');
 });
 
-it('presents log breadcrumbs as named Attempt timeline events', function (): void {
+it('presents log breadcrumbs as chronological selectable nodes with details', function (): void {
     config()->set('skyline.logging.enabled', true);
     SummaryJob::dispatchSync();
     $run = DB::table('skyline_runs')->where('job_name', SummaryJob::class)->first();
-    $attempt = $this->getJson('/skyline/api/runs/'.$run->run_id)
+    $nodes = collect($this->getJson('/skyline/api/runs/'.$run->run_id)
         ->assertOk()
-        ->json('trace.nodes.1');
-    $breadcrumbs = collect($attempt['timelineEvents'])->where('kind', 'breadcrumb')->values();
+        ->json('trace.nodes'));
+    $breadcrumbs = $nodes->where('kind', 'breadcrumb')->values();
+    $warningIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[0]['id']);
+    $queryIndex = $nodes->search(fn (array $node): bool => $node['kind'] === 'query');
+    $errorIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[1]['id']);
 
     expect($breadcrumbs)->toHaveCount(2)
-        ->and($breadcrumbs->pluck('level')->all())->toBe(['warning', 'error'])
-        ->and($breadcrumbs[0]['name'])->toBe('WARNING · Import token=[REDACTED] delayed')
-        ->and($breadcrumbs[1]['name'])->toBe('ERROR · Import failed password=[REDACTED]');
+        ->and($breadcrumbs->pluck('logLevel')->all())->toBe(['warning', 'error'])
+        ->and($breadcrumbs[0]['label'])->toBe('WARNING · Import token=[REDACTED] delayed')
+        ->and($breadcrumbs[1]['label'])->toBe('ERROR · Import failed password=[REDACTED]')
+        ->and($warningIndex)->toBeLessThan($queryIndex)
+        ->and($errorIndex)->toBeGreaterThan($queryIndex)
+        ->and(collect($nodes->firstWhere('kind', 'attempt')['timelineEvents'])->where('kind', 'breadcrumb'))->toBeEmpty();
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/'.$breadcrumbs[0]['id'])
+        ->assertOk()
+        ->assertJsonPath('node.kind', 'breadcrumb')
+        ->assertJsonPath('node.breadcrumb.level', 'warning')
+        ->assertJsonPath('node.breadcrumb.channel', 'stack')
+        ->assertJsonPath('node.breadcrumb.message', 'Import token=[REDACTED] delayed')
+        ->assertJsonPath('node.breadcrumb.context.code', 429)
+        ->assertJsonMissingPath('node.breadcrumb.context.password');
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

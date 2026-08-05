@@ -29,6 +29,7 @@ final readonly class NodeQuery
         $details = match ($node['kind']) {
             'run' => $this->run($snapshot, $node['runId']),
             'attempt' => $this->attempt($snapshot, $nodeId),
+            'breadcrumb' => $this->breadcrumb($snapshot, $nodeId),
             default => $this->span($snapshot, $nodeId),
         };
 
@@ -97,7 +98,6 @@ final readonly class NodeQuery
                 ? null
                 : $this->exceptions->present($attempt, $run?->job_name),
             'summary' => $this->attemptSummary($consumerAttributes),
-            'breadcrumbs' => $this->breadcrumbs($consumer),
             'metadata' => $this->spanMetadata($consumer),
         ];
     }
@@ -133,31 +133,48 @@ final readonly class NodeQuery
         ];
     }
 
-    /** @return list<array<string, mixed>> */
-    private function breadcrumbs(?object $consumer): array
+    /** @return array<string, mixed> */
+    private function breadcrumb(TraceSnapshot $snapshot, string $nodeId): array
     {
-        if ($consumer === null) {
-            return [];
-        }
+        foreach ($snapshot->spans->where('role', 'consumer') as $consumer) {
+            foreach ($this->json($consumer->events) as $index => $event) {
+                if (($event['name'] ?? null) !== 'log' || NodeIds::breadcrumb($consumer->span_id, (int) $index) !== $nodeId) {
+                    continue;
+                }
 
-        return collect($this->json($consumer->events))
-            ->filter(fn (mixed $event): bool => is_array($event) && ($event['name'] ?? null) === 'log')
-            ->map(function (array $event): array {
                 $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
                 $context = is_string($attributes['log.context'] ?? null)
                     ? $this->json($attributes['log.context'])
                     : [];
+                $level = is_string($attributes['log.level'] ?? null) ? strtolower($attributes['log.level']) : 'warning';
+                $channel = is_string($attributes['log.channel'] ?? null) ? $attributes['log.channel'] : 'default';
+                $message = is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : '';
+                $timestamp = isset($event['timestamp']) ? (int) $event['timestamp'] : (int) $consumer->started_at;
 
                 return [
-                    'timestamp' => Nanoseconds::toRfc3339(isset($event['timestamp']) ? (int) $event['timestamp'] : null),
-                    'level' => is_string($attributes['log.level'] ?? null) ? $attributes['log.level'] : 'warning',
-                    'channel' => is_string($attributes['log.channel'] ?? null) ? $attributes['log.channel'] : 'default',
-                    'message' => is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : '',
-                    'context' => $context,
+                    'overview' => [
+                        'runId' => $consumer->run_id,
+                        'attemptNumber' => $consumer->attempt_number === null ? null : (int) $consumer->attempt_number,
+                        'traceId' => $consumer->trace_id,
+                        'spanId' => $consumer->span_id,
+                        'parentSpanId' => $consumer->parent_span_id,
+                        'level' => $level,
+                        'channel' => $channel,
+                        'loggedAt' => Nanoseconds::toRfc3339($timestamp),
+                    ],
+                    'breadcrumb' => [
+                        'timestamp' => Nanoseconds::toRfc3339($timestamp),
+                        'level' => $level,
+                        'channel' => $channel,
+                        'message' => $message,
+                        'context' => $context,
+                    ],
+                    'metadata' => ['value' => [], 'isTruncated' => false, 'truncated' => []],
                 ];
-            })
-            ->values()
-            ->all();
+            }
+        }
+
+        throw new RecordNotFound('The breadcrumb node was not found.');
     }
 
     /** @return array<string, mixed> */

@@ -5,7 +5,7 @@
   "adaptedTargets": {
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
     "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
-    "resources/js/trigger/TriggerInterface.tsx": "2ad9a40ac332f695ff6a8829fc3931b9772d49ca7cc385cf729c78285527664f",
+    "resources/js/trigger/TriggerInterface.tsx": "2ff9a219be6f565b956eb8e93b4ab251aecbe6950043bd580335f3b8c2a20450",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -82,7 +82,7 @@
       "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5",
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
-      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added exact-width duration bars, point marks for sub-pixel spans, timing tooltips, and aligned breadcrumb rows."
+      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added exact-width duration bars, point marks for short spans, timing tooltips, and selectable chronological breadcrumb nodes."
     },
     {
       "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",

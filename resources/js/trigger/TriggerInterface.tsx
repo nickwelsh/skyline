@@ -389,10 +389,6 @@ function RunsPage({ adapter, basePath, navigate }: { adapter: SkylineDtoAdapter;
   );
 }
 
-type TraceTimelineEvent = TraceNode["timelineEvents"][number];
-type TraceDisplayRow =
-  | { kind: "node"; key: string; node: TraceNode }
-  | { kind: "breadcrumb"; key: string; node: TraceNode; event: TraceTimelineEvent };
 const MIN_DURATION_BAR_PIXELS = 4;
 
 function TracePage({ adapter, basePath, runId, navigate }: { adapter: SkylineDtoAdapter; basePath: string; runId: string; navigate: (to: string, replace?: boolean) => void }) {
@@ -504,13 +500,6 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
       return true;
     });
   }, [nodes, search, errorsOnly, kindFilter, collapsed]);
-
-  const visibleRows = useMemo<TraceDisplayRow[]>(() => visibleNodes.flatMap((node) => [
-    { kind: "node", key: node.id, node },
-    ...node.timelineEvents.flatMap((event, index) => event.kind === "breadcrumb"
-      ? [{ kind: "breadcrumb" as const, key: `${node.id}:breadcrumb:${event.offsetUs}:${index}`, node, event }]
-      : []),
-  ]), [visibleNodes]);
 
   const selectedTraceNode = nodes.find((node) => node.id === selectedId);
 
@@ -643,6 +632,7 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
           </label>
           <select aria-label="Span type" className="h-7 rounded border border-grid-bright bg-input-bg px-2 text-xs text-text-bright" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as NodeKind | "all")}>
             <option value="all">All types</option>
+            <option value="breadcrumb">Breadcrumbs</option>
             <option value="cache">Cache</option>
             <option value="redis">Redis</option>
             <option value="query">SQL</option>
@@ -666,9 +656,9 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
                 <ResizablePanel id="tree" default="50%" min="50px" className="min-w-0 overflow-hidden">
                   <div className="flex h-8 items-center border-b border-grid-bright px-3 text-xs text-text-faint">Trace</div>
                   <div ref={treeScrollRef} data-testid="trace-tree-scroll" className="h-[calc(100%-2rem)] overflow-auto" onScroll={(event) => { if (timelineScrollRef.current) timelineScrollRef.current.scrollTop = event.currentTarget.scrollTop; }}>
-                    {visibleRows.map((row) => row.kind === "node"
-                      ? <TreeRow key={row.key} node={row.node} selected={selectedId === row.node.id} hasChildren={childrenByParent.has(row.node.id)} collapsed={collapsed.has(row.node.id)} onToggle={(descendants) => toggleNode(row.node.id, descendants)} onSelect={() => selectNode(row.node.id)} />
-                      : <BreadcrumbTreeRow key={row.key} node={row.node} event={row.event} onSelect={() => selectNode(row.node.id)} />)}
+                    {visibleNodes.map((node) => (
+                      <TreeRow key={node.id} node={node} selected={selectedId === node.id} hasChildren={childrenByParent.has(node.id)} collapsed={collapsed.has(node.id)} onToggle={(descendants) => toggleNode(node.id, descendants)} onSelect={() => selectNode(node.id)} />
+                    ))}
                   </div>
                 </ResizablePanel>
                 <ResizableHandle id="tree-handle" />
@@ -677,20 +667,14 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
                     <Timeline.Root durationMs={displayedDuration} scale={zoom} minWidth={700} maxWidth={1800} className="min-h-full">
                       <TimelineHeader duration={displayedDuration} />
                       <div>
-                        {visibleRows.map((row) => row.kind === "node" ? (
-                          <Timeline.Row key={row.key} className={`h-8 border-b border-grid-dimmed ${selectedId === row.node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(row.node.id)}>
-                            <TimelineNodeMark node={row.node} totalDuration={totalDuration} queueOffset={queueOffset} />
-                            {row.node.timelineEvents.flatMap((event, index) => event.kind === "breadcrumb" ? [] : [(
+                        {visibleNodes.map((node) => (
+                          <Timeline.Row data-timeline-item-id={node.id} data-timeline-row-kind={node.kind} key={node.id} className={`h-8 border-b border-grid-dimmed ${selectedId === node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(node.id)}>
+                            <TimelineNodeMark node={node} totalDuration={totalDuration} queueOffset={queueOffset} />
+                            {node.timelineEvents.map((event, index) => (
                               <Timeline.Point key={`${event.name}:${event.offsetUs}:${index}`} ms={Math.max(0, event.offsetUs / 1_000 - queueOffset)} className="top-[13px] z-10">
                                 {() => <span data-timeline-event-kind={event.kind ?? "event"} aria-label={event.name} title={event.name} className="block size-1.5 rounded-full border border-background-dimmed bg-text-bright" />}
                               </Timeline.Point>
-                            )])}
-                          </Timeline.Row>
-                        ) : (
-                          <Timeline.Row data-timeline-row-kind="breadcrumb" key={row.key} className={`h-8 border-b border-grid-dimmed ${selectedId === row.node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(row.node.id)}>
-                            <Timeline.Point ms={Math.max(0, row.event.offsetUs / 1_000 - queueOffset)} className="top-1/2 z-10 -translate-y-1/2">
-                              {() => <span data-timeline-event-kind="breadcrumb" aria-label={row.event.name} title={row.event.name} className={`block size-2 -translate-x-1/2 rounded-full border border-background-dimmed ${breadcrumbClass(row.event.level)}`} />}
-                            </Timeline.Point>
+                            ))}
                           </Timeline.Row>
                         ))}
                       </div>
@@ -733,27 +717,15 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
 
 function TreeRow({ node, selected, hasChildren, collapsed, onToggle, onSelect }: { node: TraceNode; selected: boolean; hasChildren: boolean; collapsed: boolean; onToggle: (descendants: boolean) => void; onSelect: () => void }) {
   return (
-    <div data-node-id={node.id} className={`flex h-8 cursor-pointer items-center border-b border-grid-dimmed pr-2 ${selected ? "bg-indigo-500/10 text-text-bright" : "hover:bg-background-hover"}`} onClick={onSelect}>
+    <div data-node-id={node.id} data-trace-item-id={node.id} data-trace-row-kind={node.kind} className={`flex h-8 cursor-pointer items-center border-b border-grid-dimmed pr-2 ${selected ? "bg-indigo-500/10 text-text-bright" : "hover:bg-background-hover"}`} onClick={onSelect}>
       <div style={{ width: `${node.level * 20 + 6}px` }} className="shrink-0" />
       <button aria-label={collapsed ? "Expand node" : "Collapse node"} className={`mr-1 grid size-5 shrink-0 place-items-center ${hasChildren ? "text-text-faint" : "invisible"}`} onClick={(event) => { event.stopPropagation(); onToggle(event.altKey); }}>
         {collapsed ? <IconChevronRight className="size-3.5" /> : <IconChevronDown className="size-3.5" />}
       </button>
       <NodeIcon node={node} />
       <span className={`ml-2 min-w-0 flex-1 truncate ${node.kind === "run" ? "font-medium text-blue-400" : ""}`}>{node.label}</span>
-      {node.isError ? <IconAlertTriangle className="size-4 shrink-0 text-error" /> : node.status === "completed" ? <IconCheck className="size-4 shrink-0 text-success" /> : null}
+      {node.kind === "breadcrumb" ? null : node.isError ? <IconAlertTriangle className="size-4 shrink-0 text-error" /> : node.status === "completed" ? <IconCheck className="size-4 shrink-0 text-success" /> : null}
     </div>
-  );
-}
-
-function BreadcrumbTreeRow({ node, event, onSelect }: { node: TraceNode; event: TraceTimelineEvent; onSelect: () => void }) {
-  return (
-    <button type="button" data-trace-row-kind="breadcrumb" className="flex h-8 w-full cursor-pointer items-center border-b border-grid-dimmed pr-2 text-left hover:bg-background-hover" onClick={onSelect}>
-      <span style={{ width: `${(node.level + 1) * 20 + 30}px` }} className="shrink-0" />
-      <span className="flex min-w-0 flex-1 items-center gap-2">
-        <IconMessageCircle className={`size-4 shrink-0 ${breadcrumbTextClass(event.level)}`} />
-        <span className="min-w-0 flex-1 truncate text-text-dimmed">{event.name}</span>
-      </span>
-    </button>
   );
 }
 
@@ -767,7 +739,7 @@ function TimelineNodeMark({ node, totalDuration, queueOffset }: { node: TraceNod
   if (durationPixels < MIN_DURATION_BAR_PIXELS) {
     return (
       <Timeline.Point ms={startMs} className="top-1/2 z-10 -translate-y-1/2">
-        {() => <span data-timeline-node-point-id={node.id} aria-label={title} title={title} className={`block size-2 -translate-x-1/2 rounded-full border border-background-dimmed ${barClass(node)}`} />}
+        {() => <span data-timeline-node-point-id={node.id} data-timeline-event-kind={node.kind === "breadcrumb" ? "breadcrumb" : undefined} aria-label={title} title={title} className={`block size-2 -translate-x-1/2 rounded-full border border-background-dimmed ${barClass(node)}`} />}
       </Timeline.Point>
     );
   }
@@ -788,6 +760,7 @@ function TimelineNodeMark({ node, totalDuration, queueOffset }: { node: TraceNod
 function NodeIcon({ node }: { node: TraceNode }) {
   if (node.kind === "run") return <span className="grid size-5 shrink-0 place-items-center rounded bg-blue-500 text-xxs font-bold text-white">J</span>;
   if (node.kind === "attempt") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-600 text-xxs font-bold text-charcoal-200">A</span>;
+  if (node.kind === "breadcrumb") return <IconMessageCircle className={`size-5 shrink-0 p-0.5 ${breadcrumbStrokeClass(node.logLevel)}`} />;
   if (node.kind === "query") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-query"><IconDatabase className="size-3.5" /></span>;
   if (node.kind === "cache" || node.kind === "redis") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-amber-400"><IconCloudDataConnection className="size-3.5" /></span>;
   if (node.kind === "transaction") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-indigo-400"><IconArrowsExchange className="size-3.5" /></span>;
@@ -840,7 +813,7 @@ function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageD
 function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
   return (
     <div className="space-y-4">
-      <Status status={node.status} />
+      {node.kind !== "breadcrumb" && <Status status={node.status} />}
       {node.kind === "run" && (
         <div className="rounded border border-grid-bright bg-background-dimmed p-3">
           <Lifecycle label="Triggered" value={formatTime(run.triggeredAt)} first />
@@ -857,19 +830,11 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
           {Object.keys(node.summary.operations).length > 0 && <PropertyList values={Object.fromEntries(Object.entries(node.summary.operations).map(([role, value]) => [role, `${value.count.toLocaleString()} · ${formatDuration(value.durationMs)}`]))} />}
         </section>
       )}
-      {node.kind === "attempt" && node.breadcrumbs && node.breadcrumbs.length > 0 && (
-        <details className="rounded border border-grid-bright bg-background-dimmed">
-          <summary className="cursor-pointer px-3 py-2 font-medium text-text-bright">Breadcrumbs ({node.breadcrumbs.length})</summary>
-          <div className="divide-y divide-grid-dimmed border-t border-grid-bright">
-            {node.breadcrumbs.map((breadcrumb, index) => (
-              <div key={`${breadcrumb.timestamp}:${index}`} className="space-y-1 px-3 py-2 text-xs">
-                <div className="flex gap-2 text-text-faint"><span className="uppercase">{breadcrumb.level}</span><span>{breadcrumb.channel}</span><span className="ml-auto">{formatTime(breadcrumb.timestamp)}</span></div>
-                <div className="break-words text-text-bright">{breadcrumb.message}</div>
-                {Object.keys(breadcrumb.context).length > 0 && <JsonCapturePreview label="Context" value={breadcrumb.context} />}
-              </div>
-            ))}
-          </div>
-        </details>
+      {node.kind === "breadcrumb" && node.breadcrumb && (
+        <section className="space-y-3">
+          <div className="break-words text-text-bright">{node.breadcrumb.message}</div>
+          <PropertyList values={{ Level: node.breadcrumb.level, Channel: node.breadcrumb.channel, "Logged at": formatTime(node.breadcrumb.timestamp) }} />
+        </section>
       )}
       {node.kind !== "run" && <PropertyList values={{ Started: formatDuration(node.offsetUs / 1_000), Duration: node.durationUs === null ? "Running" : formatDuration(node.durationUs / 1_000), Status: node.status }} />}
     </div>
@@ -877,6 +842,16 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
 }
 
 function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
+  if (node.kind === "breadcrumb" && node.breadcrumb) return (
+    <div className="space-y-4">
+      <DetailSection title="Message">
+        <div className="break-words text-text-bright">{node.breadcrumb.message}</div>
+      </DetailSection>
+      {Object.keys(node.breadcrumb.context).length > 0
+        ? <JsonCapturePreview label="Context" value={node.breadcrumb.context} />
+        : <CaptureNote>No context was recorded.</CaptureNote>}
+    </div>
+  );
   if (node.kind === "query") return (
     <div className="space-y-4">
       {node.source && <NodeSource source={node.source} label="Query source" />}
@@ -1115,9 +1090,9 @@ function formatBytes(bytes: number) { const absolute = Math.abs(bytes); if (abso
 function formatTtl(seconds: number) { if (seconds >= 86_400 && seconds % 86_400 === 0) return `${seconds / 86_400} ${seconds === 86_400 ? "day" : "days"}`; if (seconds >= 3_600 && seconds % 3_600 === 0) return `${seconds / 3_600} ${seconds === 3_600 ? "hour" : "hours"}`; if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`; return `${seconds} ${seconds === 1 ? "second" : "seconds"}`; }
 function humanize(value?: string | null) { return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "—"; }
 function breadcrumbClass(level?: string) { if (["error", "critical", "alert", "emergency"].includes(level ?? "")) return "bg-error"; if (level === "warning") return "bg-amber-400"; return "bg-cyan-400"; }
-function breadcrumbTextClass(level?: string) { if (["error", "critical", "alert", "emergency"].includes(level ?? "")) return "text-error"; if (level === "warning") return "text-amber-400"; return "text-cyan-400"; }
+function breadcrumbStrokeClass(level?: string) { if (["error", "critical", "alert", "emergency"].includes(level ?? "")) return "stroke-error"; if (level === "warning") return "stroke-amber-400"; return "stroke-cyan-400"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
-function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; if (node.kind === "storage") return "bg-emerald-500"; if (node.kind === "process") return "bg-orange-500"; return "bg-charcoal-550"; }
+function barClass(node: TraceNode) { if (node.kind === "breadcrumb") return breadcrumbClass(node.logLevel); if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; if (node.kind === "storage") return "bg-emerald-500"; if (node.kind === "process") return "bg-orange-500"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
   const duration = node.durationUs === null ? Math.max(0, totalDuration - node.offsetUs / 1_000) : node.durationUs / 1_000;
   return node.parentId === null ? Math.max(0, duration - queueOffset) : duration;

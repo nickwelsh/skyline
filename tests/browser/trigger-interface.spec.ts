@@ -229,11 +229,30 @@ test("cache storage and breadcrumbs expose useful operation details", async ({ p
       ? cacheInspectorResponse
       : url.pathname.endsWith("/nodes/span_live_storage")
         ? storageInspectorResponse
+        : url.pathname.endsWith("/nodes/breadcrumb_live_warning")
+          ? breadcrumbInspectorResponse
         : detailTraceResponse;
     await route.fulfill({ json: body });
   });
 
   await page.goto("/skyline/runs/live-run?production=1&node=span_live_cache");
+  await expect.poll(() => page.locator("[data-trace-item-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-trace-item-id")))).toEqual([
+    "run_live-run",
+    "attempt_live-run_1",
+    "span_live_cache",
+    "breadcrumb_live_warning",
+    "breadcrumb_live_error",
+    "span_live_storage",
+  ]);
+  await expect.poll(() => page.locator("[data-timeline-item-id]").evaluateAll((rows) => rows.map((row) => row.getAttribute("data-timeline-item-id")))).toEqual([
+    "run_live-run",
+    "attempt_live-run_1",
+    "span_live_cache",
+    "breadcrumb_live_warning",
+    "breadcrumb_live_error",
+    "span_live_storage",
+  ]);
+
   const breadcrumbRows = page.locator('[data-trace-row-kind="breadcrumb"]');
   await expect(breadcrumbRows).toHaveCount(2);
   await expect(breadcrumbRows.nth(0)).toContainText("WARNING · Import token=[REDACTED] delayed");
@@ -241,9 +260,17 @@ test("cache storage and breadcrumbs expose useful operation details", async ({ p
 
   const breadcrumbTimelineRows = page.locator('[data-timeline-row-kind="breadcrumb"]');
   await expect(breadcrumbTimelineRows).toHaveCount(2);
-  await expect(breadcrumbTimelineRows.nth(0).locator('[data-timeline-event-kind="breadcrumb"]')).toHaveAttribute("title", "WARNING · Import token=[REDACTED] delayed");
-  await expect(breadcrumbTimelineRows.nth(1).locator('[data-timeline-event-kind="breadcrumb"]')).toHaveAttribute("title", "ERROR · Import failed");
+  await expect(breadcrumbTimelineRows.nth(0).locator('[data-timeline-node-point-id="breadcrumb_live_warning"]')).toHaveAttribute("title", /^WARNING · Import token=\[REDACTED\] delayed · Started 260ms · Duration 0ms$/);
+  await expect(breadcrumbTimelineRows.nth(1).locator('[data-timeline-node-point-id="breadcrumb_live_error"]')).toHaveAttribute("title", /^ERROR · Import failed · Started 280ms · Duration 0ms$/);
 
+  await breadcrumbRows.first().click();
+  await expect(page).toHaveURL(/node=breadcrumb_live_warning/);
+  const breadcrumb = page.getByRole("tabpanel");
+  await expect(breadcrumb).toContainText("Import token=[REDACTED] delayed");
+  await expect(breadcrumb).toContainText("warning");
+  await expect(breadcrumb).toContainText("audit");
+
+  await page.locator('[data-node-id="span_live_cache"]').click();
   await page.getByRole("tab", { name: "Detail" }).click();
   const cache = page.getByRole("tabpanel");
   await expect(cache).toContainText("Stale While Revalidate");
@@ -383,11 +410,19 @@ const httpInspectorResponse = {
 };
 
 const cacheNode = {
-  id: "span_live_cache", parentId: "attempt_live-run_1", runId: "live-run", kind: "cache", label: "Cache PUT", level: 2, offsetUs: 400_000, durationUs: 4_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
+  id: "span_live_cache", parentId: "attempt_live-run_1", runId: "live-run", kind: "cache", label: "Cache PUT", level: 2, offsetUs: 300_000, durationUs: 4_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
 } as const;
 
 const storageNode = {
   id: "span_live_storage", parentId: "attempt_live-run_1", runId: "live-run", kind: "storage", label: "Storage WRITE", level: 2, offsetUs: 420_000, durationUs: 5_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
+} as const;
+
+const warningBreadcrumbNode = {
+  id: "breadcrumb_live_warning", parentId: "attempt_live-run_1", runId: "live-run", kind: "breadcrumb", label: "WARNING · Import token=[REDACTED] delayed", level: 2, offsetUs: 360_000, durationUs: 0, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [], logLevel: "warning",
+} as const;
+
+const errorBreadcrumbNode = {
+  id: "breadcrumb_live_error", parentId: "attempt_live-run_1", runId: "live-run", kind: "breadcrumb", label: "ERROR · Import failed", level: 2, offsetUs: 380_000, durationUs: 0, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [], logLevel: "error",
 } as const;
 
 const detailTraceResponse = {
@@ -398,15 +433,25 @@ const detailTraceResponse = {
       traceNodes[0],
       {
         ...traceNodes[1],
-        children: [cacheNode.id, storageNode.id],
-        timelineEvents: [
-          { name: "WARNING · Import token=[REDACTED] delayed", offsetUs: 360_000, kind: "breadcrumb", level: "warning" },
-          { name: "ERROR · Import failed", offsetUs: 380_000, kind: "breadcrumb", level: "error" },
-        ],
+        children: [cacheNode.id, warningBreadcrumbNode.id, errorBreadcrumbNode.id, storageNode.id],
+        timelineEvents: [],
       },
       cacheNode,
+      warningBreadcrumbNode,
+      errorBreadcrumbNode,
       storageNode,
     ],
+  },
+};
+
+const breadcrumbInspectorResponse = {
+  ...metadata,
+  traceRevision: 1,
+  node: {
+    ...warningBreadcrumbNode,
+    overview: { level: "warning", channel: "audit" },
+    breadcrumb: { message: "Import token=[REDACTED] delayed", level: "warning", channel: "audit", timestamp: "2026-08-04T20:01:00.560000000Z", context: { batch: 42 } },
+    metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
   },
 };
 

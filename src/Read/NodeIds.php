@@ -18,4 +18,9 @@ final class NodeIds
     {
         return 'span_'.$spanId;
     }
+
+    public static function breadcrumb(string $spanId, int $event): string
+    {
+        return 'breadcrumb_'.$spanId.'_'.$event;
+    }
 }
