@@ -269,7 +269,11 @@ function normalizeNodes(source: Scenario["nodes"], selectedRunId: string): Trace
     hasErrorDescendant: node.isPartial ?? false,
     children: source.filter((candidate) => candidate.parentId === node.id).map((candidate) => candidate.kind === "run" ? `run_${candidate.id}` : candidate.id),
     hasChildren: source.some((candidate) => candidate.parentId === node.id),
-    timelineEvents: [],
+    timelineEvents: (node.timelineEvents ?? []).map((event) => ({
+      name: event.name,
+      offsetUs: event.offsetMs * 1_000,
+      kind: "event",
+    })),
     inspectorHref: inspectorHref(selectedRunId, node.kind === "run" ? `run_${node.id}` : node.id),
     telemetryEventHref: ["run", "attempt"].includes(node.kind)
       ? null

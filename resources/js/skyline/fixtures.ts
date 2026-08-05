@@ -91,6 +91,11 @@ const retryNodes: FixtureNode[] = [
     durationMs: 15300,
     status: "completed",
     isPartial: true,
+    timelineEvents: [
+      { name: "Triggered", offsetMs: 0 },
+      { name: "Dequeued", offsetMs: 312 },
+      { name: "Finished", offsetMs: 15_300 },
+    ],
     metadata: { traceId: "fda8d9cf9d53e8845fd0738b8407731d", connection: "redis", queue: "billing" },
   },
   {
@@ -104,6 +109,10 @@ const retryNodes: FixtureNode[] = [
     durationMs: 2050,
     status: "failed",
     isError: true,
+    timelineEvents: [
+      { name: "Started", offsetMs: 312 },
+      { name: "Failed", offsetMs: 2_362 },
+    ],
     exception: {
       class: "Illuminate\\Database\\DeadlockException",
       message: "Deadlock found when trying to get lock; retry transaction",

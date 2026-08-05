@@ -337,6 +337,7 @@ export type Scenario = {
     status: RunStatus | AttemptStatus;
     isError?: boolean;
     isPartial?: boolean;
+    timelineEvents?: Array<{ name: string; offsetMs: number }>;
     sql?: string;
     exception?: {
       class: string;

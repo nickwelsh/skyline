@@ -12,7 +12,7 @@ import {
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
 } from "@heroicons/react/20/solid";
-import { Link, useLoaderData, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
@@ -62,6 +62,7 @@ type Inspector = TraceNode & {
   exception?: { class: string; message: string } | null;
   source?: { file: string; line: number; href: string | null } | null;
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
+  detailSections: Array<{ label: string; value: unknown }>;
 };
 type RouteData = {
   generatedAt: string;
@@ -118,28 +119,53 @@ const panels = {
 
 export default function RunDetailRoute() {
   const data = useLoaderData() as RouteData;
+  const navigate = useNavigate();
   const revalidator = useRevalidator();
   const [params, setParams] = useSearchParams();
   const rootNodeId = data.trace.nodes[0]?.id;
   const selectedId = params.get("node") ?? undefined;
-  const rememberedSelection = useRef(selectedId);
+  const rememberedSelection = useRef<{ runId: string; nodeId?: string }>({ runId: data.run.id, nodeId: selectedId });
+
+  if (rememberedSelection.current.runId !== data.run.id) {
+    rememberedSelection.current = { runId: data.run.id, nodeId: selectedId };
+  }
 
   useEffect(() => {
-    if (selectedId) rememberedSelection.current = selectedId;
+    if (selectedId) rememberedSelection.current.nodeId = selectedId;
   }, [selectedId]);
 
   useEffect(() => {
-    if (selectedId || rememberedSelection.current || !rootNodeId) return;
+    if (selectedId || rememberedSelection.current.nodeId || !rootNodeId) return;
     const next = new URLSearchParams(params);
     next.set("node", rootNodeId);
     setParams(next, { replace: true });
-  }, [rootNodeId, selectedId]);
+  }, [data.run.id, rootNodeId, selectedId]);
 
   useEffect(() => {
     if (!data.trace.polling) return;
     const timer = window.setInterval(() => revalidator.revalidate(), data.trace.pollIntervalMs);
     return () => window.clearInterval(timer);
   }, [data.trace.polling, data.trace.pollIntervalMs, revalidator.revalidate]);
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isEditable(event.target)) return;
+      const tableState = params.get("tableState");
+      const rootPath = data.run.rootRunId && data.run.rootRunId !== data.run.id
+        ? `/runs/${encodeURIComponent(data.run.rootRunId)}${tableState ? `?tableState=${encodeURIComponent(tableState)}` : ""}`
+        : null;
+      const path = event.key.toLowerCase() === "j" ? data.navigation.previousPath
+        : event.key.toLowerCase() === "k" ? data.navigation.nextPath
+          : event.key.toLowerCase() === "p" ? data.relationships.parent?.path
+            : event.key.toLowerCase() === "t" ? rootPath
+            : null;
+      if (!path) return;
+      event.preventDefault();
+      navigate(path);
+    };
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, [data.run.id, data.run.rootRunId, data.navigation.previousPath, data.navigation.nextPath, data.relationships.parent?.path, navigate, params]);
 
   const select = useCallback((nodeId: string | undefined) => {
     const next = new URLSearchParams(params);
@@ -180,7 +206,7 @@ export default function RunDetailRoute() {
         )}
         <ResizablePanelGroup autosaveId="panel-run-parent-v3">
           <ResizablePanel id={panels.parent.main} min="100px">
-            <TraceView data={data} selectedId={selectedId} onSelect={select} />
+            <TraceView key={data.run.id} data={data} selectedId={selectedId} onSelect={select} />
           </ResizablePanel>
           {selectedId && (
             <>
@@ -242,6 +268,19 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
     parentRef.current?.setAttribute("aria-label", "Run trace");
   });
 
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isEditable(event.target)) return;
+      if (event.key.toLowerCase() === "e") state.expandAllBelowDepth(0);
+      else if (event.key.toLowerCase() === "w") state.collapseAllBelowDepth(1);
+      else if (/^[0-9]$/.test(event.key)) state.toggleExpandLevel(Number(event.key));
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, [state]);
+
   const update = (key: string, value: string | boolean | number | undefined) => {
     const next = new URLSearchParams(params);
     if (value === undefined || value === false || value === "" || value === 0) next.delete(key);
@@ -260,8 +299,11 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
       </div>
       <div className="flex items-center justify-between px-3 text-xs text-text-faint">
         <RelationshipLinks data={data} />
-        {data.trace.rootStatus === "executing" && (
+        {data.trace.polling && (
           <span className="flex items-center gap-1 text-blue-500"><span className="size-2 animate-pulse rounded-full bg-blue-500" />Live reloading</span>
+        )}
+        {data.trace.rootStatus === "executing" && !data.trace.polling && (
+          <span className="text-text-faint">Live updates paused</span>
         )}
       </div>
       <ResizablePanelGroup autosaveId="panel-run-tree">
@@ -283,7 +325,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
                 selected={nodeState.selected}
                 expanded={nodeState.expanded}
                 onSelect={() => state.selectNode(node.id)}
-                onToggle={() => state.toggleExpandNode(node.id)}
+                onToggle={(level) => level ? state.toggleExpandLevel(node.data.level) : state.toggleExpandNode(node.id)}
               />
             )}
           />
@@ -302,7 +344,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
         </ResizablePanel>
       </ResizablePanelGroup>
       <div className="flex items-center justify-between border-t border-grid-dimmed px-4 text-xs text-text-dimmed">
-        <span>↑ ↓ ← → Navigate · Esc Close inspector · Q Queue time</span>
+        <span>↑ ↓ ← → Navigate · E/W Expand/collapse · 0–9 Toggle depth · Esc Close · J/K Runs</span>
         <Slider
           aria-label="Timeline zoom"
           variant="tertiary"
@@ -320,7 +362,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
   );
 }
 
-function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: TraceNode; selected: boolean; expanded: boolean; onSelect: () => void; onToggle: () => void }) {
+function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: TraceNode; selected: boolean; expanded: boolean; onSelect: () => void; onToggle: (level: boolean) => void }) {
   return (
     <div
       data-node-id={node.id}
@@ -332,14 +374,16 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
       onClick={onSelect}
     >
       <span style={{ width: `${node.level * 16}px` }} className="shrink-0" />
-      <button
-        type="button"
-        aria-label={`${expanded ? "Collapse" : "Expand"} ${node.label}`}
-        className={cn("flex size-4 shrink-0 items-center", node.hasChildren && "hover:bg-surface-control")}
-        onClick={(event) => { event.stopPropagation(); if (node.hasChildren) onToggle(); }}
-      >
-        {node.hasChildren ? (expanded ? <ChevronDownIcon /> : <ChevronRightIcon />) : null}
-      </button>
+      {node.hasChildren ? (
+        <button
+          type="button"
+          aria-label={`${expanded ? "Collapse" : "Expand"} ${node.label}`}
+          className="flex size-4 shrink-0 items-center hover:bg-surface-control"
+          onClick={(event) => { event.stopPropagation(); onToggle(event.altKey); }}
+        >
+          {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+        </button>
+      ) : <span className="size-4 shrink-0" />}
       <span className="ml-1.5 flex min-w-0 flex-1 items-center gap-2">
         <TaskRunStatusIcon status={nodeStatus(node)} className="size-4 shrink-0" />
         <span className={cn("truncate", node.isError ? "text-error" : "text-text-dimmed group-hover/spannode:text-text-bright")}>{node.label}</span>
@@ -363,15 +407,30 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
   const queueUs = boundedQueueDuration(data, totalUs);
   const shiftUs = showQueue ? 0 : queueUs;
   const visibleUs = Math.max(1, totalUs - shiftUs);
+  const coordinateUs = visibleUs * 1.05;
   const width = containerRef.current?.clientWidth ?? 300;
 
   return (
     <div ref={containerRef} className="h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-      <Timeline.Root durationMs={visibleUs / 1_000} scale={scale} minWidth={width} maxWidth={width * 10} className="h-full" >
+      <Timeline.Root durationMs={coordinateUs / 1_000} scale={scale} minWidth={width} maxWidth={width * 10} className="h-full" >
+        <Timeline.EquallyDistribute count={5}>
+          {(milliseconds, index) => (
+            <Timeline.Point ms={milliseconds} className="top-0 h-8">
+              {() => (
+                <span className="relative block h-full border-l border-grid-dimmed">
+                  {index < 4 && <span className="absolute left-1 top-2 whitespace-nowrap text-xxs text-text-faint">{formatDuration(milliseconds * 1_000)}</span>}
+                </span>
+              )}
+            </Timeline.Point>
+          )}
+        </Timeline.EquallyDistribute>
+        {data.trace.rootStatus !== "executing" && (
+          <Timeline.Point ms={visibleUs / 1_000} className="bottom-0 top-8 z-10">
+            {() => <span data-timeline-terminal className="block h-full border-l border-grid-bright" />}
+          </Timeline.Point>
+        )}
         <Timeline.Row className="grid h-full grid-rows-[2rem_1fr]">
-          <div className="flex items-center justify-between border-b border-grid-dimmed px-2 text-xxs text-text-faint">
-            <span>0ms</span><span>{formatDuration(visibleUs)}</span>
-          </div>
+          <div className="border-b border-grid-dimmed" />
           <TreeView
             scrollRef={timelineScrollRef}
             virtualizer={state.virtualizer}
@@ -384,7 +443,7 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
             renderNode={({ node, state: nodeState }) => {
               const startUs = Math.max(0, node.data.offsetUs - shiftUs);
               const durationUs = Math.max(0, Math.min(node.data.durationUs ?? visibleUs - startUs, visibleUs - startUs));
-              const point = durationUs / visibleUs < 0.002;
+              const point = durationUs / coordinateUs < 0.002;
               return (
                 <Timeline.Row
                   data-timeline-row-kind={node.data.kind}
@@ -407,6 +466,15 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
                       </motion.div>
                     </Timeline.Span>
                   )}
+                  {node.data.timelineEvents.map((event, index) => {
+                    const eventUs = event.offsetUs - shiftUs;
+                    if (eventUs < 0 || eventUs > visibleUs) return null;
+                    return (
+                      <Timeline.Point key={`${event.name}-${index}`} ms={eventUs / 1_000}>
+                        {() => <span data-timeline-event={event.name} title={`${event.name} · ${formatDuration(eventUs)}`} className="block h-4 w-px bg-text-dimmed" />}
+                      </Timeline.Point>
+                    );
+                  })}
                 </Timeline.Row>
               );
             }}
@@ -427,11 +495,18 @@ function InspectorPanel({ data, selectedId }: { data: RouteData; selectedId?: st
   useEffect(() => {
     if (!selectedId) return;
     const controller = new AbortController();
+    let active = true;
+    setInspector(undefined);
     setError(undefined);
     void data.loadInspector(selectedId, controller.signal)
-      .then(setInspector)
-      .catch((reason) => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason : new Error("Inspector unavailable.")); });
-    return () => controller.abort();
+      .then((nextInspector) => { if (active) setInspector(nextInspector); })
+      .catch((reason) => {
+        if (!controller.signal.aborted && active) {
+          setInspector(undefined);
+          setError(reason instanceof Error ? reason : new Error("Inspector unavailable."));
+        }
+      });
+    return () => { active = false; controller.abort(); };
   }, [data.trace.revision, selectedId]);
 
   if (!selectedId) return null;
@@ -460,17 +535,7 @@ function InspectorPanel({ data, selectedId }: { data: RouteData; selectedId?: st
           </div>
         )}
         {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} />}
-        {inspector && tab === "detail" && (
-          <div className="space-y-4">
-            <Header3>Node detail</Header3>
-            <dl className="grid grid-cols-[8rem_1fr] gap-2 text-sm">
-              {Object.entries(inspector.overview).map(([key, value]) => <Property key={key} name={key} value={value} />)}
-            </dl>
-            {inspector.source && (
-              <a href={inspector.source.href ?? undefined} className="text-text-link">{inspector.source.file}:{inspector.source.line}</a>
-            )}
-          </div>
-        )}
+        {inspector && tab === "detail" && <InspectorDetails inspector={inspector} />}
         {inspector && tab === "metadata" && (
           <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
         )}
@@ -495,6 +560,31 @@ function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: 
         <Property name="Attempts" value={data.run.attemptCount} />
         <Property name="Duration" value={formatDuration(node?.durationUs ?? data.run.durationUs)} />
       </dl>
+    </div>
+  );
+}
+
+function InspectorDetails({ inspector }: { inspector: Inspector }) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <Header3>Node detail</Header3>
+        <dl className="mt-3 grid grid-cols-[8rem_1fr] gap-2 text-sm">
+          {Object.entries(inspector.overview).map(([key, value]) => <Property key={key} name={key} value={value} />)}
+        </dl>
+      </div>
+      <div className="flex flex-wrap gap-3 text-sm">
+        {inspector.source && (inspector.source.href
+          ? <a href={inspector.source.href} className="text-text-link">{inspector.source.file}:{inspector.source.line}</a>
+          : <span className="font-mono text-text-dimmed">{inspector.source.file}:{inspector.source.line}</span>)}
+        {inspector.telemetryEventHref && <a href={inspector.telemetryEventHref} className="text-text-link">Telemetry event</a>}
+      </div>
+      {inspector.detailSections.map((section) => (
+        <section key={section.label} aria-label={section.label}>
+          <Header3>{section.label}</Header3>
+          <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(section.value, null, 2)}</pre>
+        </section>
+      ))}
     </div>
   );
 }

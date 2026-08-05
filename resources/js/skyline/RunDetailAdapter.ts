@@ -1,5 +1,9 @@
 import type { InspectorDto, TracePageDto } from "./dto";
 
+export type RunDetailInspector = InspectorDto & {
+  detailSections: Array<{ label: string; value: unknown }>;
+};
+
 export type RunDetailRouteData = {
   generatedAt: string;
   run: {
@@ -31,12 +35,12 @@ export type RunDetailRouteData = {
     nextPath: string | null;
     runsPath: string;
   };
-  loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<InspectorDto>;
+  loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<RunDetailInspector>;
 };
 
 export function presentRunDetail(
   page: TracePageDto,
-  loadInspector: RunDetailRouteData["loadInspector"],
+  loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<InspectorDto>,
 ): RunDetailRouteData {
   const tableState = page.navigation.tableState;
   const detailPath = (runId: string) => {
@@ -81,6 +85,31 @@ export function presentRunDetail(
       nextPath: page.navigation.nextRunId ? detailPath(page.navigation.nextRunId) : null,
       runsPath: `/runs${listState.size ? `?${listState}` : ""}`,
     },
-    loadInspector,
+    loadInspector: async (nodeId, signal) => presentInspector(await loadInspector(nodeId, signal)),
+  };
+}
+
+function presentInspector(inspector: InspectorDto): RunDetailInspector {
+  const candidates: Array<[string, unknown]> = [
+    ["SQL", inspector.sql],
+    ["Bindings", inspector.bindings],
+    ["Result", inspector.result],
+    ["HTTP", inspector.http],
+    ["Cache", inspector.cache],
+    ["Redis", inspector.redis],
+    ["Storage", inspector.storage],
+    ["Delivery", inspector.delivery],
+    ["Process", inspector.process],
+    ["Transaction", inspector.transaction],
+    ["Custom span", inspector.custom],
+    ["Resource summary", inspector.summary],
+    ["Breadcrumb", inspector.breadcrumb],
+  ];
+
+  return {
+    ...inspector,
+    detailSections: candidates
+      .filter((entry) => entry[1] !== undefined && entry[1] !== null)
+      .map(([label, value]) => ({ label, value })),
   };
 }

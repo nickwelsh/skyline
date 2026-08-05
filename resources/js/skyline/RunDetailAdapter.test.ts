@@ -26,7 +26,11 @@ describe("RunDetailAdapter", () => {
       id: `run_${dto.run.id}`,
       inspectorHref: `/skyline/api/runs/${dto.run.id}/nodes/run_${dto.run.id}`,
     });
-    expect(await detail.loadInspector("span_4f24adb545b26d31")).toMatchObject({ kind: "query" });
+    const inspector = await detail.loadInspector("span_4f24adb545b26d31");
+    expect(inspector).toMatchObject({ kind: "query" });
+    expect(inspector.detailSections).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: "SQL" }),
+    ]));
     expect(detail.run).not.toHaveProperty("deployment");
     expect(detail.run).not.toHaveProperty("worker");
     expect(detail.run).not.toHaveProperty("machine");

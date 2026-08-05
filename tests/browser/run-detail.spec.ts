@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { FixtureAdapter } from "../../resources/js/skyline/FixtureAdapter";
 import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto";
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
@@ -8,6 +10,8 @@ const rootNodeId = `run_${runId}`;
 const failedAttemptId = `attempt_${runId}_1`;
 
 test("paired Run detail scenario preserves navigation, URL state, focus, semantics, and geometry", async ({ page }) => {
+  const sourceRoute = readFileSync(new URL("../../../trigger.dev/apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx", import.meta.url));
+  expect(createHash("sha256").update(sourceRoute).digest("hex")).toBe(oracle.sourceRouteSha256);
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId, "cursor=opaque");
   await routeDetail(page, detail, (nodeId) => adapter.inspector(nodeId, runId));
@@ -23,8 +27,16 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   for (const tab of oracle.expected.inspectorTabs) {
     await expect(page.getByRole("tab", { name: tab, exact: true })).toBeVisible();
   }
+  await expect(page.locator('[data-timeline-event="Dequeued"]')).toBeVisible();
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Attempts" }).locator("+ dd")).toHaveText("2");
   await expect(page.getByRole("link", { name: /Child:/ })).toHaveAttribute("href", /\/skyline\/runs\/run_01J8R4H9S9J12V04CNH6F6JQ3M/);
+  await page.keyboard.press("w");
+  await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toHaveCount(0);
+  await page.keyboard.press("e");
+  await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toBeVisible();
+  await page.getByRole("button", { name: "Collapse GenerateMonthlyInvoices" }).click({ modifiers: ["Alt"] });
+  await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toHaveCount(0);
+  await page.getByRole("button", { name: "Expand GenerateMonthlyInvoices" }).click({ modifiers: ["Alt"] });
 
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(new RegExp(`node=${oracle.expected.nextNode}`));
@@ -51,6 +63,10 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.getByPlaceholder("Search logs…").fill("insert into");
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toBeVisible();
   await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toHaveCount(0);
+  await page.locator('[data-node-id="span_4f24adb545b26d31"]').click();
+  await page.getByRole("tab", { name: "Detail" }).click();
+  await expect(page.getByRole("region", { name: "SQL" })).toContainText("insert into `invoices`");
+  await expect(page.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
 });
 
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {
@@ -124,7 +140,30 @@ test("queue time outside represented coordinates cannot distort timeline", async
   const attemptBox = await attempt.boundingBox();
   expect(timelineBox).not.toBeNull();
   expect(attemptBox).not.toBeNull();
-  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(2_050 / 14_988, 4);
+  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(2_050 / (14_988 * 1.05), 4);
+});
+
+test("adjacent Run shortcut replaces an equal-sized trace without stale tree state", async ({ page }) => {
+  const adapter = new FixtureAdapter();
+  const first = await adapter.trace(runId);
+  const nextId = first.navigation.nextRunId!;
+  const next = await adapter.trace(nextId);
+  await page.route("**/skyline/api/runs/**", async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    const nodeMatch = path.match(/\/nodes\/([^/]+)$/);
+    if (nodeMatch) {
+      const selectedRunId = path.split("/runs/")[1].split("/")[0];
+      await route.fulfill({ json: { node: await adapter.inspector(decodeURIComponent(nodeMatch[1]), selectedRunId) } });
+      return;
+    }
+    await route.fulfill({ json: path.includes(nextId) ? next : first });
+  });
+  await page.goto(`/skyline/runs/${runId}`);
+  await page.keyboard.press("k");
+
+  await expect(page).toHaveURL(new RegExp(`/skyline/runs/${nextId}`));
+  await expect(page.getByRole("heading", { name: nextId })).toBeVisible();
+  await expect(page.locator(`[data-node-id="run_${nextId}"]`)).toBeVisible();
 });
 
 test("long inspector metadata remains readable in the constrained panel", async ({ page }) => {
