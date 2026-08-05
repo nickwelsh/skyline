@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { FixtureAdapter } from "../../resources/js/skyline/FixtureAdapter";
 import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto";
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
+import inspectorOracle from "./fixtures/nw-220-external-inspectors.json" with { type: "json" };
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const rootNodeId = `run_${runId}`;
@@ -198,6 +199,51 @@ test("long inspector metadata remains readable in the constrained panel", async 
   expect(await metadata.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 });
 
+test("paired external and custom inspectors preserve visible, interaction, focus, and accessibility behavior", async ({ page }) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  const sourceRoute = readFileSync(new URL("../../../trigger.dev/apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx", import.meta.url));
+  expect(createHash("sha256").update(sourceRoute).digest("hex")).toBe(inspectorOracle.sourceRouteSha256);
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  let activeCase = inspectorOracle.cases[0].key;
+  await routeDetail(page, detail, async (nodeId) => {
+    const inspector = await adapter.inspector(nodeId, runId);
+    inspector.presentation = inspectorPresentation(activeCase);
+    inspector.metadata.value = activeCase === "generic" ? { recorded: true, role: "framework" } : inspector.metadata.value;
+    return inspector;
+  });
+  await page.setViewportSize(inspectorOracle.viewport);
+
+  for (const scenario of inspectorOracle.cases) {
+    activeCase = scenario.key;
+    await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}&tab=detail&fixture=${scenario.key}`);
+    const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
+    await expect(detailRegion).toBeVisible();
+    for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
+
+    const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
+    await wrap.focus();
+    await expect(wrap).toBeFocused();
+    await wrap.click();
+    await expect(page.getByRole("button", { name: `Unwrap ${scenario.preview}` })).toBeVisible();
+
+    const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
+    await copy.click();
+    await expect(copy).toHaveAttribute("title", "Copied");
+
+    const expand = page.getByRole("button", { name: `Expand ${scenario.preview}` });
+    await expand.focus();
+    await expand.click();
+    const dialog = page.getByRole("dialog", { name: `Expanded ${scenario.preview}` });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(dialog.locator(":focus")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(expand).toBeFocused();
+  }
+});
+
 async function routeDetail(
   page: Page,
   detail: TracePageDto,
@@ -212,4 +258,28 @@ async function routeDetail(
     }
     await route.fulfill({ json: await trace() });
   });
+}
+
+function inspectorPresentation(key: string): NonNullable<InspectorDto["presentation"]> {
+  const timing = { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 };
+  const captured = (value: unknown) => ({ type: Array.isArray(value) ? "array" : "string", value, originalBytes: JSON.stringify(value).length, truncated: false });
+
+  switch (key) {
+    case "http":
+      return { type: "http", timing, failure: null, http: { method: "POST", url: "https://api.example.test/people", statusCode: 201, request: { headers: { items: { Accept: ["application/json"] }, truncated: false }, body: { value: '{"name":"Laravel"}', contentType: "application/json", originalBytes: 18, truncated: false, isJson: true, json: { name: "Laravel" } } }, response: { headers: null, body: null } } };
+    case "delivery":
+      return { type: "delivery", timing, failure: null, delivery: { kind: "notification", messageType: "InvoiceReady", transportOrChannel: "slack", recipientCount: 1, outcome: "sent", recipients: null, recipientIdentity: null, subject: null, text: null, html: null, messageData: null, operationData: captured({ route: "billing" }) } };
+    case "storage":
+      return { type: "storage", timing, failure: { type: "UnableToReadFile", message: "Unable to read file" }, storage: { operation: "read", disk: "documents", driver: "local", path: "private/report.txt", pathCaptured: true, destination: null, destinationCaptured: false, bytes: null, outcome: "failed", url: null, destinationUrl: null, localFile: null, destinationLocalFile: null, content: captured("captured content"), result: { exists: null, lastModified: null, mimeType: null, visibility: null } } };
+    case "process":
+      return { type: "process", timing, failure: null, process: { executable: "php", async: false, timeoutSeconds: 10, exitCode: 0, timedOut: false, outcome: "completed", command: captured(["php", "artisan", "queue:work"]), environment: null, input: null, stdout: captured("processed 100 records"), stderr: captured("warning") } };
+    case "breadcrumb":
+      return { type: "breadcrumb", breadcrumb: { timestamp: timing.startedAt, level: "warning", channel: "stack", message: "Import delayed", context: { code: 429 } } };
+    case "custom":
+      return { type: "custom", timing, failure: null, custom: { name: "Generate PDF", attributes: { pages: 12 } } };
+    case "summary":
+      return { type: "summary", summary: { resources: { peakMemoryBytes: 1_048_576, memoryDeltaBytes: 1_024, cpuTimeUs: 1_250 }, operations: { http: { count: 2, durationMs: 25 } } } };
+    default:
+      return { type: "generic", timing, failure: null };
+  }
 }

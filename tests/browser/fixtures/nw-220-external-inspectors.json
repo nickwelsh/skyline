@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceRouteSha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968",
+  "viewport": { "width": 1024, "height": 768 },
+  "cases": [
+    { "key": "http", "heading": "HTTP request", "preview": "Request body", "visible": ["POST", "201", "Response headers not captured"] },
+    { "key": "delivery", "heading": "Notification delivery", "preview": "Operation data", "visible": ["slack", "sent", "Recipients not captured"] },
+    { "key": "storage", "heading": "Storage operation", "preview": "Content", "visible": ["private/report.txt", "failed", "Unable to read file"] },
+    { "key": "process", "heading": "Process operation", "preview": "Standard output", "visible": ["php", "completed", "Environment not captured"] },
+    { "key": "breadcrumb", "heading": "Breadcrumb", "preview": "Message", "visible": ["warning", "stack", "Import delayed"] },
+    { "key": "custom", "heading": "Custom operation", "preview": "Attributes", "visible": ["Generate PDF", "pages", "12"] },
+    { "key": "summary", "heading": "Resource summary", "preview": "Operations", "visible": ["1 MiB", "+1 KiB", "http"] },
+    { "key": "generic", "heading": "Recorded operation", "preview": "Recorded properties", "visible": ["recorded", "framework"] }
+  ]
+}
