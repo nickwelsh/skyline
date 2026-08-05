@@ -64,6 +64,13 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
   await page.getByRole("tab", { name: "Detail" }).click();
   await expect(page.getByText("Parameterized SQL")).toBeVisible();
 
+  await page.getByPlaceholder("Search Trace").fill("");
+  await page.getByRole("combobox", { name: "Span type" }).selectOption("query");
+  await expect(page.locator('[data-node-id="span_17ba81b7da8f8b64"]')).toBeVisible();
+  await expect(page.locator('[data-node-id="run_01J8R4H9S9J12V04CNH6F6JQ3M"]')).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Span type" }).selectOption("all");
+  await page.getByText(retryRun, { exact: true }).click();
+
   const menu = page.getByTestId("side-menu");
   await expect(menu).toHaveCSS("width", "224px");
   await page.getByTestId("side-menu-resizer").click();

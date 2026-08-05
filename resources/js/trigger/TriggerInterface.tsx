@@ -29,7 +29,7 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
-import type { HttpMessageCapture, InspectorDto, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
+import type { HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import { JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
 import { ExceptionPreview } from "./ExceptionPreview";
 import * as Timeline from "./Timeline";
@@ -438,6 +438,7 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [errorsOnly, setErrorsOnly] = useState(false);
+  const [kindFilter, setKindFilter] = useState<NodeKind | "all">("all");
   const [queueTime, setQueueTime] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>(() => new URLSearchParams(window.location.search).get("node") ?? nodes[0]?.id);
   const [selectedNode, setSelectedNode] = useState<InspectorDto>();
@@ -475,7 +476,9 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
     const query = search.toLowerCase();
     const match = new Set<string>();
     for (const node of nodes) {
-      if ((!query || node.label.toLowerCase().includes(query)) && (!errorsOnly || node.isError || node.isPartial)) {
+      if ((!query || node.label.toLowerCase().includes(query))
+        && (!errorsOnly || node.isError || node.isPartial)
+        && (kindFilter === "all" || node.kind === kindFilter)) {
         match.add(node.id);
         let parent = node.parentId;
         while (parent) {
@@ -493,7 +496,7 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
       }
       return true;
     });
-  }, [nodes, search, errorsOnly, collapsed]);
+  }, [nodes, search, errorsOnly, kindFilter, collapsed]);
 
   const selectedTraceNode = nodes.find((node) => node.id === selectedId);
 
@@ -624,6 +627,19 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
             <input className="w-full border-0 bg-transparent p-0 text-xs text-text-bright placeholder:text-text-faint focus:ring-0" placeholder="Search Trace" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
             {searchInput && <button onClick={() => { setSearchInput(""); setSearch(""); }}><IconX className="size-3.5" /></button>}
           </label>
+          <select aria-label="Span type" className="h-7 rounded border border-grid-bright bg-input-bg px-2 text-xs text-text-bright" value={kindFilter} onChange={(event) => setKindFilter(event.target.value as NodeKind | "all")}>
+            <option value="all">All types</option>
+            <option value="cache">Cache</option>
+            <option value="redis">Redis</option>
+            <option value="query">SQL</option>
+            <option value="request">HTTP</option>
+            <option value="custom">Custom</option>
+            <option value="transaction">Transactions</option>
+            <option value="mail">Mail</option>
+            <option value="notification">Notifications</option>
+            <option value="storage">Storage</option>
+            <option value="process">Processes</option>
+          </select>
           <label className="flex items-center gap-2 text-xs text-text-faint">Zoom <input aria-label="Timeline zoom" type="range" min="0" max="1" step="0.01" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} /></label>
           <Toggle label="Queue time" value={queueTime} onChange={setQueueTime} shortcut="Q" />
           <Toggle label="Errors only" value={errorsOnly} onChange={setErrorsOnly} />
@@ -785,7 +801,7 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
       {node.kind === "attempt" && node.summary && (
         <section className="space-y-2">
           <h3 className="font-medium text-text-bright">Resources</h3>
-          <PropertyList values={{ "Peak memory": formatBytes(node.summary.resources.peakMemoryBytes), "Memory delta": formatBytes(node.summary.resources.memoryDeltaBytes), "CPU time": `${node.summary.resources.cpuTimeUs.toLocaleString()}μs` }} />
+          <PropertyList values={{ "Process peak memory (lifetime)": formatBytes(node.summary.resources.peakMemoryBytes), "Memory delta": formatBytes(node.summary.resources.memoryDeltaBytes), "CPU time": `${node.summary.resources.cpuTimeUs.toLocaleString()}μs` }} />
           {Object.keys(node.summary.operations).length > 0 && <PropertyList values={Object.fromEntries(Object.entries(node.summary.operations).map(([role, value]) => [role, `${value.count.toLocaleString()} · ${formatDuration(value.durationMs)}`]))} />}
         </section>
       )}
