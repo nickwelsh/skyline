@@ -37,8 +37,9 @@ describe("FixtureAdapter", () => {
   it("adapts retry, child Run, SQL, and exception fixtures at trace and inspector seams", async () => {
     const adapter = new FixtureAdapter();
     const trace = await adapter.trace("run_01J8R4NQX6K3PV4W0A1H2Z7M9C");
+    const childTrace = await adapter.trace("run_01J8R4H9S9J12V04CNH6F6JQ3M");
     const query = await adapter.inspector("span_4f24adb545b26d31", trace.run.id);
-    const failedAttempt = await adapter.inspector("attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1", trace.run.id);
+    const failedAttempt = await adapter.inspector("attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1", trace.run.id);
 
     expect(trace.run).toMatchObject({
       id: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
@@ -54,6 +55,11 @@ describe("FixtureAdapter", () => {
     expect(trace.relationships.children[0]).toMatchObject({
       id: "run_01J8R4H9S9J12V04CNH6F6JQ3M",
       parentRunId: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    });
+    expect(childTrace.run).toMatchObject({
+      id: "run_01J8R4H9S9J12V04CNH6F6JQ3M",
+      status: "completed",
+      parentRunId: trace.run.id,
     });
     expect(trace.trace.nodes.map((node) => node.kind)).toContain("run");
     expect(trace.trace.nodes.map((node) => node.kind)).toContain("attempt");

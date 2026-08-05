@@ -94,7 +94,7 @@ const retryNodes: FixtureNode[] = [
     metadata: { traceId: "fda8d9cf9d53e8845fd0738b8407731d", connection: "redis", queue: "billing" },
   },
   {
-    id: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
+    id: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
     parentId: runs[0].id,
     runId: runs[0].id,
     kind: "attempt",
@@ -116,7 +116,7 @@ const retryNodes: FixtureNode[] = [
   },
   {
     id: "span_17ba81b7da8f8b64",
-    parentId: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
+    parentId: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
     runId: runs[0].id,
     kind: "query",
     label: "select * from `customers` where `invoiced_at` is null limit 100",
@@ -128,7 +128,7 @@ const retryNodes: FixtureNode[] = [
     metadata: { "db.system": "mysql", "db.namespace": "skyline_fixture", "server.address": "127.0.0.1" },
   },
   {
-    id: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    id: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
     parentId: runs[0].id,
     runId: runs[0].id,
     kind: "attempt",
@@ -141,7 +141,7 @@ const retryNodes: FixtureNode[] = [
   },
   {
     id: "span_83d7c6ca42be40ef",
-    parentId: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    parentId: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
     runId: runs[0].id,
     kind: "query",
     label: "select * from `customers` where `invoiced_at` is null limit 100",
@@ -154,7 +154,7 @@ const retryNodes: FixtureNode[] = [
   },
   {
     id: "span_4f24adb545b26d31",
-    parentId: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    parentId: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
     runId: runs[0].id,
     kind: "query",
     label: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)",
@@ -167,7 +167,7 @@ const retryNodes: FixtureNode[] = [
   },
   {
     id: runs[1].id,
-    parentId: "attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    parentId: "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
     runId: runs[1].id,
     kind: "run",
     label: "SendInvoiceMail",
@@ -178,7 +178,7 @@ const retryNodes: FixtureNode[] = [
     metadata: { traceId: "fda8d9cf9d53e8845fd0738b8407731d", connection: "redis", queue: "mail" },
   },
   {
-    id: "attempt_01J8R4H9S9J12V04CNH6F6JQ3M_1",
+    id: "attempt_run_01J8R4H9S9J12V04CNH6F6JQ3M_1",
     parentId: runs[1].id,
     runId: runs[1].id,
     kind: "attempt",
@@ -191,7 +191,7 @@ const retryNodes: FixtureNode[] = [
   },
   {
     id: "span_a866b446b5df56e3",
-    parentId: "attempt_01J8R4H9S9J12V04CNH6F6JQ3M_1",
+    parentId: "attempt_run_01J8R4H9S9J12V04CNH6F6JQ3M_1",
     runId: runs[1].id,
     kind: "query",
     label: "select * from `invoices` where `id` = ? limit 1",
@@ -205,7 +205,7 @@ const retryNodes: FixtureNode[] = [
 ];
 
 const successNodes: FixtureNode[] = retryNodes.filter((node) =>
-  [runs[1].id, "attempt_01J8R4H9S9J12V04CNH6F6JQ3M_1", "span_a866b446b5df56e3"].includes(node.id),
+  [runs[1].id, "attempt_run_01J8R4H9S9J12V04CNH6F6JQ3M_1", "span_a866b446b5df56e3"].includes(node.id),
 ).map((node, index) => ({
   ...node,
   parentId: index === 0 ? undefined : node.parentId,
@@ -227,7 +227,7 @@ const failureNodes: FixtureNode[] = [
     metadata: { traceId: "2dd468224ab1e45c7da1921b2ef74ad1", connection: "sqs", queue: "imports" },
   },
   {
-    id: "attempt_01J8R3XK1YV76N3Q51RPXQ0VC2_3",
+    id: "attempt_run_01J8R3XK1YV76N3Q51RPXQ0VC2_3",
     parentId: runs[3].id,
     runId: runs[3].id,
     kind: "attempt",
@@ -249,7 +249,7 @@ const failureNodes: FixtureNode[] = [
   },
   {
     id: "span_c17a8ce47c5bb1ea",
-    parentId: "attempt_01J8R3XK1YV76N3Q51RPXQ0VC2_3",
+    parentId: "attempt_run_01J8R3XK1YV76N3Q51RPXQ0VC2_3",
     runId: runs[3].id,
     kind: "query",
     label: "select * from `accounts` where `id` = ? limit 1",

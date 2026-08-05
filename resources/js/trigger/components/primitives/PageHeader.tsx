@@ -1,8 +1,9 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/primitives/PageHeader.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: run-route geometry only; native back-link anchor.
+ * Skyline adaptation: run-route geometry only; Remix back link.
  */
+import { Link } from "@remix-run/react";
 import { type ReactNode } from "react";
 import { BreadcrumbIcon } from "./BreadcrumbIcon";
 import { Header2 } from "./Headers";
@@ -37,12 +38,12 @@ export function PageTitle({ title, backButton }: PageTitleProps) {
     <div className="flex items-center gap-1.5">
       {backButton && (
         <div className="group -ml-1.5 flex items-center gap-0">
-          <a
-            href={backButton.to}
+          <Link
+            to={backButton.to}
             className="rounded px-1.5 py-1 text-xs text-text-dimmed transition focus-custom group-hover:bg-background-raised group-hover:text-text-bright"
           >
             {backButton.text}
-          </a>
+          </Link>
           <BreadcrumbIcon className="h-5" />
         </div>
       )}

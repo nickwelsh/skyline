@@ -20,7 +20,9 @@ ReactDOM.createRoot(root).render(
       <ShortcutsProvider>
         <RouterProvider
           router={router}
-          fallbackElement={<div aria-label="Loading Runs" className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading Runs…</div>}
+          fallbackElement={window.location.pathname.match(/\/runs\/[^/]+$/)
+            ? <div aria-label="Loading Run" className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading Run…</div>
+            : <div aria-label="Loading Runs" className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading Runs…</div>}
         />
       </ShortcutsProvider>
     </OperatingSystemContextProvider>
