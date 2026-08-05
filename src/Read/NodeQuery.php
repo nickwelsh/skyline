@@ -210,22 +210,15 @@ final readonly class NodeQuery
     /** @param array<string, mixed> $attributes @return array<string, mixed> */
     private function generic(object $span, array $attributes): array
     {
-        $details = match ($span->role) {
-            'cache' => ['cache' => $this->cache($attributes)],
-            'redis' => ['redis' => $this->redis($span, $attributes)],
-            'storage' => ['storage' => $this->storage($attributes)],
-            'mail', 'notification' => ['delivery' => $this->delivery($span->role, $attributes)],
-            'process' => ['process' => $this->process($attributes)],
-            'transaction' => ['transaction' => $this->transaction($attributes)],
-            'custom' => ['custom' => $this->custom($span, $attributes)],
-            default => [],
-        };
-        $presentationType = match ($span->role) {
-            'storage' => 'storage',
-            'mail', 'notification' => 'delivery',
-            'process' => 'process',
-            'custom' => 'custom',
-            default => null,
+        [$details, $presentationType] = match ($span->role) {
+            'cache' => [['cache' => $this->cache($attributes)], null],
+            'redis' => [['redis' => $this->redis($span, $attributes)], null],
+            'storage' => [['storage' => $this->storage($attributes)], 'storage'],
+            'mail', 'notification' => [['delivery' => $this->delivery($span->role, $attributes)], 'delivery'],
+            'process' => [['process' => $this->process($attributes)], 'process'],
+            'transaction' => [['transaction' => $this->transaction($attributes)], null],
+            'custom' => [['custom' => $this->custom($span, $attributes)], 'custom'],
+            default => [[], null],
         };
         $presentation = ['type' => $presentationType ?? 'generic'];
 
