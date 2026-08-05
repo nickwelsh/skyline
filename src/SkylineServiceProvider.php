@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Process\Factory as ProcessFactory;
+use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use NickWelsh\Skyline\Console\PruneCommand;
@@ -151,5 +152,6 @@ final class SkylineServiceProvider extends ServiceProvider
 
         $this->app->terminating(fn () => $sink->flush());
         $this->app['events']->listen(Looping::class, fn () => $sink->flushIfDue());
+        $this->app['events']->listen(JobAttempted::class, fn () => $sink->flush());
     }
 }
