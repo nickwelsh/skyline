@@ -15,6 +15,7 @@ use NickWelsh\Skyline\Support\AssetManifest;
 use NickWelsh\Skyline\Telemetry\AttemptRegistry;
 use NickWelsh\Skyline\Telemetry\CacheInstrumentation;
 use NickWelsh\Skyline\Telemetry\CustomTelemetry;
+use NickWelsh\Skyline\Telemetry\DatabaseTransactionInstrumentation;
 use NickWelsh\Skyline\Telemetry\OutgoingHttpInstrumentation;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
 use NickWelsh\Skyline\Telemetry\SkylineTracer;
@@ -47,6 +48,7 @@ final class SkylineServiceProvider extends ServiceProvider
         $this->app->singleton(AttemptRegistry::class);
         $this->app->singleton(CacheInstrumentation::class);
         $this->app->singleton(CustomTelemetry::class);
+        $this->app->singleton(DatabaseTransactionInstrumentation::class);
         $this->app->singleton(OutgoingHttpInstrumentation::class);
         $this->app->singleton(SkylineTracer::class);
         $this->app->singleton(SourceLocator::class);

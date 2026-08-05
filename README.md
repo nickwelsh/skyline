@@ -100,6 +100,8 @@ Skyline::event('Imported chunk', ['rows' => 500]);
 
 `measure()` supports synchronous values and Guzzle promises, preserves resolved values and failures, and nests spans created by synchronous callbacks. Both APIs safely no-op outside an active Attempt or when `SKYLINE_CUSTOM_ENABLED=false`. Attribute names and scalar values are bounded; arrays, objects, resources, and null are stored only as type summaries. Callable arguments and return values are never captured.
 
+Laravel database transactions are captured automatically. Nested transactions bracket their SQL children and record connection, depth, outcome, total duration, and cumulative query time. Rollbacks are marked as failed transaction nodes without failing a successful Attempt that catches the rollback. Locking clauses are identified on captured SQL spans. Laravel's transaction events do not expose callback exceptions, retry numbers, or driver lock-wait timing, so Skyline records those only when they are independently available from SQL/Attempt telemetry and never guesses them.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

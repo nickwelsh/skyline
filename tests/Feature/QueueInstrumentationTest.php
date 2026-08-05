@@ -37,6 +37,7 @@ use Tests\Fixtures\Jobs\RedisJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
+use Tests\Fixtures\Jobs\TransactionJob;
 use Tests\Fixtures\RecordingTelemetrySink;
 
 it('captures nested custom spans and events while preserving application behavior', function (): void {
@@ -60,6 +61,43 @@ it('captures nested custom spans and events while preserving application behavio
         ->and($custom['Generate PDF']->getAttributes()->get('skyline.custom.source.file'))->toEndWith('CustomTelemetryJob.php')
         ->and(json_encode($custom['Generate PDF']->getEvents()[0]->getAttributes()->toArray()))
         ->not->toContain('stdClass');
+});
+
+it('captures nested rolled-back and multi-connection database transactions', function (): void {
+    config()->set('database.connections.secondary', [
+        'driver' => 'sqlite',
+        'database' => ':memory:',
+        'prefix' => '',
+    ]);
+
+    TransactionJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $transactions = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'transaction')
+        ->values();
+    $queries = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'sql')
+        ->filter(fn ($span) => str_contains($span->getAttributes()->get('db.query.text'), '_value'))
+        ->values();
+    $outer = $transactions->first(fn ($span) => $span->getAttributes()->get('db.transaction.depth') === 1
+        && $span->getAttributes()->get('db.namespace') === 'testing'
+        && $span->getStatus()->getCode() === StatusCode::STATUS_OK);
+    $nested = $transactions->first(fn ($span) => $span->getAttributes()->get('db.transaction.depth') === 2);
+    $rolledBack = $transactions->first(fn ($span) => $span->getAttributes()->get('db.transaction.outcome') === 'rolled_back');
+    $secondary = $transactions->first(fn ($span) => $span->getAttributes()->get('db.namespace') === 'secondary');
+
+    expect($transactions)->toHaveCount(4)
+        ->and($nested->getParentSpanId())->toBe($outer->getSpanId())
+        ->and($rolledBack->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($secondary)->not->toBeNull()
+        ->and($queries)->toHaveCount(4)
+        ->and($queries[0]->getParentSpanId())->toBe($outer->getSpanId())
+        ->and($queries[1]->getParentSpanId())->toBe($nested->getSpanId())
+        ->and($rolledBack->getAttributes()->get('db.transaction.query_time_ms'))->toBeGreaterThanOrEqual(0)
+        ->and(json_encode($transactions->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('rollback reason');
 });
 
 it('is a no-op outside an active Attempt', function (): void {

@@ -44,6 +44,7 @@ final class QueueInstrumentation
         private readonly SqlCapture $sqlCapture,
         private readonly OutgoingHttpInstrumentation $http,
         private readonly CacheInstrumentation $cache,
+        private readonly DatabaseTransactionInstrumentation $transactions,
     ) {}
 
     public function boot(): void
@@ -56,6 +57,7 @@ final class QueueInstrumentation
         $this->sqlCapture->boot();
         $this->http->boot();
         $this->cache->boot();
+        $this->transactions->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(
@@ -405,9 +407,11 @@ final class QueueInstrumentation
         }
 
         $end = $this->now();
+        $this->transactions->recordQuery($query->connectionName, (float) $query->time);
         $operation = strtoupper(strtok(ltrim($query->sql), " \t\n\r") ?: 'QUERY');
+        $lock = preg_match('/\b(for\s+(update|share)|lock\s+in\s+share\s+mode)\b/i', $query->sql) === 1;
         $span = $this->tracer->get()->spanBuilder('SQL '.$operation)
-            ->setParent($active->context)
+            ->setParent($this->transactions->context($query->connectionName) ?? $active->context)
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setStartTimestamp($end - max(0, (int) round($query->time * 1_000_000)))
             ->setAttributes([
@@ -418,6 +422,7 @@ final class QueueInstrumentation
                 'db.namespace' => $query->connectionName,
                 'db.query.text' => $query->sql,
                 'db.operation.name' => $operation,
+                'db.lock.requested' => $lock,
                 ...$capture,
             ])
             ->startSpan();
