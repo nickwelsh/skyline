@@ -97,6 +97,15 @@ it('shows Queue-target activity, queue-time history, and cursor-paginated filter
         'status' => ['completed'],
         'search' => 'Job',
     ]))->assertOk()
+        ->assertJsonPath('capabilities.navigation.queues', true)
+        ->assertJsonPath('queueCapabilities.pause', false)
+        ->assertJsonPath('queueCapabilities.resume', false)
+        ->assertJsonPath('queueCapabilities.concurrency', false)
+        ->assertJsonPath('queueCapabilities.allocation', false)
+        ->assertJsonPath('queueCapabilities.rateLimit', false)
+        ->assertJsonPath('queueCapabilities.workers', false)
+        ->assertJsonPath('queueCapabilities.billing', false)
+        ->assertJsonPath('queueCapabilities.environmentControls', false)
         ->assertJsonPath('queueTarget.id', $id)
         ->assertJsonPath('queueTarget.connection', 'redis')
         ->assertJsonPath('queueTarget.queue', 'billing')
