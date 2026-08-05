@@ -156,6 +156,13 @@ final readonly class NodeQuery
                 $channel = is_string($attributes['log.channel'] ?? null) ? $attributes['log.channel'] : 'default';
                 $message = is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : '';
                 $timestamp = isset($event['timestamp']) ? (int) $event['timestamp'] : (int) $consumer->started_at;
+                $breadcrumb = [
+                    'timestamp' => Nanoseconds::toRfc3339($timestamp),
+                    'level' => $level,
+                    'channel' => $channel,
+                    'message' => $message,
+                    'context' => $context,
+                ];
 
                 return [
                     'overview' => [
@@ -168,22 +175,10 @@ final readonly class NodeQuery
                         'channel' => $channel,
                         'loggedAt' => Nanoseconds::toRfc3339($timestamp),
                     ],
-                    'breadcrumb' => [
-                        'timestamp' => Nanoseconds::toRfc3339($timestamp),
-                        'level' => $level,
-                        'channel' => $channel,
-                        'message' => $message,
-                        'context' => $context,
-                    ],
+                    'breadcrumb' => $breadcrumb,
                     'presentation' => [
                         'type' => 'breadcrumb',
-                        'breadcrumb' => [
-                            'timestamp' => Nanoseconds::toRfc3339($timestamp),
-                            'level' => $level,
-                            'channel' => $channel,
-                            'message' => $message,
-                            'context' => $context,
-                        ],
+                        'breadcrumb' => $breadcrumb,
                     ],
                     'metadata' => ['value' => [], 'isTruncated' => false, 'truncated' => []],
                 ];
@@ -225,13 +220,18 @@ final readonly class NodeQuery
             'custom' => ['custom' => $this->custom($span, $attributes)],
             default => [],
         };
-        $presentation = match ($span->role) {
-            'storage' => ['type' => 'storage', 'storage' => $details['storage']],
-            'mail', 'notification' => ['type' => 'delivery', 'delivery' => $details['delivery']],
-            'process' => ['type' => 'process', 'process' => $details['process']],
-            'custom' => ['type' => 'custom', 'custom' => $details['custom']],
-            default => ['type' => 'generic'],
+        $presentationType = match ($span->role) {
+            'storage' => 'storage',
+            'mail', 'notification' => 'delivery',
+            'process' => 'process',
+            'custom' => 'custom',
+            default => null,
         };
+        $presentation = ['type' => $presentationType ?? 'generic'];
+
+        if ($presentationType !== null) {
+            $presentation[$presentationType] = $details[$presentationType];
+        }
 
         return [
             'overview' => [
@@ -260,11 +260,7 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'source' => $this->source($attributes, 'skyline.'.($span->role ?: 'span').'.source'),
-            'presentation' => [
-                ...$presentation,
-                'timing' => $this->timing($span),
-                'failure' => $this->failure($span, $attributes),
-            ],
+            'presentation' => $this->timedPresentation($span, $attributes, $presentation),
             ...$details,
             'metadata' => $this->spanMetadata($span),
         ];
@@ -429,11 +425,7 @@ final readonly class NodeQuery
             'source' => $this->source($attributes, 'skyline.sql.source'),
             'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
             'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
-            'presentation' => [
-                'type' => 'generic',
-                'timing' => $this->timing($span),
-                'failure' => $this->failure($span, $attributes),
-            ],
+            'presentation' => $this->timedPresentation($span, $attributes, ['type' => 'generic']),
             'metadata' => $this->spanMetadata($span),
         ];
     }
@@ -473,13 +465,18 @@ final readonly class NodeQuery
             ],
             'source' => $this->source($attributes, 'skyline.http.source'),
             'http' => $http,
-            'presentation' => [
-                'type' => 'http',
-                'http' => $http,
-                'timing' => $this->timing($span),
-                'failure' => $this->failure($span, $attributes),
-            ],
+            'presentation' => $this->timedPresentation($span, $attributes, ['type' => 'http', 'http' => $http]),
             'metadata' => $this->spanMetadata($span),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @param array<string, mixed> $presentation @return array<string, mixed> */
+    private function timedPresentation(object $span, array $attributes, array $presentation): array
+    {
+        return [
+            ...$presentation,
+            'timing' => $this->timing($span),
+            'failure' => $this->failure($span, $attributes),
         ];
     }
 

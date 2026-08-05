@@ -8,12 +8,19 @@ import { Header3 } from "../trigger/components/primitives/Headers";
 import * as Property from "../trigger/components/primitives/PropertyTable";
 import type {
   CapturedValue,
-  ExternalInspector,
   HttpMessageCapture,
   InspectorFailure,
+  InspectorDto,
+  InspectorPresentation,
   InspectorTiming,
   TextCapture,
-} from "./InspectorPresentation";
+} from "./dto";
+
+export type ExternalInspector = InspectorDto & {
+  detailSections: Array<{ label: string; value: unknown }>;
+};
+
+type PresentationOf<Type extends InspectorPresentation["type"]> = Extract<InspectorPresentation, { type: Type }>;
 
 export function ExternalOperationInspector({ inspector }: { inspector: ExternalInspector }) {
   const presentation = inspector.presentation;
@@ -22,27 +29,25 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
 
   switch (presentation.type) {
     case "http":
-      return <HttpInspector inspector={inspector} />;
+      return <HttpInspector presentation={presentation} overview={inspector.overview} />;
     case "delivery":
-      return <DeliveryInspector inspector={inspector} />;
+      return <DeliveryInspector presentation={presentation} />;
     case "storage":
-      return <StorageInspector inspector={inspector} />;
+      return <StorageInspector presentation={presentation} />;
     case "process":
-      return <ProcessInspector inspector={inspector} />;
+      return <ProcessInspector presentation={presentation} />;
     case "breadcrumb":
-      return <BreadcrumbInspector inspector={inspector} />;
+      return <BreadcrumbInspector presentation={presentation} />;
     case "custom":
-      return <CustomInspector inspector={inspector} />;
+      return <CustomInspector presentation={presentation} />;
     case "summary":
-      return <SummaryInspector inspector={inspector} />;
+      return <SummaryInspector presentation={presentation} />;
     case "generic":
-      return <GenericInspector inspector={inspector} />;
+      return <GenericInspector inspector={inspector} presentation={presentation} />;
   }
 }
 
-function HttpInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "http") return null;
+function HttpInspector({ presentation, overview }: { presentation: PresentationOf<"http">; overview: ExternalInspector["overview"] }) {
   const { http } = presentation;
 
   return (
@@ -54,14 +59,12 @@ function HttpInspector({ inspector }: { inspector: ExternalInspector }) {
       </Property.Table>
       <MessageCapture title="Request" capture={http.request} />
       <MessageCapture title="Response" capture={http.response} />
-      <JsonCapturePreview label="Context" value={inspector.overview} />
+      <JsonCapturePreview label="Context" value={overview} />
     </InspectorLayout>
   );
 }
 
-function DeliveryInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "delivery") return null;
+function DeliveryInspector({ presentation }: { presentation: PresentationOf<"delivery"> }) {
   const { delivery } = presentation;
 
   return (
@@ -87,9 +90,7 @@ function DeliveryInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function StorageInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "storage") return null;
+function StorageInspector({ presentation }: { presentation: PresentationOf<"storage"> }) {
   const { storage } = presentation;
 
   return (
@@ -113,9 +114,7 @@ function StorageInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function ProcessInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "process") return null;
+function ProcessInspector({ presentation }: { presentation: PresentationOf<"process"> }) {
   const { process } = presentation;
 
   return (
@@ -137,9 +136,7 @@ function ProcessInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function BreadcrumbInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "breadcrumb") return null;
+function BreadcrumbInspector({ presentation }: { presentation: PresentationOf<"breadcrumb"> }) {
   const { breadcrumb } = presentation;
 
   return (
@@ -156,10 +153,7 @@ function BreadcrumbInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function CustomInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "custom") return null;
-
+function CustomInspector({ presentation }: { presentation: PresentationOf<"custom"> }) {
   return (
     <InspectorLayout title="Custom operation" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table><Item label="Name" value={presentation.custom.name} /></Property.Table>
@@ -168,9 +162,7 @@ function CustomInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function SummaryInspector({ inspector }: { inspector: ExternalInspector }) {
-  const presentation = inspector.presentation;
-  if (presentation?.type !== "summary") return null;
+function SummaryInspector({ presentation }: { presentation: PresentationOf<"summary"> }) {
   const { resources, operations } = presentation.summary;
 
   return (
@@ -186,12 +178,9 @@ function SummaryInspector({ inspector }: { inspector: ExternalInspector }) {
   );
 }
 
-function GenericInspector({ inspector }: { inspector: ExternalInspector }) {
-  const timing = inspector.presentation?.type === "generic" ? inspector.presentation.timing : undefined;
-  const failure = inspector.presentation?.type === "generic" ? inspector.presentation.failure : undefined;
-
+function GenericInspector({ inspector, presentation }: { inspector: ExternalInspector; presentation?: PresentationOf<"generic"> }) {
   return (
-    <InspectorLayout title="Recorded operation" timing={timing} failure={failure}>
+    <InspectorLayout title="Recorded operation" timing={presentation?.timing} failure={presentation?.failure}>
       {inspector.detailSections.length > 0
         ? inspector.detailSections.map((section) => <JsonCapturePreview key={section.label} label={section.label} value={section.value} />)
         : <JsonCapturePreview label="Recorded properties" value={inspector.metadata.value} truncated={inspector.metadata.isTruncated} />}

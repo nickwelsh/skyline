@@ -1,6 +1,5 @@
 import type { InspectorDto, TracePageDto } from "./dto";
-import { ExternalOperationInspector } from "./ExternalOperationInspector";
-import type { ExternalInspector } from "./InspectorPresentation";
+import { ExternalOperationInspector, type ExternalInspector } from "./ExternalOperationInspector";
 
 export type RunDetailInspector = ExternalInspector;
 
