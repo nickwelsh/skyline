@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use NickWelsh\Skyline\Read\EditorLink;
+use NickWelsh\Skyline\Read\ExceptionPresenter;
 use NickWelsh\Skyline\Read\Nanoseconds;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use Tests\Fixtures\Jobs\CacheJob;
@@ -591,15 +593,34 @@ it('returns curated relative exception details without raw stack metadata', func
         ->and($response->json('node.exception.frames.0.file'))->toBe('tests/Fixtures/Jobs/FailingJob.php')
         ->and($response->json('node.exception.frames.0.isVendor'))->toBeFalse()
         ->and($response->json('node.exception.frames.0.snippet.code'))->toContain("throw new RuntimeException('Expected Job failure.');")
-        ->and($response->json('node.exception.frames.0.href'))->toStartWith('vscode://file/')
+        ->and($response->json('node.exception.frames.0.href'))->toBeNull()
         ->and($response->json('node.exception.frames.1.isVendor'))->toBeTrue()
         ->and($response->json('node.exception.markdown'))->toContain('# RuntimeException - Job failed')
         ->toContain('## Stack Trace')
         ->toContain('Run '.$run->run_id)
         ->toContain('Attempt '.(int) $attempt->attempt_number)
         ->and($response->json('node.exception'))->not->toHaveKey('runtime')
-        ->and($response->getContent())->not->toContain('/Users/')
+        ->and($response->getContent())->not->toContain(str_replace('/', '\\/', base_path()))
         ->and($response->getContent())->not->toContain('exception.stacktrace');
+
+    config()->set('app.editor', [
+        'name' => 'vscode',
+        'base_path' => '/workspace/skyline',
+    ]);
+
+    $mappedFile = base_path('composer.json');
+    $mappedAttempt = (object) [
+        ...(array) $attempt,
+        'exception_file' => $mappedFile,
+        'exception_line' => 1,
+        'exception_trace' => "#0 {$mappedFile}(1): App\\Jobs\\FailingJob->handle()",
+    ];
+    $linked = (new ExceptionPresenter(app(EditorLink::class)))
+        ->present($mappedAttempt, FailingJob::class);
+
+    expect($linked['frames'][0]['href'])
+        ->toStartWith('vscode://file//workspace/skyline/')
+        ->not->toContain(base_path());
 });
 
 it('keeps failed Attempt evidence distinct without inventing uncaptured metadata', function (): void {

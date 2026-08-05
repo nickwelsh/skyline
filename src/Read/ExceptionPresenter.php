@@ -85,9 +85,7 @@ final readonly class ExceptionPresenter
             'type' => $frame['type'],
             'function' => $frame['function'],
             'isVendor' => $vendor,
-            'href' => is_file($frame['rawFile']) && is_readable($frame['rawFile'])
-                ? $this->editorLink->href($frame['rawFile'], $frame['line'])
-                : null,
+            'href' => $this->safeEditorHref($frame['rawFile'], $frame['line']),
             'snippet' => $vendor ? null : $this->snippet($frame['rawFile'], $frame['line']),
         ];
     }
@@ -170,6 +168,24 @@ final readonly class ExceptionPresenter
         }
 
         return basename($normalized);
+    }
+
+    private function safeEditorHref(string $file, ?int $line): ?string
+    {
+        if (! is_file($file) || ! is_readable($file)) {
+            return null;
+        }
+
+        $editor = config('app.editor');
+        if ($editor === '' || $editor === [] || $editor === null) {
+            $editor = config('skyline.editor');
+        }
+
+        if (! is_array($editor) || ! is_string($editor['base_path'] ?? null) || $editor['base_path'] === '') {
+            return null;
+        }
+
+        return $this->editorLink->href($file, $line);
     }
 
     /** @param list<array<string, mixed>> $frames */
