@@ -27,6 +27,12 @@ export type ExceptionFrame = {
   function: string;
 };
 
+export type SqlBinding = {
+  position: number;
+  column: string | null;
+  value: unknown;
+};
+
 export type TraceNode = {
   id: string;
   parentId: string | null;
@@ -128,7 +134,7 @@ export type InspectorDto = TraceNode & {
   } | null;
   sql?: { value: string; isTruncated: boolean; originalBytes: number };
   bindings?: {
-    items: Array<{ position: number; column: string | null; value: unknown }>;
+    items: SqlBinding[];
     truncated: boolean;
   } | null;
   result?: {

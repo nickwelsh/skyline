@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,7 @@ const packages = [
   "@window-splitter/react",
   "@window-splitter/state",
   "non.geist",
+  "prism-react-renderer",
   "react",
   "react-dom",
   "tailwind-scrollbar",
@@ -29,7 +30,8 @@ for (const packageName of packages) {
   const license = readdirSync(directory).find((file) => /^licen[cs]e/i.test(file) && statSync(join(directory, file)).isFile());
   const packageLabel = packageName.replaceAll("/", "-");
   if (license && existsSync(join(directory, license))) {
-    cpSync(join(directory, license), join(destination, `${packageLabel}-${basename(license)}`));
+    const contents = readFileSync(join(directory, license), "utf8").replaceAll("\r\n", "\n");
+    writeFileSync(join(destination, `${packageLabel}-${basename(license)}`), contents);
     continue;
   }
 

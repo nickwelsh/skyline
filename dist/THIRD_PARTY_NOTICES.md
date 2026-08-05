@@ -17,6 +17,7 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | Window Splitter React / State | 1.1.3 | MIT |
 | non.geist package | 1.0.2 | MIT |
 | Geist font software | bundled by non.geist 1.0.2 | OFL-1.1 |
+| Prism React Renderer | 2.4.1 | MIT |
 | Tailwind CSS and build plugins | 4.3.1 | MIT |
 | Tailwind Forms | 0.5.11 | MIT |
 | Tailwind Typography | 0.5.20 | MIT |

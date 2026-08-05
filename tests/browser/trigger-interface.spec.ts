@@ -101,7 +101,8 @@ test("fixed fixtures retain reviewed Runs and trace visuals", async ({ page }) =
   await expect(page).toHaveScreenshot("retry-trace.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
 });
 
-test("production adapter drives real endpoint state, stable node URLs, and lazy inspector", async ({ page }) => {
+test("production adapter drives real endpoint state, stable node URLs, and lazy inspector", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:4174" });
   const requests: string[] = [];
   await page.route("**/skyline/api/**", async (route) => {
     const url = new URL(route.request().url());
@@ -124,10 +125,30 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect(page.locator('[data-node-id="span_live_sql"]')).toBeVisible();
   await page.locator('[data-node-id="span_live_sql"]').click();
   await page.getByRole("tab", { name: "Detail" }).click();
-  await expect(page.getByRole("tabpanel").locator("pre").first()).toHaveText("select * from invoices where id = ?");
+  const sqlPreview = page.getByRole("region", { name: "Parameterized SQL preview", exact: true });
+  await expect(sqlPreview.locator("pre")).toHaveText("select * from invoices where id = ?");
+  expect(await sqlPreview.locator("pre span").count()).toBeGreaterThan(3);
+
+  await sqlPreview.getByRole("button", { name: "With bindings" }).click();
+  const interpolatedSql = page.getByRole("region", { name: "SQL with bindings preview", exact: true });
+  await expect(interpolatedSql.locator("pre")).toHaveText("select * from invoices where id = 42");
+  await interpolatedSql.getByRole("button", { name: "Copy SQL with bindings" }).click();
+  await expect(interpolatedSql.getByRole("button", { name: "Copy SQL with bindings" })).toHaveAttribute("title", "Copied");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("select * from invoices where id = 42");
+
   await expect(page.getByText("Bindings", { exact: true })).toBeVisible();
   await expect(page.getByText("Result preview", { exact: true })).toBeVisible();
   await expect(page.getByText("1 row returned", { exact: false })).toBeVisible();
+  await expect(page.getByRole("tree", { name: "Bindings JSON tree" })).toBeVisible();
+  await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toContainText("invoice-42");
+
+  const bindingsPreview = page.getByRole("region", { name: "Bindings preview", exact: true });
+  await bindingsPreview.getByRole("group", { name: "Bindings display" }).getByRole("button", { name: "Text" }).click();
+  await expect(bindingsPreview.locator("pre")).toContainText('"position": 0');
+  expect(await bindingsPreview.locator("pre span").count()).toBeGreaterThan(3);
+  await bindingsPreview.getByRole("button", { name: "Copy Bindings" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"column": "id"');
+
   await expect(page.getByRole("tabpanel")).toContainText("invoice-42");
   expect(requests.some((request) => request.endsWith("/nodes/span_live_sql"))).toBe(true);
 });

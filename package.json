@@ -23,6 +23,7 @@
     "@window-splitter/react": "1.1.3",
     "@window-splitter/state": "1.1.3",
     "non.geist": "1.0.2",
+    "prism-react-renderer": "2.4.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "tailwind-scrollbar": "4.0.2",

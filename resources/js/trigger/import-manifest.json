@@ -5,7 +5,7 @@
   "adaptedTargets": {
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
     "resources/js/trigger/Timeline.tsx": "fb91f3540f0ce923c4a1bef111371c1a65178607f43cf33ad6db42f804d5d996",
-    "resources/js/trigger/TriggerInterface.tsx": "5b6784a29133b22e6b9ca4846cb1eb2ec6650243ba24ec2b253d21127b24723e",
+    "resources/js/trigger/TriggerInterface.tsx": "f09d7080e9eb73054b17cac5a10494f07613260d25981631f28a01c0d2b3543f",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -89,7 +89,7 @@
       "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968",
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
-      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL binding and result previews."
+      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL previews with highlighted parameterized/interpolated modes, JSON tree/text views, and copy actions."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
