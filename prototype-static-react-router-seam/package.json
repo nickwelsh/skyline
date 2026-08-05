@@ -1,0 +1,23 @@
+{
+  "name": "skyline-static-react-router-seam-prototype",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4175",
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@heroicons/react": "2.0.13",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.30.4",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/react": "18.2.69",
+    "@types/react-dom": "18.2.7",
+    "@vitejs/plugin-react": "5.0.4",
+    "typescript": "6.0.3",
+    "vite": "6.4.2"
+  }
+}
