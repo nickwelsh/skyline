@@ -182,6 +182,17 @@ final readonly class NodeQuery
     /** @param array<string, mixed> $attributes @return array<string, mixed> */
     private function generic(object $span, array $attributes): array
     {
+        $details = match ($span->role) {
+            'cache' => ['cache' => $this->cache($attributes)],
+            'redis' => ['redis' => $this->redis($span, $attributes)],
+            'storage' => ['storage' => $this->storage($attributes)],
+            'mail', 'notification' => ['delivery' => $this->delivery($span->role, $attributes)],
+            'process' => ['process' => $this->process($attributes)],
+            'transaction' => ['transaction' => $this->transaction($attributes)],
+            'custom' => ['custom' => $this->custom($span, $attributes)],
+            default => [],
+        };
+
         return [
             'overview' => [
                 'runId' => $span->run_id,
@@ -209,7 +220,125 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'source' => $this->source($attributes, 'skyline.'.($span->role ?: 'span').'.source'),
+            ...$details,
             'metadata' => $this->spanMetadata($span),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function cache(array $attributes): array
+    {
+        return [
+            'operation' => $attributes['cache.operation'] ?? null,
+            'store' => $attributes['cache.store'] ?? null,
+            'key' => $attributes['cache.key'] ?? null,
+            'keyCaptured' => (bool) ($attributes['cache.key_captured'] ?? false),
+            'keyCount' => isset($attributes['cache.key_count']) ? (int) $attributes['cache.key_count'] : 1,
+            'strategy' => $attributes['cache.strategy'] ?? null,
+            'outcome' => $attributes['cache.outcome'] ?? null,
+            'hit' => isset($attributes['cache.hit']) ? (bool) $attributes['cache.hit'] : null,
+            'ttlSeconds' => isset($attributes['cache.ttl']) ? (int) $attributes['cache.ttl'] : null,
+            'freshTtlSeconds' => isset($attributes['cache.fresh_ttl']) ? (int) $attributes['cache.fresh_ttl'] : null,
+            'forever' => (bool) ($attributes['cache.forever'] ?? false),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function redis(object $span, array $attributes): array
+    {
+        return [
+            'command' => $attributes['db.operation.name'] ?? null,
+            'connection' => $attributes['db.namespace'] ?? null,
+            'outcome' => strtolower((string) $span->status_code) === 'error' ? 'failed' : 'completed',
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function storage(array $attributes): array
+    {
+        $localFile = $attributes['storage.local_file'] ?? null;
+        $destinationLocalFile = $attributes['storage.destination.local_file'] ?? null;
+
+        return [
+            'operation' => $attributes['storage.operation'] ?? null,
+            'disk' => $attributes['storage.disk'] ?? null,
+            'driver' => $attributes['storage.driver'] ?? null,
+            'path' => $attributes['storage.path'] ?? null,
+            'pathCaptured' => (bool) ($attributes['storage.path_captured'] ?? false),
+            'destination' => $attributes['storage.destination.path'] ?? $attributes['storage.destination'] ?? null,
+            'destinationCaptured' => (bool) ($attributes['storage.destination.path_captured'] ?? false),
+            'bytes' => isset($attributes['storage.bytes']) ? (int) $attributes['storage.bytes'] : null,
+            'outcome' => $attributes['storage.outcome'] ?? null,
+            'url' => $attributes['storage.url'] ?? null,
+            'destinationUrl' => $attributes['storage.destination.url'] ?? null,
+            'localFile' => is_string($localFile) ? [
+                'path' => $localFile,
+                'href' => $this->editorLink->href($localFile, 1),
+            ] : null,
+            'destinationLocalFile' => is_string($destinationLocalFile) ? [
+                'path' => $destinationLocalFile,
+                'href' => $this->editorLink->href($destinationLocalFile, 1),
+            ] : null,
+            'result' => [
+                'exists' => isset($attributes['storage.result.exists']) ? (bool) $attributes['storage.result.exists'] : null,
+                'lastModified' => isset($attributes['storage.result.last_modified']) ? (int) $attributes['storage.result.last_modified'] : null,
+                'mimeType' => $attributes['storage.result.mime_type'] ?? null,
+                'visibility' => $attributes['storage.result.visibility'] ?? null,
+            ],
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function delivery(string $kind, array $attributes): array
+    {
+        return [
+            'kind' => $kind,
+            'messageType' => $attributes['messaging.message.type'] ?? null,
+            'transportOrChannel' => $attributes['messaging.destination.name'] ?? null,
+            'recipientCount' => isset($attributes['messaging.destination.recipient_count']) ? (int) $attributes['messaging.destination.recipient_count'] : null,
+            'outcome' => $attributes['messaging.operation.outcome'] ?? null,
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function process(array $attributes): array
+    {
+        return [
+            'executable' => $attributes['process.executable.name'] ?? null,
+            'async' => (bool) ($attributes['process.async'] ?? false),
+            'timeoutSeconds' => isset($attributes['process.timeout_seconds']) ? (int) $attributes['process.timeout_seconds'] : null,
+            'exitCode' => isset($attributes['process.exit_code']) ? (int) $attributes['process.exit_code'] : null,
+            'timedOut' => (bool) ($attributes['process.timed_out'] ?? false),
+            'outcome' => $attributes['process.outcome'] ?? null,
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function transaction(array $attributes): array
+    {
+        return [
+            'connection' => $attributes['db.namespace'] ?? null,
+            'driver' => $attributes['db.system.name'] ?? null,
+            'depth' => isset($attributes['db.transaction.depth']) ? (int) $attributes['db.transaction.depth'] : null,
+            'outcome' => $attributes['db.transaction.outcome'] ?? null,
+            'queryTimeMs' => isset($attributes['db.transaction.query_time_ms']) ? (float) $attributes['db.transaction.query_time_ms'] : null,
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function custom(object $span, array $attributes): array
+    {
+        $application = array_filter(
+            $attributes,
+            fn (mixed $value, string|int $key): bool => is_string($key)
+                && ! str_starts_with($key, 'skyline.')
+                && ! str_starts_with($key, 'error.'),
+            ARRAY_FILTER_USE_BOTH,
+        );
+
+        return [
+            'name' => $span->name,
+            'attributes' => (new PrivacySanitizer)->attributes($application),
         ];
     }
 

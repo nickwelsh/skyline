@@ -213,6 +213,41 @@ test("outgoing HTTP rows expose request and response captures", async ({ page })
   await expect(page.getByRole("tree", { name: "Response body JSON tree" })).toContainText("accepted");
 });
 
+test("cache storage and breadcrumbs expose useful operation details", async ({ page }) => {
+  await page.route("**/skyline/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    const body = url.pathname.endsWith("/nodes/span_live_cache")
+      ? cacheInspectorResponse
+      : url.pathname.endsWith("/nodes/span_live_storage")
+        ? storageInspectorResponse
+        : detailTraceResponse;
+    await route.fulfill({ json: body });
+  });
+
+  await page.goto("/skyline/runs/live-run?production=1&node=span_live_cache");
+  const breadcrumbs = page.locator('[title^="WARNING ·"], [title^="ERROR ·"]');
+  await expect(breadcrumbs).toHaveCount(2);
+  await expect(breadcrumbs.first()).toHaveAttribute("title", "WARNING · Import token=[REDACTED] delayed");
+  await expect(breadcrumbs.first()).toHaveClass(/rotate-45/);
+
+  await page.getByRole("tab", { name: "Detail" }).click();
+  const cache = page.getByRole("tabpanel");
+  await expect(cache).toContainText("Stale While Revalidate");
+  await expect(cache).toContainText("30 seconds");
+  await expect(cache).toContainText("2 minutes");
+  await expect(cache).toContainText("Key fingerprint");
+  await expect(cache).toContainText("cache values are never captured");
+
+  await page.locator('[data-node-id="span_live_storage"]').click();
+  await page.getByRole("tab", { name: "Detail" }).click();
+  const storage = page.getByRole("tabpanel");
+  await expect(storage).toContainText("reports/customer report.txt");
+  await expect(storage).toContainText("2.0 KB");
+  await expect(storage.getByRole("link", { name: "Open source URL" })).toHaveAttribute("href", "https://files.example.test/reports/customer%20report.txt");
+  await expect(storage.getByRole("link", { name: "Open source in editor" })).toHaveAttribute("href", "vscode://file//workspace/storage/reports/customer report.txt:1");
+  await expect(storage).toContainText("File contents are not captured");
+});
+
 test("production adapter renders authorization failures", async ({ page }) => {
   await page.route("**/skyline/api/**", (route) => route.fulfill({
     status: 403,
@@ -330,6 +365,61 @@ const httpInspectorResponse = {
       },
     },
     metadata: { value: { attributes: { "http.request.method": "POST" } }, isTruncated: false, truncated: [] },
+  },
+};
+
+const cacheNode = {
+  id: "span_live_cache", parentId: "attempt_live-run_1", runId: "live-run", kind: "cache", label: "Cache PUT", level: 2, offsetUs: 400_000, durationUs: 4_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
+} as const;
+
+const storageNode = {
+  id: "span_live_storage", parentId: "attempt_live-run_1", runId: "live-run", kind: "storage", label: "Storage WRITE", level: 2, offsetUs: 420_000, durationUs: 5_000, status: "completed", isError: false, isPartial: false, hasErrorDescendant: false, children: [], hasChildren: false, timelineEvents: [],
+} as const;
+
+const detailTraceResponse = {
+  ...traceResponse,
+  trace: {
+    ...traceResponse.trace,
+    nodes: [
+      traceNodes[0],
+      {
+        ...traceNodes[1],
+        children: [cacheNode.id, storageNode.id],
+        timelineEvents: [
+          { name: "WARNING · Import token=[REDACTED] delayed", offsetUs: 360_000, kind: "breadcrumb", level: "warning" },
+          { name: "ERROR · Import failed", offsetUs: 380_000, kind: "breadcrumb", level: "error" },
+        ],
+      },
+      cacheNode,
+      storageNode,
+    ],
+  },
+};
+
+const cacheInspectorResponse = {
+  ...metadata,
+  traceRevision: 1,
+  node: {
+    ...cacheNode,
+    overview: { operation: "PUT", store: "array" },
+    cache: { operation: "PUT", store: "array", key: "sha256:efabc123", keyCaptured: false, keyCount: 1, strategy: "stale_while_revalidate", outcome: "stored", hit: null, ttlSeconds: 120, freshTtlSeconds: 30, forever: false },
+    metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
+  },
+};
+
+const storageInspectorResponse = {
+  ...metadata,
+  traceRevision: 1,
+  node: {
+    ...storageNode,
+    overview: { operation: "write", store: "reports" },
+    storage: {
+      operation: "write", disk: "reports", driver: "local", path: "reports/customer report.txt", pathCaptured: true, destination: null, destinationCaptured: false, bytes: 2048, outcome: "completed",
+      url: "https://files.example.test/reports/customer%20report.txt", destinationUrl: null,
+      localFile: { path: "/workspace/storage/reports/customer report.txt", href: "vscode://file//workspace/storage/reports/customer report.txt:1" }, destinationLocalFile: null,
+      result: { exists: null, lastModified: null, mimeType: null, visibility: null },
+    },
+    metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
   },
 };
 

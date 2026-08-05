@@ -16,7 +16,9 @@ use Illuminate\Cache\Events\KeyForgotten;
 use Illuminate\Cache\Events\KeyWriteFailed;
 use Illuminate\Cache\Events\KeyWritten;
 use Illuminate\Cache\Events\RetrievingKey;
+use Illuminate\Cache\Events\RetrievingManyKeys;
 use Illuminate\Cache\Events\WritingKey;
+use Illuminate\Cache\Events\WritingManyKeys;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -32,7 +34,7 @@ final class CacheInstrumentation
 {
     private bool $booted = false;
 
-    /** @var list<array{run_id: string, attempt: int, operation: string, store: string, key: ?string, ttl: ?int, started_at: int, source: array<string, string|int>}> */
+    /** @var list<array{run_id: string, attempt: int, operation: string, store: string, key: ?string, key_count: int, strategy: ?string, fresh_ttl: ?int, ttl: ?int, started_at: int, source: array<string, string|int>}> */
     private array $pending = [];
 
     public function __construct(
@@ -54,7 +56,9 @@ final class CacheInstrumentation
 
         $this->booted = true;
         $this->listen(RetrievingKey::class, fn (RetrievingKey $event) => $this->begin('GET', $event->storeName, $event->key));
+        $this->listen(RetrievingManyKeys::class, fn (RetrievingManyKeys $event) => $this->beginMany('GET', $event->storeName, $event->keys));
         $this->listen(WritingKey::class, fn (WritingKey $event) => $this->begin('PUT', $event->storeName, $event->key, $event->seconds));
+        $this->listen(WritingManyKeys::class, fn (WritingManyKeys $event) => $this->beginMany('PUT', $event->storeName, $event->keys, $event->seconds));
         $this->listen(ForgettingKey::class, fn (ForgettingKey $event) => $this->begin('FORGET', $event->storeName, $event->key));
         $this->listen(CacheFlushing::class, fn (CacheFlushing $event) => $this->begin('FLUSH', $event->storeName));
         $this->listen(CacheLocksFlushing::class, fn (CacheLocksFlushing $event) => $this->begin('LOCK FLUSH', $event->storeName));
@@ -84,7 +88,7 @@ final class CacheInstrumentation
         }
     }
 
-    private function begin(string $operation, ?string $store, ?string $key = null, mixed $ttl = null): void
+    private function begin(string $operation, ?string $store, ?string $key = null, mixed $ttl = null, ?string $strategy = null, int $keyCount = 1, ?int $freshTtl = null): void
     {
         $active = $this->attempts->current();
 
@@ -92,18 +96,49 @@ final class CacheInstrumentation
             return;
         }
 
+        $context = $strategy === null ? $this->strategyContext() : null;
         $this->pending[] = [
             'run_id' => $active->runId,
             'attempt' => $active->number,
             'operation' => $operation,
             'store' => $store ?? 'default',
             'key' => $key,
+            'key_count' => max(1, $keyCount),
+            'strategy' => $strategy ?? $context['strategy'],
+            'fresh_ttl' => $freshTtl ?? ($context['fresh_ttl'] ?? null),
             'ttl' => is_numeric($ttl) ? (int) $ttl : null,
             'started_at' => $this->now(),
             'source' => (bool) $this->config->get('skyline.cache.capture_source', false)
                 ? $this->source->attributes('skyline.cache.source')
                 : [],
         ];
+    }
+
+    /** @param array<array-key, mixed> $keys */
+    private function beginMany(string $operation, ?string $store, array $keys, mixed $ttl = null): void
+    {
+        $keys = collect($keys)
+            ->map(fn (mixed $value, int|string $key): mixed => is_string($key) ? $key : $value)
+            ->filter(fn (mixed $key): bool => is_string($key))
+            ->values()
+            ->all();
+
+        if ($keys === []) {
+            return;
+        }
+
+        $context = $this->strategyContext();
+        $strategy = $context['strategy'];
+
+        if ($strategy === 'stale_while_revalidate' && $this->isFlexiblePair($keys)) {
+            $this->begin($operation, $store, $keys[0], $ttl, $strategy, 1, $context['fresh_ttl']);
+
+            return;
+        }
+
+        foreach ($keys as $key) {
+            $this->begin($operation, $store, $key, $ttl, $strategy ?? 'batch', count($keys), $context['fresh_ttl']);
+        }
     }
 
     /** @param array<string, bool|int|string> $extra */
@@ -153,11 +188,28 @@ final class CacheInstrumentation
 
         if ($pending['key'] !== null) {
             $attributes['cache.key'] = $this->key($pending['key']);
+            $attributes['cache.key_captured'] = (bool) $this->config->get('skyline.cache.capture_keys', false);
         }
 
         if ($pending['ttl'] !== null) {
             $attributes['cache.ttl'] = $pending['ttl'];
+        } elseif ($pending['operation'] === 'PUT') {
+            $attributes['cache.forever'] = true;
         }
+
+        if ($pending['strategy'] !== null) {
+            $attributes['cache.strategy'] = $pending['strategy'];
+        }
+
+        if ($pending['fresh_ttl'] !== null) {
+            $attributes['cache.fresh_ttl'] = $pending['fresh_ttl'];
+        }
+
+        if ($pending['key_count'] > 1) {
+            $attributes['cache.key_count'] = $pending['key_count'];
+        }
+
+        $attributes['cache.outcome'] = $this->outcome($pending['operation'], $success, $extra);
 
         $end = $this->now();
         $span = $this->tracer->get()->spanBuilder('Cache '.$pending['operation'])
@@ -224,6 +276,62 @@ final class CacheInstrumentation
         }
 
         return false;
+    }
+
+    /** @param list<string> $keys */
+    private function isFlexiblePair(array $keys): bool
+    {
+        return count($keys) === 2 && $keys[1] === 'illuminate:cache:flexible:created:'.$keys[0];
+    }
+
+    /** @return array{strategy: ?string, fresh_ttl: ?int} */
+    private function strategyContext(): array
+    {
+        $strategies = [
+            'flexible' => 'stale_while_revalidate',
+            'rememberForever' => 'remember_forever',
+            'remember' => 'remember',
+            'sear' => 'remember_forever',
+            'pull' => 'pull',
+            'add' => 'add_if_missing',
+            'forever' => 'forever',
+        ];
+
+        foreach (debug_backtrace(0, 16) as $frame) {
+            $function = $frame['function'] ?? null;
+
+            if (is_string($function) && isset($strategies[$function])) {
+                $freshTtl = null;
+
+                if ($function === 'flexible' && is_array($frame['args'][1] ?? null) && is_numeric($frame['args'][1][0] ?? null)) {
+                    $freshTtl = max(0, (int) $frame['args'][1][0]);
+                }
+
+                return ['strategy' => $strategies[$function], 'fresh_ttl' => $freshTtl];
+            }
+        }
+
+        return ['strategy' => null, 'fresh_ttl' => null];
+    }
+
+    /** @param array<string, bool|int|string> $extra */
+    private function outcome(string $operation, bool $success, array $extra): string
+    {
+        if (isset($extra['cache.outcome']) && is_string($extra['cache.outcome'])) {
+            return $extra['cache.outcome'];
+        }
+
+        if (! $success) {
+            return 'failed';
+        }
+
+        return match ($operation) {
+            'GET' => ($extra['cache.hit'] ?? false) ? 'hit' : 'miss',
+            'PUT' => 'stored',
+            'FORGET' => 'deleted',
+            'FLUSH', 'LOCK FLUSH' => 'flushed',
+            default => 'completed',
+        };
     }
 
     private function key(string $key): string

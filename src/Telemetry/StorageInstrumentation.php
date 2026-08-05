@@ -35,7 +35,21 @@ final class StorageInstrumentation
         ];
 
         foreach ($paths as $index => $path) {
-            $attributes[$index === 0 ? 'storage.path' : 'storage.destination'] = $this->path($path);
+            $prefix = $index === 0 ? 'storage' : 'storage.destination';
+            $attributes[$prefix.'.path'] = $this->path($path);
+            $attributes[$prefix.'.path_captured'] = (bool) $this->config->get('skyline.storage.capture_paths', false);
+
+            if (! (bool) $this->config->get('skyline.storage.capture_paths', false)) {
+                continue;
+            }
+
+            if (($url = $this->url($disk, $path)) !== null) {
+                $attributes[$prefix.'.url'] = $url;
+            }
+
+            if ($driver === 'local' && ($localFile = $this->localFile($disk, $path)) !== null) {
+                $attributes[$prefix.'.local_file'] = $localFile;
+            }
         }
 
         if ($bytes !== null) {
@@ -67,11 +81,22 @@ final class StorageInstrumentation
                 $span->setAttribute('storage.bytes', $result);
             }
 
+            match ($operation) {
+                'exists', 'directory_exists' => $span->setAttribute('storage.result.exists', (bool) $result),
+                'last_modified' => $span->setAttribute('storage.result.last_modified', (int) $result),
+                'mime_type' => $span->setAttribute('storage.result.mime_type', (string) $result),
+                'visibility' => $span->setAttribute('storage.result.visibility', (string) $result),
+                default => null,
+            };
+
+            $span->setAttribute('storage.outcome', 'completed');
+
             $span->setStatus(StatusCode::STATUS_OK);
 
             return $result;
         } catch (Throwable $exception) {
             $span->setAttribute('error.type', $exception::class);
+            $span->setAttribute('storage.outcome', 'failed');
             $span->setStatus(StatusCode::STATUS_ERROR);
 
             throw $exception;
@@ -87,5 +112,34 @@ final class StorageInstrumentation
         }
 
         return 'sha256:'.substr(hash('sha256', $path), 0, 16);
+    }
+
+    private function url(string $disk, string $path): ?string
+    {
+        $template = $this->config->get('skyline.storage.links.'.$disk)
+            ?? $this->config->get('filesystems.disks.'.$disk.'.url');
+
+        if (! is_string($template) || $template === '') {
+            return null;
+        }
+
+        $encoded = collect(explode('/', ltrim($path, '/')))
+            ->map(fn (string $segment): string => rawurlencode($segment))
+            ->implode('/');
+
+        return str_contains($template, '{path}')
+            ? str_replace('{path}', $encoded, $template)
+            : rtrim($template, '/').'/'.$encoded;
+    }
+
+    private function localFile(string $disk, string $path): ?string
+    {
+        $root = $this->config->get('filesystems.disks.'.$disk.'.root');
+
+        if (! is_string($root) || $root === '') {
+            return null;
+        }
+
+        return rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.ltrim($path, DIRECTORY_SEPARATOR);
     }
 }

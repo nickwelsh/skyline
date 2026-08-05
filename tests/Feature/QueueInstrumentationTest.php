@@ -37,6 +37,7 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\RawMessage;
 use Tests\Fixtures\Jobs\CacheJob;
+use Tests\Fixtures\Jobs\CacheStrategyJob;
 use Tests\Fixtures\Jobs\CustomTelemetryJob;
 use Tests\Fixtures\Jobs\DeliveryJob;
 use Tests\Fixtures\Jobs\ExceptionRetryJob;
@@ -57,6 +58,7 @@ use Tests\Fixtures\Jobs\RetriedTransactionJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
+use Tests\Fixtures\Jobs\StorageDetailJob;
 use Tests\Fixtures\Jobs\StorageProcessJob;
 use Tests\Fixtures\Jobs\SummaryJob;
 use Tests\Fixtures\Jobs\TransactionJob;
@@ -156,6 +158,38 @@ it('captures storage and process operations without content paths arguments or o
         ->not->toContain('private contents')
         ->not->toContain('private output')
         ->not->toContain('exit(7)');
+});
+
+it('captures opt-in storage paths links and operation results', function (): void {
+    $root = storage_path('framework/testing/disks/telemetry-details');
+    config()->set('filesystems.disks.telemetry', [
+        'driver' => 'local',
+        'root' => $root,
+        'throw' => true,
+    ]);
+    config()->set('skyline.storage.capture_paths', true);
+    config()->set('skyline.storage.links.telemetry', 'https://files.example.test/{path}');
+
+    StorageDetailJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $storage = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'storage')
+        ->keyBy(fn ($span) => $span->getAttributes()->get('storage.operation'));
+    $write = $storage['write']->getAttributes();
+
+    expect($write->get('storage.path'))->toBe('reports/customer report.txt')
+        ->and($write->get('storage.path_captured'))->toBeTrue()
+        ->and($write->get('storage.url'))->toBe('https://files.example.test/reports/customer%20report.txt')
+        ->and($write->get('storage.local_file'))->toBe($root.'/reports/customer report.txt')
+        ->and($write->get('storage.outcome'))->toBe('completed')
+        ->and($storage['exists']->getAttributes()->get('storage.result.exists'))->toBeTrue()
+        ->and($storage['last_modified']->getAttributes()->get('storage.result.last_modified'))->toBeInt()
+        ->and($storage['mime_type']->getAttributes()->get('storage.result.mime_type'))->toBeString()
+        ->and($storage['visibility']->getAttributes()->get('storage.result.visibility'))->toBeString()
+        ->and(json_encode($storage->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('private contents');
 });
 
 it('completes an asynchronously polled process without requiring wait', function (): void {
@@ -458,6 +492,31 @@ it('captures cache operations without values or raw keys', function (): void {
     expect(json_encode($cache->map(fn ($span) => $span->getAttributes()->toArray())->all()))
         ->not->toContain('private-value')
         ->not->toContain('secret@example.test');
+});
+
+it('describes cache helpers and stale-while-revalidate windows', function (): void {
+    CacheStrategyJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $cache = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')
+        ->values();
+    $flexible = $cache->filter(
+        fn ($span) => $span->getAttributes()->get('cache.strategy') === 'stale_while_revalidate',
+    )->values();
+    $batch = $cache->filter(fn ($span) => $span->getAttributes()->get('cache.strategy') === 'batch')->values();
+
+    expect($cache->filter(fn ($span) => $span->getAttributes()->get('cache.strategy') === 'remember'))->toHaveCount(2)
+        ->and($flexible)->toHaveCount(2)
+        ->and($flexible->map(fn ($span) => $span->getAttributes()->get('cache.fresh_ttl'))->all())->toBe([30, 30])
+        ->and($flexible->first(fn ($span) => $span->getAttributes()->get('cache.operation') === 'PUT')->getAttributes()->get('cache.ttl'))->toBe(120)
+        ->and($flexible->every(fn ($span) => $span->getAttributes()->get('cache.key_count') === null))->toBeTrue()
+        ->and($batch)->toHaveCount(2)
+        ->and($batch->every(fn ($span) => $span->getAttributes()->get('cache.key_count') === 2))->toBeTrue()
+        ->and(json_encode($cache->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('private-value')
+        ->not->toContain('flexible-key');
 });
 
 it('captures direct Redis commands without duplicating cache-backed commands', function (): void {

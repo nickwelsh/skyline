@@ -68,7 +68,7 @@ export type TraceNode = {
   hasErrorDescendant: boolean;
   children: string[];
   hasChildren: boolean;
-  timelineEvents: Array<{ name: string; offsetUs: number }>;
+  timelineEvents: Array<{ name: string; offsetUs: number; kind?: "event" | "breadcrumb"; level?: string }>;
 };
 
 export type RunsQuery = {
@@ -166,6 +166,40 @@ export type InspectorDto = TraceNode & {
     request: HttpMessageCapture;
     response: HttpMessageCapture;
   };
+  cache?: {
+    operation: string | null;
+    store: string | null;
+    key: string | null;
+    keyCaptured: boolean;
+    keyCount: number;
+    strategy: string | null;
+    outcome: string | null;
+    hit: boolean | null;
+    ttlSeconds: number | null;
+    freshTtlSeconds: number | null;
+    forever: boolean;
+  };
+  redis?: { command: string | null; connection: string | null; outcome: string | null };
+  storage?: {
+    operation: string | null;
+    disk: string | null;
+    driver: string | null;
+    path: string | null;
+    pathCaptured: boolean;
+    destination: string | null;
+    destinationCaptured: boolean;
+    bytes: number | null;
+    outcome: string | null;
+    url: string | null;
+    destinationUrl: string | null;
+    localFile: { path: string; href: string | null } | null;
+    destinationLocalFile: { path: string; href: string | null } | null;
+    result: { exists: boolean | null; lastModified: number | null; mimeType: string | null; visibility: string | null };
+  };
+  delivery?: { kind: "mail" | "notification"; messageType: string | null; transportOrChannel: string | null; recipientCount: number | null; outcome: string | null };
+  process?: { executable: string | null; async: boolean; timeoutSeconds: number | null; exitCode: number | null; timedOut: boolean; outcome: string | null };
+  transaction?: { connection: string | null; driver: string | null; depth: number | null; outcome: string | null; queryTimeMs: number | null };
+  custom?: { name: string; attributes: Record<string, unknown> };
   summary?: {
     resources: { peakMemoryBytes: number; memoryDeltaBytes: number; cpuTimeUs: number };
     operations: Record<string, { count: number; durationMs: number }>;

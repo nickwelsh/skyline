@@ -4,11 +4,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use NickWelsh\Skyline\Read\Nanoseconds;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
+use Tests\Fixtures\Jobs\CacheStrategyJob;
 use Tests\Fixtures\Jobs\ChildJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\SqlJob;
+use Tests\Fixtures\Jobs\StorageDetailJob;
+use Tests\Fixtures\Jobs\SummaryJob;
 
 it('serves stable 25-row opaque cursor pages and filter options', function (): void {
     for ($index = 0; $index < 27; $index++) {
@@ -235,6 +238,64 @@ it('serves outgoing HTTP timeline nodes and captured request response details', 
     expect(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.request.body'))->toBeNull()
         ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.http.response.body'))->toBeNull()
         ->and($inspector->json('node.source.href'))->toStartWith('vscode://file/');
+});
+
+it('serves operation-specific cache and storage details', function (): void {
+    CacheStrategyJob::dispatchSync();
+    $cacheRun = DB::table('skyline_runs')->where('job_name', CacheStrategyJob::class)->first();
+    $cacheSpan = DB::table('skyline_spans')
+        ->where('run_id', $cacheRun->run_id)
+        ->where('role', 'cache')
+        ->where('attributes', 'like', '%stale_while_revalidate%')
+        ->where('attributes', 'like', '%"cache.operation":"PUT"%')
+        ->first();
+
+    $this->getJson('/skyline/api/runs/'.$cacheRun->run_id.'/nodes/span_'.$cacheSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.cache.operation', 'PUT')
+        ->assertJsonPath('node.cache.strategy', 'stale_while_revalidate')
+        ->assertJsonPath('node.cache.freshTtlSeconds', 30)
+        ->assertJsonPath('node.cache.ttlSeconds', 120)
+        ->assertJsonPath('node.cache.keyCaptured', false)
+        ->assertJsonPath('node.cache.outcome', 'stored');
+
+    $root = storage_path('framework/testing/disks/read-storage-details');
+    config()->set('filesystems.disks.telemetry', ['driver' => 'local', 'root' => $root, 'throw' => true]);
+    config()->set('skyline.storage.capture_paths', true);
+    config()->set('skyline.storage.links.telemetry', 'https://files.example.test/{path}');
+    config()->set('app.editor', 'vscode');
+    StorageDetailJob::dispatchSync();
+    $storageRun = DB::table('skyline_runs')->where('job_name', StorageDetailJob::class)->first();
+    $storageSpan = DB::table('skyline_spans')
+        ->where('run_id', $storageRun->run_id)
+        ->where('role', 'storage')
+        ->where('attributes', 'like', '%"storage.operation":"write"%')
+        ->first();
+
+    $this->getJson('/skyline/api/runs/'.$storageRun->run_id.'/nodes/span_'.$storageSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.storage.operation', 'write')
+        ->assertJsonPath('node.storage.path', 'reports/customer report.txt')
+        ->assertJsonPath('node.storage.pathCaptured', true)
+        ->assertJsonPath('node.storage.url', 'https://files.example.test/reports/customer%20report.txt')
+        ->assertJsonPath('node.storage.localFile.path', $root.'/reports/customer report.txt')
+        ->assertJsonPath('node.storage.localFile.href', 'vscode://file/'.$root.'/reports/customer report.txt:1')
+        ->assertJsonPath('node.storage.outcome', 'completed');
+});
+
+it('presents log breadcrumbs as named Attempt timeline events', function (): void {
+    config()->set('skyline.logging.enabled', true);
+    SummaryJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', SummaryJob::class)->first();
+    $attempt = $this->getJson('/skyline/api/runs/'.$run->run_id)
+        ->assertOk()
+        ->json('trace.nodes.1');
+    $breadcrumbs = collect($attempt['timelineEvents'])->where('kind', 'breadcrumb')->values();
+
+    expect($breadcrumbs)->toHaveCount(2)
+        ->and($breadcrumbs->pluck('level')->all())->toBe(['warning', 'error'])
+        ->and($breadcrumbs[0]['name'])->toBe('WARNING · Import token=[REDACTED] delayed')
+        ->and($breadcrumbs[1]['name'])->toBe('ERROR · Import failed password=[REDACTED]');
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

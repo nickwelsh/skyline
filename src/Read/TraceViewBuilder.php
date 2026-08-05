@@ -210,7 +210,7 @@ final class TraceViewBuilder
         return $nodes;
     }
 
-    /** @param list<array{name: string, offsetUs: int}> $timeline */
+    /** @param list<array{name: string, offsetUs: int, kind: string, level?: string}> $timeline */
     private function node(
         string $id,
         ?string $parentId,
@@ -278,24 +278,24 @@ final class TraceViewBuilder
         }
     }
 
-    /** @return list<array{name: string, offsetUs: int}> */
+    /** @return list<array{name: string, offsetUs: int, kind: string}> */
     private function runTimeline(object $run, int $origin): array
     {
-        $events = [['name' => 'Triggered', 'offsetUs' => intdiv((int) $run->triggered_at - $origin, 1000)]];
+        $events = [['name' => 'Triggered', 'offsetUs' => intdiv((int) $run->triggered_at - $origin, 1000), 'kind' => 'event']];
 
         foreach ([['Queued', $run->queued_at], ['Started', $run->started_at], ['Finished', $run->finished_at]] as [$name, $at]) {
             if ($at !== null) {
-                $events[] = ['name' => $name, 'offsetUs' => intdiv((int) $at - $origin, 1000)];
+                $events[] = ['name' => $name, 'offsetUs' => intdiv((int) $at - $origin, 1000), 'kind' => 'event'];
             }
         }
 
         return $events;
     }
 
-    /** @return list<array{name: string, offsetUs: int}> */
+    /** @return list<array{name: string, offsetUs: int, kind: string, level?: string}> */
     private function attemptTimeline(object $attempt, int $origin, ?object $consumer): array
     {
-        $events = [['name' => 'Started', 'offsetUs' => intdiv((int) $attempt->started_at - $origin, 1000)]];
+        $events = [['name' => 'Started', 'offsetUs' => intdiv((int) $attempt->started_at - $origin, 1000), 'kind' => 'event']];
 
         if ($attempt->finished_at !== null) {
             $events[] = [
@@ -305,6 +305,7 @@ final class TraceViewBuilder
                     default => 'Failed',
                 },
                 'offsetUs' => intdiv((int) $attempt->finished_at - $origin, 1000),
+                'kind' => 'event',
             ];
         }
 
@@ -316,9 +317,16 @@ final class TraceViewBuilder
                     continue;
                 }
 
+                $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
+                $level = is_string($attributes['log.level'] ?? null) ? strtolower($attributes['log.level']) : 'warning';
+                $message = is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : 'Log breadcrumb';
+                $breadcrumb = $name === 'log';
+
                 $events[] = [
-                    'name' => $this->truncate($name, 512),
+                    'name' => $this->truncate($breadcrumb ? strtoupper($level).' · '.$message : $name, 512),
                     'offsetUs' => intdiv((int) ($event['timestamp'] ?? $consumer->started_at) - $origin, 1000),
+                    'kind' => $breadcrumb ? 'breadcrumb' : 'event',
+                    ...($breadcrumb ? ['level' => $level] : []),
                 ];
             }
         }
@@ -328,12 +336,13 @@ final class TraceViewBuilder
         return $events;
     }
 
-    /** @return list<array{name: string, offsetUs: int}> */
+    /** @return list<array{name: string, offsetUs: int, kind: string}> */
     private function spanTimeline(object $span, int $origin): array
     {
         return collect($this->json($span->events))->map(fn (array $event): array => [
             'name' => $this->truncate((string) ($event['name'] ?? 'Event'), 512),
             'offsetUs' => intdiv((int) ($event['timestamp'] ?? $span->started_at) - $origin, 1000),
+            'kind' => 'event',
         ])->all();
     }
 

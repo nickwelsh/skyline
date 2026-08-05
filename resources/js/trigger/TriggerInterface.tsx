@@ -676,7 +676,14 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
                             </Timeline.Span>
                             {node.timelineEvents.map((event, index) => (
                               <Timeline.Point key={`${event.name}:${event.offsetUs}:${index}`} ms={Math.max(0, event.offsetUs / 1_000 - queueOffset)} className="top-[13px] z-10">
-                                {() => <span title={event.name} className="block size-1.5 rounded-full border border-background-dimmed bg-text-bright" />}
+                                {() => <span
+                                  data-timeline-event-kind={event.kind ?? "event"}
+                                  aria-label={event.name}
+                                  title={event.name}
+                                  className={event.kind === "breadcrumb"
+                                    ? `block size-2.5 -translate-y-0.5 rotate-45 border border-background-dimmed ${breadcrumbClass(event.level)}`
+                                    : "block size-1.5 rounded-full border border-background-dimmed bg-text-bright"}
+                                />}
                               </Timeline.Point>
                             ))}
                           </Timeline.Row>
@@ -847,6 +854,70 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
       <HttpMessagePreview label="Response" capture={node.http.response} />
     </div>
   );
+  if (node.kind === "cache" && node.cache) return <CacheDetail node={node} />;
+  if (node.kind === "redis" && node.redis) return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title="Command">
+        <PropertyList values={{ Command: node.redis.command, Connection: node.redis.connection, Outcome: humanize(node.redis.outcome) }} />
+      </DetailSection>
+      <CaptureNote>Arguments and return values are not captured.</CaptureNote>
+    </div>
+  );
+  if (node.kind === "storage" && node.storage) return <StorageDetail node={node} />;
+  if ((node.kind === "mail" || node.kind === "notification") && node.delivery) return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title={node.kind === "mail" ? "Delivery" : "Notification delivery"}>
+        <PropertyList values={{
+          Type: shortName(node.delivery.messageType ?? "—"),
+          [node.kind === "mail" ? "Mailer" : "Channel"]: node.delivery.transportOrChannel,
+          Recipients: node.delivery.recipientCount,
+          Outcome: humanize(node.delivery.outcome),
+        }} />
+      </DetailSection>
+      <CaptureNote>Recipient identities, subjects, and message bodies are not captured.</CaptureNote>
+    </div>
+  );
+  if (node.kind === "process" && node.process) return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title="Execution">
+        <PropertyList values={{
+          Executable: node.process.executable,
+          Mode: node.process.async ? "Asynchronous" : "Synchronous",
+          Timeout: node.process.timeoutSeconds === null ? "No timeout reported" : formatTtl(node.process.timeoutSeconds),
+          "Exit code": node.process.exitCode,
+          Outcome: node.process.timedOut ? "Timed out" : humanize(node.process.outcome),
+        }} />
+      </DetailSection>
+      <CaptureNote>Arguments, environment variables, and process output are not captured.</CaptureNote>
+    </div>
+  );
+  if (node.kind === "transaction" && node.transaction) return (
+    <div className="space-y-4">
+      <DetailSection title="Transaction">
+        <PropertyList values={{
+          Connection: node.transaction.connection,
+          Driver: node.transaction.driver,
+          Depth: node.transaction.depth,
+          Outcome: humanize(node.transaction.outcome),
+          "Query time": node.transaction.queryTimeMs === null ? null : formatDuration(node.transaction.queryTimeMs),
+        }} />
+      </DetailSection>
+    </div>
+  );
+  if (node.kind === "custom" && node.custom) return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title="Measurement">
+        <PropertyList values={{ Name: node.custom.name, Outcome: node.isError ? "Failed" : "Completed" }} />
+      </DetailSection>
+      {Object.keys(node.custom.attributes).length > 0
+        ? <JsonCapturePreview label="Application attributes" value={node.custom.attributes} />
+        : <CaptureNote>No application attributes were recorded.</CaptureNote>}
+    </div>
+  );
   if (node.kind !== "attempt") return (
     <div className="space-y-4">
       {node.source && <NodeSource source={node.source} />}
@@ -854,6 +925,93 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
     </div>
   );
   return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
+}
+
+function CacheDetail({ node }: { node: InspectorDto }) {
+  const cache = node.cache!;
+  const expiration = cache.forever
+    ? "Forever"
+    : cache.ttlSeconds === null
+      ? cache.operation === "GET" ? "Not reported for reads" : "Not reported by Laravel"
+      : formatTtl(cache.ttlSeconds);
+
+  return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title="Cache operation">
+        <PropertyList values={{
+          Operation: humanize(cache.operation),
+          Store: cache.store,
+          Strategy: cache.strategy ? humanize(cache.strategy) : "Direct operation",
+          Outcome: cache.hit === null ? humanize(cache.outcome) : cache.hit ? "Hit" : "Miss",
+          ...(cache.strategy === "stale_while_revalidate" ? {
+            "Fresh for": cache.freshTtlSeconds === null ? "Not reported by Laravel" : formatTtl(cache.freshTtlSeconds),
+            "Retained for": expiration,
+          } : { Expiration: expiration }),
+          ...(cache.keyCount > 1 ? { Keys: cache.keyCount } : {}),
+        }} />
+      </DetailSection>
+      {cache.key && <DetailSection title="Entry">
+        <PropertyList values={{ [cache.keyCaptured ? "Key" : "Key fingerprint"]: cache.key, Value: "Not captured" }} />
+      </DetailSection>}
+      <CaptureNote>{cache.keyCaptured ? "Cache values are never captured." : "Raw keys are hidden. Enable SKYLINE_CACHE_CAPTURE_KEYS to show them; cache values are never captured."}</CaptureNote>
+    </div>
+  );
+}
+
+function StorageDetail({ node }: { node: InspectorDto }) {
+  const storage = node.storage!;
+  const result = storage.result;
+  const resultValues: Record<string, string | number | null | undefined> = {
+    Exists: result.exists === null ? undefined : result.exists ? "Yes" : "No",
+    "Last modified": result.lastModified === null ? undefined : new Date(result.lastModified * 1_000).toLocaleString(),
+    "MIME type": result.mimeType,
+    Visibility: result.visibility,
+  };
+  const hasResult = Object.values(resultValues).some((value) => value !== undefined && value !== null);
+
+  return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title="Storage operation">
+        <PropertyList values={{
+          Operation: humanize(storage.operation),
+          Disk: storage.disk,
+          Driver: storage.driver,
+          Outcome: humanize(storage.outcome),
+          Bytes: storage.bytes === null ? null : formatBytes(storage.bytes),
+        }} />
+      </DetailSection>
+      <DetailSection title="File">
+        <PropertyList values={{
+          [storage.pathCaptured ? "Path" : "Path fingerprint"]: storage.path,
+          ...(storage.destination ? { [storage.destinationCaptured ? "Destination" : "Destination fingerprint"]: storage.destination } : {}),
+        }} />
+      </DetailSection>
+      {(storage.url || storage.localFile?.href || storage.destinationUrl || storage.destinationLocalFile?.href) && <DetailSection title="Open file">
+        <div className="space-y-2">
+          {storage.url && <FileLink href={storage.url} label="Open source URL" value={storage.url} />}
+          {storage.localFile?.href && <FileLink href={storage.localFile.href} label="Open source in editor" value={storage.localFile.path} />}
+          {storage.destinationUrl && <FileLink href={storage.destinationUrl} label="Open destination URL" value={storage.destinationUrl} />}
+          {storage.destinationLocalFile?.href && <FileLink href={storage.destinationLocalFile.href} label="Open destination in editor" value={storage.destinationLocalFile.path} />}
+        </div>
+      </DetailSection>}
+      {hasResult && <DetailSection title="Result"><PropertyList values={resultValues} /></DetailSection>}
+      <CaptureNote>{storage.pathCaptured ? "File contents are not captured. Links are best effort and depend on disk configuration." : "Raw paths are hidden. Enable SKYLINE_STORAGE_CAPTURE_PATHS to show paths and available links; file contents are never captured."}</CaptureNote>
+    </div>
+  );
+}
+
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section aria-label={title} className="space-y-2"><h3 className="text-xs font-medium text-text-faint">{title}</h3>{children}</section>;
+}
+
+function CaptureNote({ children }: { children: React.ReactNode }) {
+  return <p className="rounded border border-grid-bright bg-background-dimmed p-3 text-xs leading-5 text-text-faint">{children}</p>;
+}
+
+function FileLink({ href, label, value }: { href: string; label: string; value: string }) {
+  return <a href={href} aria-label={label} className="flex min-h-9 min-w-0 items-center gap-2 rounded border border-grid-bright bg-background-deep px-3 text-text-bright hover:border-indigo-500/60 hover:bg-background-hover"><span className="min-w-0 flex-1 truncate font-mono text-xs">{value}</span><IconExternalLink className="size-4 shrink-0" /></a>;
 }
 
 function HttpMessagePreview({ label, capture }: { label: string; capture: HttpMessageCapture }) {
@@ -909,6 +1067,9 @@ function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
 function formatBytes(bytes: number) { const absolute = Math.abs(bytes); if (absolute >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; if (absolute >= 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${bytes} B`; }
+function formatTtl(seconds: number) { if (seconds >= 86_400 && seconds % 86_400 === 0) return `${seconds / 86_400} ${seconds === 86_400 ? "day" : "days"}`; if (seconds >= 3_600 && seconds % 3_600 === 0) return `${seconds / 3_600} ${seconds === 3_600 ? "hour" : "hours"}`; if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`; return `${seconds} ${seconds === 1 ? "second" : "seconds"}`; }
+function humanize(value?: string | null) { return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "—"; }
+function breadcrumbClass(level?: string) { if (["error", "critical", "alert", "emergency"].includes(level ?? "")) return "bg-error"; if (level === "warning") return "bg-amber-400"; return "bg-cyan-400"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
 function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; if (node.kind === "storage") return "bg-emerald-500"; if (node.kind === "process") return "bg-orange-500"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
