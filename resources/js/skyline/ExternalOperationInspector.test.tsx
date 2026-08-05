@@ -138,6 +138,33 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
+  it("does not present uncaptured process flags as confirmed false", () => {
+    const { container, root } = renderInspector({
+      type: "process",
+      timing: timing(),
+      failure: null,
+      process: {
+        executable: "php",
+        async: null,
+        timeoutSeconds: null,
+        exitCode: null,
+        timedOut: null,
+        outcome: null,
+        command: null,
+        environment: null,
+        input: null,
+        stdout: null,
+        stderr: null,
+      },
+    });
+
+    expect(container.textContent).toContain("ModeNot captured");
+    expect(container.textContent).toContain("Timed outNot captured");
+    expect(container.textContent).not.toContain("Synchronous");
+
+    flushSync(() => root.unmount());
+  });
+
   it("preserves breadcrumb, custom, summary, and generic source treatments", () => {
     const cases = [
       {

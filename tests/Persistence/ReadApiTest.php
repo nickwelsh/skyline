@@ -458,6 +458,17 @@ it('serves captured process command environment input and output', function (): 
         ->assertJsonPath('node.process.input.value', 'private input')
         ->assertJsonPath('node.process.stdout.value', 'private environment / private input')
         ->assertJsonPath('node.process.stderr.value', 'private error');
+
+    $attributes = json_decode($span->attributes, true, flags: JSON_THROW_ON_ERROR);
+    unset($attributes['process.async'], $attributes['process.timed_out']);
+    DB::table('skyline_spans')->where('id', $span->id)->update([
+        'attributes' => json_encode($attributes, JSON_THROW_ON_ERROR),
+    ]);
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.presentation.process.async', null)
+        ->assertJsonPath('node.presentation.process.timedOut', null);
 });
 
 it('serves captured direct Redis command arguments', function (): void {

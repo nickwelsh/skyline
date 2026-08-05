@@ -362,10 +362,10 @@ final readonly class NodeQuery
     {
         return [
             'executable' => $attributes['process.executable.name'] ?? null,
-            'async' => (bool) ($attributes['process.async'] ?? false),
+            'async' => isset($attributes['process.async']) ? (bool) $attributes['process.async'] : null,
             'timeoutSeconds' => isset($attributes['process.timeout_seconds']) ? (int) $attributes['process.timeout_seconds'] : null,
             'exitCode' => isset($attributes['process.exit_code']) ? (int) $attributes['process.exit_code'] : null,
-            'timedOut' => (bool) ($attributes['process.timed_out'] ?? false),
+            'timedOut' => isset($attributes['process.timed_out']) ? (bool) $attributes['process.timed_out'] : null,
             'outcome' => $attributes['process.outcome'] ?? null,
             'command' => $this->valueCapture($attributes, 'process.command'),
             'environment' => $this->valueCapture($attributes, 'process.environment'),

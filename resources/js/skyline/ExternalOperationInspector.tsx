@@ -122,10 +122,10 @@ function ProcessInspector({ inspector }: { inspector: ExternalInspector }) {
     <InspectorLayout title="Process operation" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table>
         <Item label="Executable" value={process.executable} />
-        <Item label="Mode" value={process.async ? "Asynchronous" : "Synchronous"} />
+        <Item label="Mode" value={process.async === null ? "Not captured" : process.async ? "Asynchronous" : "Synchronous"} />
         <Item label="Timeout" value={process.timeoutSeconds === null ? null : `${process.timeoutSeconds} s`} />
         <Item label="Exit code" value={process.exitCode} />
-        <Item label="Timed out" value={process.timedOut ? "Yes" : "No"} />
+        <Item label="Timed out" value={process.timedOut === null ? "Not captured" : process.timedOut ? "Yes" : "No"} />
         <Item label="Outcome" value={process.outcome} />
       </Property.Table>
       <CapturedValuePreview label="Command" capture={process.command} />

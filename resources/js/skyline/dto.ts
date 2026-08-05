@@ -389,10 +389,10 @@ export type InspectorDto = TraceNode & {
   };
   process?: {
     executable: string | null;
-    async: boolean;
+    async: boolean | null;
     timeoutSeconds: number | null;
     exitCode: number | null;
-    timedOut: boolean;
+    timedOut: boolean | null;
     outcome: string | null;
     command: CapturedValue | null;
     environment: CapturedValue | null;
