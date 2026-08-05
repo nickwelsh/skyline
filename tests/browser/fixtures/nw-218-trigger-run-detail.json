@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "viewport": { "width": 1440, "height": 960 },
+  "path": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+  "expected": {
+    "heading": "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    "treeName": "Run trace",
+    "selectedNode": "run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    "nextNode": "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
+    "inspectorTabs": ["Overview", "Detail", "Metadata"],
+    "queueHiddenAttemptRatio": 0.136776087536696,
+    "focusRole": "tree",
+    "escapeClearsSelection": true
+  }
+}
