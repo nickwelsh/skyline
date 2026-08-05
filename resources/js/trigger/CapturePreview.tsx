@@ -1,7 +1,8 @@
 /*!
- * Derived from Trigger.dev apps/webapp/app/components/code/CodeBlock.tsx
- * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Modified for Skyline: Tabler icons, JSON tree/text tabs, and dependency-light fullscreen chrome.
+ * Skyline capture-specific viewers at Trigger.dev commit
+ * ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Trigger's one-to-one CodeBlock lives in ./CodeBlock.tsx; these modes only serve
+ * Skyline-specific SQL, HTML, and tree data in the Detail tab.
  */
 import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap, IconTextWrapDisabled, IconX } from "@tabler/icons-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";

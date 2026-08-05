@@ -32,6 +32,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
 import type { CapturedValue, HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import { HtmlCapturePreview, JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
+import { CodeBlock } from "./CodeBlock";
 import { ExceptionPreview } from "./ExceptionPreview";
 import { TabButton, TabContainer } from "./Tabs";
 import * as Timeline from "./Timeline";
@@ -827,11 +828,11 @@ function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageD
           </TabContainer>
         </div>
         <div className="shrink-0 border-b border-grid-bright" />
-        <div role="tabpanel" className="min-h-0 flex-1 overflow-auto p-4">
+        <div role="tabpanel" className="min-h-0 flex-1 overflow-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
           {tab === "Overview" && <Overview node={node} run={run} />}
           {tab === "Detail" && <Detail node={node} run={run} />}
-          {tab === "Context" && <JsonCapturePreview label="Context" value={{ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId, kind: node.kind }} />}
-          {tab === "Metadata" && <JsonCapturePreview label="Metadata" value={node.metadata.value} truncated={node.metadata.isTruncated} />}
+          {tab === "Context" && <CodeBlock label="Context" code={JSON.stringify({ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId, kind: node.kind }, null, 2)} language="json" showLineNumbers={false} showTextWrapping />}
+          {tab === "Metadata" && <CodeBlock label="Metadata" code={JSON.stringify(node.metadata.value, null, 2) ?? String(node.metadata.value)} language="json" showLineNumbers={false} showTextWrapping />}
         </div>
       </div>
     </aside>

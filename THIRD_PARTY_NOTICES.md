@@ -13,9 +13,12 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | Work | Version | License |
 | --- | --- | --- |
 | React / React DOM | 18.3.1 | MIT |
+| Heroicons React | 2.0.13 | MIT |
+| Radix UI Dialog / Tooltip | 1.0.3 / 1.0.5 | MIT |
 | Tabler Icons React | 3.36.1 | MIT |
 | Window Splitter React / State | 1.1.3 | MIT |
 | Framer Motion | 10.12.11 | MIT |
+| Lucide React | 0.229.0 | ISC |
 | non.geist package | 1.0.2 | MIT |
 | Geist font software | bundled by non.geist 1.0.2 | OFL-1.1 |
 | Prism React Renderer | 2.4.1 | MIT |

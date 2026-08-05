@@ -3,11 +3,13 @@
   "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
   "license": "Apache-2.0",
   "adaptedTargets": {
-    "resources/js/trigger/CapturePreview.tsx": "3941caa31f21926bfeb58e54d5add1ab3b2e32faf5685591ab1eeac0e7b7b5ab",
+    "resources/js/trigger/CodeBlock.tsx": "4f0c5dedc6e39406c105f7bd5eca33c64dbf2259c551e8e5e8be3eba99687a3c",
+    "resources/js/trigger/Dialog.tsx": "203e5386944e3143616c18fccdb8812efdc18ad7a25998b7c225416ba74556a6",
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
     "resources/js/trigger/Tabs.tsx": "09c71dcea8dbae0105a67be167d0b25d57f124631b4742cdf43fff3f9a670be2",
     "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
-    "resources/js/trigger/TriggerInterface.tsx": "16f6db88edb60afd51df7309535c546dd523f34144426596472ba2097b740878",
+    "resources/js/trigger/Tooltip.tsx": "75810913c698bd0f156283a2fa134a733c4bf21a5325dded829ef1ea854bb4fc",
+    "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -96,9 +98,35 @@
     {
       "source": "apps/webapp/app/components/code/CodeBlock.tsx",
       "sha256": "dcde4f986fe25fd44668d5efb8659f24eace2bbf70c2fede58445ba5018c7b37",
-      "target": "resources/js/trigger/CapturePreview.tsx",
+      "target": "resources/js/trigger/CodeBlock.tsx",
       "mode": "adapted",
-      "modifications": "Retained syntax highlighting, text wrapping, copy, and fullscreen controls; added a Skyline JSON tree tab and reused existing capture-specific modes."
+      "modifications": "Changed only imports, modal copy button plumbing, and accessibility labels; retained Trigger syntax highlighting, geometry, icons, tooltips, wrapping, copy, and modal controls."
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TextWrapIcon.tsx",
+      "sha256": "047c309156a5d4fa41e46722da3234ceb37e6bc31372c0347be550e0ce3031da",
+      "target": "resources/js/trigger/TextWrapIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TextInlineIcon.tsx",
+      "sha256": "f846be7b43729e4402b025ba2838c68c8b8596c621a431c2aa63e3428e810e55",
+      "target": "resources/js/trigger/TextInlineIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Tooltip.tsx",
+      "sha256": "3e2a6d447005ad0ca045cd824dce173a627b25444f6c100926281cd5c9f512f8",
+      "target": "resources/js/trigger/Tooltip.tsx",
+      "mode": "adapted",
+      "modifications": "Retained the Radix primitive behavior and exact basic tooltip classes; removed unused variants and Skyline-inapplicable helpers."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Dialog.tsx",
+      "sha256": "c7f3db37aa900cafcd8008eecfb47d35620d73f93315d3fd8f0c395fcc4c723b",
+      "target": "resources/js/trigger/Dialog.tsx",
+      "mode": "adapted",
+      "modifications": "Retained the Radix overlay, content, animation, and close chrome; inlined the shortcut key markup and removed unused exports."
     },
     {
       "source": "apps/webapp/app/components/primitives/Tabs.tsx",

@@ -47,12 +47,21 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
     .toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:1");
   await page.keyboard.press("x");
   await expect(page.getByRole("tab", { name: "Context" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("region", { name: "Context preview" })).toBeVisible();
+  const fixtureContext = page.getByLabel("Context", { exact: true });
+  await expect(fixtureContext).toBeVisible();
+  const wrapContext = fixtureContext.getByRole("button", { name: "Wrap Context" });
+  const wrapBackground = await wrapContext.evaluate((element) => getComputedStyle(element).backgroundColor);
+  await wrapContext.hover();
+  await expect(page.getByRole("tooltip")).toHaveText("Wrap");
+  await expect.poll(() => wrapContext.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe(wrapBackground);
+  await expect(fixtureContext.getByRole("button", { name: "Copy Context" })).toBeVisible();
+  await expect(fixtureContext.getByRole("button", { name: "Expand Context" })).toBeVisible();
+  await expect(fixtureContext.getByText("Context", { exact: true })).toHaveCount(0);
   await page.keyboard.press("m");
-  const fixtureMetadata = page.getByRole("region", { name: "Metadata preview" });
-  await expect(fixtureMetadata.getByRole("tab", { name: "Text" })).toHaveAttribute("aria-selected", "true");
-  await fixtureMetadata.getByRole("tab", { name: "Tree" }).click();
-  await expect(fixtureMetadata.getByRole("tree", { name: "Metadata JSON tree" })).toBeVisible();
+  const fixtureMetadata = page.getByLabel("Metadata", { exact: true });
+  await expect(fixtureMetadata.getByRole("button", { name: "Wrap Metadata" })).toBeVisible();
+  await expect(fixtureMetadata.getByRole("button", { name: "Copy Metadata" })).toBeVisible();
+  await expect(fixtureMetadata.getByRole("button", { name: "Expand Metadata" })).toBeVisible();
 
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(/node=attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1/);
@@ -226,16 +235,22 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   expect(requests.some((request) => request.endsWith("/nodes/span_live_sql"))).toBe(true);
 
   await page.getByRole("tab", { name: "Metadata" }).click();
-  const metadataPreview = page.getByRole("region", { name: "Metadata preview", exact: true });
-  await metadataPreview.getByRole("tab", { name: "Tree" }).click();
-  await expect(metadataPreview.getByRole("tree", { name: "Metadata JSON tree" })).toContainText("db.system.name");
-  await metadataPreview.getByRole("tab", { name: "Text" }).click();
+  const metadataPreview = page.getByLabel("Metadata", { exact: true });
   await expect(metadataPreview.locator("pre")).toContainText('"db.system.name": "mysql"');
   expect(await metadataPreview.locator("pre span").count()).toBeGreaterThan(3);
   await metadataPreview.getByRole("button", { name: "Wrap Metadata" }).click();
   await metadataPreview.getByRole("button", { name: "Expand Metadata" }).click();
-  await expect(page.getByRole("dialog", { name: "Expanded Metadata" })).toBeVisible();
-  await page.getByRole("button", { name: "Close expanded Metadata" }).click();
+  const metadataDialog = page.getByRole("dialog", { name: "Metadata" });
+  await expect(metadataDialog).toBeVisible();
+  await metadataDialog.evaluate(async (element) => {
+    await Promise.all(element.getAnimations().map((animation) => animation.finished));
+  });
+  const metadataDialogBox = await metadataDialog.boundingBox();
+  const viewport = await page.evaluate(() => ({ width: window.innerWidth, height: window.innerHeight }));
+  expect(metadataDialogBox).not.toBeNull();
+  expect(Math.abs(metadataDialogBox!.width - viewport.width * 0.8)).toBeLessThan(1);
+  expect(Math.abs(metadataDialogBox!.height - viewport.height * 0.8)).toBeLessThan(1);
+  await page.getByRole("button", { name: "Close" }).click();
   await metadataPreview.getByRole("button", { name: "Copy Metadata" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"db.system.name": "mysql"');
 });
