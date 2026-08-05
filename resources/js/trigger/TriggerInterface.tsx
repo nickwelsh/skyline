@@ -524,7 +524,15 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
     1,
   );
   const queueDuration = (tracePage.trace.queuedDurationUs ?? 0) / 1_000;
-  const queueOffset = queueTime ? 0 : Math.min(queueDuration, totalDuration);
+  const firstAttemptOffset = Math.min(
+    ...nodes
+      .filter((node) => node.kind === "attempt" && node.runId === run.id)
+      .map((node) => node.offsetUs / 1_000),
+  );
+  const representedQueueDuration = Number.isFinite(firstAttemptOffset)
+    ? Math.min(queueDuration, Math.max(0, firstAttemptOffset))
+    : queueDuration;
+  const queueOffset = queueTime ? 0 : Math.min(representedQueueDuration, totalDuration);
   const displayedDuration = Math.max(1, totalDuration - queueOffset);
 
   const navigateRun = useCallback((nextRunId: string) => {

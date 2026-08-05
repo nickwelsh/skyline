@@ -99,6 +99,24 @@ test("timeline keeps duration geometry accurate and uses points for too-small sp
   await expect(page.locator('[data-timeline-node-id="span_17ba81b7da8f8b64"]')).toHaveCount(0);
 });
 
+test("timeline ignores queue duration outside its coordinate range", async ({ page }) => {
+  await page.route("**/skyline/api/**", async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({ json: url.pathname.includes("/nodes/") ? inspectorResponse : externalQueueTraceResponse });
+  });
+  await page.goto("/skyline/runs/live-run?production=1");
+
+  const timeline = page.locator("[data-timeline-root]");
+  const attemptBar = page.locator('[data-timeline-node-id="attempt_live-run_1"]');
+  const timelineBox = await timeline.boundingBox();
+  const attemptBox = await attemptBar.boundingBox();
+
+  expect(timelineBox).not.toBeNull();
+  expect(attemptBox).not.toBeNull();
+  expect(Math.abs(attemptBox!.width - timelineBox!.width)).toBeLessThan(1);
+  await expect(page.getByRole("switch", { name: "Queue time" })).toHaveAttribute("aria-checked", "false");
+});
+
 test("long inspector content scrolls independently", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 480 });
   await page.route("**/skyline/api/**", async (route) => {
@@ -357,6 +375,23 @@ const traceResponse = {
   run: { ...run, traceId: "a".repeat(32), rootRunId: "live-run", parentRunId: null },
   trace: { revision: 1, rootStatus: "completed", rootStartedAt: run.triggeredAt, durationUs: 1_000_000, activeDurationUs: null, queuedDurationUs: 100_000, nodes: traceNodes, nodeCount: 3, isTruncated: false, polling: false, pollIntervalMs: 3_000, pollUntil: null },
   navigation: { previousRunId: null, nextRunId: null, tableState: "table-state", listCursor: null },
+};
+
+const externalQueueTraceResponse = {
+  ...traceResponse,
+  run: { ...traceResponse.run, queueDurationUs: 2_000_000, durationUs: 54_000 },
+  trace: {
+    ...traceResponse.trace,
+    durationUs: 54_000,
+    queuedDurationUs: 2_000_000,
+    nodes: traceResponse.trace.nodes.filter((node) => node.kind !== "query").map((node) => ({
+      ...node,
+      children: node.kind === "attempt" ? [] : node.children,
+      hasChildren: node.kind !== "attempt" && node.hasChildren,
+      offsetUs: 0,
+      durationUs: 54_000,
+    })),
+  },
 };
 
 const inspectorResponse = {
