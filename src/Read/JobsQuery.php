@@ -109,12 +109,6 @@ final readonly class JobsQuery
     private function summary(Collection $rows): array
     {
         $latest = $rows->sortByDesc(fn (object $run): string => sprintf('%020d:%s', $run->triggered_at, $run->run_id))->first();
-        $counts = array_fill_keys(self::STATUSES, 0);
-        foreach ($rows as $run) {
-            if (array_key_exists($run->status, $counts)) {
-                $counts[$run->status]++;
-            }
-        }
         $basePath = '/'.trim((string) config('skyline.path', 'skyline'), '/');
         $id = ObservedIds::job($latest->job_name);
 
@@ -125,7 +119,7 @@ final readonly class JobsQuery
             'firstObservedAt' => Nanoseconds::toRfc3339((int) $rows->min('triggered_at')),
             'lastObservedAt' => Nanoseconds::toRfc3339((int) $rows->max('triggered_at')),
             'runCount' => $rows->count(),
-            'statusCounts' => $counts,
+            'statusCounts' => $this->statusCounts($rows),
             'latestRun' => [
                 'id' => $latest->run_id,
                 'status' => $latest->status,
@@ -161,15 +155,21 @@ final readonly class JobsQuery
     {
         return $rows->groupBy(fn (object $run): string => gmdate('Y-m-d\T00:00:00\Z', intdiv((int) $run->triggered_at, 1_000_000_000)))
             ->map(function (Collection $bucket, string $timestamp): array {
-                $counts = array_fill_keys(self::STATUSES, 0);
-                foreach ($bucket as $run) {
-                    if (array_key_exists($run->status, $counts)) {
-                        $counts[$run->status]++;
-                    }
-                }
-
-                return ['timestamp' => $timestamp, 'total' => $bucket->count(), 'statusCounts' => $counts];
+                return ['timestamp' => $timestamp, 'total' => $bucket->count(), 'statusCounts' => $this->statusCounts($bucket)];
             })->sortKeys()->values()->all();
+    }
+
+    /** @param Collection<int, object> $rows @return array<string, int> */
+    private function statusCounts(Collection $rows): array
+    {
+        $counts = array_fill_keys(self::STATUSES, 0);
+        foreach ($rows as $run) {
+            if (array_key_exists($run->status, $counts)) {
+                $counts[$run->status]++;
+            }
+        }
+
+        return $counts;
     }
 
     private function connection(): Connection

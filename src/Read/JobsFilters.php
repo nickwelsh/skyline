@@ -7,13 +7,13 @@ use Illuminate\Http\Request;
 
 final readonly class JobsFilters
 {
-    /** @var array<string, int|null> */
+    /** @var array<string, array{duration: int|null, label: string}> */
     private const PERIODS = [
-        '1h' => 3_600_000_000_000,
-        '24h' => 86_400_000_000_000,
-        '7d' => 604_800_000_000_000,
-        '30d' => 2_592_000_000_000_000,
-        'all' => null,
+        '1h' => ['duration' => 3_600_000_000_000, 'label' => 'Last hour'],
+        '24h' => ['duration' => 86_400_000_000_000, 'label' => 'Last 24 hours'],
+        '7d' => ['duration' => 604_800_000_000_000, 'label' => 'Last 7 days'],
+        '30d' => ['duration' => 2_592_000_000_000_000, 'label' => 'Last 30 days'],
+        'all' => ['duration' => null, 'label' => 'All time'],
     ];
 
     private function __construct(
@@ -36,7 +36,7 @@ final readonly class JobsFilters
         if (! is_string($period) || ! array_key_exists($period, self::PERIODS)) {
             throw new InvalidQuery('The time range filter is invalid.');
         }
-        $duration = self::PERIODS[$period];
+        $duration = self::PERIODS[$period]['duration'];
 
         return new self($search, $period, $duration === null ? null : $observedAt - $duration);
     }
@@ -60,12 +60,8 @@ final readonly class JobsFilters
     /** @return list<array{value: string, label: string}> */
     public static function options(): array
     {
-        return [
-            ['value' => '1h', 'label' => 'Last hour'],
-            ['value' => '24h', 'label' => 'Last 24 hours'],
-            ['value' => '7d', 'label' => 'Last 7 days'],
-            ['value' => '30d', 'label' => 'Last 30 days'],
-            ['value' => 'all', 'label' => 'All time'],
-        ];
+        return collect(self::PERIODS)
+            ->map(fn (array $definition, string $value): array => ['value' => $value, 'label' => $definition['label']])
+            ->values()->all();
     }
 }

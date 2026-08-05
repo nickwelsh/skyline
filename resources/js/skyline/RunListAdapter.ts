@@ -1,22 +1,22 @@
 import type { RunsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
 import type { RunSummary, RunsPageDto, RunsQuery } from "./dto";
+import { compactQuery, queryStatuses, queryValue } from "./QueryParams";
 
 export function runsQuery(request: Request): RunsQuery {
   const params = new URL(request.url).searchParams;
-  const status = params.getAll("status").filter(isStatus);
   const rootOnly = params.get("rootOnly");
 
-  return compact({
-    cursor: value(params, "cursor"),
-    search: value(params, "search"),
-    status: status.length > 0 ? status : undefined,
-    job: value(params, "job"),
-    connection: value(params, "connection"),
-    queue: value(params, "queue"),
-    trace: value(params, "trace"),
+  return compactQuery({
+    cursor: queryValue(params, "cursor"),
+    search: queryValue(params, "search"),
+    status: queryStatuses(params),
+    job: queryValue(params, "job"),
+    connection: queryValue(params, "connection"),
+    queue: queryValue(params, "queue"),
+    trace: queryValue(params, "trace"),
     rootOnly: rootOnly === null ? undefined : rootOnly === "true",
-    triggeredFrom: value(params, "triggeredFrom"),
-    triggeredTo: value(params, "triggeredTo"),
+    triggeredFrom: queryValue(params, "triggeredFrom"),
+    triggeredTo: queryValue(params, "triggeredTo"),
   });
 }
 
@@ -62,16 +62,4 @@ function duration(microseconds: number | null | undefined) {
   const milliseconds = microseconds / 1_000;
   if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
   return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
-}
-
-function value(params: URLSearchParams, key: string) {
-  return params.get(key) || undefined;
-}
-
-function isStatus(value: string): value is NonNullable<RunsQuery["status"]>[number] {
-  return ["queued", "running", "retrying", "completed", "failed"].includes(value);
-}
-
-function compact<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
 }

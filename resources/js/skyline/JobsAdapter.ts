@@ -8,6 +8,7 @@ import type {
   TimeRangeOption,
 } from "./dto";
 import { presentRun } from "./RunListAdapter";
+import { compactQuery, queryStatuses, queryValue } from "./QueryParams";
 
 export type PresentedJob = {
   id: string;
@@ -43,15 +44,14 @@ export type JobDetailRouteData = {
 
 export function jobsQuery(request: Request): JobsQuery {
   const params = new URL(request.url).searchParams;
-  return compact({ search: value(params, "search"), period: period(params.get("period")) });
+  return compactQuery({ search: queryValue(params, "search"), period: period(params.get("period")) });
 }
 
 export function jobRunsQuery(request: Request): JobRunsQuery {
   const params = new URL(request.url).searchParams;
-  const status = params.getAll("status").filter(isStatus);
-  return compact({
-    cursor: value(params, "cursor"),
-    status: status.length > 0 ? status : undefined,
+  return compactQuery({
+    cursor: queryValue(params, "cursor"),
+    status: queryStatuses(params),
     period: period(params.get("period")),
   });
 }
@@ -98,18 +98,6 @@ function routePath(href: string, segment: string) {
   return index >= 0 ? href.slice(index) : href;
 }
 
-function value(params: URLSearchParams, key: string) {
-  return params.get(key) || undefined;
-}
-
 function period(value: string | null): JobsQuery["period"] {
   return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as JobsQuery["period"] : undefined;
-}
-
-function isStatus(value: string): value is RunStatus {
-  return ["queued", "running", "retrying", "completed", "failed"].includes(value);
-}
-
-function compact<T extends Record<string, unknown>>(value: T): T {
-  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as T;
 }
