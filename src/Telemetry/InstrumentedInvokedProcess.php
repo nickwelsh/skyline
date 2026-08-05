@@ -28,27 +28,64 @@ final readonly class InstrumentedInvokedProcess implements InvokedProcess
 
     public function running()
     {
-        return $this->inner->running();
+        $running = $this->inner->running();
+
+        if (! $running) {
+            $this->completeIfFinished();
+        }
+
+        return $running;
     }
 
     public function output()
     {
-        return $this->inner->output();
+        $output = $this->inner->output();
+        $this->completeIfFinished();
+
+        return $output;
     }
 
     public function errorOutput()
     {
-        return $this->inner->errorOutput();
+        $output = $this->inner->errorOutput();
+        $this->completeIfFinished();
+
+        return $output;
     }
 
     public function latestOutput()
     {
-        return $this->inner->latestOutput();
+        $output = $this->inner->latestOutput();
+        $this->completeIfFinished();
+
+        return $output;
     }
 
     public function latestErrorOutput()
     {
-        return $this->inner->latestErrorOutput();
+        $output = $this->inner->latestErrorOutput();
+        $this->completeIfFinished();
+
+        return $output;
+    }
+
+    public function stop(float $timeout = 10, ?int $signal = null)
+    {
+        $result = $this->inner->stop($timeout, $signal);
+        $this->completeIfFinished();
+
+        return $result;
+    }
+
+    public function ensureNotTimedOut(): void
+    {
+        try {
+            $this->inner->ensureNotTimedOut();
+        } catch (Throwable $exception) {
+            $this->span->fail($exception);
+
+            throw $exception;
+        }
     }
 
     public function wait(?callable $output = null)
@@ -77,6 +114,17 @@ final readonly class InstrumentedInvokedProcess implements InvokedProcess
             $this->span->fail($exception);
 
             throw $exception;
+        }
+    }
+
+    private function completeIfFinished(): void
+    {
+        try {
+            if (! $this->inner->running()) {
+                $this->span->complete($this->inner->wait());
+            }
+        } catch (Throwable $exception) {
+            $this->span->fail($exception);
         }
     }
 }

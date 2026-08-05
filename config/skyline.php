@@ -133,7 +133,9 @@ return [
     'logging' => [
         'enabled' => env('SKYLINE_LOGGING_ENABLED', false),
         'levels' => ['warning', 'error', 'critical', 'alert', 'emergency'],
+        'channel' => env('SKYLINE_LOGGING_CHANNEL'),
         'context_allowlist' => ['code', 'status'],
+        'max_breadcrumbs' => env('SKYLINE_LOGGING_MAX_BREADCRUMBS', 100),
         'max_message_bytes' => env('SKYLINE_LOGGING_MAX_MESSAGE_BYTES', 1_024),
     ],
 

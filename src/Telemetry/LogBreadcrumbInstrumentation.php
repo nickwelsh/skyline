@@ -41,6 +41,7 @@ final class LogBreadcrumbInstrumentation
             || ! (bool) $this->config->get('skyline.logging.enabled', false)
             || ! in_array(strtolower((string) $event->level), $this->levels(), true)
             || str_starts_with($event->message, 'Skyline ')
+            || ! $active->reserveBreadcrumb((int) $this->config->get('skyline.logging.max_breadcrumbs', 100))
         ) {
             return;
         }
@@ -50,7 +51,7 @@ final class LogBreadcrumbInstrumentation
         try {
             $attributes = [
                 'log.level' => strtolower((string) $event->level),
-                'log.channel' => (string) $this->config->get('logging.default', 'default'),
+                'log.channel' => (string) ($this->config->get('skyline.logging.channel') ?: $this->config->get('logging.default', 'default')),
                 'log.message' => $this->message($event->message),
             ];
             $context = $this->context($event->context);

@@ -15,6 +15,8 @@ final class ActiveAttempt
     /** @var array<string, array{count: int, duration_ns: int}> */
     private array $aggregates = [];
 
+    private int $breadcrumbCount = 0;
+
     public ?Throwable $exception = null;
 
     public bool $exceptionRecorded = false;
@@ -49,11 +51,23 @@ final class ActiveAttempt
         $this->aggregates[$role]['duration_ns'] += max(0, $duration);
     }
 
+    public function reserveBreadcrumb(int $limit): bool
+    {
+        if ($this->breadcrumbCount >= max(0, $limit)) {
+            return false;
+        }
+
+        $this->breadcrumbCount++;
+
+        return true;
+    }
+
     /** @return array<string, bool|float|int|string> */
     public function summaryAttributes(): array
     {
         $attributes = [
             'skyline.summary.memory_peak_bytes' => memory_get_peak_usage(true),
+            'skyline.summary.memory_peak_source' => 'php_process_lifetime',
             'skyline.summary.memory_delta_bytes' => memory_get_usage(true) - $this->startedMemory,
             'skyline.summary.cpu_time_us' => max(0, $this->cpuTime() - $this->startedCpu),
         ];

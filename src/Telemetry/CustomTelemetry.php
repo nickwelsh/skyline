@@ -8,6 +8,7 @@ use Illuminate\Contracts\Config\Repository;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Context\ContextInterface;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 final class CustomTelemetry
@@ -15,11 +16,15 @@ final class CustomTelemetry
     /** @var list<array{span: SpanInterface, context: ContextInterface}> */
     private array $stack = [];
 
+    /** @var array<int, array{span: SpanInterface, run_id: string, attempt: int}> */
+    private array $pending = [];
+
     public function __construct(
         private readonly Repository $config,
         private readonly AttemptRegistry $attempts,
         private readonly SkylineTracer $tracer,
         private readonly SourceLocator $source,
+        private readonly ProcessInstrumentation $processes,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -42,6 +47,11 @@ final class CustomTelemetry
                 ...$this->source->attributes('skyline.custom.source'),
             ])
             ->startSpan();
+        $this->pending[spl_object_id($span)] = [
+            'span' => $span,
+            'run_id' => $active->runId,
+            'attempt' => $active->number,
+        ];
         $this->stack[] = ['span' => $span, 'context' => $span->storeInContext($parent)];
 
         try {
@@ -87,6 +97,36 @@ final class CustomTelemetry
         $span->addEvent($this->name($name), $this->attributes($attributes));
     }
 
+    public function process(Process $process, ?callable $output = null): int
+    {
+        $span = $this->processes->start($process->getCommandLine(), $process->getTimeout() === null ? null : (int) $process->getTimeout(), false);
+
+        try {
+            $exitCode = $process->run($output);
+            $span?->completeSymfony($process);
+
+            return $exitCode;
+        } catch (Throwable $exception) {
+            $span?->fail($exception);
+
+            throw $exception;
+        }
+    }
+
+    public function finishAttempt(ActiveAttempt $active): void
+    {
+        foreach ($this->pending as $id => $pending) {
+            if ($pending['run_id'] !== $active->runId || $pending['attempt'] !== $active->number) {
+                continue;
+            }
+
+            $pending['span']->setAttribute('skyline.outcome', 'incomplete');
+            $pending['span']->setStatus(StatusCode::STATUS_ERROR);
+            $pending['span']->end();
+            unset($this->pending[$id]);
+        }
+    }
+
     /** @param array<string, mixed> $attributes @return array<string, bool|float|int|string> */
     private function attributes(array $attributes): array
     {
@@ -122,14 +162,35 @@ final class CustomTelemetry
 
     private function complete(SpanInterface $span): void
     {
+        if (! $this->forget($span)) {
+            return;
+        }
+
         $span->setStatus(StatusCode::STATUS_OK);
         $span->end();
     }
 
     private function fail(SpanInterface $span, mixed $reason): void
     {
+        if (! $this->forget($span)) {
+            return;
+        }
+
         $span->setAttribute('error.type', $reason instanceof Throwable ? $reason::class : get_debug_type($reason));
         $span->setStatus(StatusCode::STATUS_ERROR, 'Custom span failed');
         $span->end();
+    }
+
+    private function forget(SpanInterface $span): bool
+    {
+        $id = spl_object_id($span);
+
+        if (! isset($this->pending[$id])) {
+            return false;
+        }
+
+        unset($this->pending[$id]);
+
+        return true;
     }
 }

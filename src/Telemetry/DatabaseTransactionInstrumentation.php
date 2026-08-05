@@ -19,7 +19,7 @@ final class DatabaseTransactionInstrumentation
 {
     private bool $booted = false;
 
-    /** @var array<string, list<array{span: SpanInterface, context: ContextInterface, depth: int, query_time_ms: float}>> */
+    /** @var array<string, list<array{span: SpanInterface, context: ContextInterface, run_id: string, attempt: int, depth: int, query_time_ms: float}>> */
     private array $transactions = [];
 
     public function __construct(
@@ -82,9 +82,37 @@ final class DatabaseTransactionInstrumentation
         $this->transactions[$event->connectionName][] = [
             'span' => $span,
             'context' => $span->storeInContext($parent),
+            'run_id' => $active->runId,
+            'attempt' => $active->number,
             'depth' => $depth,
             'query_time_ms' => 0.0,
         ];
+    }
+
+    public function finishAttempt(ActiveAttempt $active): void
+    {
+        foreach ($this->transactions as $connection => $stack) {
+            $remaining = [];
+
+            foreach ($stack as $transaction) {
+                if ($transaction['run_id'] !== $active->runId || $transaction['attempt'] !== $active->number) {
+                    $remaining[] = $transaction;
+
+                    continue;
+                }
+
+                $transaction['span']->setAttribute('db.transaction.outcome', 'incomplete');
+                $transaction['span']->setAttribute('db.transaction.query_time_ms', $transaction['query_time_ms']);
+                $transaction['span']->setStatus(StatusCode::STATUS_ERROR);
+                $transaction['span']->end();
+            }
+
+            if ($remaining === []) {
+                unset($this->transactions[$connection]);
+            } else {
+                $this->transactions[$connection] = $remaining;
+            }
+        }
     }
 
     private function finish(TransactionCommitted|TransactionRolledBack $event, string $outcome): void

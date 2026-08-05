@@ -6,6 +6,8 @@ use Illuminate\Contracts\Process\ProcessResult;
 use Illuminate\Process\Exceptions\ProcessTimedOutException;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\StatusCode;
+use Symfony\Component\Process\Exception\ProcessTimedOutException as SymfonyProcessTimedOutException;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 final class ProcessSpan
@@ -31,6 +33,18 @@ final class ProcessSpan
         $this->end();
     }
 
+    public function completeSymfony(Process $process): void
+    {
+        if ($this->ended) {
+            return;
+        }
+
+        $this->span->setAttribute('process.exit_code', $process->getExitCode());
+        $this->span->setAttribute('process.outcome', $process->isSuccessful() ? 'completed' : 'failed');
+        $this->span->setStatus($process->isSuccessful() ? StatusCode::STATUS_OK : StatusCode::STATUS_ERROR);
+        $this->end();
+    }
+
     public function fail(Throwable $exception): void
     {
         if ($this->ended) {
@@ -38,8 +52,9 @@ final class ProcessSpan
         }
 
         $this->span->setAttribute('error.type', $exception::class);
-        $this->span->setAttribute('process.timed_out', $exception instanceof ProcessTimedOutException);
-        $this->span->setAttribute('process.outcome', $exception instanceof ProcessTimedOutException ? 'timed_out' : 'failed');
+        $timedOut = $exception instanceof ProcessTimedOutException || $exception instanceof SymfonyProcessTimedOutException;
+        $this->span->setAttribute('process.timed_out', $timedOut);
+        $this->span->setAttribute('process.outcome', $timedOut ? 'timed_out' : 'failed');
         $this->span->setStatus(StatusCode::STATUS_ERROR);
         $this->end();
     }

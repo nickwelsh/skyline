@@ -15,6 +15,7 @@ use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
 use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
@@ -40,8 +41,12 @@ use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\FailingSqlJob;
 use Tests\Fixtures\Jobs\HttpJob;
+use Tests\Fixtures\Jobs\LifecycleCleanupJob;
 use Tests\Fixtures\Jobs\ParentJob;
+use Tests\Fixtures\Jobs\PolledProcessJob;
+use Tests\Fixtures\Jobs\ProcessFakeJob;
 use Tests\Fixtures\Jobs\RedisJob;
+use Tests\Fixtures\Jobs\RetriedTransactionJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
@@ -143,8 +148,55 @@ it('captures storage and process operations without content paths arguments or o
         ->not->toContain('exit(7)');
 });
 
+it('completes an asynchronously polled process without requiring wait', function (): void {
+    PolledProcessJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $processes = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'process')
+        ->values();
+
+    expect($processes)->toHaveCount(2)
+        ->and($processes->every(fn ($span) => $span->getAttributes()->get('process.outcome') === 'completed'))->toBeTrue()
+        ->and($processes->every(fn ($span) => $span->getAttributes()->get('process.exit_code') === 0))->toBeTrue();
+});
+
+it('captures process fakes without exposing arguments', function (): void {
+    Process::fake();
+
+    ProcessFakeJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $processes = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'process')
+        ->values();
+
+    expect($processes)->toHaveCount(2)
+        ->and(json_encode($processes->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('private-argument');
+});
+
+it('closes unfinished child telemetry at the Attempt boundary', function (): void {
+    LifecycleCleanupJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $unfinished = collect($sink->spans)
+        ->filter(fn ($span) => in_array($span->getAttributes()->get('skyline.role'), ['cache', 'custom', 'transaction'], true))
+        ->values();
+
+    expect($unfinished)->toHaveCount(3)
+        ->and($unfinished->every(fn ($span) => $span->getStatus()->getCode() === StatusCode::STATUS_ERROR))->toBeTrue()
+        ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')->getAttributes()->get('cache.outcome'))->toBe('incomplete')
+        ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'custom')->getAttributes()->get('skyline.outcome'))->toBe('incomplete')
+        ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'transaction')->getAttributes()->get('db.transaction.outcome'))->toBe('incomplete');
+});
+
 it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
     config()->set('skyline.logging.enabled', true);
+    config()->set('skyline.logging.channel', 'queue-workers');
 
     SummaryJob::dispatchSync();
 
@@ -160,6 +212,7 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
 
     expect($breadcrumbs)->toHaveCount(2)
         ->and($breadcrumbs->map(fn ($event) => $event->getAttributes()->get('log.level'))->all())->toBe(['warning', 'error'])
+        ->and($breadcrumbs->every(fn ($event) => $event->getAttributes()->get('log.channel') === 'queue-workers'))->toBeTrue()
         ->and($breadcrumbs[0]->getEpochNanos())->toBeLessThanOrEqual($breadcrumbs[1]->getEpochNanos())
         ->and($breadcrumbs[0]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
         ->and($breadcrumbs[0]->getAttributes()->get('log.context'))->toContain('"code":429')
@@ -175,6 +228,22 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
     ]))->not->toContain('private-token')
         ->not->toContain('private-password')
         ->not->toContain('ignored info');
+});
+
+it('bounds breadcrumbs per Attempt', function (): void {
+    config()->set('skyline.logging.enabled', true);
+    config()->set('skyline.logging.max_breadcrumbs', 1);
+
+    SummaryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+
+    expect(collect($consumer->getEvents())->filter(fn ($event) => $event->getName() === 'log'))->toHaveCount(1)
+        ->and($consumer->getAttributes()->get('skyline.summary.memory_peak_source'))->toBe('php_process_lifetime');
 });
 
 it('records handled mail transport failures without changing application control flow', function (): void {
@@ -260,6 +329,22 @@ it('captures nested rolled-back and multi-connection database transactions', fun
         ->and($rolledBack->getAttributes()->get('db.transaction.query_time_ms'))->toBeGreaterThanOrEqual(0)
         ->and(json_encode($transactions->map(fn ($span) => $span->getAttributes()->toArray())->all()))
         ->not->toContain('rollback reason');
+});
+
+it('captures retried transaction boundaries without changing retry behavior', function (): void {
+    RetriedTransactionJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $transactions = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'transaction')
+        ->values();
+
+    expect($transactions)->toHaveCount(2)
+        ->and($transactions->map(fn ($span) => $span->getAttributes()->get('db.transaction.outcome'))->all())
+        ->toBe(['rolled_back', 'committed'])
+        ->and($transactions[0]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($transactions[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_OK);
 });
 
 it('is a no-op outside an active Attempt', function (): void {

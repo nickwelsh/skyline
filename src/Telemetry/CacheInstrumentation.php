@@ -32,7 +32,7 @@ final class CacheInstrumentation
 {
     private bool $booted = false;
 
-    /** @var list<array{operation: string, store: string, key: ?string, ttl: ?int, started_at: int, source: array<string, string|int>}> */
+    /** @var list<array{run_id: string, attempt: int, operation: string, store: string, key: ?string, ttl: ?int, started_at: int, source: array<string, string|int>}> */
     private array $pending = [];
 
     public function __construct(
@@ -86,11 +86,15 @@ final class CacheInstrumentation
 
     private function begin(string $operation, ?string $store, ?string $key = null, mixed $ttl = null): void
     {
-        if ($this->attempts->current() === null || $this->persistenceGuard->active()) {
+        $active = $this->attempts->current();
+
+        if ($active === null || $this->persistenceGuard->active()) {
             return;
         }
 
         $this->pending[] = [
+            'run_id' => $active->runId,
+            'attempt' => $active->number,
             'operation' => $operation,
             'store' => $store ?? 'default',
             'key' => $key,
@@ -105,25 +109,43 @@ final class CacheInstrumentation
     /** @param array<string, bool|int|string> $extra */
     private function finish(string $operation, ?string $store, ?string $key, bool $success, array $extra = []): void
     {
-        $index = $this->pendingIndex($operation, $store ?? 'default', $key);
-
-        if ($index === null) {
-            return;
-        }
-
-        $pending = $this->pending[$index];
-        array_splice($this->pending, $index, 1);
         $active = $this->attempts->current();
 
         if ($active === null || $this->persistenceGuard->active()) {
             return;
         }
 
+        $index = $this->pendingIndex($active, $operation, $store ?? 'default', $key);
+
+        if ($index === null) {
+            return;
+        }
+
+        $this->endPending($index, $active, $success, $extra);
+    }
+
+    public function finishAttempt(ActiveAttempt $active): void
+    {
+        foreach (array_reverse(array_keys($this->pending)) as $index) {
+            $pending = $this->pending[$index];
+
+            if ($pending['run_id'] === $active->runId && $pending['attempt'] === $active->number) {
+                $this->endPending($index, $active, false, ['cache.outcome' => 'incomplete']);
+            }
+        }
+    }
+
+    /** @param array<string, bool|int|string> $extra */
+    private function endPending(int $index, ActiveAttempt $active, bool $success, array $extra): void
+    {
+        $pending = $this->pending[$index];
+        array_splice($this->pending, $index, 1);
+
         $attributes = [
             'skyline.role' => 'cache',
             'skyline.run_id' => $active->runId,
             'skyline.attempt' => $active->number,
-            'cache.operation' => $operation,
+            'cache.operation' => $pending['operation'],
             'cache.store' => $pending['store'],
             ...$extra,
             ...$pending['source'],
@@ -138,7 +160,7 @@ final class CacheInstrumentation
         }
 
         $end = $this->now();
-        $span = $this->tracer->get()->spanBuilder('Cache '.$operation)
+        $span = $this->tracer->get()->spanBuilder('Cache '.$pending['operation'])
             ->setParent($active->context)
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setStartTimestamp($pending['started_at'])
@@ -152,7 +174,7 @@ final class CacheInstrumentation
     {
         $active = $this->attempts->current();
 
-        if ($active === null || $this->pending !== [] || $this->persistenceGuard->active()) {
+        if ($active === null || $this->hasPending($active) || $this->persistenceGuard->active()) {
             return;
         }
 
@@ -178,15 +200,30 @@ final class CacheInstrumentation
         $span->end($end);
     }
 
-    private function pendingIndex(string $operation, string $store, ?string $key): ?int
+    private function pendingIndex(ActiveAttempt $active, string $operation, string $store, ?string $key): ?int
     {
         foreach ($this->pending as $index => $pending) {
-            if ($pending['operation'] === $operation && $pending['store'] === $store && $pending['key'] === $key) {
+            if ($pending['run_id'] === $active->runId
+                && $pending['attempt'] === $active->number
+                && $pending['operation'] === $operation
+                && $pending['store'] === $store
+                && $pending['key'] === $key) {
                 return $index;
             }
         }
 
         return null;
+    }
+
+    private function hasPending(ActiveAttempt $active): bool
+    {
+        foreach ($this->pending as $pending) {
+            if ($pending['run_id'] === $active->runId && $pending['attempt'] === $active->number) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function key(string $key): string

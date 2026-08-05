@@ -46,6 +46,7 @@ final class QueueInstrumentation
         private readonly CacheInstrumentation $cache,
         private readonly DatabaseTransactionInstrumentation $transactions,
         private readonly DeliveryInstrumentation $delivery,
+        private readonly CustomTelemetry $custom,
         private readonly ProcessInstrumentation $processes,
         private readonly LogBreadcrumbInstrumentation $logs,
     ) {}
@@ -366,7 +367,10 @@ final class QueueInstrumentation
 
     private function finish(ActiveAttempt $active): void
     {
+        $this->cache->finishAttempt($active);
+        $this->transactions->finishAttempt($active);
         $this->delivery->finishAttempt($active);
+        $this->custom->finishAttempt($active);
         $this->processes->finishAttempt($active);
         $result = $active->result ?? AttemptResult::Completed;
         $attemptOutcome = $result->attemptOutcome();
