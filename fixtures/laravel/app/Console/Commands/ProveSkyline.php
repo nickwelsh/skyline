@@ -33,7 +33,7 @@ final class ProveSkyline extends Command
             'connection' => 'database',
             '--queue' => 'default',
             '--stop-when-empty' => true,
-            '--tries' => 2,
+            '--tries' => 3,
             '--backoff' => 0,
             '--sleep' => 0,
         ]);
@@ -46,7 +46,7 @@ final class ProveSkyline extends Command
         $this->ensure(DB::table('proof_records')->where('kind', 'parent')->count() === 1, 'the parent Job stays successful');
         $this->ensure(DB::table('proof_records')->where('kind', 'child')->count() === 1, 'the child Job stays successful');
         $this->ensure(DB::table('proof_records')->where('kind', 'retry')->count() === 2, 'the retrying Job executes twice');
-        $this->ensure(DB::table('proof_records')->where('kind', 'failure')->count() === 2, 'the failing Job executes twice');
+        $this->ensure(DB::table('proof_records')->where('kind', 'failure')->count() === 3, 'the failing Job executes three times');
 
         $runs = DB::table('skyline_runs')->orderBy('triggered_at')->get();
         $attempts = DB::table('skyline_attempts')->get();
@@ -54,11 +54,12 @@ final class ProveSkyline extends Command
         $statuses = $runs->groupBy('job_name')->map->pluck('status')->map->values();
 
         $this->ensure($runs->count() === 5, 'five Runs are captured');
-        $this->ensure($attempts->count() === 7, 'seven Attempts are captured');
+        $this->ensure($attempts->count() === 8, 'eight Attempts are captured');
         $this->ensure($sql->isNotEmpty(), 'application SQL is captured');
         $this->ensure($statuses->get(SuccessfulJob::class)?->all() === ['completed'], 'successful status is completed');
         $this->ensure($statuses->get(RetryingJob::class)?->all() === ['completed'], 'retry status becomes completed');
         $this->ensure($statuses->get(FailingJob::class)?->all() === ['failed'], 'failure status is terminal');
+        $this->ensure($attempts->where('run_id', $runs->firstWhere('job_name', FailingJob::class)->run_id)->count() === 3, 'terminal failure records three Attempts');
 
         $capturedSql = $sql->pluck('attributes')->implode(' ');
         $this->ensure(str_contains($capturedSql, '?'), 'captured SQL remains parameterized');

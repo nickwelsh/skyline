@@ -39,6 +39,12 @@ final class AttemptRegistry
         return $key === false ? null : ($this->attempts[$key] ?? null);
     }
 
+    /** @return list<ActiveAttempt> */
+    public function all(): array
+    {
+        return array_values($this->attempts);
+    }
+
     public function remove(ActiveAttempt $attempt): void
     {
         $key = $this->key($attempt->runId, $attempt->number);

@@ -13,7 +13,7 @@ final class FailingJob implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     public int $backoff = 0;
 

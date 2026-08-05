@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\Looping;
 use Illuminate\Queue\Worker;
 use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +58,62 @@ it('persists three failed Attempts and marks the Run failed', function (): void 
         ->and($attempts->pluck('attempt_number')->all())->toBe([1, 2, 3])
         ->and($attempts->pluck('status')->all())->toBe(['failed', 'failed', 'failed'])
         ->and(collect($trace->json('trace.nodes'))->where('kind', 'attempt'))->toHaveCount(3);
+});
+
+it('finalizes retries when the runner omits JobAttempted', function (): void {
+    config()->set('skyline.batch.max_operations', 5_000);
+    config()->set('skyline.batch.max_delay_ms', 2_000);
+    setUpPersistentDatabaseQueue();
+
+    ThreeAttemptJob::dispatch()->onConnection('database');
+    app(PersistentTelemetrySink::class)->flush();
+    app('events')->forget(JobAttempted::class);
+
+    /** @var Worker $worker */
+    $worker = app('queue.worker');
+    $options = new WorkerOptions(backoff: 0, sleep: 0, maxTries: 3);
+
+    foreach (range(1, 3) as $_) {
+        $worker->runNextJob('database', 'default', $options);
+    }
+
+    app(PersistentTelemetrySink::class)->flush();
+
+    $run = DB::table('skyline_runs')->where('job_name', ThreeAttemptJob::class)->first();
+    $attempts = DB::table('skyline_attempts')->where('run_id', $run->run_id)->orderBy('attempt_number')->get();
+
+    expect($run->status)->toBe('failed')
+        ->and($attempts)->toHaveCount(3)
+        ->and($attempts->pluck('attempt_number')->all())->toBe([1, 2, 3])
+        ->and($attempts->pluck('status')->all())->toBe(['failed', 'failed', 'failed']);
+});
+
+it('completes a successful retry when the runner omits JobAttempted', function (): void {
+    config()->set('skyline.batch.max_operations', 5_000);
+    config()->set('skyline.batch.max_delay_ms', 2_000);
+    setUpPersistentDatabaseQueue();
+
+    ThreeAttemptJob::dispatch(3)->onConnection('database');
+    app(PersistentTelemetrySink::class)->flush();
+    app('events')->forget(JobAttempted::class);
+
+    /** @var Worker $worker */
+    $worker = app('queue.worker');
+    $options = new WorkerOptions(backoff: 0, sleep: 0, maxTries: 3);
+
+    foreach (range(1, 3) as $_) {
+        $worker->runNextJob('database', 'default', $options);
+    }
+
+    app('events')->dispatch(new Looping('database', 'default', $options));
+
+    $run = DB::table('skyline_runs')->where('job_name', ThreeAttemptJob::class)->first();
+    $attempts = DB::table('skyline_attempts')->where('run_id', $run->run_id)->orderBy('attempt_number')->get();
+
+    expect($run->status)->toBe('completed')
+        ->and($attempts)->toHaveCount(3)
+        ->and($attempts->pluck('attempt_number')->all())->toBe([1, 2, 3])
+        ->and($attempts->pluck('status')->all())->toBe(['failed', 'failed', 'completed']);
 });
 
 it('persists two failed Attempts before a successful third Attempt', function (): void {

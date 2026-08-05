@@ -7,6 +7,9 @@ use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Process\Factory as ProcessFactory;
 use Illuminate\Queue\Events\JobAttempted;
+use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobReleasedAfterException;
+use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use NickWelsh\Skyline\Console\PruneCommand;
@@ -150,8 +153,17 @@ final class SkylineServiceProvider extends ServiceProvider
             return;
         }
 
-        $this->app->terminating(fn () => $sink->flush());
-        $this->app['events']->listen(Looping::class, fn () => $sink->flushIfDue());
-        $this->app['events']->listen(JobAttempted::class, fn () => $sink->flush());
+        $instrumentation = $this->app->make(QueueInstrumentation::class);
+        $this->app->terminating(function () use ($instrumentation, $sink): void {
+            $instrumentation->finishProposed();
+            $sink->flush();
+        });
+        $this->app['events']->listen(Looping::class, function () use ($instrumentation, $sink): void {
+            $instrumentation->finishProposed() ? $sink->flush() : $sink->flushIfDue();
+        });
+
+        foreach ([JobReleasedAfterException::class, JobFailed::class, JobTimedOut::class, JobAttempted::class] as $event) {
+            $this->app['events']->listen($event, fn () => $sink->flush());
+        }
     }
 }

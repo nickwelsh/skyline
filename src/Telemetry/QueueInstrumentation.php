@@ -94,6 +94,24 @@ final class QueueInstrumentation
         $this->enabled = false;
     }
 
+    public function finishProposed(): bool
+    {
+        return $this->guard(function (): bool {
+            $finished = false;
+
+            foreach ($this->attempts->all() as $active) {
+                if ($active->result === null) {
+                    continue;
+                }
+
+                $this->finish($active);
+                $finished = true;
+            }
+
+            return $finished;
+        }, false);
+    }
+
     /** @return array{skyline: array{v: 1, run_id: string, parent_run_id: ?string, queued_at_ns: int, carrier: array<string, string>}}|array{} */
     private function payload(string $connection, ?string $queue, array $payload): array
     {
@@ -270,17 +288,11 @@ final class QueueInstrumentation
 
         if ($job->isReleased()) {
             $active->propose(AttemptResult::Released);
-
-            return;
-        }
-
-        if ($job->hasFailed()) {
+        } elseif ($job->hasFailed()) {
             $active->propose(AttemptResult::Failed);
-
-            return;
+        } else {
+            $active->propose(AttemptResult::Completed);
         }
-
-        $active->propose(AttemptResult::Completed);
     }
 
     private function exception(JobExceptionOccurred $event): void
@@ -310,6 +322,7 @@ final class QueueInstrumentation
         }
 
         $active->propose(AttemptResult::RetryableFailure);
+        $this->finish($active);
     }
 
     private function failed(JobFailed $event): void
@@ -322,6 +335,7 @@ final class QueueInstrumentation
 
         $this->recordException($active, $event->exception);
         $active->propose(AttemptResult::Failed);
+        $this->finish($active);
     }
 
     private function timedOut(Job $job): void
