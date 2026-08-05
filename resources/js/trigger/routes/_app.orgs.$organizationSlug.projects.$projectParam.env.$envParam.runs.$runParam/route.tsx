@@ -11,6 +11,7 @@ import {
   ExclamationTriangleIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
+  XMarkIcon,
 } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
@@ -27,6 +28,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
   collapsibleHandleClassName,
+  useFrozenValue,
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Slider } from "~/components/primitives/Slider";
@@ -64,6 +66,7 @@ type Inspector = TraceNode & {
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
   detailSections: Array<{ label: string; value: unknown }>;
 };
+type PanelHandle = NonNullable<React.ComponentProps<typeof ResizablePanel>["handle"]> extends React.Ref<infer Handle> ? Handle : never;
 type RouteData = {
   generatedAt: string;
   run: {
@@ -88,6 +91,10 @@ type RouteData = {
     id: string;
     number: number;
     status: AttemptStatus;
+    startedAt: string;
+    finishedAt: string | null;
+    queueDurationUs: number | null;
+    queueTimeSource: string | null;
     failure: { class: string; message: string; messageTruncated: boolean } | null;
     path: string;
   }>;
@@ -124,6 +131,7 @@ export default function RunDetailRoute() {
   const [params, setParams] = useSearchParams();
   const rootNodeId = data.trace.nodes[0]?.id;
   const selectedId = params.get("node") ?? undefined;
+  const inspectorPanelHandle = useRef<PanelHandle>(null);
   const rememberedSelection = useRef<{ runId: string; nodeId?: string }>({ runId: data.run.id, nodeId: selectedId });
 
   if (rememberedSelection.current.runId !== data.run.id) {
@@ -132,6 +140,10 @@ export default function RunDetailRoute() {
 
   useEffect(() => {
     if (selectedId) rememberedSelection.current.nodeId = selectedId;
+  }, [selectedId]);
+
+  useEffect(() => {
+    void (selectedId ? inspectorPanelHandle.current?.expand() : inspectorPanelHandle.current?.collapse());
   }, [selectedId]);
 
   useEffect(() => {
@@ -161,7 +173,7 @@ export default function RunDetailRoute() {
             : null;
       if (!path) return;
       event.preventDefault();
-      navigate(path);
+      navigate(path, { replace: ["j", "k"].includes(event.key.toLowerCase()) });
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
@@ -208,23 +220,25 @@ export default function RunDetailRoute() {
           <ResizablePanel id={panels.parent.main} min="100px">
             <TraceView key={data.run.id} data={data} selectedId={selectedId} onSelect={select} />
           </ResizablePanel>
-          {selectedId && (
-            <>
-              <ResizableHandle
-                id={panels.parent.handle}
-                className={collapsibleHandleClassName(true)}
-              />
-              <ResizablePanel
-                id={panels.parent.inspector}
-                default="500px"
-                min="250px"
-                collapseAnimation={RESIZABLE_PANEL_ANIMATION}
-                isStaticAtRest
-              >
-                <InspectorPanel data={data} selectedId={selectedId} />
-              </ResizablePanel>
-            </>
-          )}
+          <ResizableHandle
+            id={panels.parent.handle}
+            className={collapsibleHandleClassName(Boolean(selectedId))}
+          />
+          <ResizablePanel
+            id={panels.parent.inspector}
+            handle={inspectorPanelHandle}
+            default="500px"
+            min="250px"
+            collapsible
+            defaultCollapsed={!selectedId}
+            collapsedSize="0px"
+            collapseAnimation={RESIZABLE_PANEL_ANIMATION}
+            isStaticAtRest
+            aria-hidden={!selectedId}
+            className={cn("overflow-hidden", !selectedId && "max-w-0")}
+          >
+            <InspectorPanel data={data} selectedId={selectedId} onClose={() => select(undefined)} />
+          </ResizablePanel>
         </ResizablePanelGroup>
       </PageBody>
     </PageContainer>
@@ -298,7 +312,10 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
         </div>
       </div>
       <div className="flex items-center justify-between px-3 text-xs text-text-faint">
-        <RelationshipLinks data={data} />
+        <span className="flex items-center gap-3">
+          <RelationshipLinks data={data} />
+          {data.trace.isTruncated && <span role="status" className="text-warning">Trace truncated at {data.trace.nodeCount} nodes</span>}
+        </span>
         {data.trace.polling && (
           <span className="flex items-center gap-1 text-blue-500"><span className="size-2 animate-pulse rounded-full bg-blue-500" />Live reloading</span>
         )}
@@ -485,12 +502,13 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
   );
 }
 
-function InspectorPanel({ data, selectedId }: { data: RouteData; selectedId?: string }) {
+function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; selectedId?: string; onClose: () => void }) {
   const [params, setParams] = useSearchParams();
   const tab = params.get("tab") ?? "overview";
   const [inspector, setInspector] = useState<Inspector>();
   const [error, setError] = useState<Error>();
-  const node = data.trace.nodes.find((candidate) => candidate.id === selectedId);
+  const frozenId = useFrozenValue(selectedId);
+  const node = data.trace.nodes.find((candidate) => candidate.id === frozenId);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -507,19 +525,25 @@ function InspectorPanel({ data, selectedId }: { data: RouteData; selectedId?: st
         }
       });
     return () => { active = false; controller.abort(); };
-  }, [data.trace.revision, selectedId]);
+  }, [data.generatedAt, data.trace.revision, selectedId]);
 
-  if (!selectedId) return null;
+  if (!frozenId) return null;
 
   const setTab = (nextTab: string) => {
     const next = new URLSearchParams(params);
     nextTab === "overview" ? next.delete("tab") : next.set("tab", nextTab);
     setParams(next);
   };
-  const failure = data.attempts.find((attempt) => attempt.id === selectedId)?.failure;
+  const failure = data.attempts.find((attempt) => attempt.id === frozenId)?.failure;
 
   return (
-    <section className="grid h-full grid-rows-[auto_1fr] overflow-hidden bg-background-dimmed" aria-label="Run inspector">
+    <section className="grid h-full grid-rows-[2.5rem_auto_1fr] overflow-hidden bg-background-dimmed" aria-label="Run inspector">
+      <div className="flex items-center justify-between border-b border-grid-bright px-4">
+        <Header3>{node?.label ?? "Inspector"}</Header3>
+        <button type="button" aria-label="Close inspector" title="Close inspector (Esc)" className="rounded p-1 text-text-dimmed hover:bg-background-raised hover:text-text-bright" onClick={onClose}>
+          <XMarkIcon className="size-4" />
+        </button>
+      </div>
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-4">
         {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
           <InspectorTab key={item.id} active={tab === item.id} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
@@ -545,6 +569,7 @@ function InspectorPanel({ data, selectedId }: { data: RouteData; selectedId?: st
 }
 
 function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: TraceNode; inspector: Inspector }) {
+  const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -558,6 +583,13 @@ function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: 
         <Property name="Driver" value={data.run.driverId} />
         <Property name="Queue-time source" value={data.run.queueTimeSource} />
         <Property name="Attempts" value={data.run.attemptCount} />
+        <Property name="Triggered" value={data.run.triggeredAt} />
+        <Property name="Queued" value={data.run.queuedAt} />
+        <Property name="Started" value={attempt?.startedAt ?? data.run.startedAt} />
+        <Property name="Finished" value={attempt?.finishedAt ?? data.run.finishedAt} />
+        <Property name="Queue duration" value={formatDuration(attempt?.queueDurationUs ?? data.run.queueDurationUs)} />
+        {attempt && <Property name="Attempt" value={attempt.number} />}
+        {attempt && <Property name="Attempt queue source" value={attempt.queueTimeSource} />}
         <Property name="Duration" value={formatDuration(node?.durationUs ?? data.run.durationUs)} />
       </dl>
     </div>
@@ -622,7 +654,7 @@ function RelationshipLinks({ data }: { data: RouteData }) {
 
 function AdjacentLink({ label, path, icon }: { label: string; path: string | null; icon: React.ReactElement }) {
   return path
-    ? <Link aria-label={label} title={label} to={path} className="flex size-7 items-center justify-center rounded hover:bg-background-raised">{icon}</Link>
+    ? <Link aria-label={label} title={label} to={path} replace className="flex size-7 items-center justify-center rounded hover:bg-background-raised">{icon}</Link>
     : <span aria-label={`${label} unavailable`} className="flex size-7 items-center justify-center opacity-30">{icon}</span>;
 }
 

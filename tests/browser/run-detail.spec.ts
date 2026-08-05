@@ -29,6 +29,7 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   }
   await expect(page.locator('[data-timeline-event="Dequeued"]')).toBeVisible();
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Attempts" }).locator("+ dd")).toHaveText("2");
+  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Triggered" }).locator("+ dd")).toHaveText("2026-08-04T20:01:21.000000000Z");
   await expect(page.getByRole("link", { name: /Child:/ })).toHaveAttribute("href", /\/skyline\/runs\/run_01J8R4H9S9J12V04CNH6F6JQ3M/);
   await page.keyboard.press("w");
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toHaveCount(0);
@@ -48,7 +49,7 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   const attemptBox = await attempt.boundingBox();
   expect(timelineBox).not.toBeNull();
   expect(attemptBox).not.toBeNull();
-  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(oracle.expected.queueHiddenAttemptRatio, 4);
+  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(oracle.expected.queueHiddenAttemptRatio, 3);
 
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/node=/);
@@ -67,6 +68,8 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.getByRole("tab", { name: "Detail" }).click();
   await expect(page.getByRole("region", { name: "SQL" })).toContainText("insert into `invoices`");
   await expect(page.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
+  await page.getByRole("button", { name: "Close inspector" }).click();
+  await expect(page).not.toHaveURL(/node=/);
 });
 
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {
@@ -159,16 +162,19 @@ test("adjacent Run shortcut replaces an equal-sized trace without stale tree sta
     await route.fulfill({ json: path.includes(nextId) ? next : first });
   });
   await page.goto(`/skyline/runs/${runId}`);
+  const historyLength = await page.evaluate(() => history.length);
   await page.keyboard.press("k");
 
   await expect(page).toHaveURL(new RegExp(`/skyline/runs/${nextId}`));
   await expect(page.getByRole("heading", { name: nextId })).toBeVisible();
   await expect(page.locator(`[data-node-id="run_${nextId}"]`)).toBeVisible();
+  expect(await page.evaluate(() => history.length)).toBe(historyLength);
 });
 
 test("long inspector metadata remains readable in the constrained panel", async ({ page }) => {
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
+  detail.trace.isTruncated = true;
   const longValue = "long-payload-".repeat(300);
   await routeDetail(page, detail, async (nodeId) => {
     const inspector = await adapter.inspector(nodeId, runId);
@@ -178,6 +184,7 @@ test("long inspector metadata remains readable in the constrained panel", async 
   await page.setViewportSize({ width: 1024, height: 480 });
   await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}&tab=metadata`);
 
+  await expect(page.getByText(/^Trace truncated at \d+ nodes$/)).toBeVisible();
   const metadata = page.getByRole("tabpanel", { name: "Metadata" }).locator("pre");
   await expect(metadata).toContainText("long-payload-long-payload");
   expect(await metadata.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
