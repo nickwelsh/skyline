@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
+use League\Flysystem\UnableToReadFile;
 use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
@@ -40,6 +41,8 @@ use Tests\Fixtures\Jobs\FailingDeliveryJob;
 use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\FailingSqlJob;
+use Tests\Fixtures\Jobs\FailingStorageJob;
+use Tests\Fixtures\Jobs\FailingSummaryJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\LifecycleCleanupJob;
 use Tests\Fixtures\Jobs\ParentJob;
@@ -181,6 +184,25 @@ it('captures process fakes without exposing arguments', function (): void {
         ->not->toContain('private-argument');
 });
 
+it('records storage failures without changing the thrown exception', function (): void {
+    config()->set('filesystems.disks.telemetry', [
+        'driver' => 'local',
+        'root' => storage_path('framework/testing/disks/telemetry-failure'),
+        'throw' => true,
+    ]);
+
+    FailingStorageJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $storage = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'storage',
+    );
+
+    expect($storage->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($storage->getAttributes()->get('error.type'))->toBe(UnableToReadFile::class);
+});
+
 it('closes unfinished child telemetry at the Attempt boundary', function (): void {
     LifecycleCleanupJob::dispatchSync();
 
@@ -251,6 +273,25 @@ it('bounds breadcrumbs per Attempt', function (): void {
 
     expect(collect($consumer->getEvents())->filter(fn ($event) => $event->getName() === 'log'))->toHaveCount(1)
         ->and($consumer->getAttributes()->get('skyline.summary.memory_peak_source'))->toBe('php_process_lifetime');
+});
+
+it('persists breadcrumbs and summaries for failed Attempts', function (): void {
+    config()->set('skyline.logging.enabled', true);
+
+    expect(fn () => FailingSummaryJob::dispatchSync())->toThrow(RuntimeException::class, 'expected failure');
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+    $breadcrumbs = collect($consumer->getEvents())->filter(fn ($event) => $event->getName() === 'log');
+
+    expect($consumer->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($consumer->getAttributes()->get('skyline.summary.custom.count'))->toBe(1)
+        ->and($consumer->getAttributes()->get('skyline.summary.memory_delta_bytes'))->toBeInt()
+        ->and($breadcrumbs)->toHaveCount(1)
+        ->and(json_encode($breadcrumbs->first()->getAttributes()->toArray()))->not->toContain('private-token');
 });
 
 it('records handled mail transport failures without changing application control flow', function (): void {
