@@ -77,7 +77,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
 
   async trace(runId: string, tableState?: string): Promise<TracePageDto> {
     const { nodes: rawNodes, parentRunId, rootRunId, run } = this.fixtureForRun(runId);
-    const nodes = normalizeNodes(rawNodes);
+    const nodes = normalizeNodes(rawNodes, runId);
     const summary = this.summary(run, 0);
     const runs = scenarios[0].runs;
     const index = runs.findIndex((candidate) => candidate.id === runId);
@@ -92,6 +92,37 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         traceId: String(rawNodes[0].metadata.traceId ?? "fixture-trace"),
         rootRunId,
         parentRunId: parentRunId ?? null,
+        queueTarget: { connection: run.connection, queue: run.queue },
+        driverId: run.connection,
+        queueTimeSource: "framework_event",
+      },
+      attempts: rawNodes.filter((node) => node.kind === "attempt" && node.runId === runId).map((attempt) => ({
+        id: attempt.id,
+        number: Number(attempt.label.match(/\d+/)?.[0] ?? 1),
+        status: attempt.status as "running" | "completed" | "released" | "failed",
+        startedAt: addMilliseconds(summary.triggeredAt, attempt.offsetMs),
+        finishedAt: ["completed", "released", "failed"].includes(attempt.status)
+          ? addMilliseconds(summary.triggeredAt, attempt.offsetMs + attempt.durationMs)
+          : null,
+        queueDurationUs: null,
+        queueTimeSource: null,
+        failure: attempt.exception ? {
+          class: attempt.exception.class,
+          message: attempt.exception.message,
+          messageTruncated: false,
+        } : null,
+        inspectorHref: inspectorHref(runId, attempt.id),
+      })),
+      relationships: {
+        parent: parentRunId ? { id: parentRunId, runHref: runHref(parentRunId) } : null,
+        children: rawNodes.filter((node) => node.kind === "run" && node.runId !== runId).map((child) => ({
+          id: child.runId,
+          parentRunId: runId,
+          name: scenarios[0].runs.find((candidate) => candidate.id === child.runId)?.name ?? child.label,
+          status: child.status as "queued" | "running" | "retrying" | "completed" | "failed",
+          runHref: runHref(child.runId),
+          inspectorHref: inspectorHref(runId, `run_${child.runId}`),
+        })),
       },
       trace: {
         revision: 1,
@@ -118,7 +149,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
 
   async inspector(nodeId: string, runId: string): Promise<InspectorDto> {
     const raw = this.fixtureForRun(runId).nodes;
-    const nodes = normalizeNodes(raw);
+    const nodes = normalizeNodes(raw, runId);
     const index = nodes.findIndex((node) => node.id === nodeId);
     if (index < 0) throw new Error(`Unknown fixture inspector node: ${nodeId}`);
     const node = nodes[index];
@@ -221,7 +252,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
   }
 }
 
-function normalizeNodes(source: Scenario["nodes"]): TraceNode[] {
+function normalizeNodes(source: Scenario["nodes"], selectedRunId: string): TraceNode[] {
   const runNodeIds = new Set(source.filter((node) => node.kind === "run").map((node) => node.id));
   return source.map((node) => ({
     id: node.kind === "run" ? `run_${node.id}` : node.id,
@@ -239,7 +270,23 @@ function normalizeNodes(source: Scenario["nodes"]): TraceNode[] {
     children: source.filter((candidate) => candidate.parentId === node.id).map((candidate) => candidate.kind === "run" ? `run_${candidate.id}` : candidate.id),
     hasChildren: source.some((candidate) => candidate.parentId === node.id),
     timelineEvents: [],
+    inspectorHref: inspectorHref(selectedRunId, node.kind === "run" ? `run_${node.id}` : node.id),
+    telemetryEventHref: ["run", "attempt"].includes(node.kind)
+      ? null
+      : inspectorHref(selectedRunId, node.kind === "run" ? `run_${node.id}` : node.id),
   }));
+}
+
+function runHref(runId: string): string {
+  return `/skyline/api/runs/${encodeURIComponent(runId)}`;
+}
+
+function inspectorHref(runId: string, nodeId: string): string {
+  return `${runHref(runId)}/nodes/${encodeURIComponent(nodeId)}`;
+}
+
+function addMilliseconds(timestamp: string, milliseconds: number): string {
+  return new Date(new Date(timestamp).getTime() + milliseconds).toISOString();
 }
 
 function generatedTimestamp(index: number): string {

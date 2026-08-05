@@ -72,6 +72,29 @@ export type TraceNode = {
   hasChildren: boolean;
   timelineEvents: Array<{ name: string; offsetUs: number; kind?: "event" }>;
   logLevel?: string;
+  inspectorHref: string;
+  telemetryEventHref: string | null;
+};
+
+export type AttemptDetail = {
+  id: string;
+  number: number;
+  status: AttemptStatus;
+  startedAt: string;
+  finishedAt: string | null;
+  queueDurationUs: number | null;
+  queueTimeSource: string | null;
+  failure: { class: string; message: string; messageTruncated: boolean } | null;
+  inspectorHref: string;
+};
+
+export type RunRelationship = {
+  id: string;
+  runHref: string;
+  parentRunId?: string;
+  name?: string;
+  status?: RunStatus;
+  inspectorHref?: string;
 };
 
 export type RunsQuery = {
@@ -139,7 +162,12 @@ export type TracePageDto = {
     traceId: string;
     rootRunId: string | null;
     parentRunId: string | null;
+    queueTarget: { connection: string | null; queue: string | null };
+    driverId: string | null;
+    queueTimeSource: string | null;
   };
+  attempts: AttemptDetail[];
+  relationships: { parent: RunRelationship | null; children: RunRelationship[] };
   trace: {
     revision: number;
     rootStatus: "executing" | "completed" | "failed";

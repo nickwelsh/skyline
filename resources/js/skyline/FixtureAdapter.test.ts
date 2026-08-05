@@ -43,11 +43,26 @@ describe("FixtureAdapter", () => {
     expect(trace.run).toMatchObject({
       id: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
       traceId: "fda8d9cf9d53e8845fd0738b8407731d",
+      queueTarget: { connection: "redis", queue: "billing" },
+      driverId: "redis",
+      queueTimeSource: "framework_event",
+    });
+    expect(trace.attempts.map((attempt) => attempt.number)).toEqual([1, 2]);
+    expect(trace.attempts[0]).toMatchObject({
+      failure: { class: "Illuminate\\Database\\DeadlockException" },
+    });
+    expect(trace.relationships.children[0]).toMatchObject({
+      id: "run_01J8R4H9S9J12V04CNH6F6JQ3M",
+      parentRunId: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
     });
     expect(trace.trace.nodes.map((node) => node.kind)).toContain("run");
     expect(trace.trace.nodes.map((node) => node.kind)).toContain("attempt");
     expect(trace.trace.nodes.map((node) => node.kind)).toContain("query");
-    expect(query).toMatchObject({ kind: "query", sql: { value: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)" } });
+    expect(query).toMatchObject({
+      kind: "query",
+      telemetryEventHref: "/skyline/api/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C/nodes/span_4f24adb545b26d31",
+      sql: { value: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)" },
+    });
     expect(failedAttempt).toMatchObject({
       kind: "attempt",
       exception: { class: "Illuminate\\Database\\DeadlockException" },
