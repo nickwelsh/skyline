@@ -27,6 +27,8 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.cache.capture_source'))->toBeFalse()
         ->and(config('skyline.cache.max_key_bytes'))->toBe(256)
         ->and(config('skyline.cache.max_value_bytes'))->toBe(65_536)
+        ->and(config('skyline.redis.capture_arguments'))->toBeFalse()
+        ->and(config('skyline.redis.max_argument_bytes'))->toBe(65_536)
         ->and(config('skyline.custom.enabled'))->toBeTrue()
         ->and(config('skyline.custom.max_attributes'))->toBe(32)
         ->and(config('skyline.custom.max_attribute_bytes'))->toBe(1_024)
@@ -37,10 +39,17 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.delivery.max_content_bytes'))->toBe(65_536)
         ->and(config('skyline.storage.enabled'))->toBeTrue()
         ->and(config('skyline.storage.capture_paths'))->toBeFalse()
+        ->and(config('skyline.storage.capture_contents'))->toBeFalse()
         ->and(config('skyline.storage.capture_source'))->toBeFalse()
+        ->and(config('skyline.storage.max_content_bytes'))->toBe(65_536)
         ->and(config('skyline.storage.links'))->toBe([])
         ->and(config('skyline.process.enabled'))->toBeTrue()
+        ->and(config('skyline.process.capture_command'))->toBeFalse()
+        ->and(config('skyline.process.capture_environment'))->toBeFalse()
+        ->and(config('skyline.process.capture_input'))->toBeFalse()
+        ->and(config('skyline.process.capture_output'))->toBeFalse()
         ->and(config('skyline.process.capture_source'))->toBeFalse()
+        ->and(config('skyline.process.max_content_bytes'))->toBe(65_536)
         ->and(config('skyline.logging.enabled'))->toBeFalse()
         ->and(config('skyline.logging.levels'))->toBe(['warning', 'error', 'critical', 'alert', 'emergency'])
         ->and(config('skyline.logging.context_allowlist'))->toBe(['code', 'status']);
@@ -64,12 +73,18 @@ it('uses one capture default while preserving individual overrides', function ()
             'cache.capture_keys',
             'cache.capture_values',
             'cache.capture_source',
+            'redis.capture_arguments',
             'delivery.capture_recipients',
             'delivery.capture_content',
             'delivery.capture_source',
             'storage.capture_paths',
+            'storage.capture_contents',
             'storage.capture_source',
             'process.capture_source',
+            'process.capture_command',
+            'process.capture_environment',
+            'process.capture_input',
+            'process.capture_output',
             'logging.enabled',
         ];
 

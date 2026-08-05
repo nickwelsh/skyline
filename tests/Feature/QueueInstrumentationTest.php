@@ -53,6 +53,7 @@ use Tests\Fixtures\Jobs\LifecycleCleanupJob;
 use Tests\Fixtures\Jobs\MailNotificationJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\PolledProcessJob;
+use Tests\Fixtures\Jobs\ProcessDetailJob;
 use Tests\Fixtures\Jobs\ProcessFakeJob;
 use Tests\Fixtures\Jobs\RedisJob;
 use Tests\Fixtures\Jobs\RemoteStorageJob;
@@ -229,6 +230,33 @@ it('captures storage and process operations without content paths arguments or o
         ->not->toContain('exit(7)');
 });
 
+it('captures opt-in storage read and write contents without consuming streams', function (): void {
+    $root = storage_path('framework/testing/disks/telemetry-content');
+    config()->set('filesystems.disks.telemetry', [
+        'driver' => 'local',
+        'root' => $root,
+        'throw' => true,
+    ]);
+    config()->set('skyline.storage.capture_contents', true);
+
+    StorageProcessJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $storage = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'storage')
+        ->values();
+    $write = json_decode($storage->first(fn ($span) => $span->getAttributes()->get('storage.operation') === 'write')->getAttributes()->get('storage.content'), true, flags: JSON_THROW_ON_ERROR);
+    $writeStream = json_decode($storage->first(fn ($span) => $span->getAttributes()->get('storage.operation') === 'write_stream')->getAttributes()->get('storage.content'), true, flags: JSON_THROW_ON_ERROR);
+    $read = json_decode($storage->first(fn ($span) => $span->getAttributes()->get('storage.operation') === 'read')->getAttributes()->get('storage.content'), true, flags: JSON_THROW_ON_ERROR);
+    $readStream = json_decode($storage->first(fn ($span) => $span->getAttributes()->get('storage.operation') === 'read_stream')->getAttributes()->get('storage.content'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($write['value'])->toBe('private contents')
+        ->and($writeStream['value'])->toBe('stream contents!')
+        ->and($read['value'])->toBe('private contents')
+        ->and($readStream['value'])->toBe('private contents');
+});
+
 it('captures opt-in storage paths links and operation results', function (): void {
     $root = storage_path('framework/testing/disks/telemetry-details');
     config()->set('filesystems.disks.telemetry', [
@@ -289,6 +317,33 @@ it('captures process fakes without exposing arguments', function (): void {
     expect($processes)->toHaveCount(2)
         ->and(json_encode($processes->map(fn ($span) => $span->getAttributes()->toArray())->all()))
         ->not->toContain('private-argument');
+});
+
+it('captures opt-in process command environment input and output', function (): void {
+    config()->set('skyline.process.capture_command', true);
+    config()->set('skyline.process.capture_environment', true);
+    config()->set('skyline.process.capture_input', true);
+    config()->set('skyline.process.capture_output', true);
+
+    ProcessDetailJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $process = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'process',
+    );
+    $command = json_decode($process->getAttributes()->get('process.command'), true, flags: JSON_THROW_ON_ERROR);
+    $environment = json_decode($process->getAttributes()->get('process.environment'), true, flags: JSON_THROW_ON_ERROR);
+    $input = json_decode($process->getAttributes()->get('process.input'), true, flags: JSON_THROW_ON_ERROR);
+    $stdout = json_decode($process->getAttributes()->get('process.stdout'), true, flags: JSON_THROW_ON_ERROR);
+    $stderr = json_decode($process->getAttributes()->get('process.stderr'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($command['value'])->toContain('-r')
+        ->and(json_encode($command['value']))->toContain('SKYLINE_PRIVATE_ENV')
+        ->and($environment['value'])->toBe(['SKYLINE_PRIVATE_ENV' => 'private environment'])
+        ->and($input['value'])->toBe('private input')
+        ->and($stdout['value'])->toBe('private environment / private input')
+        ->and($stderr['value'])->toBe('private error');
 });
 
 it('records storage failures without changing the thrown exception', function (): void {
@@ -642,6 +697,22 @@ it('captures direct Redis commands without duplicating cache-backed commands', f
         ->and($cache)->toHaveCount(1)
         ->and($cache[0]->getName())->toBe('Cache GET')
         ->and(json_encode($redis[0]->getAttributes()->toArray()))->not->toContain('private');
+});
+
+it('captures opt-in direct Redis command arguments', function (): void {
+    config()->set('skyline.redis.capture_arguments', true);
+
+    RedisJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $redis = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'redis',
+    );
+    $arguments = json_decode($redis->getAttributes()->get('db.operation.arguments'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($arguments['value'])->toBe(['private-key', 'private-value'])
+        ->and($arguments['truncated'])->toBeFalse();
 });
 
 function setUpDatabaseQueue(): void

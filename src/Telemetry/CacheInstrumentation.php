@@ -245,18 +245,27 @@ final class CacheInstrumentation
             ? max(0, (int) round((float) $event->time * 1_000_000))
             : 0;
         $operation = strtoupper((string) $event->command);
+        $attributes = [
+            'skyline.role' => 'redis',
+            'skyline.run_id' => $active->runId,
+            'skyline.attempt' => $active->number,
+            'db.system.name' => 'redis',
+            'db.operation.name' => $operation,
+            'db.namespace' => $event->connectionName ?? 'default',
+        ];
+
+        if ((bool) $this->config->get('skyline.redis.capture_arguments', $this->config->get('skyline.capture_all', false))) {
+            $attributes['db.operation.arguments'] = $this->values->encode(
+                $event->parameters,
+                (int) $this->config->get('skyline.redis.max_argument_bytes', 65_536),
+            );
+        }
+
         $span = $this->tracer->get()->spanBuilder('Redis '.$operation)
             ->setParent($active->context)
             ->setSpanKind(SpanKind::KIND_CLIENT)
             ->setStartTimestamp($end - $duration)
-            ->setAttributes([
-                'skyline.role' => 'redis',
-                'skyline.run_id' => $active->runId,
-                'skyline.attempt' => $active->number,
-                'db.system.name' => 'redis',
-                'db.operation.name' => $operation,
-                'db.namespace' => $event->connectionName ?? 'default',
-            ])
+            ->setAttributes($attributes)
             ->startSpan();
         $span->setStatus($success ? StatusCode::STATUS_OK : StatusCode::STATUS_ERROR);
         $span->end($end);

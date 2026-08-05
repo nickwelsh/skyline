@@ -105,7 +105,13 @@ final class CustomTelemetry
 
     public function process(Process $process, ?callable $output = null): int
     {
-        $span = $this->processes->start($process->getCommandLine(), $process->getTimeout() === null ? null : (int) $process->getTimeout(), false);
+        $span = $this->processes->start(
+            $process->getCommandLine(),
+            $process->getTimeout() === null ? null : (int) $process->getTimeout(),
+            false,
+            $process->getEnv(),
+            $process->getInput(),
+        );
 
         try {
             $exitCode = $process->run($output);

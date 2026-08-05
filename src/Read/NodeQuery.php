@@ -268,6 +268,7 @@ final readonly class NodeQuery
             'command' => $attributes['db.operation.name'] ?? null,
             'connection' => $attributes['db.namespace'] ?? null,
             'outcome' => strtolower((string) $span->status_code) === 'error' ? 'failed' : 'completed',
+            'arguments' => $this->valueCapture($attributes, 'db.operation.arguments'),
         ];
     }
 
@@ -297,6 +298,7 @@ final readonly class NodeQuery
                 'path' => $destinationLocalFile,
                 'href' => $this->editorLink->href($destinationLocalFile, 1),
             ] : null,
+            'content' => $this->valueCapture($attributes, 'storage.content'),
             'result' => [
                 'exists' => isset($attributes['storage.result.exists']) ? (bool) $attributes['storage.result.exists'] : null,
                 'lastModified' => isset($attributes['storage.result.last_modified']) ? (int) $attributes['storage.result.last_modified'] : null,
@@ -337,6 +339,11 @@ final readonly class NodeQuery
             'exitCode' => isset($attributes['process.exit_code']) ? (int) $attributes['process.exit_code'] : null,
             'timedOut' => (bool) ($attributes['process.timed_out'] ?? false),
             'outcome' => $attributes['process.outcome'] ?? null,
+            'command' => $this->valueCapture($attributes, 'process.command'),
+            'environment' => $this->valueCapture($attributes, 'process.environment'),
+            'input' => $this->valueCapture($attributes, 'process.input'),
+            'stdout' => $this->valueCapture($attributes, 'process.stdout'),
+            'stderr' => $this->valueCapture($attributes, 'process.stderr'),
         ];
     }
 

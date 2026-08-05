@@ -181,7 +181,7 @@ export type InspectorDto = TraceNode & {
     forever: boolean;
     value: CapturedValue | null;
   };
-  redis?: { command: string | null; connection: string | null; outcome: string | null };
+  redis?: { command: string | null; connection: string | null; outcome: string | null; arguments: CapturedValue | null };
   storage?: {
     operation: string | null;
     disk: string | null;
@@ -196,6 +196,7 @@ export type InspectorDto = TraceNode & {
     destinationUrl: string | null;
     localFile: { path: string; href: string | null } | null;
     destinationLocalFile: { path: string; href: string | null } | null;
+    content: CapturedValue | null;
     result: { exists: boolean | null; lastModified: number | null; mimeType: string | null; visibility: string | null };
   };
   delivery?: {
@@ -212,7 +213,19 @@ export type InspectorDto = TraceNode & {
     messageData: CapturedValue | null;
     operationData: CapturedValue | null;
   };
-  process?: { executable: string | null; async: boolean; timeoutSeconds: number | null; exitCode: number | null; timedOut: boolean; outcome: string | null };
+  process?: {
+    executable: string | null;
+    async: boolean;
+    timeoutSeconds: number | null;
+    exitCode: number | null;
+    timedOut: boolean;
+    outcome: string | null;
+    command: CapturedValue | null;
+    environment: CapturedValue | null;
+    input: CapturedValue | null;
+    stdout: CapturedValue | null;
+    stderr: CapturedValue | null;
+  };
   transaction?: { connection: string | null; driver: string | null; depth: number | null; outcome: string | null; queryTimeMs: number | null };
   custom?: { name: string; attributes: Record<string, unknown> };
   summary?: {

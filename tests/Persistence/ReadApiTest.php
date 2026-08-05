@@ -11,6 +11,8 @@ use Tests\Fixtures\Jobs\DeliveryJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
+use Tests\Fixtures\Jobs\ProcessDetailJob;
+use Tests\Fixtures\Jobs\RedisJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\StorageDetailJob;
 use Tests\Fixtures\Jobs\SummaryJob;
@@ -264,6 +266,7 @@ it('serves operation-specific cache and storage details', function (): void {
     $root = storage_path('framework/testing/disks/read-storage-details');
     config()->set('filesystems.disks.telemetry', ['driver' => 'local', 'root' => $root, 'throw' => true]);
     config()->set('skyline.storage.capture_paths', true);
+    config()->set('skyline.storage.capture_contents', true);
     config()->set('skyline.storage.links.telemetry', 'https://files.example.test/{path}');
     config()->set('app.editor', 'vscode');
     StorageDetailJob::dispatchSync();
@@ -282,6 +285,7 @@ it('serves operation-specific cache and storage details', function (): void {
         ->assertJsonPath('node.storage.url', 'https://files.example.test/reports/customer%20report.txt')
         ->assertJsonPath('node.storage.localFile.path', $root.'/reports/customer report.txt')
         ->assertJsonPath('node.storage.localFile.href', 'vscode://file/'.$root.'/reports/customer report.txt:1')
+        ->assertJsonPath('node.storage.content.value', 'private contents')
         ->assertJsonPath('node.storage.outcome', 'completed');
 });
 
@@ -330,6 +334,36 @@ it('serves captured cache values and delivery content', function (): void {
         ->assertOk()
         ->assertJsonPath('node.delivery.recipientIdentity.value.type', 'stdClass')
         ->assertJsonPath('node.delivery.operationData.value.route', 'private-route');
+});
+
+it('serves captured process command environment input and output', function (): void {
+    config()->set('skyline.process.capture_command', true);
+    config()->set('skyline.process.capture_environment', true);
+    config()->set('skyline.process.capture_input', true);
+    config()->set('skyline.process.capture_output', true);
+    ProcessDetailJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', ProcessDetailJob::class)->first();
+    $span = DB::table('skyline_spans')->where('run_id', $run->run_id)->where('role', 'process')->first();
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.process.command.value.1', '-r')
+        ->assertJsonPath('node.process.environment.value.SKYLINE_PRIVATE_ENV', 'private environment')
+        ->assertJsonPath('node.process.input.value', 'private input')
+        ->assertJsonPath('node.process.stdout.value', 'private environment / private input')
+        ->assertJsonPath('node.process.stderr.value', 'private error');
+});
+
+it('serves captured direct Redis command arguments', function (): void {
+    config()->set('skyline.redis.capture_arguments', true);
+    RedisJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', RedisJob::class)->first();
+    $span = DB::table('skyline_spans')->where('run_id', $run->run_id)->where('role', 'redis')->first();
+
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.redis.arguments.value.0', 'private-key')
+        ->assertJsonPath('node.redis.arguments.value.1', 'private-value');
 });
 
 it('presents log breadcrumbs as chronological selectable nodes with details', function (): void {

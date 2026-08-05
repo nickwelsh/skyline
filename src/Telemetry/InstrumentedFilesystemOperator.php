@@ -66,12 +66,12 @@ final readonly class InstrumentedFilesystemOperator implements FilesystemOperato
 
     public function write(string $location, string $contents, array $config = []): void
     {
-        $this->record('write', [$location], fn () => $this->inner->write($location, $contents, $config), strlen($contents));
+        $this->record('write', [$location], fn () => $this->inner->write($location, $contents, $config), strlen($contents), $contents);
     }
 
     public function writeStream(string $location, $contents, array $config = []): void
     {
-        $this->record('write_stream', [$location], fn () => $this->inner->writeStream($location, $contents, $config), $this->streamBytes($contents));
+        $this->record('write_stream', [$location], fn () => $this->inner->writeStream($location, $contents, $config), $this->streamBytes($contents), $contents);
     }
 
     public function setVisibility(string $path, string $visibility): void
@@ -110,9 +110,9 @@ final readonly class InstrumentedFilesystemOperator implements FilesystemOperato
     }
 
     /** @param list<string> $paths */
-    private function record(string $operation, array $paths, callable $callback, ?int $bytes = null): mixed
+    private function record(string $operation, array $paths, callable $callback, ?int $bytes = null, mixed $content = null): mixed
     {
-        return $this->telemetry->record($this->disk, $this->driver, $operation, $paths, $callback, $bytes);
+        return $this->telemetry->record($this->disk, $this->driver, $operation, $paths, $callback, $bytes, $content);
     }
 
     private function streamBytes(mixed $stream): ?int

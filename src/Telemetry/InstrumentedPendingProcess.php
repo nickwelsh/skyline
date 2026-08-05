@@ -14,7 +14,7 @@ final class InstrumentedPendingProcess extends PendingProcess
 
     public function run(array|string|null $command = null, ?callable $output = null)
     {
-        $span = $this->telemetry->start($command ?? $this->command, $this->timeout, false);
+        $span = $this->telemetry->start($command ?? $this->command, $this->timeout, false, $this->environment, $this->input);
 
         try {
             $result = parent::run($command, $output);
@@ -30,7 +30,7 @@ final class InstrumentedPendingProcess extends PendingProcess
 
     public function start(array|string|null $command = null, ?callable $output = null)
     {
-        $span = $this->telemetry->start($command ?? $this->command, $this->timeout, true);
+        $span = $this->telemetry->start($command ?? $this->command, $this->timeout, true, $this->environment, $this->input);
 
         try {
             $process = parent::start($command, $output);

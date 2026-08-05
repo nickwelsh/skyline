@@ -14,10 +14,11 @@ final class StorageInstrumentation
         private readonly AttemptRegistry $attempts,
         private readonly SkylineTracer $tracer,
         private readonly SourceLocator $source,
+        private readonly ValueCapture $values,
     ) {}
 
     /** @param list<string> $paths */
-    public function record(string $disk, string $driver, string $operation, array $paths, callable $callback, ?int $bytes = null): mixed
+    public function record(string $disk, string $driver, string $operation, array $paths, callable $callback, ?int $bytes = null, mixed $content = null): mixed
     {
         $active = $this->attempts->current();
 
@@ -56,6 +57,10 @@ final class StorageInstrumentation
             $attributes['storage.bytes'] = max(0, $bytes);
         }
 
+        if (($capturedContent = $this->content($content)) !== null) {
+            $attributes['storage.content'] = $capturedContent;
+        }
+
         if ((bool) $this->config->get('skyline.storage.capture_source', false)) {
             $attributes = [...$attributes, ...$this->source->attributes('skyline.storage.source')];
         }
@@ -68,6 +73,10 @@ final class StorageInstrumentation
 
         try {
             $result = $callback();
+
+            if (in_array($operation, ['read', 'read_stream'], true) && ($capturedContent = $this->content($result)) !== null) {
+                $span->setAttribute('storage.content', $capturedContent);
+            }
 
             if ($bytes === null && $operation === 'read' && is_string($result)) {
                 $span->setAttribute('storage.bytes', strlen($result));
@@ -141,5 +150,47 @@ final class StorageInstrumentation
         }
 
         return rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.ltrim($path, DIRECTORY_SEPARATOR);
+    }
+
+    private function content(mixed $content): ?string
+    {
+        if (! (bool) $this->config->get('skyline.storage.capture_contents', $this->config->get('skyline.capture_all', false))) {
+            return null;
+        }
+
+        if (is_resource($content)) {
+            $stream = $content;
+            $metadata = stream_get_meta_data($content);
+            $position = ftell($content);
+
+            if (! ($metadata['seekable'] ?? false) || ! is_int($position)) {
+                return null;
+            }
+
+            try {
+                $value = stream_get_contents($stream, $this->contentBytes() + 1);
+            } catch (Throwable) {
+                return null;
+            } finally {
+                fseek($stream, $position);
+            }
+
+            if (! is_string($value)) {
+                return null;
+            }
+
+            $content = $value;
+        }
+
+        if (! is_string($content)) {
+            return null;
+        }
+
+        return $this->values->encode($content, $this->contentBytes());
+    }
+
+    private function contentBytes(): int
+    {
+        return max(256, (int) $this->config->get('skyline.storage.max_content_bytes', 65_536));
     }
 }

@@ -113,6 +113,11 @@ return [
         'max_value_bytes' => env('SKYLINE_CACHE_MAX_VALUE_BYTES', 65_536),
     ],
 
+    'redis' => [
+        'capture_arguments' => env('SKYLINE_REDIS_CAPTURE_ARGUMENTS', $captureAll),
+        'max_argument_bytes' => env('SKYLINE_REDIS_MAX_ARGUMENT_BYTES', 65_536),
+    ],
+
     'custom' => [
         'enabled' => env('SKYLINE_CUSTOM_ENABLED', true),
         'max_attributes' => env('SKYLINE_CUSTOM_MAX_ATTRIBUTES', 32),
@@ -130,14 +135,21 @@ return [
     'storage' => [
         'enabled' => env('SKYLINE_STORAGE_ENABLED', true),
         'capture_paths' => env('SKYLINE_STORAGE_CAPTURE_PATHS', $captureAll),
+        'capture_contents' => env('SKYLINE_STORAGE_CAPTURE_CONTENTS', $captureAll),
         'capture_source' => env('SKYLINE_STORAGE_CAPTURE_SOURCE', $captureAll),
         'max_path_bytes' => env('SKYLINE_STORAGE_MAX_PATH_BYTES', 512),
+        'max_content_bytes' => env('SKYLINE_STORAGE_MAX_CONTENT_BYTES', 65_536),
         'links' => [],
     ],
 
     'process' => [
         'enabled' => env('SKYLINE_PROCESS_ENABLED', true),
+        'capture_command' => env('SKYLINE_PROCESS_CAPTURE_COMMAND', $captureAll),
+        'capture_environment' => env('SKYLINE_PROCESS_CAPTURE_ENVIRONMENT', $captureAll),
+        'capture_input' => env('SKYLINE_PROCESS_CAPTURE_INPUT', $captureAll),
+        'capture_output' => env('SKYLINE_PROCESS_CAPTURE_OUTPUT', $captureAll),
         'capture_source' => env('SKYLINE_PROCESS_CAPTURE_SOURCE', $captureAll),
+        'max_content_bytes' => env('SKYLINE_PROCESS_MAX_CONTENT_BYTES', 65_536),
     ],
 
     'logging' => [

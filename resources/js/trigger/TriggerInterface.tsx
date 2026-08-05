@@ -30,7 +30,7 @@ import {
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
-import type { HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
+import type { CapturedValue, HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import { HtmlCapturePreview, JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
 import { ExceptionPreview } from "./ExceptionPreview";
 import * as Timeline from "./Timeline";
@@ -881,7 +881,9 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
       <DetailSection title="Command">
         <PropertyList values={{ Command: node.redis.command, Connection: node.redis.connection, Outcome: humanize(node.redis.outcome) }} />
       </DetailSection>
-      <CaptureNote>Arguments and return values are not captured.</CaptureNote>
+      {node.redis.arguments && <CapturedValuePreview label="Arguments" capture={node.redis.arguments} />}
+      {!node.redis.arguments && <CaptureNote>Argument capture is off. Enable SKYLINE_REDIS_CAPTURE_ARGUMENTS or SKYLINE_CAPTURE_ALL to inspect arguments.</CaptureNote>}
+      <CaptureNote>Return values are unavailable because Laravel Redis events do not expose them.</CaptureNote>
     </div>
   );
   if (node.kind === "storage" && node.storage) return <StorageDetail node={node} />;
@@ -898,7 +900,14 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
           Outcome: node.process.timedOut ? "Timed out" : humanize(node.process.outcome),
         }} />
       </DetailSection>
-      <CaptureNote>Arguments, environment variables, and process output are not captured.</CaptureNote>
+      {node.process.command && <CapturedValuePreview label="Command and arguments" capture={node.process.command} />}
+      {node.process.environment && <CapturedValuePreview label="Environment" capture={node.process.environment} />}
+      {node.process.input && <CapturedValuePreview label="Input" capture={node.process.input} />}
+      {node.process.stdout && <CapturedValuePreview label="Standard output" capture={node.process.stdout} />}
+      {node.process.stderr && <CapturedValuePreview label="Error output" capture={node.process.stderr} />}
+      {!node.process.command && !node.process.environment && !node.process.input && !node.process.stdout && !node.process.stderr && (
+        <CaptureNote>Sensitive process capture is off. Enable its SKYLINE_PROCESS_CAPTURE_* controls or SKYLINE_CAPTURE_ALL to inspect available command, environment, input, and output.</CaptureNote>
+      )}
     </div>
   );
   if (node.kind === "transaction" && node.transaction) return (
@@ -1009,6 +1018,7 @@ function StorageDetail({ node }: { node: InspectorDto }) {
     Visibility: result.visibility,
   };
   const hasResult = Object.values(resultValues).some((value) => value !== undefined && value !== null);
+  const exposesContent = ["read", "read_stream", "write", "write_stream"].includes(storage.operation ?? "");
 
   return (
     <div className="space-y-4">
@@ -1037,9 +1047,18 @@ function StorageDetail({ node }: { node: InspectorDto }) {
         </div>
       </DetailSection>}
       {hasResult && <DetailSection title="Result"><PropertyList values={resultValues} /></DetailSection>}
-      <CaptureNote>{storage.pathCaptured ? "File contents are not captured. Links are best effort and depend on disk configuration." : "Raw paths are hidden. Enable SKYLINE_STORAGE_CAPTURE_PATHS to show paths and available links; file contents are never captured."}</CaptureNote>
+      {storage.content && <CapturedValuePreview label={storage.operation?.startsWith("read") ? "Read contents" : "Written contents"} capture={storage.content} />}
+      {exposesContent && !storage.content && <CaptureNote>Content capture is off or the stream could not be inspected safely. Enable SKYLINE_STORAGE_CAPTURE_CONTENTS or SKYLINE_CAPTURE_ALL to inspect contents.</CaptureNote>}
+      {!storage.pathCaptured && <CaptureNote>Raw paths are hidden. Enable SKYLINE_STORAGE_CAPTURE_PATHS or SKYLINE_CAPTURE_ALL to show paths and available links.</CaptureNote>}
+      {storage.pathCaptured && <CaptureNote>Links are best effort and depend on disk configuration.</CaptureNote>}
     </div>
   );
+}
+
+function CapturedValuePreview({ label, capture }: { label: string; capture: CapturedValue }) {
+  return typeof capture.value === "string"
+    ? <TextCapturePreview label={label} value={capture.value} summary={humanize(capture.type)} truncated={capture.truncated} language="text" />
+    : <JsonCapturePreview label={label} value={capture.value} summary={humanize(capture.type)} truncated={capture.truncated} />;
 }
 
 function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {

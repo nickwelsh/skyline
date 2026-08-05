@@ -277,7 +277,7 @@ test("cache storage and breadcrumbs expose useful operation details", async ({ p
   await expect(cache).toContainText("30 seconds");
   await expect(cache).toContainText("2 minutes");
   await expect(cache).toContainText("Key fingerprint");
-  await expect(cache).toContainText("cache values are never captured");
+  await expect(cache).toContainText("Value capture is off");
 
   await page.locator('[data-node-id="span_live_storage"]').click();
   await page.getByRole("tab", { name: "Detail" }).click();
@@ -286,7 +286,7 @@ test("cache storage and breadcrumbs expose useful operation details", async ({ p
   await expect(storage).toContainText("2.0 KB");
   await expect(storage.getByRole("link", { name: "Open source URL" })).toHaveAttribute("href", "https://files.example.test/reports/customer%20report.txt");
   await expect(storage.getByRole("link", { name: "Open source in editor" })).toHaveAttribute("href", "vscode://file//workspace/storage/reports/customer report.txt:1");
-  await expect(storage).toContainText("File contents are not captured");
+  await expect(storage.getByRole("region", { name: "Written contents preview" })).toContainText("private contents");
 });
 
 test("production adapter renders authorization failures", async ({ page }) => {
@@ -476,6 +476,7 @@ const storageInspectorResponse = {
       operation: "write", disk: "reports", driver: "local", path: "reports/customer report.txt", pathCaptured: true, destination: null, destinationCaptured: false, bytes: 2048, outcome: "completed",
       url: "https://files.example.test/reports/customer%20report.txt", destinationUrl: null,
       localFile: { path: "/workspace/storage/reports/customer report.txt", href: "vscode://file//workspace/storage/reports/customer report.txt:1" }, destinationLocalFile: null,
+      content: { type: "string", value: "private contents", originalBytes: 18, truncated: false },
       result: { exists: null, lastModified: null, mimeType: null, visibility: null },
     },
     metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
