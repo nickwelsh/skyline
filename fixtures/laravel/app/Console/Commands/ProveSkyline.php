@@ -16,29 +16,39 @@ use NickWelsh\Skyline\Persistence\TracePruner;
 
 final class ProveSkyline extends Command
 {
-    protected $signature = 'skyline:prove';
+    protected $signature = 'skyline:prove {phase=all}';
 
     protected $description = 'Prove the installed Skyline MVP against unchanged queued Jobs';
 
     public function handle(TracePruner $pruner, Kernel $http): int
     {
-        $this->resetState();
+        $phase = (string) $this->argument('phase');
+        $this->ensure(in_array($phase, ['all', 'dispatch', 'assert'], true), 'the proof phase is valid');
 
-        SuccessfulJob::dispatch();
-        ParentJob::dispatch();
-        RetryingJob::dispatch();
-        FailingJob::dispatch();
+        if ($phase !== 'assert') {
+            $this->resetState();
+            SuccessfulJob::dispatch();
+            ParentJob::dispatch();
+            RetryingJob::dispatch();
+            FailingJob::dispatch();
+        }
 
-        $worker = $this->callSilently('queue:work', [
-            'connection' => 'database',
-            '--queue' => 'default',
-            '--stop-when-empty' => true,
-            '--tries' => 3,
-            '--backoff' => 0,
-            '--sleep' => 0,
-        ]);
+        if ($phase === 'dispatch') {
+            return self::SUCCESS;
+        }
 
-        $this->ensure($worker === self::SUCCESS, 'the standard queue worker exits successfully');
+        if ($phase === 'all') {
+            $worker = $this->callSilently('queue:work', [
+                'connection' => 'database',
+                '--queue' => 'default',
+                '--stop-when-empty' => true,
+                '--tries' => 3,
+                '--backoff' => 0,
+                '--sleep' => 0,
+            ]);
+            $this->ensure($worker === self::SUCCESS, 'the standard queue worker exits successfully');
+        }
+
         app(PersistentTelemetrySink::class)->flush();
         $this->ensure(DB::table('jobs')->count() === 0, 'the queue drains');
         $this->ensure(DB::table('failed_jobs')->count() === 1, 'Laravel records one terminal failure');

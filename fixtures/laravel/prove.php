@@ -30,4 +30,6 @@ $run = static function (array $arguments) use ($fixture, $environment): void {
 
 $run(['vendor:publish', '--tag=skyline-migrations', '--force', '--no-interaction']);
 $run(['migrate:fresh', '--force', '--no-interaction']);
-$run(['skyline:prove', '--no-interaction']);
+$run(['skyline:prove', 'dispatch', '--no-interaction']);
+$run(['queue:work', 'database', '--queue=default', '--stop-when-empty', '--tries=3', '--backoff=0', '--sleep=0']);
+$run(['skyline:prove', 'assert', '--no-interaction']);

@@ -2,6 +2,9 @@
 
 namespace NickWelsh\Skyline\Telemetry;
 
+use Illuminate\Contracts\Queue\Job;
+use WeakMap;
+
 final class AttemptRegistry
 {
     private const MAX_TRACKED_RUNS = 1024;
@@ -9,21 +12,30 @@ final class AttemptRegistry
     /** @var array<string, ActiveAttempt> */
     private array $attempts = [];
 
+    /** @var WeakMap<Job, ActiveAttempt> */
+    private WeakMap $jobs;
+
     /** @var list<string> */
     private array $stack = [];
 
     /** @var array<string, array{timestamp: int, source: string}> */
     private array $readyAt = [];
 
-    public function has(string $runId, int $attempt): bool
+    public function __construct()
     {
-        return isset($this->attempts[$this->key($runId, $attempt)]);
+        $this->jobs = new WeakMap;
     }
 
-    public function push(ActiveAttempt $attempt): void
+    public function forJob(Job $job): ?ActiveAttempt
+    {
+        return $this->jobs[$job] ?? null;
+    }
+
+    public function push(ActiveAttempt $attempt, Job $job): void
     {
         $key = $this->key($attempt->runId, $attempt->number);
         $this->attempts[$key] = $attempt;
+        $this->jobs[$job] = $attempt;
         $this->stack[] = $key;
     }
 
@@ -49,6 +61,13 @@ final class AttemptRegistry
     {
         $key = $this->key($attempt->runId, $attempt->number);
         unset($this->attempts[$key]);
+
+        foreach ($this->jobs as $job => $active) {
+            if ($active === $attempt) {
+                unset($this->jobs[$job]);
+            }
+        }
+
         $this->stack = array_values(array_filter(
             $this->stack,
             fn (string $value): bool => $value !== $key,

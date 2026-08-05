@@ -14,6 +14,7 @@ _Avoid_: Execution, invocation
 
 **Attempt**:
 One processing try within a Run. A retry creates a new Attempt for the same Run.
+Skyline numbers observed Attempts chronologically; a queue driver's reported attempt count is only a hint.
 _Avoid_: Run, retry
 
 **Trace**:

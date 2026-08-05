@@ -36,6 +36,7 @@ final class QueueInstrumentation
     public function __construct(
         private readonly Dispatcher $events,
         private readonly AttemptRegistry $attempts,
+        private readonly AttemptSequence $attemptSequence,
         private readonly LifecycleEmitter $lifecycle,
         private readonly SkylineTracer $tracer,
         private readonly LoggerInterface $logger,
@@ -210,11 +211,11 @@ final class QueueInstrumentation
             return;
         }
 
-        $attempt = (int) $event->job->attempts();
-        if ($this->attempts->has($envelope->runId, $attempt)) {
+        if ($this->attempts->forJob($event->job) !== null) {
             return;
         }
 
+        $attempt = $this->attemptSequence->next($envelope->runId, (int) $event->job->attempts());
         $now = $this->now();
         $ready = $this->attempts->queueStart($event->connectionName, $envelope, $now);
         $parent = TraceContextPropagator::getInstance()->extract(
@@ -247,7 +248,7 @@ final class QueueInstrumentation
             $span,
             $span->storeInContext(Context::getRoot()),
         );
-        $this->attempts->push($active);
+        $this->attempts->push($active, $event->job);
 
         $this->lifecycle->record(new LifecycleRecord(
             Lifecycle::RunProcessing,
@@ -466,6 +467,12 @@ final class QueueInstrumentation
 
     private function active(Job $job): ?ActiveAttempt
     {
+        $active = $this->attempts->forJob($job);
+
+        if ($active !== null) {
+            return $active;
+        }
+
         $envelope = PayloadEnvelope::fromPayload($job->payload());
 
         if ($envelope === null) {
