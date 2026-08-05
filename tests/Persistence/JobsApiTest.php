@@ -50,6 +50,16 @@ it('filters Job types by URL-backed search and server-supplied time range', func
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('treats Job search wildcards as literal text', function (): void {
+    seedJobRun(1, 'App\\Jobs\\Invoice_100%', 'completed');
+    seedJobRun(2, 'App\\Jobs\\InvoiceA100B', 'completed');
+
+    $this->getJson('/skyline/api/jobs?'.http_build_query(['search' => '_100%']))
+        ->assertOk()
+        ->assertJsonCount(1, 'jobs')
+        ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Invoice_100%');
+});
+
 it('shows Job activity Queue targets and cursor-paginated filtered Runs', function (): void {
     for ($index = 0; $index < 27; $index++) {
         seedJobRun(

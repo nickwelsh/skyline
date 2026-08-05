@@ -46,8 +46,7 @@ final readonly class JobsFilters
         return $query
             ->when($this->from !== null, fn (Builder $query) => $query->where("{$table}.triggered_at", '>=', $this->from))
             ->when($this->search !== null, function (Builder $query) use ($table): void {
-                $search = addcslashes(strtolower($this->search), '%_');
-                $query->whereRaw("LOWER({$table}.job_name) LIKE ?", ['%'.$search.'%']);
+                PortableLike::whereContains($query, "LOWER({$table}.job_name)", strtolower($this->search));
             });
     }
 
