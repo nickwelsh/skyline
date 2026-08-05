@@ -1,5 +1,8 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { JobDetailDto, JobsPageDto, SkylineCapabilities } from "../../resources/js/skyline/dto";
+import baseline from "./fixtures/nw-219-trigger-jobs-baseline.json" with { type: "json" };
 
 test("Jobs list and detail keep observed activity in basename URLs", async ({ page }) => {
   await routeJobs(page);
@@ -8,6 +11,10 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page.getByLabel("Loading Jobs")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Jobs" })).toBeVisible();
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  const listActivity = page.getByRole("img", { name: "Recorded Runs by status" });
+  await expect(listActivity.locator('[data-status="running"]')).toHaveAttribute("style", /run-executing/);
+  await expect(listActivity.locator('[data-status="completed"]')).toHaveAttribute("style", /run-completed-successfully/);
+  await expect(listActivity.locator('[data-status="failed"]')).toHaveAttribute("style", /run-completed-with-errors/);
 
   const search = page.getByPlaceholder("Search Jobs…");
   await search.fill("invoice");
@@ -22,6 +29,10 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page).toHaveURL(/\/skyline\/jobs\/job_invoice$/);
   await expect(page.getByRole("heading", { name: "GenerateMonthlyInvoices", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Run activity" })).toBeVisible();
+  const detailActivity = page.getByRole("img", { name: "Recorded Runs by status over time" });
+  await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("style", /run-executing/);
+  await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("style", /run-completed-successfully/);
+  await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("style", /run-completed-with-errors/);
   await expect(page.getByRole("link", { name: "redis / billing" })).toHaveAttribute("href", "/skyline/queues/queue_billing");
   await page.getByLabel("Run status").selectOption("failed");
   await expect(page).toHaveURL(/status=failed/);
@@ -29,6 +40,50 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page).toHaveURL(/period=7d/);
   await page.locator('a[href^="/skyline/runs/run-1"]').click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run-1\?tableState=/);
+});
+
+test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus, and semantics", async ({ page }) => {
+  for (const source of Object.values(baseline.sourceFiles)) {
+    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
+  }
+
+  await page.setViewportSize(baseline.viewport);
+  await routeJobs(page);
+  await page.goto("/skyline/jobs");
+
+  const sideMenu = page.getByTestId("side-menu");
+  const filters = page.getByLabel("Job filters");
+  const search = page.getByPlaceholder("Search Jobs…");
+  const searchWrapper = search.locator("xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' min-w-52 ')][1]");
+  await expect.poll(async () => (await sideMenu.boundingBox())?.width).toBe(224);
+  await expect.poll(async () => (await filters.boundingBox())?.height).toBe(baseline.contract.list.filterHeight);
+  await expect.poll(async () => (await searchWrapper.boundingBox())?.width).toBeGreaterThanOrEqual(baseline.contract.list.searchMinWidth);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual([
+    "Job", "Recent status", "Activity", "Runs", "First observed", "Last observed", "Latest Run",
+  ]);
+
+  await search.fill("invoice");
+  await expect(search).toBeFocused();
+  await search.press(baseline.contract.interaction.searchSubmitKey);
+  await expect(page).toHaveURL(/search=invoice/);
+  await search.press(baseline.contract.interaction.searchClearKey);
+  await expect(search).toBeFocused();
+  await expect(page).not.toHaveURL(/search=/);
+  await search.press(baseline.contract.interaction.searchClearKey);
+  await expect(search).not.toBeFocused();
+
+  await page.getByRole("link", { name: "GenerateMonthlyInvoices" }).first().click();
+  const activity = page.getByRole("region", { name: "Run activity" });
+  const sidebar = page.getByLabel("Job details");
+  await expect.poll(async () => (await activity.boundingBox())?.height).toBeCloseTo(baseline.contract.detail.activityDefaultHeight, 0);
+  await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeCloseTo(baseline.contract.detail.sidebarDefaultWidth, 0);
+  await expect(page.getByRole("link", { name: "redis / billing" })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  const favoriteButton = page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" });
+  await favoriteButton.focus();
+  await expect(favoriteButton).toBeFocused();
+  await page.keyboard.press(baseline.contract.interaction.favoriteKey);
+  await expect(page.getByRole("button", { name: "Remove GenerateMonthlyInvoices from favorites" })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("Job detail tolerates long labels and missing optional observations", async ({ page }) => {
@@ -45,6 +100,21 @@ test("Job detail tolerates long labels and missing optional observations", async
   await expect(page.getByRole("heading", { name: longName })).toBeVisible();
   await expect(page.getByText("No activity in this time range.")).toBeVisible();
   await expect(page.getByLabel("Job details").getByText("—")).toBeVisible();
+});
+
+test("Job detail can be favorited to a persistent valid sidebar destination", async ({ page }) => {
+  await routeJobs(page);
+  await page.goto("/skyline/jobs/job_invoice");
+
+  await page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" }).click();
+  const favorite = page.getByRole("navigation", { name: "Favorites" }).getByRole("link", { name: "GenerateMonthlyInvoices" });
+  await expect(favorite).toHaveAttribute("href", "/skyline/jobs/job_invoice");
+  await page.reload();
+  await expect(favorite).toBeVisible();
+  await favorite.click();
+  await expect(page).toHaveURL(/\/skyline\/jobs\/job_invoice$/);
+  await page.getByRole("button", { name: "Remove GenerateMonthlyInvoices from favorites" }).click();
+  await expect(favorite).toHaveCount(0);
 });
 
 test("Jobs covers empty, filtered-empty, API-error, and not-found states", async ({ page }) => {

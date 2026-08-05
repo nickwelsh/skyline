@@ -1,0 +1,44 @@
+{
+  "generatedBy": "node scripts/extract-trigger-jobs-baseline.mjs",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "listRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx",
+      "sha256": "6268c122475931274f798f75e7fae301cfee3d7e7573ffad54cf21da68b9ccf7"
+    },
+    "detailRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx",
+      "sha256": "032a95f1f0d2886da87e0da3e4fb9b213114477a06435b7a4ca27acfeaa5930a"
+    },
+    "searchInput": {
+      "path": "apps/webapp/app/components/primitives/SearchInput.tsx",
+      "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338"
+    },
+    "pageHeader": {
+      "path": "apps/webapp/app/components/primitives/PageHeader.tsx",
+      "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546"
+    }
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 960
+  },
+  "contract": {
+    "list": {
+      "navHeight": 40,
+      "filterHeight": 48,
+      "searchMinWidth": 208
+    },
+    "detail": {
+      "mainMinWidth": 300,
+      "activityDefaultHeight": 320,
+      "runsMinHeight": 160,
+      "sidebarDefaultWidth": 380
+    },
+    "interaction": {
+      "searchSubmitKey": "Enter",
+      "searchClearKey": "Escape",
+      "favoriteKey": "Alt+F"
+    }
+  }
+}
