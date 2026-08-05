@@ -132,7 +132,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   const skylineBehavior = await exerciseFailureSurface(page);
   expect(skylineBehavior.shared).toEqual(triggerBehavior.shared);
   expect(skylineBehavior.visual).toEqual(triggerBehavior.visual);
-  expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true });
+  expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true, focusReturned: false });
   expect(skylineBehavior).toMatchObject({ dialogClosed: true, focusReturned: true, copied: "Copied" });
 
   const trace = page.locator("#exception-trace");
