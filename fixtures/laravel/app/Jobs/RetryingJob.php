@@ -13,7 +13,7 @@ final class RetryingJob implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
 
-    public int $tries = 2;
+    public int $tries = 3;
 
     public int $backoff = 0;
 
@@ -24,8 +24,8 @@ final class RetryingJob implements ShouldQueue
             'value' => 'attempt-'.$this->attempts(),
         ]);
 
-        if ($this->attempts() === 1) {
-            throw new RuntimeException('retry once');
+        if ($this->attempts() < 3) {
+            throw new RuntimeException('retry twice');
         }
     }
 }

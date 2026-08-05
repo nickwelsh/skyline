@@ -43,6 +43,7 @@
         "format:check": "pint --test",
         "fixture:install": "composer install --working-dir=fixtures/laravel --no-interaction",
         "fixture:prove": "@php fixtures/laravel/prove.php",
+        "fixture:prove:redis": "@php fixtures/laravel/prove.php redis",
         "fixture:benchmark": "@php fixtures/laravel/benchmark.php"
     },
     "extra": {

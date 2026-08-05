@@ -55,7 +55,7 @@ final class ProveSkyline extends Command
         $this->ensure(DB::table('proof_records')->where('kind', 'successful')->count() === 1, 'the successful Job stays successful');
         $this->ensure(DB::table('proof_records')->where('kind', 'parent')->count() === 1, 'the parent Job stays successful');
         $this->ensure(DB::table('proof_records')->where('kind', 'child')->count() === 1, 'the child Job stays successful');
-        $this->ensure(DB::table('proof_records')->where('kind', 'retry')->count() === 2, 'the retrying Job executes twice');
+        $this->ensure(DB::table('proof_records')->where('kind', 'retry')->count() === 3, 'the retrying Job executes three times');
         $this->ensure(DB::table('proof_records')->where('kind', 'failure')->count() === 3, 'the failing Job executes three times');
 
         $runs = DB::table('skyline_runs')->orderBy('triggered_at')->get();
@@ -64,11 +64,12 @@ final class ProveSkyline extends Command
         $statuses = $runs->groupBy('job_name')->map->pluck('status')->map->values();
 
         $this->ensure($runs->count() === 5, 'five Runs are captured');
-        $this->ensure($attempts->count() === 8, 'eight Attempts are captured');
+        $this->ensure($attempts->count() === 9, 'nine Attempts are captured');
         $this->ensure($sql->isNotEmpty(), 'application SQL is captured');
         $this->ensure($statuses->get(SuccessfulJob::class)?->all() === ['completed'], 'successful status is completed');
         $this->ensure($statuses->get(RetryingJob::class)?->all() === ['completed'], 'retry status becomes completed');
         $this->ensure($statuses->get(FailingJob::class)?->all() === ['failed'], 'failure status is terminal');
+        $this->ensure($attempts->where('run_id', $runs->firstWhere('job_name', RetryingJob::class)->run_id)->count() === 3, 'successful retry records three Attempts');
         $this->ensure($attempts->where('run_id', $runs->firstWhere('job_name', FailingJob::class)->run_id)->count() === 3, 'terminal failure records three Attempts');
 
         $capturedSql = $sql->pluck('attributes')->implode(' ');
@@ -102,6 +103,7 @@ final class ProveSkyline extends Command
 
         $this->table(['Proof', 'Observed'], [
             ['Runtime', PHP_VERSION.' / Laravel '.app()->version()],
+            ['Queue driver', config('queue.default')],
             ['Runs / Attempts / SQL', $runs->count().' / '.$attempts->count().' / '.$sql->count()],
             ['Outcomes', 'successful, child, retry→success, terminal failure'],
             ['Interface', '/skyline and every Run detail returned 200'],

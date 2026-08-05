@@ -7,9 +7,6 @@ use Illuminate\Contracts\Auth\Access\Gate as GateContract;
 use Illuminate\Filesystem\FilesystemManager;
 use Illuminate\Process\Factory as ProcessFactory;
 use Illuminate\Queue\Events\JobAttempted;
-use Illuminate\Queue\Events\JobFailed;
-use Illuminate\Queue\Events\JobReleasedAfterException;
-use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use NickWelsh\Skyline\Console\PruneCommand;
@@ -19,7 +16,6 @@ use NickWelsh\Skyline\Persistence\PersistentTelemetrySink;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
 use NickWelsh\Skyline\Support\AssetManifest;
 use NickWelsh\Skyline\Telemetry\AttemptRegistry;
-use NickWelsh\Skyline\Telemetry\AttemptSequence;
 use NickWelsh\Skyline\Telemetry\CacheInstrumentation;
 use NickWelsh\Skyline\Telemetry\CustomTelemetry;
 use NickWelsh\Skyline\Telemetry\DatabaseTransactionInstrumentation;
@@ -59,7 +55,6 @@ final class SkylineServiceProvider extends ServiceProvider
 
         $this->app->singleton(QueueInstrumentation::class);
         $this->app->singleton(AttemptRegistry::class);
-        $this->app->singleton(AttemptSequence::class);
         $this->app->singleton(CacheInstrumentation::class);
         $this->app->singleton(CustomTelemetry::class);
         $this->app->singleton(DatabaseTransactionInstrumentation::class);
@@ -155,17 +150,8 @@ final class SkylineServiceProvider extends ServiceProvider
             return;
         }
 
-        $instrumentation = $this->app->make(QueueInstrumentation::class);
-        $this->app->terminating(function () use ($instrumentation, $sink): void {
-            $instrumentation->finishProposed();
-            $sink->flush();
-        });
-        $this->app['events']->listen(Looping::class, function () use ($instrumentation, $sink): void {
-            $instrumentation->finishProposed() ? $sink->flush() : $sink->flushIfDue();
-        });
-
-        foreach ([JobReleasedAfterException::class, JobFailed::class, JobTimedOut::class, JobAttempted::class] as $event) {
-            $this->app['events']->listen($event, fn () => $sink->flush());
-        }
+        $this->app->terminating(fn () => $sink->flush());
+        $this->app['events']->listen(Looping::class, fn () => $sink->flushIfDue());
+        $this->app['events']->listen(JobAttempted::class, fn () => $sink->flush());
     }
 }

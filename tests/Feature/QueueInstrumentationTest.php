@@ -23,6 +23,7 @@ use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\UnableToReadFile;
 use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
+use NickWelsh\Skyline\Telemetry\PayloadEnvelope;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
 use OpenTelemetry\API\Trace\Span;
@@ -593,7 +594,18 @@ it('emits a producer, Attempt consumer, and parameterized SQL span for an unchan
     expect($payload['skyline'])->toHaveKeys(['v', 'run_id', 'parent_run_id', 'queued_at_ns', 'carrier'])
         ->and($payload['skyline']['v'])->toBe(1)
         ->and($payload['skyline']['run_id'])->toBe($payload['uuid'])
+        ->and($payload['skyline']['queued_at_ns'])->toBeString()
         ->and($payload['skyline']['carrier']['traceparent'])->toMatch('/^00-[a-f0-9]{32}-[a-f0-9]{16}-[a-f0-9]{2}$/');
+
+    $redisRoundTripped = $payload;
+    $redisRoundTripped['skyline']['queued_at_ns'] = (float) $payload['skyline']['queued_at_ns'];
+    $redisEnvelope = PayloadEnvelope::fromPayload($redisRoundTripped);
+    $legacyPayload = $payload;
+    $legacyPayload['skyline']['queued_at_ns'] = (int) $payload['skyline']['queued_at_ns'];
+
+    expect($redisEnvelope)->not->toBeNull()
+        ->and($redisEnvelope->runId)->toBe($payload['uuid'])
+        ->and(PayloadEnvelope::fromPayload($legacyPayload))->not->toBeNull();
 
     expect(array_map(fn ($record) => $record->type, $sink->lifecycle))->toBe([
         Lifecycle::RunDispatched,

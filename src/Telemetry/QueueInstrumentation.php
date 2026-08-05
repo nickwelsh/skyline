@@ -36,7 +36,6 @@ final class QueueInstrumentation
     public function __construct(
         private readonly Dispatcher $events,
         private readonly AttemptRegistry $attempts,
-        private readonly AttemptSequence $attemptSequence,
         private readonly LifecycleEmitter $lifecycle,
         private readonly SkylineTracer $tracer,
         private readonly LoggerInterface $logger,
@@ -95,25 +94,7 @@ final class QueueInstrumentation
         $this->enabled = false;
     }
 
-    public function finishProposed(): bool
-    {
-        return $this->guard(function (): bool {
-            $finished = false;
-
-            foreach ($this->attempts->all() as $active) {
-                if ($active->result === null) {
-                    continue;
-                }
-
-                $this->finish($active);
-                $finished = true;
-            }
-
-            return $finished;
-        }, false);
-    }
-
-    /** @return array{skyline: array{v: 1, run_id: string, parent_run_id: ?string, queued_at_ns: int, carrier: array<string, string>}}|array{} */
+    /** @return array{skyline: array{v: 1, run_id: string, parent_run_id: ?string, queued_at_ns: numeric-string, carrier: array<string, string>}}|array{} */
     private function payload(string $connection, ?string $queue, array $payload): array
     {
         $runId = $payload['uuid'] ?? null;
@@ -211,11 +192,11 @@ final class QueueInstrumentation
             return;
         }
 
-        if ($this->attempts->forJob($event->job) !== null) {
+        $attempt = (int) $event->job->attempts();
+        if ($this->attempts->has($envelope->runId, $attempt)) {
             return;
         }
 
-        $attempt = $this->attemptSequence->next($envelope->runId, (int) $event->job->attempts());
         $now = $this->now();
         $ready = $this->attempts->queueStart($event->connectionName, $envelope, $now);
         $parent = TraceContextPropagator::getInstance()->extract(
@@ -248,7 +229,7 @@ final class QueueInstrumentation
             $span,
             $span->storeInContext(Context::getRoot()),
         );
-        $this->attempts->push($active, $event->job);
+        $this->attempts->push($active);
 
         $this->lifecycle->record(new LifecycleRecord(
             Lifecycle::RunProcessing,
@@ -289,11 +270,17 @@ final class QueueInstrumentation
 
         if ($job->isReleased()) {
             $active->propose(AttemptResult::Released);
-        } elseif ($job->hasFailed()) {
-            $active->propose(AttemptResult::Failed);
-        } else {
-            $active->propose(AttemptResult::Completed);
+
+            return;
         }
+
+        if ($job->hasFailed()) {
+            $active->propose(AttemptResult::Failed);
+
+            return;
+        }
+
+        $active->propose(AttemptResult::Completed);
     }
 
     private function exception(JobExceptionOccurred $event): void
@@ -323,7 +310,6 @@ final class QueueInstrumentation
         }
 
         $active->propose(AttemptResult::RetryableFailure);
-        $this->finish($active);
     }
 
     private function failed(JobFailed $event): void
@@ -336,7 +322,6 @@ final class QueueInstrumentation
 
         $this->recordException($active, $event->exception);
         $active->propose(AttemptResult::Failed);
-        $this->finish($active);
     }
 
     private function timedOut(Job $job): void
@@ -467,12 +452,6 @@ final class QueueInstrumentation
 
     private function active(Job $job): ?ActiveAttempt
     {
-        $active = $this->attempts->forJob($job);
-
-        if ($active !== null) {
-            return $active;
-        }
-
         $envelope = PayloadEnvelope::fromPayload($job->payload());
 
         if ($envelope === null) {

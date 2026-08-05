@@ -2,9 +2,6 @@
 
 namespace NickWelsh\Skyline\Telemetry;
 
-use Illuminate\Contracts\Queue\Job;
-use WeakMap;
-
 final class AttemptRegistry
 {
     private const MAX_TRACKED_RUNS = 1024;
@@ -12,30 +9,21 @@ final class AttemptRegistry
     /** @var array<string, ActiveAttempt> */
     private array $attempts = [];
 
-    /** @var WeakMap<Job, ActiveAttempt> */
-    private WeakMap $jobs;
-
     /** @var list<string> */
     private array $stack = [];
 
     /** @var array<string, array{timestamp: int, source: string}> */
     private array $readyAt = [];
 
-    public function __construct()
+    public function has(string $runId, int $attempt): bool
     {
-        $this->jobs = new WeakMap;
+        return isset($this->attempts[$this->key($runId, $attempt)]);
     }
 
-    public function forJob(Job $job): ?ActiveAttempt
-    {
-        return $this->jobs[$job] ?? null;
-    }
-
-    public function push(ActiveAttempt $attempt, Job $job): void
+    public function push(ActiveAttempt $attempt): void
     {
         $key = $this->key($attempt->runId, $attempt->number);
         $this->attempts[$key] = $attempt;
-        $this->jobs[$job] = $attempt;
         $this->stack[] = $key;
     }
 
@@ -51,23 +39,10 @@ final class AttemptRegistry
         return $key === false ? null : ($this->attempts[$key] ?? null);
     }
 
-    /** @return list<ActiveAttempt> */
-    public function all(): array
-    {
-        return array_values($this->attempts);
-    }
-
     public function remove(ActiveAttempt $attempt): void
     {
         $key = $this->key($attempt->runId, $attempt->number);
         unset($this->attempts[$key]);
-
-        foreach ($this->jobs as $job => $active) {
-            if ($active === $attempt) {
-                unset($this->jobs[$job]);
-            }
-        }
-
         $this->stack = array_values(array_filter(
             $this->stack,
             fn (string $value): bool => $value !== $key,
