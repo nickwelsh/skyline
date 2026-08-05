@@ -6,7 +6,7 @@
  */
 import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap, IconTextWrapDisabled, IconX } from "@tabler/icons-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { interpolateSql, type SqlBinding } from "./capture-formatting";
 
@@ -298,7 +298,7 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
   );
 }
 
-function ControlButton({ label, onClick, children, buttonRef }: { label: string; onClick: () => void; children: ReactNode; buttonRef?: RefObject<HTMLButtonElement | null> }) {
+function ControlButton({ label, onClick, children, buttonRef }: { label: string; onClick: () => void; children: ReactNode; buttonRef?: Ref<HTMLButtonElement> }) {
   return (
     <button ref={buttonRef} type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
       {children}
