@@ -245,6 +245,7 @@ export type TracePageDto = {
 };
 
 export type InspectorDto = TraceNode & {
+  presentation?: InspectorPresentation;
   overview: Record<string, string | number | null>;
   exception?: ExceptionDetails | null;
   sql?: { value: string; isTruncated: boolean; originalBytes: number };
@@ -348,6 +349,19 @@ export type InspectorDto = TraceNode & {
     truncated: Array<{ path: string; originalBytes: number }>;
   };
 };
+
+export type InspectorTiming = { startedAt: string | null; endedAt: string | null; durationUs: number | null };
+export type InspectorFailure = { type: string | null; message: string | null } | null;
+type TimedPresentation = { timing: InspectorTiming; failure: InspectorFailure };
+export type InspectorPresentation =
+  | ({ type: "http"; http: NonNullable<InspectorDto["http"]> } & TimedPresentation)
+  | ({ type: "delivery"; delivery: NonNullable<InspectorDto["delivery"]> } & TimedPresentation)
+  | ({ type: "storage"; storage: NonNullable<InspectorDto["storage"]> } & TimedPresentation)
+  | ({ type: "process"; process: NonNullable<InspectorDto["process"]> } & TimedPresentation)
+  | ({ type: "custom"; custom: NonNullable<InspectorDto["custom"]> } & TimedPresentation)
+  | { type: "breadcrumb"; breadcrumb: NonNullable<InspectorDto["breadcrumb"]> }
+  | { type: "summary"; summary: NonNullable<InspectorDto["summary"]> }
+  | ({ type: "generic" } & Partial<TimedPresentation>);
 
 export type CapturedValue = { type: string; value: unknown; originalBytes: number; truncated: boolean };
 export type TextCapture = { value: string; truncated: boolean };
