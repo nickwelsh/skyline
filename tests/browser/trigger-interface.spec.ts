@@ -80,14 +80,23 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(0);
 });
 
-test("SQL queries have distinct minimum-width timeline marks", async ({ page }) => {
+test("timeline keeps duration geometry accurate and uses points for too-small spans", async ({ page }) => {
   await page.goto(`/skyline/runs/${retryRun}?node=run_${retryRun}`);
 
-  const queryMark = page.locator('[data-timeline-node-id="span_17ba81b7da8f8b64"]');
-  await expect(queryMark).toBeVisible();
-  await expect(queryMark).toHaveClass(/bg-query/);
-  await expect(queryMark).toHaveAttribute("title", /Started 208ms · Duration 46ms$/);
-  expect((await queryMark.boundingBox())?.width).toBeGreaterThanOrEqual(6);
+  const timeline = page.locator("[data-timeline-root]");
+  const attemptBar = page.locator('[data-timeline-node-id="attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1"]');
+  const timelineBox = await timeline.boundingBox();
+  const attemptBox = await attemptBar.boundingBox();
+
+  expect(timelineBox).not.toBeNull();
+  expect(attemptBox).not.toBeNull();
+  expect(Math.abs(attemptBox!.width - timelineBox!.width * (2_050 / 14_988))).toBeLessThan(1);
+
+  const queryPoint = page.locator('[data-timeline-node-point-id="span_17ba81b7da8f8b64"]');
+  await expect(queryPoint).toBeVisible();
+  await expect(queryPoint).toHaveClass(/bg-query/);
+  await expect(queryPoint).toHaveAttribute("title", /Started 208ms · Duration 46ms$/);
+  await expect(page.locator('[data-timeline-node-id="span_17ba81b7da8f8b64"]')).toHaveCount(0);
 });
 
 test("long inspector content scrolls independently", async ({ page }) => {
@@ -225,10 +234,15 @@ test("cache storage and breadcrumbs expose useful operation details", async ({ p
   });
 
   await page.goto("/skyline/runs/live-run?production=1&node=span_live_cache");
-  const breadcrumbs = page.locator('[title^="WARNING ·"], [title^="ERROR ·"]');
-  await expect(breadcrumbs).toHaveCount(2);
-  await expect(breadcrumbs.first()).toHaveAttribute("title", "WARNING · Import token=[REDACTED] delayed");
-  await expect(breadcrumbs.first()).toHaveClass(/rotate-45/);
+  const breadcrumbRows = page.locator('[data-trace-row-kind="breadcrumb"]');
+  await expect(breadcrumbRows).toHaveCount(2);
+  await expect(breadcrumbRows.nth(0)).toContainText("WARNING · Import token=[REDACTED] delayed");
+  await expect(breadcrumbRows.nth(1)).toContainText("ERROR · Import failed");
+
+  const breadcrumbTimelineRows = page.locator('[data-timeline-row-kind="breadcrumb"]');
+  await expect(breadcrumbTimelineRows).toHaveCount(2);
+  await expect(breadcrumbTimelineRows.nth(0).locator('[data-timeline-event-kind="breadcrumb"]')).toHaveAttribute("title", "WARNING · Import token=[REDACTED] delayed");
+  await expect(breadcrumbTimelineRows.nth(1).locator('[data-timeline-event-kind="breadcrumb"]')).toHaveAttribute("title", "ERROR · Import failed");
 
   await page.getByRole("tab", { name: "Detail" }).click();
   const cache = page.getByRole("tabpanel");

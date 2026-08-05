@@ -4,8 +4,8 @@
   "license": "Apache-2.0",
   "adaptedTargets": {
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
-    "resources/js/trigger/Timeline.tsx": "fb91f3540f0ce923c4a1bef111371c1a65178607f43cf33ad6db42f804d5d996",
-    "resources/js/trigger/TriggerInterface.tsx": "c6622ffd3f0089254f1d0ffb9ee88d7ac3c2bb35f08a82f1509aef5fb9baaa0d",
+    "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
+    "resources/js/trigger/TriggerInterface.tsx": "2ad9a40ac332f695ff6a8829fc3931b9772d49ca7cc385cf729c78285527664f",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -82,7 +82,7 @@
       "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5",
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
-      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added minimum-width query marks with timing tooltips."
+      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added exact-width duration bars, point marks for sub-pixel spans, timing tooltips, and aligned breadcrumb rows."
     },
     {
       "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
@@ -117,7 +117,7 @@
       "sha256": "1bfef56606dbb7b9ae9fcc65a7a05f9ad1898692e6415d8c9069f9f65d2f1e6d",
       "target": "resources/js/trigger/Timeline.tsx",
       "mode": "adapted",
-      "modifications": "Changed only the lerp import path and added provenance."
+      "modifications": "Changed the lerp import path, added provenance, and exposed rendered width to duration marks."
     },
     {
       "source": "apps/webapp/app/components/primitives/Resizable.tsx",

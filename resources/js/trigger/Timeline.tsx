@@ -55,10 +55,11 @@ export const useMousePosition = () => {
 type TimelineContextState = {
   startMs: number;
   durationMs: number;
+  pixelWidth: number;
 };
 const TimelineContext = createContext<TimelineContextState>({} as TimelineContextState);
 
-function useTimeline() {
+export function useTimeline() {
   return useContext(TimelineContext);
 }
 
@@ -89,8 +90,9 @@ export function Root({
   const pixelWidth = calculatePixelWidth(minWidth, maxWidth, scale);
 
   return (
-    <TimelineContext.Provider value={{ startMs, durationMs }}>
+    <TimelineContext.Provider value={{ startMs, durationMs, pixelWidth }}>
       <div
+        data-timeline-root
         className={className}
         style={{
           position: "relative",
