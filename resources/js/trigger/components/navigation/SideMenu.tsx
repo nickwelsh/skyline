@@ -9,6 +9,7 @@ import { type CSSProperties, type PointerEvent as ReactPointerEvent, useCallback
 import { cn } from "~/utils/cn";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
+import { useJobFavorites } from "./JobFavorites";
 
 type SideMenuProps = {
   applicationName: string;
@@ -22,6 +23,7 @@ type SideMenuProps = {
 
 export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, jobsPath, runsPath, queuesPath }: SideMenuProps) {
   const location = useLocation();
+  const favorites = useJobFavorites();
   const [width, setWidth] = useState(224);
   const widthRef = useRef(width);
   const collapsed = width <= 44;
@@ -71,6 +73,16 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           <span className="truncate font-medium capitalize" style={{ opacity: labelOpacity }}>{environmentLabel}</span>
         </div>
       </div>
+      {favorites.length > 0 ? (
+        <nav aria-label="Favorites" className="px-2 pb-3">
+          <div className="mb-1 truncate px-1 text-xs text-text-faint" style={{ opacity: labelOpacity }}>Favorites</div>
+          {favorites.map((favorite) => (
+            <NavigationLink key={favorite.id} to={favorite.path} active={location.pathname === favorite.path} label={favorite.label} labelOpacity={labelOpacity}>
+              <TaskIcon className="size-5 shrink-0 text-tasks" />
+            </NavigationLink>
+          ))}
+        </nav>
+      ) : null}
       <nav aria-label="Application" className="px-2">
         {capabilities.jobs ? <NavigationLink to={jobsPath} active={location.pathname.startsWith(jobsPath)} label="Jobs" labelOpacity={labelOpacity}><TaskIcon className="size-5 shrink-0 text-tasks" /></NavigationLink> : null}
         {capabilities.runs ? <NavigationLink to={runsPath} active={location.pathname.startsWith(runsPath)} label="Runs" labelOpacity={labelOpacity}><PlayIcon className="size-5 shrink-0 text-runs" /></NavigationLink> : null}

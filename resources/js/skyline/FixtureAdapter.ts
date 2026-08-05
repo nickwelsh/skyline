@@ -32,7 +32,7 @@ const capabilities = {
   navigation: { jobs: true, runs: true, queues: true },
   jobs: { view: true, testJob: false },
   runs: { view: true, cancel: false, replay: false },
-  shell: { shortcuts: true },
+  shell: { favorites: true, shortcuts: true },
 };
 
 export class FixtureAdapter implements SkylineDtoAdapter {

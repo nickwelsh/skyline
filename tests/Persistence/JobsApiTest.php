@@ -13,6 +13,7 @@ it('lists observed Job types with opaque identities and truthful summaries', fun
         ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('capabilities.jobs.view', true)
         ->assertJsonPath('capabilities.jobs.testJob', false)
+        ->assertJsonPath('capabilities.shell.favorites', true)
         ->assertJsonCount(2, 'jobs')
         ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Digest')
         ->assertJsonPath('jobs.1.name', 'App\\Jobs\\Invoice')

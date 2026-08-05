@@ -33,7 +33,7 @@ final class Capabilities
             'shell' => [
                 'appearance' => false,
                 'sidebarCustomization' => false,
-                'favorites' => false,
+                'favorites' => true,
                 'shortcuts' => true,
             ],
         ];

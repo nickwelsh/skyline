@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { extname, join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
-const dist = join(root, "dist");
+const dist = process.env.SKYLINE_DIST ? resolve(process.env.SKYLINE_DIST) : join(root, "dist");
 const manifest = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8"));
 const entry = manifest["resources/js/app.tsx"];
 const assets = new Set(Object.values(manifest).flatMap((item) => [item.file, ...(item.css ?? []), ...(item.assets ?? [])]));
@@ -17,7 +17,7 @@ const bootstrap = JSON.stringify({
     navigation: { jobs: true, runs: true, errors: false, logs: false, queues: true, query: false, dashboards: false },
     runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },
     jobs: { view: true, testJob: false, configure: false, schedule: false },
-    shell: { appearance: false, sidebarCustomization: false, favorites: false, shortcuts: true },
+    shell: { appearance: false, sidebarCustomization: false, favorites: true, shortcuts: true },
   },
 }).replaceAll("<", "\\u003c");
 

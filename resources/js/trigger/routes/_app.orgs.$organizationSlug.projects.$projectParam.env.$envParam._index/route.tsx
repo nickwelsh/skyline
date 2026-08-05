@@ -9,7 +9,7 @@ import { DateTimeShort } from "~/components/primitives/DateTime";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
-import { TaskRunStatusCombo } from "~/components/runs/v3/TaskRunStatus";
+import { getRunStatusChartColor, TaskRunStatusCombo } from "~/components/runs/v3/TaskRunStatus";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
@@ -109,9 +109,15 @@ function StatusActivity({ counts }: { counts: PresentedJob["statusCounts"] }) {
   const entries = Object.entries(counts).filter(([, count]) => count > 0);
   const peak = Math.max(1, ...entries.map(([, count]) => count));
   return (
-    <div aria-label="Recorded Runs by status" className="flex h-5 w-32 items-end gap-px">
+    <div role="img" aria-label="Recorded Runs by status" className="flex h-5 w-32 items-end gap-px">
       {entries.length > 0 ? entries.map(([status, count]) => (
-        <span key={status} title={`${status}: ${count}`} className="min-w-2 flex-1 bg-indigo-500/70" style={{ height: `${Math.max(20, count / peak * 100)}%` }} />
+        <span
+          key={status}
+          data-status={status}
+          title={`${status}: ${count}`}
+          className="min-w-2 flex-1"
+          style={{ backgroundColor: getRunStatusChartColor(status), height: `${Math.max(20, count / peak * 100)}%` }}
+        />
       )) : <span className="h-px w-full bg-grid-bright" />}
     </div>
   );

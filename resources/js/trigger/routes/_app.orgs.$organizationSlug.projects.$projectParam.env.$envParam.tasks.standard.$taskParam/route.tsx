@@ -12,18 +12,21 @@ import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "~/components/primitives/Resizable";
 import { Spinner } from "~/components/primitives/Spinner";
 import { TaskRunsTable } from "~/components/runs/v3/TaskRunsTable";
+import { allTaskRunStatuses, getRunStatusChartColor } from "~/components/runs/v3/TaskRunStatus";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
+import { JobFavoriteButton } from "~/components/navigation/JobFavorites";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 type JobDetailRouteData = {
   job: {
+    id: string;
     name: string;
     firstObservedAt: string;
     lastObservedAt: string;
     runCount: number;
   };
   queueTargets: Array<{ id: string; connection: string; queue: string; path: string }>;
-  activity: Array<{ timestamp: string; total: number }>;
+  activity: Array<{ timestamp: string; total: number; statusCounts: Record<RunStatus, number> }>;
   runs: React.ComponentProps<typeof TaskRunsTable>["runs"];
   pagination: { next?: string; previous?: string };
   filterOptions: {
@@ -47,7 +50,10 @@ export default function JobDetailRoute() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle backButton={{ to: "/jobs", text: "Jobs" }} title={<><TaskIcon className="size-4 text-tasks" /><span className="max-w-[50vw] truncate">{shortName(data.job.name)}</span></>} /></NavBar>
+      <NavBar>
+        <PageTitle backButton={{ to: "/jobs", text: "Jobs" }} title={<><TaskIcon className="size-4 text-tasks" /><span className="max-w-[50vw] truncate">{shortName(data.job.name)}</span></>} />
+        <JobFavoriteButton id={data.job.id} label={shortName(data.job.name)} path={`/jobs/${data.job.id}`} />
+      </NavBar>
       <PageBody scrollable={false} className="p-0">
         <ResizablePanelGroup orientation="horizontal" className="max-h-full">
           <ResizablePanel id="job-main" min="300px">
@@ -62,7 +68,7 @@ export default function JobDetailRoute() {
                 </select>
               </div>
               <ResizablePanelGroup orientation="vertical" className="max-h-full">
-                <ResizablePanel id="job-activity" min="180px" default="280px">
+                <ResizablePanel id="job-activity" min="220px" default="320px">
                   <section className="flex h-full min-h-0 flex-col overflow-hidden bg-background p-2" aria-labelledby="job-activity-heading">
                     <h2 id="job-activity-heading" className="mb-2 font-medium text-text-bright">Run activity</h2>
                     <ActivityChart activity={data.activity} />
@@ -96,7 +102,18 @@ function ActivityChart({ activity }: { activity: JobDetailRouteData["activity"] 
   if (activity.length === 0) return <div className="grid flex-1 place-items-center text-sm text-text-dimmed">No activity in this time range.</div>;
   return (
     <div role="img" aria-label="Recorded Runs by status over time" className="flex min-h-0 flex-1 items-end gap-1 border-b border-l border-grid-bright px-2 pt-4">
-      {activity.map((point) => <div key={point.timestamp} title={`${point.timestamp}: ${point.total} Runs`} className="min-w-2 flex-1 bg-indigo-500/70" style={{ height: `${Math.max(3, point.total / peak * 100)}%` }} />)}
+      {activity.map((point) => (
+        <div key={point.timestamp} title={`${point.timestamp}: ${point.total} Runs`} className="flex h-full min-w-2 flex-1 flex-col-reverse justify-start">
+          {allTaskRunStatuses.map((status) => point.statusCounts[status] > 0 ? (
+            <span
+              key={status}
+              data-status={status}
+              className="w-full"
+              style={{ backgroundColor: getRunStatusChartColor(status), height: `${Math.max(3, point.statusCounts[status] / peak * 100)}%` }}
+            />
+          ) : null)}
+        </div>
+      ))}
     </div>
   );
 }
