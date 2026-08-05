@@ -5,9 +5,7 @@
   "adaptedTargets": {
     "resources/js/trigger/CodeBlock.tsx": "4f0c5dedc6e39406c105f7bd5eca33c64dbf2259c551e8e5e8be3eba99687a3c",
     "resources/js/trigger/Dialog.tsx": "203e5386944e3143616c18fccdb8812efdc18ad7a25998b7c225416ba74556a6",
-    "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
     "resources/js/trigger/Tabs.tsx": "09c71dcea8dbae0105a67be167d0b25d57f124631b4742cdf43fff3f9a670be2",
-    "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
     "resources/js/trigger/Tooltip.tsx": "75810913c698bd0f156283a2fa134a733c4bf21a5325dded829ef1ea854bb4fc",
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
     "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
@@ -17,10 +15,12 @@
     "resources/js/trigger/components/primitives/Input.tsx": "dc9231eb95381c8fb0a4b857f24a790ad3a99668e1b5083ca993766ddb65cfe9",
     "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
+    "resources/js/trigger/components/primitives/Resizable.tsx": "998d2529c8c0d8cee0f973583c46d9a8becfade2ca71e240b4290ba57752c4d7",
     "resources/js/trigger/components/primitives/ShortcutKey.tsx": "45bb2b8ba36d7b52514b40b1185fee56d07a5b4cd4243236f4c628881eb3abc6",
     "resources/js/trigger/components/primitives/Slider.tsx": "e190c053986b34c7e1472e7f086e06dc047f8a8b36cc1109d757608194889d9a",
     "resources/js/trigger/components/primitives/Spinner.tsx": "70b8a9fddf357735c96002152a2366e0fd05f52e564dcf2504173e71d7bf0187",
     "resources/js/trigger/components/primitives/Switch.tsx": "d5394ec4ea561765345b72890c92e15cc4508183b69e6722fe738d08a04ea312",
+    "resources/js/trigger/components/primitives/Timeline.tsx": "b187055eb17bfca5ab001ffc808d0fcd7b6500f497e80afa0d1f2f8498580649",
     "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
     "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
     "resources/js/trigger/hooks/useShortcutKeys.tsx": "24f52df218ca86c08f8d15730f4757b1a596821f503f9dd6ebb12edea22aa74e",
@@ -233,16 +233,16 @@
     {
       "source": "apps/webapp/app/components/primitives/Timeline.tsx",
       "sha256": "1bfef56606dbb7b9ae9fcc65a7a05f9ad1898692e6415d8c9069f9f65d2f1e6d",
-      "target": "resources/js/trigger/Timeline.tsx",
+      "target": "resources/js/trigger/components/primitives/Timeline.tsx",
       "mode": "adapted",
-      "modifications": "Changed the lerp import path, added provenance, and exposed rendered width to duration marks."
+      "modifications": "Changed the lerp import path, added provenance, and exposed rendered width to duration marks; retained the prior root path as a compatibility re-export."
     },
     {
       "source": "apps/webapp/app/components/primitives/Resizable.tsx",
       "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837",
-      "target": "resources/js/trigger/Resizable.tsx",
+      "target": "resources/js/trigger/components/primitives/Resizable.tsx",
       "mode": "adapted",
-      "modifications": "Retained two independent 3px drag handles and controlled collapse; replaced Remix browser detection/persistence with client behavior."
+      "modifications": "Changed the cn import path and replaced Remix root-loader browser detection with Skyline client detection; retained the prior root path as a compatibility re-export."
     },
     {
       "source": "apps/webapp/app/components/run/RunTimeline.tsx",
