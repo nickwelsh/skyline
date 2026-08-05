@@ -59,6 +59,27 @@ it('filters Queue targets with server supplied URL options and explicit invalid 
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('cursor-paginates Queue targets in stable destination order', function (): void {
+    for ($index = 0; $index < 27; $index++) {
+        seedQueueTargetRun('target-'.$index, 'completed', 'redis', sprintf('queue-%02d', $index), 1_000_000);
+    }
+
+    $first = $this->getJson('/skyline/api/queues')->assertOk()->assertJsonCount(25, 'queueTargets');
+    $next = $first->json('pagination.next');
+    expect($first->json('pagination.previous'))->toBeNull()
+        ->and($next)->toBeString()->not->toContain('queue-24');
+
+    $second = $this->getJson('/skyline/api/queues?'.http_build_query(['cursor' => $next]))
+        ->assertOk()
+        ->assertJsonCount(2, 'queueTargets');
+    $previous = $second->json('pagination.previous');
+
+    expect($second->json('pagination.next'))->toBeNull()
+        ->and($previous)->toBeString()
+        ->and($this->getJson('/skyline/api/queues?'.http_build_query(['cursor' => $previous]))
+            ->assertOk()->json('queueTargets'))->toBe($first->json('queueTargets'));
+});
+
 it('shows Queue-target activity, queue-time history, and cursor-paginated filtered Runs', function (): void {
     for ($index = 0; $index < 27; $index++) {
         seedQueueTargetRun(
