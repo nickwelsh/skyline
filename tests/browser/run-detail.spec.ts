@@ -6,6 +6,7 @@ import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto"
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
 import inspectorOracle from "./fixtures/nw-220-external-inspectors.json" with { type: "json" };
 import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseline.json" with { type: "json" };
+import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const rootNodeId = `run_${runId}`;
@@ -80,6 +81,96 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
   await page.getByRole("button", { name: "Close inspector" }).click();
   await expect(page).not.toHaveURL(/node=/);
+});
+
+test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page }) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  for (const source of Object.values(triggerFailureBaseline.sourceFiles)) {
+    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
+  }
+
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  const retryId = `attempt_${runId}_2`;
+  detail.attempts[1].status = "failed";
+  detail.attempts[1].failure = { class: "LogicException", message: "Retry failed differently.", messageTruncated: false };
+  const retryNode = detail.trace.nodes.find((node) => node.id === retryId)!;
+  retryNode.status = "failed";
+  retryNode.isError = true;
+
+  await routeDetail(page, detail, async (nodeId) => {
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const inspector = await adapter.inspector(nodeId, runId);
+    if (nodeId === retryId) {
+      inspector.exception = {
+        class: "LogicException",
+        message: "Retry failed differently.",
+        messageTruncated: false,
+        messageOriginalBytes: 25,
+        code: null,
+        location: null,
+        frames: [],
+        framesTruncated: false,
+        markdown: "# LogicException - Job failed\n\nRetry failed differently.\n",
+      };
+    } else if (inspector.exception) {
+      inspector.exception.markdown = "# DeadlockException - Job failed\n\nRetry transaction.\n";
+      inspector.exception.frames.push(...Array.from({ length: 30 }, (_, index) => ({
+        file: `app/Jobs/Step${index + 1}.php`,
+        line: index + 1,
+        class: `App\\Jobs\\Step${index + 1}`,
+        type: "->",
+        function: "handle",
+        isVendor: false,
+        href: null,
+        snippet: null,
+      })));
+    }
+    return inspector;
+  });
+
+  await page.goto(`/skyline/runs/${runId}?node=${failedAttemptId}`);
+  await expect(page.getByLabel("Loading inspector")).toBeVisible();
+  const exception = page.getByRole("region", { name: "Exception" });
+  await expect(exception).toContainText("Illuminate\\Database\\DeadlockException");
+  await expect(exception).toContainText("app/Jobs/GenerateMonthlyInvoices.php:58");
+
+  const copy = page.getByRole("button", { name: "Copy exception as Markdown" });
+  await copy.click();
+  await expect(copy).toContainText(triggerFailureBaseline.contract.copyFeedback.copied);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("# DeadlockException - Job failed\n\nRetry transaction.\n");
+
+  const frames = page.locator('button[aria-controls="exception-trace"]');
+  await expect(frames).toHaveAttribute("aria-expanded", "false");
+  await frames.click();
+  await expect(frames).toHaveAttribute("aria-expanded", "true");
+  const trace = page.locator("#exception-trace");
+  expect(await trace.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await trace.evaluate((element) => element.clientHeight));
+
+  const vendor = page.getByRole("button", { name: /1 vendor frame/ });
+  await expect(vendor).toHaveAttribute("aria-expanded", "false");
+  await vendor.click();
+  await expect(exception).toContainText("CallQueuedHandler->call");
+
+  const wrap = page.getByRole("button", { name: "Wrap application frame 1" });
+  await wrap.click();
+  await expect(page.getByRole("button", { name: "Unwrap application frame 1" })).toBeVisible();
+  const expand = page.getByRole("button", { name: "Expand application frame 1" });
+  await expand.focus();
+  await expand.click();
+  await expect(page.getByRole("dialog", { name: "Expanded application frame 1" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Expanded application frame 1" })).toHaveCount(0);
+  await expect(expand).toBeFocused();
+
+  await page.locator(`[data-node-id="${retryId}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
+  await expect(page.getByLabel("Loading inspector")).toBeVisible();
+  await expect(exception).toContainText("Retry failed differently.");
+  await expect(exception).toContainText("Source location not captured");
+  await expect(exception).toContainText("Stack trace not captured");
+  await expect(exception).not.toContainText("DeadlockException");
 });
 
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {
