@@ -50,6 +50,7 @@ use Tests\Fixtures\Jobs\FailingStorageJob;
 use Tests\Fixtures\Jobs\FailingSummaryJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\LifecycleCleanupJob;
+use Tests\Fixtures\Jobs\MailNotificationJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\PolledProcessJob;
 use Tests\Fixtures\Jobs\ProcessFakeJob;
@@ -65,6 +66,7 @@ use Tests\Fixtures\Jobs\SummaryJob;
 use Tests\Fixtures\Jobs\TransactionJob;
 use Tests\Fixtures\Mail\QueuedTestMailable;
 use Tests\Fixtures\Mail\TestMailable;
+use Tests\Fixtures\Notifications\MailTestNotification;
 use Tests\Fixtures\RecordingTelemetrySink;
 
 it('captures nested custom spans and events while preserving application behavior', function (): void {
@@ -120,6 +122,72 @@ it('captures mail and per-channel notification delivery without recipient identi
         ->not->toContain('private subject')
         ->not->toContain('private body')
         ->not->toContain('private-route');
+});
+
+it('captures opt-in mail content recipients and notification delivery data', function (): void {
+    config()->set('mail.default', 'array');
+    config()->set('mail.mailers.array', ['transport' => 'array']);
+    config()->set('skyline.delivery.capture_recipients', true);
+    config()->set('skyline.delivery.capture_content', true);
+
+    DeliveryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $mail = collect($sink->spans)
+        ->first(fn ($span) => $span->getAttributes()->get('messaging.message.type') === TestMailable::class);
+    $notification = collect($sink->spans)
+        ->first(fn ($span) => $span->getName() === 'Notification slack');
+    $recipients = json_decode($mail->getAttributes()->get('messaging.destination.recipients'), true, flags: JSON_THROW_ON_ERROR);
+    $failure = json_decode($notification->getAttributes()->get('messaging.operation.data'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($recipients)->toMatchArray([
+        ['kind' => 'to', 'address' => 'first@example.test'],
+        ['kind' => 'to', 'address' => 'second@example.test'],
+    ])->and($mail->getAttributes()->get('messaging.message.subject'))->toBe('private subject')
+        ->and($mail->getAttributes()->get('messaging.message.html'))->toBe('<p>private body</p>')
+        ->and($notification->getAttributes()->get('messaging.destination.identity'))->toContain('stdClass')
+        ->and($failure['value'])->toBe(['route' => 'private-route'])
+        ->and($failure['truncated'])->toBeFalse();
+});
+
+it('uses capture all for delivery details missing from a published config', function (): void {
+    config()->set('mail.default', 'array');
+    config()->set('mail.mailers.array', ['transport' => 'array']);
+    config()->set('skyline.capture_all', true);
+    $deliveryConfig = config('skyline.delivery');
+    unset($deliveryConfig['capture_recipients'], $deliveryConfig['capture_content']);
+    config()->set('skyline.delivery', $deliveryConfig);
+
+    DeliveryJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $mail = collect($sink->spans)
+        ->first(fn ($span) => $span->getAttributes()->get('messaging.message.type') === TestMailable::class);
+
+    expect($mail->getAttributes()->get('messaging.destination.recipients'))->toContain('first@example.test')
+        ->and($mail->getAttributes()->get('messaging.message.subject'))->toBe('private subject');
+});
+
+it('captures rendered Laravel mail notification details', function (): void {
+    config()->set('mail.default', 'array');
+    config()->set('mail.mailers.array', ['transport' => 'array']);
+    config()->set('skyline.delivery.capture_recipients', true);
+    config()->set('skyline.delivery.capture_content', true);
+
+    MailNotificationJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $mail = collect($sink->spans)->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'mail');
+    $notification = collect($sink->spans)->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'notification');
+
+    expect($mail->getAttributes()->get('messaging.message.type'))->toBe(MailTestNotification::class)
+        ->and($mail->getAttributes()->get('messaging.destination.recipients'))->toContain('notify@example.test')
+        ->and($mail->getAttributes()->get('messaging.message.subject'))->toBe('private notification subject')
+        ->and($mail->getAttributes()->get('messaging.message.html'))->toContain('private notification body')
+        ->and($notification->getAttributes()->get('messaging.destination.identity'))->toContain('AnonymousNotifiable');
 });
 
 it('captures storage and process operations without content paths arguments or output', function (): void {
@@ -493,6 +561,42 @@ it('captures cache operations without values or raw keys', function (): void {
     expect(json_encode($cache->map(fn ($span) => $span->getAttributes()->toArray())->all()))
         ->not->toContain('private-value')
         ->not->toContain('secret@example.test');
+});
+
+it('captures opt-in cache write and hit values', function (): void {
+    config()->set('skyline.cache.capture_keys', true);
+    config()->set('skyline.cache.capture_values', true);
+
+    CacheJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $cache = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')
+        ->values();
+    $written = json_decode($cache[0]->getAttributes()->get('cache.value'), true, flags: JSON_THROW_ON_ERROR);
+    $hit = json_decode($cache[1]->getAttributes()->get('cache.value'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($cache[0]->getAttributes()->get('cache.key'))->toBe('customer:secret@example.test')
+        ->and($written)->toMatchArray(['type' => 'string', 'value' => 'private-value', 'truncated' => false])
+        ->and($hit)->toBe($written)
+        ->and($cache[2]->getAttributes()->get('cache.value'))->toBeNull();
+});
+
+it('uses capture all for cache values missing from a published config', function (): void {
+    config()->set('skyline.capture_all', true);
+    $cacheConfig = config('skyline.cache');
+    unset($cacheConfig['capture_values']);
+    config()->set('skyline.cache', $cacheConfig);
+
+    CacheJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $written = collect($sink->spans)
+        ->first(fn ($span) => $span->getName() === 'Cache PUT');
+
+    expect($written->getAttributes()->get('cache.value'))->toContain('private-value');
 });
 
 it('describes cache helpers and stale-while-revalidate windows', function (): void {

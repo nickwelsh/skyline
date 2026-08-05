@@ -4,8 +4,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use NickWelsh\Skyline\Read\Nanoseconds;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
+use Tests\Fixtures\Jobs\CacheJob;
 use Tests\Fixtures\Jobs\CacheStrategyJob;
 use Tests\Fixtures\Jobs\ChildJob;
+use Tests\Fixtures\Jobs\DeliveryJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
@@ -281,6 +283,53 @@ it('serves operation-specific cache and storage details', function (): void {
         ->assertJsonPath('node.storage.localFile.path', $root.'/reports/customer report.txt')
         ->assertJsonPath('node.storage.localFile.href', 'vscode://file/'.$root.'/reports/customer report.txt:1')
         ->assertJsonPath('node.storage.outcome', 'completed');
+});
+
+it('serves captured cache values and delivery content', function (): void {
+    config()->set('skyline.cache.capture_keys', true);
+    config()->set('skyline.cache.capture_values', true);
+    CacheJob::dispatchSync();
+    $cacheRun = DB::table('skyline_runs')->where('job_name', CacheJob::class)->first();
+    $cacheSpan = DB::table('skyline_spans')
+        ->where('run_id', $cacheRun->run_id)
+        ->where('role', 'cache')
+        ->where('attributes', 'like', '%"cache.operation":"PUT"%')
+        ->first();
+
+    $this->getJson('/skyline/api/runs/'.$cacheRun->run_id.'/nodes/span_'.$cacheSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.cache.key', 'customer:secret@example.test')
+        ->assertJsonPath('node.cache.value.type', 'string')
+        ->assertJsonPath('node.cache.value.value', 'private-value')
+        ->assertJsonPath('node.cache.value.truncated', false);
+
+    config()->set('mail.default', 'array');
+    config()->set('mail.mailers.array', ['transport' => 'array']);
+    config()->set('skyline.delivery.capture_recipients', true);
+    config()->set('skyline.delivery.capture_content', true);
+    DeliveryJob::dispatchSync();
+    $deliveryRun = DB::table('skyline_runs')->where('job_name', DeliveryJob::class)->first();
+    $mailSpan = DB::table('skyline_spans')
+        ->where('run_id', $deliveryRun->run_id)
+        ->where('role', 'mail')
+        ->where('attributes', 'like', '%private subject%')
+        ->first();
+    $notificationSpan = DB::table('skyline_spans')
+        ->where('run_id', $deliveryRun->run_id)
+        ->where('role', 'notification')
+        ->where('name', 'Notification slack')
+        ->first();
+
+    $this->getJson('/skyline/api/runs/'.$deliveryRun->run_id.'/nodes/span_'.$mailSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.delivery.recipients.0.address', 'first@example.test')
+        ->assertJsonPath('node.delivery.subject.value', 'private subject')
+        ->assertJsonPath('node.delivery.html.value', '<p>private body</p>');
+
+    $this->getJson('/skyline/api/runs/'.$deliveryRun->run_id.'/nodes/span_'.$notificationSpan->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.delivery.recipientIdentity.value.type', 'stdClass')
+        ->assertJsonPath('node.delivery.operationData.value.route', 'private-route');
 });
 
 it('presents log breadcrumbs as chronological selectable nodes with details', function (): void {

@@ -885,20 +885,7 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
     </div>
   );
   if (node.kind === "storage" && node.storage) return <StorageDetail node={node} />;
-  if ((node.kind === "mail" || node.kind === "notification") && node.delivery) return (
-    <div className="space-y-4">
-      {node.source && <NodeSource source={node.source} />}
-      <DetailSection title={node.kind === "mail" ? "Delivery" : "Notification delivery"}>
-        <PropertyList values={{
-          Type: shortName(node.delivery.messageType ?? "—"),
-          [node.kind === "mail" ? "Mailer" : "Channel"]: node.delivery.transportOrChannel,
-          Recipients: node.delivery.recipientCount,
-          Outcome: humanize(node.delivery.outcome),
-        }} />
-      </DetailSection>
-      <CaptureNote>Recipient identities, subjects, and message bodies are not captured.</CaptureNote>
-    </div>
-  );
+  if ((node.kind === "mail" || node.kind === "notification") && node.delivery) return <DeliveryDetail node={node} />;
   if (node.kind === "process" && node.process) return (
     <div className="space-y-4">
       {node.source && <NodeSource source={node.source} />}
@@ -972,9 +959,42 @@ function CacheDetail({ node }: { node: InspectorDto }) {
         }} />
       </DetailSection>
       {cache.key && <DetailSection title="Entry">
-        <PropertyList values={{ [cache.keyCaptured ? "Key" : "Key fingerprint"]: cache.key, Value: "Not captured" }} />
+        <PropertyList values={{ [cache.keyCaptured ? "Key" : "Key fingerprint"]: cache.key }} />
       </DetailSection>}
-      <CaptureNote>{cache.keyCaptured ? "Cache values are never captured." : "Raw keys are hidden. Enable SKYLINE_CACHE_CAPTURE_KEYS to show them; cache values are never captured."}</CaptureNote>
+      {cache.value && <JsonCapturePreview label="Value" value={cache.value.value} summary={humanize(cache.value.type)} truncated={cache.value.truncated} />}
+      {!cache.value && <CaptureNote>{cache.hit === false
+        ? "No value was returned because this lookup missed."
+        : "Value capture is off. Enable SKYLINE_CACHE_CAPTURE_VALUES or SKYLINE_CAPTURE_ALL to inspect values."}</CaptureNote>}
+      {!cache.keyCaptured && <CaptureNote>Raw keys are hidden. Enable SKYLINE_CACHE_CAPTURE_KEYS or SKYLINE_CAPTURE_ALL to show them.</CaptureNote>}
+    </div>
+  );
+}
+
+function DeliveryDetail({ node }: { node: InspectorDto }) {
+  const delivery = node.delivery!;
+  const hasRecipients = delivery.recipients !== null || delivery.recipientIdentity !== null;
+  const hasContent = delivery.subject !== null || delivery.text !== null || delivery.html !== null || delivery.messageData !== null || delivery.operationData !== null;
+
+  return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <DetailSection title={node.kind === "mail" ? "Delivery" : "Notification delivery"}>
+        <PropertyList values={{
+          Type: shortName(delivery.messageType ?? "—"),
+          [node.kind === "mail" ? "Mailer" : "Channel"]: delivery.transportOrChannel,
+          Recipients: delivery.recipientCount,
+          Outcome: humanize(delivery.outcome),
+        }} />
+      </DetailSection>
+      {delivery.recipients && <JsonCapturePreview label="Recipients" value={delivery.recipients} />}
+      {delivery.recipientIdentity && <JsonCapturePreview label="Recipient identity" value={delivery.recipientIdentity.value} summary={humanize(delivery.recipientIdentity.type)} truncated={delivery.recipientIdentity.truncated} />}
+      {delivery.subject && <TextCapturePreview label="Subject" value={delivery.subject.value} truncated={delivery.subject.truncated} language="text" />}
+      {delivery.text && <TextCapturePreview label="Text body" value={delivery.text.value} truncated={delivery.text.truncated} language="text" />}
+      {delivery.html && <TextCapturePreview label="HTML body" value={delivery.html.value} truncated={delivery.html.truncated} />}
+      {delivery.messageData && <JsonCapturePreview label="Notification data" value={delivery.messageData.value} summary={humanize(delivery.messageData.type)} truncated={delivery.messageData.truncated} />}
+      {delivery.operationData && <JsonCapturePreview label={delivery.outcome === "failed" ? "Failure data" : "Channel response"} value={delivery.operationData.value} summary={humanize(delivery.operationData.type)} truncated={delivery.operationData.truncated} />}
+      {!hasRecipients && <CaptureNote>Recipient capture is off. Enable SKYLINE_DELIVERY_CAPTURE_RECIPIENTS or SKYLINE_CAPTURE_ALL to inspect identities.</CaptureNote>}
+      {!hasContent && <CaptureNote>Content capture is off. Enable SKYLINE_DELIVERY_CAPTURE_CONTENT or SKYLINE_CAPTURE_ALL to inspect available content.</CaptureNote>}
     </div>
   );
 }

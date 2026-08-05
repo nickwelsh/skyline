@@ -257,6 +257,7 @@ final readonly class NodeQuery
             'ttlSeconds' => isset($attributes['cache.ttl']) ? (int) $attributes['cache.ttl'] : null,
             'freshTtlSeconds' => isset($attributes['cache.fresh_ttl']) ? (int) $attributes['cache.fresh_ttl'] : null,
             'forever' => (bool) ($attributes['cache.forever'] ?? false),
+            'value' => $this->valueCapture($attributes, 'cache.value'),
         ];
     }
 
@@ -308,12 +309,21 @@ final readonly class NodeQuery
     /** @param array<string, mixed> $attributes @return array<string, mixed> */
     private function delivery(string $kind, array $attributes): array
     {
+        $recipients = $this->sqlCapture($attributes, 'messaging.destination.recipients');
+
         return [
             'kind' => $kind,
             'messageType' => $attributes['messaging.message.type'] ?? null,
             'transportOrChannel' => $attributes['messaging.destination.name'] ?? null,
             'recipientCount' => isset($attributes['messaging.destination.recipient_count']) ? (int) $attributes['messaging.destination.recipient_count'] : null,
             'outcome' => $attributes['messaging.operation.outcome'] ?? null,
+            'recipients' => is_array($recipients) ? $recipients : null,
+            'recipientIdentity' => $this->valueCapture($attributes, 'messaging.destination.identity'),
+            'subject' => $this->textCapture($attributes, 'messaging.message.subject'),
+            'text' => $this->textCapture($attributes, 'messaging.message.text'),
+            'html' => $this->textCapture($attributes, 'messaging.message.html'),
+            'messageData' => $this->valueCapture($attributes, 'messaging.message.data'),
+            'operationData' => $this->valueCapture($attributes, 'messaging.operation.data'),
         ];
     }
 
@@ -496,6 +506,34 @@ final readonly class NodeQuery
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /** @param array<string, mixed> $attributes @return array{type: string, value: mixed, originalBytes: int, truncated: bool}|null */
+    private function valueCapture(array $attributes, string $key): ?array
+    {
+        $capture = $this->sqlCapture($attributes, $key);
+
+        if (! is_string($capture['type'] ?? null) || ! array_key_exists('value', $capture)) {
+            return null;
+        }
+
+        return [
+            'type' => $capture['type'],
+            'value' => $capture['value'],
+            'originalBytes' => is_numeric($capture['originalBytes'] ?? null) ? (int) $capture['originalBytes'] : 0,
+            'truncated' => (bool) ($capture['truncated'] ?? false),
+        ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array{value: string, truncated: bool}|null */
+    private function textCapture(array $attributes, string $key): ?array
+    {
+        $value = $attributes[$key] ?? null;
+
+        return is_string($value) ? [
+            'value' => $value,
+            'truncated' => (bool) ($attributes[$key.'_truncated'] ?? false),
+        ] : null;
     }
 
     /** @param array<string, mixed> $attributes @return array{file: string, line: int, href: string|null}|null */

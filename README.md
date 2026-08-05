@@ -33,7 +33,7 @@ Optional capture remains off by default. Enable every optional capture in develo
 SKYLINE_CAPTURE_ALL=true
 ```
 
-Every individual capture environment variable inherits this value and can still override it. For example, `SKYLINE_HTTP_CAPTURE_REQUEST_BODY=false` keeps request bodies off while the shared switch enables everything else. The shared switch includes SQL bindings/results, HTTP query/headers/bodies, raw cache keys, storage paths, source locations, and log breadcrumbs; keep it disabled in production unless all captured data is approved.
+Every individual capture environment variable inherits this value and can still override it. For example, `SKYLINE_HTTP_CAPTURE_REQUEST_BODY=false` keeps request bodies off while the shared switch enables everything else. The shared switch includes SQL bindings/results, HTTP query/headers/bodies, raw cache keys and values, delivery recipients/content, storage paths, source locations, and log breadcrumbs; keep it disabled in production unless all captured data is approved.
 
 Skyline captures every eligible Run and flushes normalized telemetry in bounded batches. Defaults are 5,000 operations or two seconds at a worker-loop boundary; configure `SKYLINE_BATCH_MAX_OPERATIONS` and `SKYLINE_BATCH_MAX_DELAY_MS` when needed.
 
@@ -85,14 +85,15 @@ Only allowlisted headers and redacted sensitive headers are stored. Body preview
 
 Failed Attempts show a collapsed Laravel-style exception preview. Expanding it reveals highlighted application source, folded vendor frames, and editor links. Copy as Markdown produces a bounded exception report suitable for issues or debugging. Source is read on demand from the host filesystem and is not persisted by Skyline.
 
-Laravel cache reads, writes, deletes, flushes, and lock flushes are captured as Attempt child spans. Direct Redis commands are captured separately; Redis commands backing a high-level cache operation are suppressed. Values and Redis parameters are never captured. Cache keys are hashed by default. Short-lived raw key and source capture are independent opt-ins:
+Laravel cache reads, writes, deletes, flushes, and lock flushes are captured as Attempt child spans. Direct Redis commands are captured separately; Redis commands backing a high-level cache operation are suppressed. Cache keys are hashed and values are omitted by default. Short-lived raw key, value, and source capture are independent opt-ins:
 
 ```dotenv
 SKYLINE_CACHE_CAPTURE_KEYS=true
+SKYLINE_CACHE_CAPTURE_VALUES=true
 SKYLINE_CACHE_CAPTURE_SOURCE=true
 ```
 
-Laravel does not emit lifecycle events for increment/decrement or individual lock acquire/release operations, so those remain visible only as direct Redis commands when applicable. Set `SKYLINE_CACHE_ENABLED=false` to disable cache and Redis spans.
+Value previews retain scalar and structured types, are bounded to 64KB, and apply to writes and successful reads. Configure `SKYLINE_CACHE_MAX_VALUE_BYTES` to change the bound. Laravel does not expose values or arguments for direct Redis command events. It also does not emit lifecycle events for increment/decrement or individual lock acquire/release operations, so those remain visible only as direct Redis commands when applicable. Set `SKYLINE_CACHE_ENABLED=false` to disable cache and Redis spans.
 
 Applications can add domain-specific spans and events to the active Attempt:
 
@@ -110,7 +111,15 @@ Skyline::event('Imported chunk', ['rows' => 500]);
 
 Laravel database transactions are captured automatically. Nested transactions bracket their SQL children and record connection, depth, outcome, total duration, and cumulative query time. Rollbacks are marked as failed transaction nodes without failing a successful Attempt that catches the rollback. Locking clauses are identified on captured SQL spans. Laravel's transaction events do not expose callback exceptions, retry numbers, or driver lock-wait timing, so Skyline records those only when they are independently available from SQL/Attempt telemetry and never guesses them.
 
-Laravel mail and notification delivery is captured automatically for synchronous and queued work. Mail records mailable class, mailer, recipient count, duration, and outcome. Notifications produce one span per channel and recipient. Addresses, subjects, rendered bodies, attachments, routes, responses, and payloads are never captured. Set `SKYLINE_DELIVERY_CAPTURE_SOURCE=true` for bounded application source locations or `SKYLINE_DELIVERY_ENABLED=false` to disable delivery spans. Laravel mail does not emit a failure event, so a send started without a matching sent event is marked incomplete when its Attempt ends.
+Laravel mail and notification delivery is captured automatically for synchronous and queued work. Mail records mailable class, mailer, recipient count, duration, and outcome. Notifications produce one span per channel and recipient. Sensitive detail is omitted by default. Enable it briefly for debugging:
+
+```dotenv
+SKYLINE_DELIVERY_CAPTURE_RECIPIENTS=true
+SKYLINE_DELIVERY_CAPTURE_CONTENT=true
+SKYLINE_DELIVERY_CAPTURE_SOURCE=true
+```
+
+Recipient capture stores mail addresses and a best-effort notification notifiable identity. Content capture stores bounded rendered mail subjects/text/HTML, notification public data, and channel response or failure data exposed by Laravel. It does not render notifications a second time, and attachments remain excluded. Configure `SKYLINE_DELIVERY_MAX_CONTENT_BYTES` to change the 64KB bound. Set `SKYLINE_DELIVERY_ENABLED=false` to disable delivery spans. Laravel mail does not emit a failure event, so a send started without a matching sent event is marked incomplete when its Attempt ends.
 
 Laravel Storage disks record reads, writes, deletes, copies, moves, streams, and metadata operations. Contents are never inspected for telemetry, and streams retain their original position and ownership. Paths are hashed by default; bounded raw paths and source locations require `SKYLINE_STORAGE_CAPTURE_PATHS=true` and `SKYLINE_STORAGE_CAPTURE_SOURCE=true` respectively. With path capture enabled, local disks offer editor links and disks with a `url` offer public links. For disks needing an explicit mapping, configure `skyline.storage.links.<disk>` as a base URL or a template containing `{path}`.
 

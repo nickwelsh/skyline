@@ -13,6 +13,8 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Email;
 use Throwable;
 
 final class DeliveryInstrumentation
@@ -28,6 +30,7 @@ final class DeliveryInstrumentation
         private readonly AttemptRegistry $attempts,
         private readonly SkylineTracer $tracer,
         private readonly SourceLocator $source,
+        private readonly ValueCapture $values,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -41,8 +44,8 @@ final class DeliveryInstrumentation
         $this->listen(MessageSending::class, fn (MessageSending $event) => $this->mailSending($event));
         $this->listen(MessageSent::class, fn (MessageSent $event) => $this->complete($this->mailKey($event->message), true, 'sent'));
         $this->listen(NotificationSending::class, fn (NotificationSending $event) => $this->notificationSending($event));
-        $this->listen(NotificationSent::class, fn (NotificationSent $event) => $this->complete($this->notificationKey($event->notification, $event->channel), true, 'sent'));
-        $this->listen(NotificationFailed::class, fn (NotificationFailed $event) => $this->complete($this->notificationKey($event->notification, $event->channel), false, 'failed'));
+        $this->listen(NotificationSent::class, fn (NotificationSent $event) => $this->complete($this->notificationKey($event->notification, $event->channel), true, 'sent', $event->response, true));
+        $this->listen(NotificationFailed::class, fn (NotificationFailed $event) => $this->complete($this->notificationKey($event->notification, $event->channel), false, 'failed', $event->data, true));
     }
 
     public function finishAttempt(ActiveAttempt $attempt): void
@@ -62,7 +65,7 @@ final class DeliveryInstrumentation
             return;
         }
 
-        $type = $event->data['__laravel_mailable'] ?? 'mail';
+        $type = $event->data['__laravel_mailable'] ?? $event->data['__laravel_notification'] ?? 'mail';
         $mailer = $event->data['mailer'] ?? 'default';
         $recipients = count($event->message->getTo())
             + count($event->message->getCc())
@@ -76,6 +79,14 @@ final class DeliveryInstrumentation
             'messaging.destination.name' => is_string($mailer) ? $mailer : 'default',
             'messaging.destination.recipient_count' => $recipients,
         ];
+
+        if ($this->capture('capture_recipients')) {
+            $attributes['messaging.destination.recipients'] = $this->recipients($event->message);
+        }
+
+        if ($this->capture('capture_content')) {
+            $attributes = [...$attributes, ...$this->mailContent($event->message)];
+        }
 
         if ((bool) $this->config->get('skyline.delivery.capture_source', false)) {
             $attributes = [...$attributes, ...$this->source->attributes('skyline.mail.source')];
@@ -110,6 +121,17 @@ final class DeliveryInstrumentation
             'messaging.destination.recipient_count' => 1,
         ];
 
+        if ($this->capture('capture_recipients')) {
+            $attributes['messaging.destination.identity'] = $this->values->encode(
+                $this->notifiableIdentity($event->notifiable),
+                $this->contentBytes(),
+            );
+        }
+
+        if ($this->capture('capture_content')) {
+            $attributes['messaging.message.data'] = $this->values->encode($event->notification, $this->contentBytes());
+        }
+
         if ((bool) $this->config->get('skyline.delivery.capture_source', false)) {
             $attributes = [...$attributes, ...$this->source->attributes('skyline.notification.source')];
         }
@@ -125,7 +147,7 @@ final class DeliveryInstrumentation
         ];
     }
 
-    private function complete(string $key, bool $success, string $outcome): void
+    private function complete(string $key, bool $success, string $outcome, mixed $data = null, bool $hasData = false): void
     {
         $pending = $this->pending[$key] ?? null;
 
@@ -135,6 +157,11 @@ final class DeliveryInstrumentation
 
         unset($this->pending[$key]);
         $pending['span']->setAttribute('messaging.operation.outcome', $outcome);
+
+        if ($hasData && $this->capture('capture_content')) {
+            $pending['span']->setAttribute('messaging.operation.data', $this->values->encode($data, $this->contentBytes()));
+        }
+
         $pending['span']->setStatus($success ? StatusCode::STATUS_OK : StatusCode::STATUS_ERROR);
         $pending['span']->end();
     }
@@ -147,6 +174,92 @@ final class DeliveryInstrumentation
     private function notificationKey(object $notification, string $channel): string
     {
         return 'notification:'.spl_object_id($notification).':'.$channel;
+    }
+
+    /** @return array<string, string|bool> */
+    private function mailContent(Email $message): array
+    {
+        $attributes = [];
+        $subject = $message->getSubject();
+
+        if (is_string($subject)) {
+            $attributes['messaging.message.subject'] = $this->text($subject);
+            $attributes['messaging.message.subject_truncated'] = strlen($subject) > $this->contentBytes();
+        }
+
+        foreach (['text' => $message->getTextBody(), 'html' => $message->getHtmlBody()] as $kind => $body) {
+            if (! is_string($body)) {
+                continue;
+            }
+
+            $attributes['messaging.message.'.$kind] = $this->text($body);
+            $attributes['messaging.message.'.$kind.'_truncated'] = strlen($body) > $this->contentBytes();
+        }
+
+        return $attributes;
+    }
+
+    private function recipients(Email $message): string
+    {
+        $recipients = [];
+
+        foreach (['to' => $message->getTo(), 'cc' => $message->getCc(), 'bcc' => $message->getBcc()] as $kind => $addresses) {
+            foreach ($addresses as $address) {
+                if (! $address instanceof Address) {
+                    continue;
+                }
+
+                $recipient = ['kind' => $kind, 'address' => $address->getAddress()];
+
+                if ($address->getName() !== '') {
+                    $recipient['name'] = $address->getName();
+                }
+
+                $recipients[] = $recipient;
+            }
+        }
+
+        while (strlen($this->json($recipients)) > $this->contentBytes() && $recipients !== []) {
+            array_pop($recipients);
+        }
+
+        return $this->json($recipients);
+    }
+
+    /** @return array<string, mixed> */
+    private function notifiableIdentity(mixed $notifiable): array
+    {
+        if (! is_object($notifiable)) {
+            return ['type' => get_debug_type($notifiable), 'value' => $notifiable];
+        }
+
+        $identity = ['type' => $notifiable::class];
+
+        if (method_exists($notifiable, 'getKey')) {
+            $identity['id'] = $notifiable->getKey();
+        }
+
+        return $identity;
+    }
+
+    private function text(string $value): string
+    {
+        return mb_strcut($value, 0, $this->contentBytes(), 'UTF-8');
+    }
+
+    private function contentBytes(): int
+    {
+        return max(256, (int) $this->config->get('skyline.delivery.max_content_bytes', 65_536));
+    }
+
+    private function capture(string $key): bool
+    {
+        return (bool) $this->config->get('skyline.delivery.'.$key, $this->config->get('skyline.capture_all', false));
+    }
+
+    private function json(mixed $value): string
+    {
+        return json_encode($value, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     private function listen(string $event, callable $listener): void

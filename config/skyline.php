@@ -107,8 +107,10 @@ return [
     'cache' => [
         'enabled' => env('SKYLINE_CACHE_ENABLED', true),
         'capture_keys' => env('SKYLINE_CACHE_CAPTURE_KEYS', $captureAll),
+        'capture_values' => env('SKYLINE_CACHE_CAPTURE_VALUES', $captureAll),
         'capture_source' => env('SKYLINE_CACHE_CAPTURE_SOURCE', $captureAll),
         'max_key_bytes' => env('SKYLINE_CACHE_MAX_KEY_BYTES', 256),
+        'max_value_bytes' => env('SKYLINE_CACHE_MAX_VALUE_BYTES', 65_536),
     ],
 
     'custom' => [
@@ -119,7 +121,10 @@ return [
 
     'delivery' => [
         'enabled' => env('SKYLINE_DELIVERY_ENABLED', true),
+        'capture_recipients' => env('SKYLINE_DELIVERY_CAPTURE_RECIPIENTS', $captureAll),
+        'capture_content' => env('SKYLINE_DELIVERY_CAPTURE_CONTENT', $captureAll),
         'capture_source' => env('SKYLINE_DELIVERY_CAPTURE_SOURCE', $captureAll),
+        'max_content_bytes' => env('SKYLINE_DELIVERY_MAX_CONTENT_BYTES', 65_536),
     ],
 
     'storage' => [

@@ -34,7 +34,7 @@ final class CacheInstrumentation
 {
     private bool $booted = false;
 
-    /** @var list<array{run_id: string, attempt: int, operation: string, store: string, key: ?string, key_count: int, strategy: ?string, fresh_ttl: ?int, ttl: ?int, started_at: int, source: array<string, string|int>}> */
+    /** @var list<array{run_id: string, attempt: int, operation: string, store: string, key: ?string, value: ?string, key_count: int, strategy: ?string, fresh_ttl: ?int, ttl: ?int, started_at: int, source: array<string, string|int>}> */
     private array $pending = [];
 
     public function __construct(
@@ -44,6 +44,7 @@ final class CacheInstrumentation
         private readonly AttemptRegistry $attempts,
         private readonly SkylineTracer $tracer,
         private readonly SourceLocator $source,
+        private readonly ValueCapture $values,
         private readonly PersistenceGuard $persistenceGuard,
         private readonly LoggerInterface $logger,
     ) {}
@@ -57,13 +58,13 @@ final class CacheInstrumentation
         $this->booted = true;
         $this->listen(RetrievingKey::class, fn (RetrievingKey $event) => $this->begin('GET', $event->storeName, $event->key));
         $this->listen(RetrievingManyKeys::class, fn (RetrievingManyKeys $event) => $this->beginMany('GET', $event->storeName, $event->keys));
-        $this->listen(WritingKey::class, fn (WritingKey $event) => $this->begin('PUT', $event->storeName, $event->key, $event->seconds));
-        $this->listen(WritingManyKeys::class, fn (WritingManyKeys $event) => $this->beginMany('PUT', $event->storeName, $event->keys, $event->seconds));
+        $this->listen(WritingKey::class, fn (WritingKey $event) => $this->begin('PUT', $event->storeName, $event->key, $event->seconds, value: $event->value));
+        $this->listen(WritingManyKeys::class, fn (WritingManyKeys $event) => $this->beginMany('PUT', $event->storeName, $event->keys, $event->seconds, $event->values));
         $this->listen(ForgettingKey::class, fn (ForgettingKey $event) => $this->begin('FORGET', $event->storeName, $event->key));
         $this->listen(CacheFlushing::class, fn (CacheFlushing $event) => $this->begin('FLUSH', $event->storeName));
         $this->listen(CacheLocksFlushing::class, fn (CacheLocksFlushing $event) => $this->begin('LOCK FLUSH', $event->storeName));
 
-        $this->listen(CacheHit::class, fn (CacheHit $event) => $this->finish('GET', $event->storeName, $event->key, true, ['cache.hit' => true]));
+        $this->listen(CacheHit::class, fn (CacheHit $event) => $this->finish('GET', $event->storeName, $event->key, true, ['cache.hit' => true], $event->value));
         $this->listen(CacheMissed::class, fn (CacheMissed $event) => $this->finish('GET', $event->storeName, $event->key, true, ['cache.hit' => false]));
         $this->listen(KeyWritten::class, fn (KeyWritten $event) => $this->finish('PUT', $event->storeName, $event->key, true));
         $this->listen(KeyWriteFailed::class, fn (KeyWriteFailed $event) => $this->finish('PUT', $event->storeName, $event->key, false));
@@ -88,7 +89,7 @@ final class CacheInstrumentation
         }
     }
 
-    private function begin(string $operation, ?string $store, ?string $key = null, mixed $ttl = null, ?string $strategy = null, int $keyCount = 1, ?int $freshTtl = null): void
+    private function begin(string $operation, ?string $store, ?string $key = null, mixed $ttl = null, ?string $strategy = null, int $keyCount = 1, ?int $freshTtl = null, mixed $value = null): void
     {
         $active = $this->attempts->current();
 
@@ -103,6 +104,7 @@ final class CacheInstrumentation
             'operation' => $operation,
             'store' => $store ?? 'default',
             'key' => $key,
+            'value' => $operation === 'PUT' ? $this->value($value) : null,
             'key_count' => max(1, $keyCount),
             'strategy' => $strategy ?? $context['strategy'],
             'fresh_ttl' => $freshTtl ?? ($context['fresh_ttl'] ?? null),
@@ -115,7 +117,7 @@ final class CacheInstrumentation
     }
 
     /** @param array<array-key, mixed> $keys */
-    private function beginMany(string $operation, ?string $store, array $keys, mixed $ttl = null): void
+    private function beginMany(string $operation, ?string $store, array $keys, mixed $ttl = null, array $values = []): void
     {
         $keys = collect($keys)
             ->map(fn (mixed $value, int|string $key): mixed => is_string($key) ? $key : $value)
@@ -136,13 +138,13 @@ final class CacheInstrumentation
             return;
         }
 
-        foreach ($keys as $key) {
-            $this->begin($operation, $store, $key, $ttl, $strategy ?? 'batch', count($keys), $context['fresh_ttl']);
+        foreach ($keys as $index => $key) {
+            $this->begin($operation, $store, $key, $ttl, $strategy ?? 'batch', count($keys), $context['fresh_ttl'], $values[$index] ?? null);
         }
     }
 
     /** @param array<string, bool|int|string> $extra */
-    private function finish(string $operation, ?string $store, ?string $key, bool $success, array $extra = []): void
+    private function finish(string $operation, ?string $store, ?string $key, bool $success, array $extra = [], mixed $value = null): void
     {
         $active = $this->attempts->current();
 
@@ -156,7 +158,7 @@ final class CacheInstrumentation
             return;
         }
 
-        $this->endPending($index, $active, $success, $extra);
+        $this->endPending($index, $active, $success, $extra, $value);
     }
 
     public function finishAttempt(ActiveAttempt $active): void
@@ -171,7 +173,7 @@ final class CacheInstrumentation
     }
 
     /** @param array<string, bool|int|string> $extra */
-    private function endPending(int $index, ActiveAttempt $active, bool $success, array $extra): void
+    private function endPending(int $index, ActiveAttempt $active, bool $success, array $extra, mixed $value = null): void
     {
         $pending = $this->pending[$index];
         array_splice($this->pending, $index, 1);
@@ -189,6 +191,14 @@ final class CacheInstrumentation
         if ($pending['key'] !== null) {
             $attributes['cache.key'] = $this->key($pending['key']);
             $attributes['cache.key_captured'] = (bool) $this->config->get('skyline.cache.capture_keys', false);
+        }
+
+        $capturedValue = $pending['operation'] === 'GET' && ($extra['cache.hit'] ?? false)
+            ? $this->value($value)
+            : $pending['value'];
+
+        if ($capturedValue !== null) {
+            $attributes['cache.value'] = $capturedValue;
         }
 
         if ($pending['ttl'] !== null) {
@@ -341,6 +351,15 @@ final class CacheInstrumentation
         }
 
         return 'sha256:'.substr(hash('sha256', $key), 0, 16);
+    }
+
+    private function value(mixed $value): ?string
+    {
+        if (! (bool) $this->config->get('skyline.cache.capture_values', $this->config->get('skyline.capture_all', false))) {
+            return null;
+        }
+
+        return $this->values->encode($value, (int) $this->config->get('skyline.cache.max_value_bytes', 65_536));
     }
 
     private function listen(string $event, callable $listener): void

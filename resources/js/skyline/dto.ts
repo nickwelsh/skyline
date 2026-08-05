@@ -179,6 +179,7 @@ export type InspectorDto = TraceNode & {
     ttlSeconds: number | null;
     freshTtlSeconds: number | null;
     forever: boolean;
+    value: CapturedValue | null;
   };
   redis?: { command: string | null; connection: string | null; outcome: string | null };
   storage?: {
@@ -197,7 +198,20 @@ export type InspectorDto = TraceNode & {
     destinationLocalFile: { path: string; href: string | null } | null;
     result: { exists: boolean | null; lastModified: number | null; mimeType: string | null; visibility: string | null };
   };
-  delivery?: { kind: "mail" | "notification"; messageType: string | null; transportOrChannel: string | null; recipientCount: number | null; outcome: string | null };
+  delivery?: {
+    kind: "mail" | "notification";
+    messageType: string | null;
+    transportOrChannel: string | null;
+    recipientCount: number | null;
+    outcome: string | null;
+    recipients: Array<{ kind: string; address: string; name?: string }> | null;
+    recipientIdentity: CapturedValue | null;
+    subject: TextCapture | null;
+    text: TextCapture | null;
+    html: TextCapture | null;
+    messageData: CapturedValue | null;
+    operationData: CapturedValue | null;
+  };
   process?: { executable: string | null; async: boolean; timeoutSeconds: number | null; exitCode: number | null; timedOut: boolean; outcome: string | null };
   transaction?: { connection: string | null; driver: string | null; depth: number | null; outcome: string | null; queryTimeMs: number | null };
   custom?: { name: string; attributes: Record<string, unknown> };
@@ -218,6 +232,9 @@ export type InspectorDto = TraceNode & {
     truncated: Array<{ path: string; originalBytes: number }>;
   };
 };
+
+export type CapturedValue = { type: string; value: unknown; originalBytes: number; truncated: boolean };
+export type TextCapture = { value: string; truncated: boolean };
 
 export type HttpMessageCapture = {
   headers: { items: Record<string, string[]>; truncated: boolean } | null;

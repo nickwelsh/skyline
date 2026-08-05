@@ -23,13 +23,18 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.http.max_body_bytes'))->toBe(65_536)
         ->and(config('skyline.cache.enabled'))->toBeTrue()
         ->and(config('skyline.cache.capture_keys'))->toBeFalse()
+        ->and(config('skyline.cache.capture_values'))->toBeFalse()
         ->and(config('skyline.cache.capture_source'))->toBeFalse()
         ->and(config('skyline.cache.max_key_bytes'))->toBe(256)
+        ->and(config('skyline.cache.max_value_bytes'))->toBe(65_536)
         ->and(config('skyline.custom.enabled'))->toBeTrue()
         ->and(config('skyline.custom.max_attributes'))->toBe(32)
         ->and(config('skyline.custom.max_attribute_bytes'))->toBe(1_024)
         ->and(config('skyline.delivery.enabled'))->toBeTrue()
+        ->and(config('skyline.delivery.capture_recipients'))->toBeFalse()
+        ->and(config('skyline.delivery.capture_content'))->toBeFalse()
         ->and(config('skyline.delivery.capture_source'))->toBeFalse()
+        ->and(config('skyline.delivery.max_content_bytes'))->toBe(65_536)
         ->and(config('skyline.storage.enabled'))->toBeTrue()
         ->and(config('skyline.storage.capture_paths'))->toBeFalse()
         ->and(config('skyline.storage.capture_source'))->toBeFalse()
@@ -57,7 +62,10 @@ it('uses one capture default while preserving individual overrides', function ()
             'http.capture_response_body',
             'http.capture_source',
             'cache.capture_keys',
+            'cache.capture_values',
             'cache.capture_source',
+            'delivery.capture_recipients',
+            'delivery.capture_content',
             'delivery.capture_source',
             'storage.capture_paths',
             'storage.capture_source',
