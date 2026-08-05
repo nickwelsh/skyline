@@ -39,6 +39,20 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
 
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+
+  await page.keyboard.press("d");
+  await expect(page.getByRole("tab", { name: "Detail" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("link", { name: "Open App\\Jobs\\GenerateMonthlyInvoices in editor" }))
+    .toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:1");
+  await page.keyboard.press("x");
+  await expect(page.getByRole("tab", { name: "Context" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", { name: "Context preview" })).toBeVisible();
+  await page.keyboard.press("m");
+  const fixtureMetadata = page.getByRole("region", { name: "Metadata preview" });
+  await expect(fixtureMetadata.getByRole("tab", { name: "Text" })).toHaveAttribute("aria-selected", "true");
+  await fixtureMetadata.getByRole("tab", { name: "Tree" }).click();
+  await expect(fixtureMetadata.getByRole("tree", { name: "Metadata JSON tree" })).toBeVisible();
 
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(/node=attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1/);
@@ -185,7 +199,7 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect(sqlPreview.locator("pre")).toHaveText("select * from invoices where id = ?");
   expect(await sqlPreview.locator("pre span").count()).toBeGreaterThan(3);
 
-  await sqlPreview.getByRole("button", { name: "With bindings" }).click();
+  await sqlPreview.getByRole("tab", { name: "With bindings" }).click();
   const interpolatedSql = page.getByRole("region", { name: "SQL with bindings preview", exact: true });
   await expect(interpolatedSql.locator("pre")).toHaveText("select * from invoices where id = 42");
   await interpolatedSql.getByRole("button", { name: "Copy SQL with bindings" }).click();
@@ -195,11 +209,14 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect(page.getByText("Bindings", { exact: true })).toBeVisible();
   await expect(page.getByText("Result preview", { exact: true })).toBeVisible();
   await expect(page.getByText("1 row returned", { exact: false })).toBeVisible();
-  await expect(page.getByRole("tree", { name: "Bindings JSON tree" })).toBeVisible();
-  await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toContainText("invoice-42");
-
   const bindingsPreview = page.getByRole("region", { name: "Bindings preview", exact: true });
-  await bindingsPreview.getByRole("group", { name: "Bindings display" }).getByRole("button", { name: "Text" }).click();
+  const resultPreview = page.getByRole("region", { name: "Result preview preview", exact: true });
+  await bindingsPreview.getByRole("tab", { name: "Tree" }).click();
+  await resultPreview.getByRole("tab", { name: "Tree" }).click();
+  await expect(bindingsPreview.getByRole("tree", { name: "Bindings JSON tree" })).toBeVisible();
+  await expect(resultPreview.getByRole("tree", { name: "Result preview JSON tree" })).toContainText("invoice-42");
+
+  await bindingsPreview.getByRole("tab", { name: "Text" }).click();
   await expect(bindingsPreview.locator("pre")).toContainText('"position": 0');
   expect(await bindingsPreview.locator("pre span").count()).toBeGreaterThan(3);
   await bindingsPreview.getByRole("button", { name: "Copy Bindings" }).click();
@@ -210,10 +227,15 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
 
   await page.getByRole("tab", { name: "Metadata" }).click();
   const metadataPreview = page.getByRole("region", { name: "Metadata preview", exact: true });
+  await metadataPreview.getByRole("tab", { name: "Tree" }).click();
   await expect(metadataPreview.getByRole("tree", { name: "Metadata JSON tree" })).toContainText("db.system.name");
-  await metadataPreview.getByRole("group", { name: "Metadata display" }).getByRole("button", { name: "Text" }).click();
+  await metadataPreview.getByRole("tab", { name: "Text" }).click();
   await expect(metadataPreview.locator("pre")).toContainText('"db.system.name": "mysql"');
   expect(await metadataPreview.locator("pre span").count()).toBeGreaterThan(3);
+  await metadataPreview.getByRole("button", { name: "Wrap Metadata" }).click();
+  await metadataPreview.getByRole("button", { name: "Expand Metadata" }).click();
+  await expect(page.getByRole("dialog", { name: "Expanded Metadata" })).toBeVisible();
+  await page.getByRole("button", { name: "Close expanded Metadata" }).click();
   await metadataPreview.getByRole("button", { name: "Copy Metadata" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"db.system.name": "mysql"');
 });
@@ -235,9 +257,15 @@ test("outgoing HTTP rows expose request and response captures", async ({ page })
   await page.getByRole("tab", { name: "Detail" }).click();
   await expect(page.getByRole("region", { name: "Request source" })).toContainText("app/Jobs/LiveInvoiceJob.php:55");
   await expect(page.getByRole("tabpanel")).toContainText("https://api.example.test/invoices");
-  await expect(page.getByRole("tree", { name: "Request headers JSON tree" })).toContainText("[REDACTED]");
-  await expect(page.getByRole("tree", { name: "Request body JSON tree" })).toContainText("invoice-42");
-  await expect(page.getByRole("tree", { name: "Response body JSON tree" })).toContainText("accepted");
+  const requestHeaders = page.getByRole("region", { name: "Request headers preview" });
+  const requestBody = page.getByRole("region", { name: "Request body preview" });
+  const responseBody = page.getByRole("region", { name: "Response body preview" });
+  await requestHeaders.getByRole("tab", { name: "Tree" }).click();
+  await requestBody.getByRole("tab", { name: "Tree" }).click();
+  await responseBody.getByRole("tab", { name: "Tree" }).click();
+  await expect(requestHeaders.getByRole("tree", { name: "Request headers JSON tree" })).toContainText("[REDACTED]");
+  await expect(requestBody.getByRole("tree", { name: "Request body JSON tree" })).toContainText("invoice-42");
+  await expect(responseBody.getByRole("tree", { name: "Response body JSON tree" })).toContainText("accepted");
 });
 
 test("cache storage and breadcrumbs expose useful operation details", async ({ page }) => {

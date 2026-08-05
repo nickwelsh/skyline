@@ -16,7 +16,7 @@ describe("HtmlCapturePreview", () => {
 
     flushSync(() => root.render(<HtmlCapturePreview label="HTML body" value={html} />));
 
-    const render = container.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')!;
+    const render = container.querySelector<HTMLButtonElement>('button[aria-selected="true"]')!;
     const frame = container.querySelector<HTMLIFrameElement>('iframe[title="HTML body rendered preview"]')!;
 
     expect(render.textContent).toBe("Render");
@@ -28,7 +28,7 @@ describe("HtmlCapturePreview", () => {
       .find((button) => button.textContent === "Source")!;
     flushSync(() => source.click());
 
-    expect(source.getAttribute("aria-pressed")).toBe("true");
+    expect(source.getAttribute("aria-selected")).toBe("true");
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.textContent).toContain("Receipt");
 

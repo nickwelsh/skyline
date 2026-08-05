@@ -62,6 +62,7 @@ final readonly class NodeQuery
                 'driverId' => $run->driver_id,
                 'queueTimeSource' => $run->queue_time_source,
             ],
+            'source' => $this->jobSource($run->job_name),
             'metadata' => $this->spanMetadata($producer),
         ];
     }
@@ -560,6 +561,33 @@ final readonly class NodeQuery
             'line' => $line,
             'href' => $this->editorLink->href($file, $line),
         ];
+    }
+
+    /** @return array{file: string, line: int, href: string|null}|null */
+    private function jobSource(string $jobName): ?array
+    {
+        try {
+            if (! class_exists($jobName)) {
+                return null;
+            }
+
+            $reflection = new \ReflectionClass($jobName);
+            $file = $reflection->getFileName();
+
+            if ($file === false) {
+                return null;
+            }
+
+            $line = max(1, $reflection->getStartLine());
+
+            return [
+                'file' => $this->relativeSourceFile($file),
+                'line' => $line,
+                'href' => $this->editorLink->href($file, $line),
+            ];
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /** @param array<string, mixed> $attributes @return array{items: array<string, list<string>>, truncated: bool}|null */

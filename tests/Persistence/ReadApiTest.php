@@ -137,6 +137,7 @@ it('derives adjacent Runs from preserved table state and safely falls back when 
 });
 
 it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags', function (): void {
+    config()->set('app.editor', 'phpstorm');
     SqlJob::dispatchSync('private-job-payload');
     $run = DB::table('skyline_runs')->where('job_name', SqlJob::class)->first();
     $span = DB::table('skyline_spans')->where('role', 'sql')->first();
@@ -151,6 +152,13 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     $etag = $trace->headers->get('ETag');
 
     expect($trace->headers->get('Cache-Control'))->toContain('private')->toContain('no-store');
+
+    $job = new ReflectionClass(SqlJob::class);
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/run_'.$run->run_id)
+        ->assertOk()
+        ->assertJsonPath('node.source.file', 'tests/Fixtures/Jobs/SqlJob.php')
+        ->assertJsonPath('node.source.line', $job->getStartLine())
+        ->assertJsonPath('node.source.href', 'phpstorm://open?file='.$job->getFileName().'&line='.$job->getStartLine());
 
     $this->withHeader('If-None-Match', $etag)
         ->get('/skyline/api/runs/'.$run->run_id)

@@ -117,6 +117,11 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     return {
       ...node,
       overview: { runId: node.runId, nodeId: node.id, kind: node.kind },
+      source: node.kind === "run" ? {
+        file: `app/Jobs/${node.label}.php`,
+        line: 1,
+        href: `vscode://file//workspace/app/Jobs/${node.label}.php:1`,
+      } : undefined,
       exception: fixture.exception ? {
         class: fixture.exception.class,
         message: fixture.exception.message,

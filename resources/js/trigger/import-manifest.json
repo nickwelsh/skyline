@@ -3,9 +3,11 @@
   "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
   "license": "Apache-2.0",
   "adaptedTargets": {
+    "resources/js/trigger/CapturePreview.tsx": "3941caa31f21926bfeb58e54d5add1ab3b2e32faf5685591ab1eeac0e7b7b5ab",
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
+    "resources/js/trigger/Tabs.tsx": "09c71dcea8dbae0105a67be167d0b25d57f124631b4742cdf43fff3f9a670be2",
     "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
-    "resources/js/trigger/TriggerInterface.tsx": "2ff9a219be6f565b956eb8e93b4ab251aecbe6950043bd580335f3b8c2a20450",
+    "resources/js/trigger/TriggerInterface.tsx": "16f6db88edb60afd51df7309535c546dd523f34144426596472ba2097b740878",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -90,6 +92,20 @@
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
       "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL previews and metadata with highlighted modes, JSON tree/text views, copy actions, query source editor links, and a collapsed Laravel-style exception trace with source previews."
+    },
+    {
+      "source": "apps/webapp/app/components/code/CodeBlock.tsx",
+      "sha256": "dcde4f986fe25fd44668d5efb8659f24eace2bbf70c2fede58445ba5018c7b37",
+      "target": "resources/js/trigger/CapturePreview.tsx",
+      "mode": "adapted",
+      "modifications": "Retained syntax highlighting, text wrapping, copy, and fullscreen controls; added a Skyline JSON tree tab and reused existing capture-specific modes."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Tabs.tsx",
+      "sha256": "27dbb5ac828b3910c66a06ba4a25354836151c1d5916de2e6980c7c2b7431886",
+      "target": "resources/js/trigger/Tabs.tsx",
+      "mode": "adapted",
+      "modifications": "Retained the shared Framer Motion underline, keyboard shortcuts, and shortcut labels; removed Remix routing and shared primitive dependencies."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",

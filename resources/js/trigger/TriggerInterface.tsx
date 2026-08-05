@@ -33,6 +33,7 @@ import { SkylineApiError } from "../skyline/HttpAdapter";
 import type { CapturedValue, HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import { HtmlCapturePreview, JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
 import { ExceptionPreview } from "./ExceptionPreview";
+import { TabButton, TabContainer } from "./Tabs";
 import * as Timeline from "./Timeline";
 import { RESIZABLE_PANEL_ANIMATION, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./Resizable";
 
@@ -793,24 +794,43 @@ function TimelineHeader({ duration }: { duration: number }) {
 }
 
 function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageDto["run"]; onClose: () => void }) {
-  const [tab, setTab] = useState("Overview");
+  type InspectorTab = "Overview" | "Detail" | "Context" | "Metadata";
+  const [tab, setTab] = useState<InspectorTab>("Overview");
   useEffect(() => setTab("Overview"), [node.id]);
-  const tabs = ["Overview", "Detail", "Context", "Metadata"];
+  const tabs: Array<{ label: InspectorTab; shortcut: string }> = [
+    { label: "Overview", shortcut: "o" },
+    { label: "Detail", shortcut: "d" },
+    { label: "Context", shortcut: "x" },
+    { label: "Metadata", shortcut: "m" },
+  ];
+  const title = <div className="min-w-0 flex-1 truncate font-medium">{node.label}</div>;
   return (
     <aside className="h-full min-w-0 overflow-hidden bg-background-bright">
       <div className="flex h-full flex-col">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b border-grid-bright px-3">
           <NodeIcon node={node} />
-          <div className="min-w-0 flex-1 truncate font-medium text-text-bright">{node.label}</div>
-          <button className="rounded p-1 hover:bg-background-hover" onClick={onClose}><IconX className="size-4" /></button>
+          {node.kind === "run" && node.source?.href ? (
+            <a href={node.source.href} title={`Open ${node.source.file} in editor`} className="flex min-w-0 flex-1 items-center gap-1 text-blue-400 hover:text-blue-300">
+              {title}<IconExternalLink className="size-4 shrink-0" />
+            </a>
+          ) : <div className="flex min-w-0 flex-1 text-text-bright">{title}</div>}
+          <button type="button" aria-label="Close inspector" title="Close inspector (Esc)" className="relative grid size-8 place-items-center rounded-sm text-text-faint hover:bg-background-hover hover:text-text-bright" onClick={onClose}>
+            <IconX className="size-4 shrink-0" />
+            <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
+          </button>
         </div>
-        <div role="tablist" className="flex h-9 shrink-0 items-end border-b border-grid-bright px-3">
-          {tabs.map((value) => <button role="tab" aria-selected={tab === value} key={value} onClick={() => setTab(value)} className={`mr-5 h-9 border-b-2 text-xs ${tab === value ? "border-indigo-500 text-text-bright" : "border-transparent text-text-faint"}`}>{value}</button>)}
+        <div className="shrink-0 overflow-x-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+          <TabContainer className="min-w-max border-b-0">
+            {tabs.map(({ label, shortcut }) => (
+              <TabButton key={label} active={tab === label} layoutId="skyline-inspector-tab" shortcut={shortcut} onClick={() => setTab(label)}>{label}</TabButton>
+            ))}
+          </TabContainer>
         </div>
+        <div className="shrink-0 border-b border-grid-bright" />
         <div role="tabpanel" className="min-h-0 flex-1 overflow-auto p-4">
           {tab === "Overview" && <Overview node={node} run={run} />}
           {tab === "Detail" && <Detail node={node} run={run} />}
-          {tab === "Context" && <PropertyList values={{ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId ?? "—", kind: node.kind }} />}
+          {tab === "Context" && <JsonCapturePreview label="Context" value={{ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId, kind: node.kind }} />}
           {tab === "Metadata" && <JsonCapturePreview label="Metadata" value={node.metadata.value} truncated={node.metadata.isTruncated} />}
         </div>
       </div>
@@ -821,15 +841,8 @@ function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageD
 function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
   return (
     <div className="space-y-4">
-      {node.kind !== "breadcrumb" && <Status status={node.status} />}
-      {node.kind === "run" && (
-        <div className="rounded border border-grid-bright bg-background-dimmed p-3">
-          <Lifecycle label="Triggered" value={formatTime(run.triggeredAt)} first />
-          {run.queuedAt && <Lifecycle label="Queued" value={run.queueDurationUs ? `${formatDuration(run.queueDurationUs / 1_000)} queue time` : "Queued"} />}
-          <Lifecycle label="Started" value={run.startedAt ? "Worker received Job" : "Not started"} />
-          <Lifecycle label={run.status === "failed" ? "Failed" : "Finished"} value={formatOptionalDurationUs(run.durationUs)} last />
-        </div>
-      )}
+      {node.kind !== "breadcrumb" && <div className="border-b border-grid-bright pb-4"><Status status={node.status} /></div>}
+      {node.kind === "run" && <RunLifecycle run={run} />}
       {node.exception && <ExceptionPreview exception={node.exception} />}
       {node.kind === "attempt" && node.summary && (
         <section className="space-y-2">
@@ -941,6 +954,22 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
         ? <JsonCapturePreview label="Application attributes" value={node.custom.attributes} />
         : <CaptureNote>No application attributes were recorded.</CaptureNote>}
     </div>
+  );
+  if (node.kind === "run") return (
+    <PropertyList values={{
+      Status: <Status status={node.status} />,
+      Job: node.source?.href ? (
+        <a href={node.source.href} aria-label={`Open ${run.name} in editor`} className="inline-flex min-w-0 items-center gap-1 text-blue-400 hover:text-blue-300">
+          <span className="min-w-0 break-all">{run.name}</span><IconExternalLink className="size-4 shrink-0" />
+        </a>
+      ) : run.name,
+      "Run ID": run.id,
+      "Trace ID": node.overview.traceId,
+      Connection: run.connection,
+      Queue: run.queue,
+      Attempts: run.attemptCount,
+      Duration: formatOptionalDurationUs(run.durationUs),
+    }} />
   );
   if (node.kind !== "attempt") return (
     <div className="space-y-4">
@@ -1112,12 +1141,53 @@ function NodeSource({ source, label = "Source" }: { source: NonNullable<Inspecto
   );
 }
 
-function PropertyList({ values }: { values: Record<string, string | number | null | undefined> }) {
-  return <dl className="divide-y divide-grid-dimmed rounded border border-grid-bright">{Object.entries(values).map(([key, value]) => <div key={key} className="grid grid-cols-[8rem_1fr] gap-3 px-3 py-2"><dt className="text-xs text-text-faint">{key}</dt><dd className="min-w-0 break-all font-mono text-xs text-text-bright">{value ?? "—"}</dd></div>)}</dl>;
+function PropertyList({ values }: { values: Record<string, React.ReactNode> }) {
+  return <dl className="divide-y divide-grid-dimmed rounded border border-grid-bright">{Object.entries(values).map(([key, value]) => <div key={key} className="grid grid-cols-[8rem_1fr] gap-3 px-3 py-2"><dt className="font-medium text-text-bright">{key}</dt><dd className="min-w-0 break-all font-mono text-text-dimmed">{value ?? "—"}</dd></div>)}</dl>;
 }
 
-function Lifecycle({ label, value, first, last }: { label: string; value: string; first?: boolean; last?: boolean }) {
-  return <div className="grid grid-cols-[1rem_1fr_auto] gap-2"><div className="relative flex justify-center">{!first && <div className="absolute -top-3 h-3 border-l border-grid-bright" />}<span className={`mt-1 size-2 rounded-full ${last ? "bg-success" : "border border-success bg-background-dimmed"}`} />{!last && <div className="absolute top-3 h-6 border-l border-grid-bright" />}</div><div className="pb-4 font-medium text-text-bright">{label}</div><div className="text-xs text-text-faint">{value}</div></div>;
+function RunLifecycle({ run }: { run: TracePageDto["run"] }) {
+  const tone = run.status === "failed" ? "error" : run.status === "completed" ? "success" : "pending";
+  const events = [
+    { label: "Triggered", at: run.triggeredAt, variant: "start" as const },
+    ...(run.queuedAt ? [{ label: "Queued", at: run.queuedAt, variant: "dot" as const }] : []),
+    ...(run.startedAt ? [{ label: "Started", at: run.startedAt, variant: "thick-start" as const }] : []),
+    ...(run.finishedAt ? [{ label: run.status === "failed" ? "Failed" : "Finished", at: run.finishedAt, variant: "thick-end" as const }] : []),
+  ];
+
+  return (
+    <div className="min-w-fit max-w-96 py-1">
+      {events.map((event, index) => (
+        <div key={event.label}>
+          <LifecycleEvent label={event.label} value={formatLifecycleTime(event.at, index === 0)} tone={tone} variant={event.variant} />
+          {index < events.length - 1 && <LifecycleLine value={formatElapsed(event.at, events[index + 1].at)} tone={tone} thick={events[index + 1].variant === "thick-end"} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LifecycleEvent({ label, value, tone, variant }: { label: string; value: string; tone: "success" | "error" | "pending"; variant: "start" | "dot" | "thick-start" | "thick-end" }) {
+  const background = tone === "error" ? "bg-error" : tone === "pending" ? "bg-pending" : "bg-success";
+  const border = tone === "error" ? "border-error" : tone === "pending" ? "border-pending" : "border-success";
+  return (
+    <div className="grid h-5 grid-cols-[1.125rem_1fr] gap-1">
+      <div className="relative flex flex-col items-center justify-center">
+        {variant === "start" && <><div className={`h-full w-1.75 border-b ${border}`} /><div className={`h-full w-px ${background}`} /></>}
+        {variant === "dot" && <><div className={`h-full w-px ${background}`} /><div className={`size-1.25 min-h-1.25 rounded-full border ${border}`} /><div className={`h-full w-px ${background}`} /></>}
+        {variant === "thick-start" && <div className={`h-full w-1.75 rounded-t-xs ${background}`} />}
+        {variant === "thick-end" && <div className={`h-full w-1.75 rounded-b-xs ${background}`} />}
+      </div>
+      <div className="flex min-w-0 items-baseline justify-between gap-3">
+        <div className="truncate font-medium text-text-bright">{label}</div>
+        <div className="whitespace-nowrap tabular-nums text-text-dimmed">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function LifecycleLine({ value, tone, thick }: { value: string; tone: "success" | "error" | "pending"; thick: boolean }) {
+  const background = tone === "error" ? "bg-error" : tone === "pending" ? "bg-pending" : "bg-success";
+  return <div className="grid h-6 grid-cols-[1.125rem_1fr] gap-1"><div className="flex justify-center"><div className={`${thick ? "w-1.75" : "w-px"} ${background}`} /></div><div className="flex items-center text-text-dimmed">{value}</div></div>;
 }
 
 function Toggle({ label, value, onChange, shortcut }: { label: string; value: boolean; onChange: (value: boolean) => void; shortcut?: string }) {
@@ -1133,6 +1203,12 @@ function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
 function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed(ms >= 10000 ? 1 : 2)}s` : `${Math.round(ms)}ms`; }
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
+function formatLifecycleTime(iso: string, includeDate: boolean) {
+  const date = new Date(iso);
+  const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3 });
+  return includeDate ? `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${time}` : time;
+}
+function formatElapsed(start: string, end: string) { return formatDuration(Math.max(0, new Date(end).getTime() - new Date(start).getTime())); }
 function formatBytes(bytes: number) { const absolute = Math.abs(bytes); if (absolute >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; if (absolute >= 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${bytes} B`; }
 function formatTtl(seconds: number) { if (seconds >= 86_400 && seconds % 86_400 === 0) return `${seconds / 86_400} ${seconds === 86_400 ? "day" : "days"}`; if (seconds >= 3_600 && seconds % 3_600 === 0) return `${seconds / 3_600} ${seconds === 3_600 ? "hour" : "hours"}`; if (seconds >= 60 && seconds % 60 === 0) return `${seconds / 60} ${seconds === 60 ? "minute" : "minutes"}`; return `${seconds} ${seconds === 1 ? "second" : "seconds"}`; }
 function humanize(value?: string | null) { return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "—"; }

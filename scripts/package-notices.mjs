@@ -10,6 +10,7 @@ const packages = [
   "@tailwindcss/typography",
   "@window-splitter/react",
   "@window-splitter/state",
+  "framer-motion",
   "non.geist",
   "prism-react-renderer",
   "react",

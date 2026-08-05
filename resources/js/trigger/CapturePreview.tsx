@@ -1,6 +1,12 @@
-import { IconCheck, IconChevronRight, IconCopy } from "@tabler/icons-react";
+/*!
+ * Derived from Trigger.dev apps/webapp/app/components/code/CodeBlock.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Modified for Skyline: Tabler icons, JSON tree/text tabs, and dependency-light fullscreen chrome.
+ */
+import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap, IconTextWrapDisabled, IconX } from "@tabler/icons-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { SqlBinding } from "../skyline/dto";
 import { interpolateSql } from "./capture-formatting";
 
@@ -42,6 +48,7 @@ export function SqlCapturePreview({ sql, bindings, sqlTruncated = false, binding
       label={mode === "bindings" ? "SQL with bindings" : "Parameterized SQL"}
       copyValue={code}
       truncated={sqlTruncated || (mode === "bindings" && bindingsTruncated)}
+      textWrapping
       actions={canInterpolate && (
         <ModeSwitch
           label="SQL display"
@@ -54,7 +61,7 @@ export function SqlCapturePreview({ sql, bindings, sqlTruncated = false, binding
         />
       )}
     >
-      <HighlightedCode code={code} language="sql" />
+      {({ wrap, expanded }) => <HighlightedCode code={code} language="sql" wrap={wrap} expanded={expanded} />}
     </CapturePanel>
   );
 }
@@ -62,7 +69,7 @@ export function SqlCapturePreview({ sql, bindings, sqlTruncated = false, binding
 export function JsonCapturePreview({ label, value, summary, truncated = false }: { label: string; value: unknown; summary?: string; truncated?: boolean }) {
   const json = useMemo(() => stringifyJson(value), [value]);
   const canRenderTree = json !== null && typeof value === "object" && value !== null;
-  const [mode, setMode] = useState<JsonMode>(canRenderTree ? "tree" : "text");
+  const [mode, setMode] = useState<JsonMode>("text");
   const resolvedMode = canRenderTree ? mode : "text";
   const copyValue = json ?? String(value);
 
@@ -72,19 +79,22 @@ export function JsonCapturePreview({ label, value, summary, truncated = false }:
       summary={summary}
       truncated={truncated}
       copyValue={copyValue}
+      textWrapping={resolvedMode === "text"}
       actions={canRenderTree && (
         <ModeSwitch
           label={`${label} display`}
           value={resolvedMode}
           options={[
-            { value: "tree", label: "Tree" },
             { value: "text", label: "Text" },
+            { value: "tree", label: "Tree" },
           ]}
           onChange={setMode}
         />
       )}
     >
-      {resolvedMode === "tree" ? <JsonTree value={value} label={label} /> : <HighlightedCode code={copyValue} language="json" />}
+      {({ wrap, expanded }) => resolvedMode === "tree"
+        ? <JsonTree value={value} label={label} expanded={expanded} />
+        : <HighlightedCode code={copyValue} language="json" wrap={wrap} expanded={expanded} />}
     </CapturePanel>
   );
 }
@@ -97,8 +107,8 @@ export function TextCapturePreview({ label, value, summary, truncated = false, l
   language?: Language;
 }) {
   return (
-    <CapturePanel label={label} summary={summary} truncated={truncated} copyValue={value}>
-      <HighlightedCode code={value} language={language} />
+    <CapturePanel label={label} summary={summary} truncated={truncated} copyValue={value} textWrapping>
+      {({ wrap, expanded }) => <HighlightedCode code={value} language={language} wrap={wrap} expanded={expanded} />}
     </CapturePanel>
   );
 }
@@ -117,6 +127,7 @@ export function HtmlCapturePreview({ label, value, summary, truncated = false }:
       summary={summary}
       truncated={truncated}
       copyValue={value}
+      textWrapping={mode === "source"}
       actions={(
         <ModeSwitch
           label={`${label} display`}
@@ -129,37 +140,73 @@ export function HtmlCapturePreview({ label, value, summary, truncated = false }:
         />
       )}
     >
-      {mode === "render"
-        ? <iframe title={`${label} rendered preview`} sandbox="" referrerPolicy="no-referrer" srcDoc={renderableHtml(value)} className="h-128 w-full bg-white" />
-        : <HighlightedCode code={value} language="markup" />}
+      {({ wrap, expanded }) => mode === "render"
+        ? <iframe title={`${label} rendered preview`} sandbox="" referrerPolicy="no-referrer" srcDoc={renderableHtml(value)} className={expanded ? "h-full w-full bg-white" : "h-128 w-full bg-white"} />
+        : <HighlightedCode code={value} language="markup" wrap={wrap} expanded={expanded} />}
     </CapturePanel>
   );
 }
 
-function CapturePanel({ label, summary, truncated, copyValue, actions, children }: {
+function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapping = true, children }: {
   label: string;
   summary?: string;
   truncated: boolean;
   copyValue: string;
   actions?: ReactNode;
-  children: ReactNode;
+  textWrapping?: boolean;
+  children: (options: { wrap: boolean; expanded: boolean }) => ReactNode;
 }) {
-  return (
-    <section aria-label={`${label} preview`} className="@container flex min-w-0 flex-col gap-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 text-base text-text-faint @sm:text-xs">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="truncate">{label}</div>
-          {summary && <div className="shrink-0">· {summary}</div>}
+  const [wrapped, setWrapped] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!expanded) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setExpanded(false);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [expanded]);
+
+  const frame = (fullscreen: boolean) => (
+    <div className={`flex min-w-0 flex-col overflow-hidden rounded-md border border-grid-bright bg-background-deep ${fullscreen ? "h-full" : ""}`}>
+      <div className="flex min-h-10 min-w-0 shrink-0 items-center gap-3 border-b border-grid-dimmed px-3">
+        <div className="flex min-w-0 items-center gap-2 text-base text-text-bright @sm:text-sm">
+          <div className="truncate font-medium">{label}</div>
+          {summary && <div className="shrink-0 text-text-faint">· {summary}</div>}
           {truncated && <div className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1 text-amber-300">Truncated</div>}
         </div>
-        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+        <div className="ml-auto flex shrink-0 items-center gap-3 text-text-dimmed">
           {actions}
+          {textWrapping && (
+            <ControlButton label={wrapped ? `Unwrap ${label}` : `Wrap ${label}`} onClick={() => setWrapped((value) => !value)}>
+              {wrapped ? <IconTextWrapDisabled className="size-4 shrink-0" /> : <IconTextWrap className="size-4 shrink-0" />}
+            </ControlButton>
+          )}
           <CopyButton value={copyValue} label={label} />
+          {fullscreen ? (
+            <ControlButton label={`Close expanded ${label}`} onClick={() => setExpanded(false)}><IconX className="size-4 shrink-0" /></ControlButton>
+          ) : (
+            <ControlButton label={`Expand ${label}`} onClick={() => setExpanded(true)}><IconArrowsMaximize className="size-4 shrink-0" /></ControlButton>
+          )}
         </div>
       </div>
-      <div className="min-w-0 overflow-hidden rounded border border-grid-bright bg-background-deep">
-        {children}
-      </div>
+      <div className={fullscreen ? "min-h-0 flex-1" : "min-w-0"}>{children({ wrap: wrapped, expanded: fullscreen })}</div>
+    </div>
+  );
+
+  return (
+    <section aria-label={`${label} preview`} className="@container min-w-0">
+      {frame(false)}
+      {expanded && createPortal(
+        <div role="dialog" aria-modal="true" aria-label={`Expanded ${label}`} className="fixed inset-0 z-999 bg-background-deep/90 p-3 backdrop-blur-sm sm:p-8">
+          {frame(true)}
+        </div>,
+        document.body,
+      )}
     </section>
   );
 }
@@ -171,15 +218,16 @@ function ModeSwitch<T extends string>({ label, value, options, onChange }: {
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="flex overflow-hidden rounded border border-grid-bright bg-background-bright">
+    <div role="tablist" aria-label={label} className="flex h-10 items-end gap-3">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           title={option.title}
-          aria-pressed={value === option.value}
+          role="tab"
+          aria-selected={value === option.value}
           onClick={() => onChange(option.value)}
-          className={`relative h-9 border-l border-grid-bright px-2 first:border-l-0 @sm:h-7 ${value === option.value ? "bg-background-raised text-text-bright" : "text-text-faint hover:bg-background-hover hover:text-text-bright"}`}
+          className={`relative h-8 border-b-2 px-0.5 ${value === option.value ? "border-indigo-500 text-text-bright" : "border-transparent text-text-faint hover:text-text-bright"}`}
         >
           {option.label}
           <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
@@ -217,21 +265,31 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
       aria-label={`Copy ${label}`}
       title={copied ? "Copied" : "Copy"}
       onClick={() => void copy()}
-      className={`relative flex h-9 items-center gap-1 rounded border border-grid-bright bg-background-bright py-1 pr-2 pl-1.5 hover:bg-background-hover @sm:h-7 ${copied ? "text-success" : "text-text-faint hover:text-text-bright"}`}
+      className={`relative grid size-8 place-items-center rounded-sm hover:bg-background-hover focus-visible:outline-2 focus-visible:outline-indigo-500 ${copied ? "text-success" : "text-text-dimmed hover:text-text-bright"}`}
     >
-      {copied ? <IconCheck className="size-5 shrink-0 @sm:size-4" /> : <IconCopy className="size-5 shrink-0 @sm:size-4" />}
-      <span>{copied ? copiedText : idleText}</span>
+      {copied ? <IconCheck className="size-4 shrink-0" /> : <IconCopy className="size-4 shrink-0" />}
+      <span className="sr-only">{copied ? copiedText : idleText}</span>
       <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
     </button>
   );
 }
 
-export function HighlightedCode({ code, language, startingLine, highlightedLine, wrap = true }: {
+function ControlButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
+      {children}
+      <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
+    </button>
+  );
+}
+
+export function HighlightedCode({ code, language, startingLine, highlightedLine, wrap = false, expanded = false }: {
   code: string;
   language: Language;
   startingLine?: number;
   highlightedLine?: number;
   wrap?: boolean;
+  expanded?: boolean;
 }) {
   return (
     <Highlight theme={codeTheme} code={code} language={language}>
@@ -239,7 +297,7 @@ export function HighlightedCode({ code, language, startingLine, highlightedLine,
         <pre
           dir="ltr"
           translate="no"
-          className={`max-h-80 overflow-auto p-3 font-mono text-base @sm:text-xs ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"} ${className}`}
+          className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto p-3 font-mono text-base @sm:text-xs ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"} ${className}`}
           style={{ ...style, backgroundColor: "transparent" }}
         >
           {tokens.map((line, lineIndex) => {
@@ -257,9 +315,9 @@ export function HighlightedCode({ code, language, startingLine, highlightedLine,
   );
 }
 
-function JsonTree({ value, label }: { value: unknown; label: string }) {
+function JsonTree({ value, label, expanded = false }: { value: unknown; label: string; expanded?: boolean }) {
   return (
-    <div role="tree" aria-label={`${label} JSON tree`} className="max-h-80 overflow-auto py-2 font-mono text-base @sm:text-xs">
+    <div role="tree" aria-label={`${label} JSON tree`} className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto py-2 font-mono text-base @sm:text-xs`}>
       <JsonTreeNode value={value} depth={0} siblingCount={1} path="$" />
     </div>
   );
