@@ -6,6 +6,7 @@ import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto"
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
 import inspectorOracle from "./fixtures/nw-220-external-inspectors.json" with { type: "json" };
 import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseline.json" with { type: "json" };
+import failureScenario from "./fixtures/nw-222-failure-scenario.json" with { type: "json" };
 import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
@@ -91,9 +92,9 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   }
 
   const referencePage = await page.context().newPage();
-  await referencePage.setViewportSize(triggerFailureBaseline.reference.viewport);
+  await referencePage.setViewportSize(failureScenario.viewport);
   await referencePage.goto("http://127.0.0.1:4175");
-  const triggerBehavior = await exerciseFailureSurface(referencePage);
+  const triggerBehavior = await exercisePinnedTriggerFailure(referencePage);
   await referencePage.close();
 
   const adapter = new FixtureAdapter();
@@ -121,7 +122,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
         markdown: "# LogicException - Job failed\n\nRetry failed differently.\n",
       };
     } else if (inspector.exception) {
-      inspector.exception = structuredClone(triggerFailureBaseline.reference.exception) as InspectorDto["exception"];
+      inspector.exception = structuredClone(failureScenario.skylineException) as InspectorDto["exception"];
     }
     return inspector;
   });
@@ -129,7 +130,10 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   await page.goto(`/skyline/runs/${runId}?node=${failedAttemptId}`);
   await expect(page.getByLabel("Loading inspector")).toBeVisible();
   const skylineBehavior = await exerciseFailureSurface(page);
-  expect(skylineBehavior).toEqual(triggerBehavior);
+  expect(skylineBehavior.shared).toEqual(triggerBehavior.shared);
+  expect(skylineBehavior.visual).toEqual(triggerBehavior.visual);
+  expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true });
+  expect(skylineBehavior).toMatchObject({ dialogClosed: true, focusReturned: true, copied: "Copied" });
 
   const trace = page.locator("#exception-trace");
   expect(await trace.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await trace.evaluate((element) => element.clientHeight));
@@ -160,7 +164,7 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
   await routeDetail(page, detail, async (nodeId) => {
     if (requestFails) throw new Error("Exception evidence unavailable.");
     const inspector = await adapter.inspector(nodeId, runId);
-    inspector.exception = structuredClone(triggerFailureBaseline.reference.exception) as InspectorDto["exception"];
+    inspector.exception = structuredClone(failureScenario.skylineException) as InspectorDto["exception"];
     return inspector;
   });
 
@@ -170,7 +174,7 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
   requestFails = false;
   await page.reload();
   const source = page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" });
-  await expect(source).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58");
+  await expect(source).toHaveAttribute("href", "https://example.test/source/app/Jobs/GenerateMonthlyInvoices.php#L58");
   await expect(source).toHaveAttribute("title", "Open app/Jobs/GenerateMonthlyInvoices.php:58 in editor");
   await source.focus();
   await expect(source).toBeFocused();
@@ -222,6 +226,7 @@ async function exerciseFailureSurface(page: Page) {
   const copy = exception.getByRole("button", { name: "Copy exception as Markdown" });
   await copy.click();
   await expect(copy).toContainText("Copied");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(failureScenario.skylineException.markdown);
 
   const wrap = exception.getByRole("button", { name: "Wrap application frame 1" });
   await wrap.click();
@@ -235,7 +240,13 @@ async function exerciseFailureSurface(page: Page) {
   await expect(expand).toBeFocused();
 
   return {
-    heading: await exception.getByRole("heading", { level: 3 }).textContent(),
+    shared: {
+      heading: await exception.getByRole("heading", { level: 3 }).textContent(),
+      message: failureScenario.skylineException.message,
+      containerClass: await exception.getAttribute("class"),
+      headingTag: await exception.getByRole("heading", { level: 3 }).evaluate((element) => element.tagName),
+    },
+    visual: await failureVisuals(exception),
     sourceHref: await source.getAttribute("href"),
     sourceTitle: await source.getAttribute("title"),
     initialTraceExpanded,
@@ -246,11 +257,60 @@ async function exerciseFailureSurface(page: Page) {
     initialVendorExpanded,
     vendorPanelId,
     vendorExpanded: await vendor.getAttribute("aria-expanded"),
-    copied: await copy.textContent(),
+    copied: (await copy.textContent())?.trim(),
     wrapped: await exception.getByRole("button", { name: "Unwrap application frame 1" }).isVisible(),
     dialogClosed: await page.getByRole("dialog", { name: "application frame 1" }).count() === 0,
     focusReturned: await expand.evaluate((element) => element === document.activeElement),
   };
+}
+
+async function exercisePinnedTriggerFailure(page: Page) {
+  const heading = page.getByRole("heading", { name: failureScenario.triggerError.name, level: 3 });
+  await expect(heading).toBeVisible();
+  const container = heading.locator("..");
+  await expect(container).toContainText(failureScenario.triggerError.message);
+  await expect(container).toContainText("app/Jobs/GenerateMonthlyInvoices.php:58");
+
+  const expand = container.getByRole("button").first();
+  await expand.focus();
+  const expandFocusable = await expand.evaluate((element) => element === document.activeElement);
+  await expand.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const dialogOpened = await dialog.isVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+
+  return {
+    shared: {
+      heading: await heading.textContent(),
+      message: failureScenario.triggerError.message,
+      containerClass: await container.getAttribute("class"),
+      headingTag: await heading.evaluate((element) => element.tagName),
+    },
+    visual: await failureVisuals(container),
+    interaction: {
+      expandFocusable,
+      dialogOpened,
+      escapeClosed: await dialog.count() === 0,
+      focusReturned: await expand.evaluate((element) => element === document.activeElement),
+    },
+  };
+}
+
+async function failureVisuals(container: ReturnType<Page["locator"]>) {
+  return container.evaluate((element) => {
+    const heading = element.querySelector("h3")!;
+    const containerStyle = getComputedStyle(element);
+    const headingStyle = getComputedStyle(heading);
+    return {
+      borderStyle: containerStyle.borderTopStyle,
+      borderRadius: containerStyle.borderTopLeftRadius,
+      paddingTop: containerStyle.paddingTop,
+      headingFontSize: headingStyle.fontSize,
+      headingFontWeight: headingStyle.fontWeight,
+    };
+  });
 }
 
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {

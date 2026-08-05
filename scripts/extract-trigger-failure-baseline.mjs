@@ -36,59 +36,6 @@ const baseline = {
     dialog: sourceFile(dialogPath, dialog),
     copyTextLink: sourceFile(copyPath, copy),
   },
-  reference: {
-    viewport: { width: 520, height: 900 },
-    exception: {
-      class: "Illuminate\\Database\\DeadlockException",
-      message: "Deadlock found when trying to get lock; retry transaction",
-      messageTruncated: false,
-      messageOriginalBytes: 57,
-      code: "1213",
-      location: {
-        file: "app/Jobs/GenerateMonthlyInvoices.php",
-        line: 58,
-        href: "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58",
-      },
-      frames: [
-        {
-          file: "app/Jobs/GenerateMonthlyInvoices.php",
-          line: 58,
-          class: "App\\Jobs\\GenerateMonthlyInvoices",
-          type: "->",
-          function: "handle",
-          isVendor: false,
-          href: "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:58",
-          snippet: {
-            code: "public function handle(): void\n{\n    throw new DeadlockException('retry transaction');\n}",
-            startingLine: 56,
-            highlightedLine: 58,
-          },
-        },
-        {
-          file: "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php",
-          line: 124,
-          class: "Illuminate\\Queue\\CallQueuedHandler",
-          type: "->",
-          function: "call",
-          isVendor: true,
-          href: null,
-          snippet: null,
-        },
-        ...Array.from({ length: 30 }, (_, index) => ({
-          file: `app/Jobs/Step${index + 1}.php`,
-          line: index + 1,
-          class: `App\\Jobs\\Step${index + 1}`,
-          type: "->",
-          function: "handle",
-          isVendor: false,
-          href: null,
-          snippet: null,
-        })),
-      ],
-      framesTruncated: false,
-      markdown: "# DeadlockException - Job failed\n\nRetry transaction.\n",
-    },
-  },
 };
 const rendered = `${JSON.stringify(baseline, null, 2)}\n`;
 
