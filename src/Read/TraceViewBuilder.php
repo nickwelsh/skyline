@@ -168,44 +168,36 @@ final class TraceViewBuilder
             );
         }
 
-        foreach ($snapshot->spans->where('role', 'sql') as $span) {
+        $visibleSpanIds = $snapshot->spans
+            ->whereNotIn('role', ['producer', 'consumer'])
+            ->pluck('span_id')
+            ->all();
+
+        foreach ($snapshot->spans->whereNotIn('role', ['producer', 'consumer']) as $span) {
             if ($span->attempt_number === null) {
                 continue;
             }
 
             $attributes = $this->json($span->attributes);
-            $sql = is_string($attributes['db.query.text'] ?? null) ? $attributes['db.query.text'] : $span->name;
+            $kind = match ($span->role) {
+                'sql' => 'query',
+                'http' => 'request',
+                default => $span->role ?: 'span',
+            };
+            $label = match ($span->role) {
+                'sql' => is_string($attributes['db.query.text'] ?? null) ? $attributes['db.query.text'] : $span->name,
+                'http' => (is_string($attributes['http.request.method'] ?? null) ? $attributes['http.request.method'] : 'HTTP').' '.(is_string($attributes['url.full'] ?? null) ? $attributes['url.full'] : $span->name),
+                default => $span->name,
+            };
             $id = NodeIds::span($span->span_id);
             $nodes[$id] = $this->node(
                 $id,
-                NodeIds::attempt($span->run_id, (int) $span->attempt_number),
+                in_array($span->parent_span_id, $visibleSpanIds, true)
+                    ? NodeIds::span($span->parent_span_id)
+                    : NodeIds::attempt($span->run_id, (int) $span->attempt_number),
                 $span->run_id,
-                'query',
-                $this->truncate($sql, 512),
-                strtolower($span->status_code) === 'error' ? 'failed' : 'completed',
-                (int) $span->started_at,
-                (int) $span->ended_at,
-                (int) $selected->triggered_at,
-                strtolower($span->status_code) === 'error',
-                $this->spanTimeline($span, (int) $selected->triggered_at),
-            );
-        }
-
-        foreach ($snapshot->spans->where('role', 'http') as $span) {
-            if ($span->attempt_number === null) {
-                continue;
-            }
-
-            $attributes = $this->json($span->attributes);
-            $method = is_string($attributes['http.request.method'] ?? null) ? $attributes['http.request.method'] : 'HTTP';
-            $url = is_string($attributes['url.full'] ?? null) ? $attributes['url.full'] : $span->name;
-            $id = NodeIds::span($span->span_id);
-            $nodes[$id] = $this->node(
-                $id,
-                NodeIds::attempt($span->run_id, (int) $span->attempt_number),
-                $span->run_id,
-                'request',
-                $this->truncate($method.' '.$url, 512),
+                $kind,
+                $this->truncate($label, 512),
                 strtolower($span->status_code) === 'error' ? 'failed' : 'completed',
                 (int) $span->started_at,
                 (int) $span->ended_at,

@@ -43,6 +43,7 @@ final class QueueInstrumentation
         private readonly SkylineConnection $persistenceConnection,
         private readonly SqlCapture $sqlCapture,
         private readonly OutgoingHttpInstrumentation $http,
+        private readonly CacheInstrumentation $cache,
     ) {}
 
     public function boot(): void
@@ -54,6 +55,7 @@ final class QueueInstrumentation
         $this->booted = true;
         $this->sqlCapture->boot();
         $this->http->boot();
+        $this->cache->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(

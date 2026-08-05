@@ -24,16 +24,62 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
+use Tests\Fixtures\Jobs\CacheJob;
 use Tests\Fixtures\Jobs\ExceptionRetryJob;
 use Tests\Fixtures\Jobs\FailingHttpJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\FailingSqlJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\ParentJob;
+use Tests\Fixtures\Jobs\RedisJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
 use Tests\Fixtures\RecordingTelemetrySink;
+
+it('captures cache operations without values or raw keys', function (): void {
+    CacheJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $cache = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')
+        ->values();
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
+
+    expect($cache)->toHaveCount(4)
+        ->and($cache->map(fn ($span) => $span->getName())->all())->toBe(['Cache PUT', 'Cache GET', 'Cache GET', 'Cache FORGET'])
+        ->and($cache[1]->getAttributes()->get('cache.hit'))->toBeTrue()
+        ->and($cache[2]->getAttributes()->get('cache.hit'))->toBeFalse()
+        ->and($cache[0]->getAttributes()->get('cache.ttl'))->toBe(60)
+        ->and($cache->every(fn ($span) => $span->getParentSpanId() === $consumer->getSpanId()))->toBeTrue();
+
+    expect(json_encode($cache->map(fn ($span) => $span->getAttributes()->toArray())->all()))
+        ->not->toContain('private-value')
+        ->not->toContain('secret@example.test');
+});
+
+it('captures direct Redis commands without duplicating cache-backed commands', function (): void {
+    RedisJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $redis = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'redis')
+        ->values();
+    $cache = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')
+        ->values();
+
+    expect($redis)->toHaveCount(1)
+        ->and($redis[0]->getName())->toBe('Redis SET')
+        ->and($redis[0]->getAttributes()->get('db.namespace'))->toBe('default')
+        ->and($cache)->toHaveCount(1)
+        ->and($cache[0]->getName())->toBe('Cache GET')
+        ->and(json_encode($redis[0]->getAttributes()->toArray()))->not->toContain('private');
+});
 
 function setUpDatabaseQueue(): void
 {

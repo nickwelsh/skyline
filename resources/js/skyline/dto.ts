@@ -1,6 +1,6 @@
 export type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 export type AttemptStatus = "running" | "completed" | "released" | "failed";
-export type NodeKind = "run" | "attempt" | "query" | "request";
+export type NodeKind = "run" | "attempt" | "query" | "request" | "cache" | "redis" | "span";
 
 export type RunSummary = {
   id: string;

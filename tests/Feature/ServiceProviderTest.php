@@ -19,7 +19,11 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.http.capture_response_headers'))->toBeFalse()
         ->and(config('skyline.http.capture_response_body'))->toBeFalse()
         ->and(config('skyline.http.capture_source'))->toBeFalse()
-        ->and(config('skyline.http.max_body_bytes'))->toBe(65_536);
+        ->and(config('skyline.http.max_body_bytes'))->toBe(65_536)
+        ->and(config('skyline.cache.enabled'))->toBeTrue()
+        ->and(config('skyline.cache.capture_keys'))->toBeFalse()
+        ->and(config('skyline.cache.capture_source'))->toBeFalse()
+        ->and(config('skyline.cache.max_key_bytes'))->toBe(256);
 });
 
 it('publishes config and the migration directory', function (): void {

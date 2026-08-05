@@ -100,6 +100,13 @@ return [
         ],
     ],
 
+    'cache' => [
+        'enabled' => env('SKYLINE_CACHE_ENABLED', true),
+        'capture_keys' => env('SKYLINE_CACHE_CAPTURE_KEYS', false),
+        'capture_source' => env('SKYLINE_CACHE_CAPTURE_SOURCE', false),
+        'max_key_bytes' => env('SKYLINE_CACHE_MAX_KEY_BYTES', 256),
+    ],
+
     'editor' => [
         'name' => env('SKYLINE_EDITOR'),
         'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),

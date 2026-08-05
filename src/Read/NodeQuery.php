@@ -29,8 +29,7 @@ final readonly class NodeQuery
         $details = match ($node['kind']) {
             'run' => $this->run($snapshot, $node['runId']),
             'attempt' => $this->attempt($snapshot, $nodeId),
-            'query', 'request' => $this->span($snapshot, $nodeId),
-            default => throw new RecordNotFound('The node was not found.'),
+            default => $this->span($snapshot, $nodeId),
         };
 
         return [
@@ -104,7 +103,7 @@ final readonly class NodeQuery
     private function span(TraceSnapshot $snapshot, string $nodeId): array
     {
         $span = $snapshot->spans->first(fn (object $span): bool => NodeIds::span($span->span_id) === $nodeId
-            && in_array($span->role, ['sql', 'http'], true));
+            && ! in_array($span->role, ['producer', 'consumer'], true));
 
         if ($span === null) {
             throw new RecordNotFound('The span node was not found.');
@@ -112,9 +111,30 @@ final readonly class NodeQuery
 
         $attributes = $this->json($span->attributes);
 
-        return $span->role === 'http'
-            ? $this->http($span, $attributes)
-            : $this->sql($span, $attributes);
+        return match ($span->role) {
+            'http' => $this->http($span, $attributes),
+            'sql' => $this->sql($span, $attributes),
+            default => $this->generic($span, $attributes),
+        };
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed> */
+    private function generic(object $span, array $attributes): array
+    {
+        return [
+            'overview' => [
+                'runId' => $span->run_id,
+                'attemptNumber' => $span->attempt_number === null ? null : (int) $span->attempt_number,
+                'traceId' => $span->trace_id,
+                'spanId' => $span->span_id,
+                'parentSpanId' => $span->parent_span_id,
+                'operation' => $attributes['cache.operation'] ?? $attributes['db.operation.name'] ?? null,
+                'store' => $attributes['cache.store'] ?? $attributes['db.namespace'] ?? null,
+                'statusDescription' => $span->status_description,
+            ],
+            'source' => $this->source($attributes, 'skyline.'.($span->role ?: 'span').'.source'),
+            'metadata' => $this->spanMetadata($span),
+        ];
     }
 
     /** @param array<string, mixed> $attributes @return array<string, mixed> */

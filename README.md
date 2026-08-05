@@ -77,6 +77,15 @@ Only allowlisted headers and redacted sensitive headers are stored. Body preview
 
 Failed Attempts show a collapsed Laravel-style exception preview. Expanding it reveals highlighted application source, folded vendor frames, and editor links. Copy as Markdown produces a bounded exception report suitable for issues or debugging. Source is read on demand from the host filesystem and is not persisted by Skyline.
 
+Laravel cache reads, writes, deletes, flushes, and lock flushes are captured as Attempt child spans. Direct Redis commands are captured separately; Redis commands backing a high-level cache operation are suppressed. Values and Redis parameters are never captured. Cache keys are hashed by default. Short-lived raw key and source capture are independent opt-ins:
+
+```dotenv
+SKYLINE_CACHE_CAPTURE_KEYS=true
+SKYLINE_CACHE_CAPTURE_SOURCE=true
+```
+
+Laravel does not emit lifecycle events for increment/decrement or individual lock acquire/release operations, so those remain visible only as direct Redis commands when applicable. Set `SKYLINE_CACHE_ENABLED=false` to disable cache and Redis spans.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development
