@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "./FixtureAdapter";
 import { ExternalOperationInspector } from "./ExternalOperationInspector";
+import { FailedAttemptInspector } from "./FailedAttemptInspector";
 import { presentRunDetail } from "./RunDetailAdapter";
 
 describe("RunDetailAdapter", () => {
@@ -24,6 +25,7 @@ describe("RunDetailAdapter", () => {
     });
     expect(detail.navigation.runsPath).toBe("/runs?cursor=opaque");
     expect(detail.renderInspectorDetails).toBe(ExternalOperationInspector);
+    expect(detail.renderFailedAttempt).toBe(FailedAttemptInspector);
     expect(detail.trace.nodes[0]).toMatchObject({
       id: `run_${dto.run.id}`,
       inspectorHref: `/skyline/api/runs/${dto.run.id}/nodes/run_${dto.run.id}`,
@@ -33,6 +35,11 @@ describe("RunDetailAdapter", () => {
     expect(inspector.detailSections).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: "SQL" }),
     ]));
+    const failedAttempt = await detail.loadInspector("attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1");
+    expect(failedAttempt.exception).toMatchObject({
+      class: "Illuminate\\Database\\DeadlockException",
+      location: { file: "app/Jobs/GenerateMonthlyInvoices.php", line: 58 },
+    });
     expect(detail.run).not.toHaveProperty("deployment");
     expect(detail.run).not.toHaveProperty("worker");
     expect(detail.run).not.toHaveProperty("machine");

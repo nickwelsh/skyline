@@ -315,7 +315,6 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         messageTruncated: false,
         messageOriginalBytes: fixture.exception.message.length,
         code: null,
-        runtime: { php: "8.4.8", laravel: "12.42.0" },
         location: {
           file: fixture.exception.frames[0]?.file ?? "unknown",
           line: fixture.exception.frames[0]?.line ?? null,

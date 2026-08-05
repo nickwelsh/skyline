@@ -42,8 +42,7 @@ export type ExceptionDetails = {
   messageTruncated: boolean;
   messageOriginalBytes: number;
   code: string | null;
-  runtime: { php: string; laravel: string };
-  location: { file: string; line: number | null; href: string | null };
+  location: { file: string; line: number | null; href: string | null } | null;
   frames: ExceptionFrame[];
   framesTruncated: boolean;
   markdown: string;

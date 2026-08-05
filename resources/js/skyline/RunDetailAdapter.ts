@@ -1,5 +1,6 @@
 import type { InspectorDto, TracePageDto } from "./dto";
 import { ExternalOperationInspector, type ExternalInspector } from "./ExternalOperationInspector";
+import { FailedAttemptInspector } from "./FailedAttemptInspector";
 
 export type RunDetailInspector = ExternalInspector;
 
@@ -36,6 +37,7 @@ export type RunDetailRouteData = {
   };
   loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<RunDetailInspector>;
   renderInspectorDetails: typeof ExternalOperationInspector;
+  renderFailedAttempt: typeof FailedAttemptInspector;
 };
 
 export function presentRunDetail(
@@ -87,6 +89,7 @@ export function presentRunDetail(
     },
     loadInspector: async (nodeId, signal) => presentInspector(await loadInspector(nodeId, signal)),
     renderInspectorDetails: ExternalOperationInspector,
+    renderFailedAttempt: FailedAttemptInspector,
   };
 }
 
