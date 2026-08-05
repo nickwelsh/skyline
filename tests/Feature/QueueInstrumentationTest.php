@@ -3,6 +3,7 @@
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Filesystem\FilesystemAdapter as LaravelFilesystemAdapter;
 use Illuminate\Queue\Events\JobAttempted;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\UnableToReadFile;
 use NickWelsh\Skyline\Facades\Skyline;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
@@ -49,6 +52,7 @@ use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\PolledProcessJob;
 use Tests\Fixtures\Jobs\ProcessFakeJob;
 use Tests\Fixtures\Jobs\RedisJob;
+use Tests\Fixtures\Jobs\RemoteStorageJob;
 use Tests\Fixtures\Jobs\RetriedTransactionJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
@@ -201,6 +205,32 @@ it('records storage failures without changing the thrown exception', function ()
 
     expect($storage->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
         ->and($storage->getAttributes()->get('error.type'))->toBe(UnableToReadFile::class);
+});
+
+it('captures a configured remote-style adapter through the driver-agnostic wrapper', function (): void {
+    $root = storage_path('framework/testing/disks/remote-telemetry');
+    Storage::extend('remote-test', function ($app, array $config): LaravelFilesystemAdapter {
+        $adapter = new LocalFilesystemAdapter($config['root']);
+
+        return new LaravelFilesystemAdapter($this->createFlysystem($adapter, $config), $adapter, $config);
+    });
+    config()->set('filesystems.disks.remote-telemetry', [
+        'driver' => 'remote-test',
+        'root' => $root,
+        'throw' => true,
+    ]);
+
+    RemoteStorageJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $storage = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'storage')
+        ->values();
+
+    expect($storage->map(fn ($span) => $span->getAttributes()->get('storage.operation'))->all())->toBe(['write', 'read', 'delete'])
+        ->and($storage->every(fn ($span) => $span->getAttributes()->get('storage.disk') === 'remote-telemetry'))->toBeTrue()
+        ->and($storage->every(fn ($span) => $span->getAttributes()->get('storage.driver') === 'remote-test'))->toBeTrue();
 });
 
 it('closes unfinished child telemetry at the Attempt boundary', function (): void {
