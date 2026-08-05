@@ -285,18 +285,23 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
     }
   };
 
-  const feedback = status === "copied" ? copiedText : status === "failed" ? "Copy failed" : idleText;
+  const presentation = {
+    idle: { title: "Copy", feedback: idleText, color: "text-text-dimmed hover:text-text-bright", Icon: IconCopy },
+    copied: { title: "Copied", feedback: copiedText, color: "text-success", Icon: IconCheck },
+    failed: { title: "Copy failed", feedback: "Copy failed", color: "text-error", Icon: IconCopy },
+  }[status];
+  const StatusIcon = presentation.Icon;
 
   return (
     <button
       type="button"
       aria-label={`Copy ${label}`}
-      title={status === "copied" ? "Copied" : status === "failed" ? "Copy failed" : "Copy"}
+      title={presentation.title}
       onClick={() => void copy()}
-      className={`relative grid size-8 place-items-center rounded-sm hover:bg-background-hover focus-visible:outline-2 focus-visible:outline-indigo-500 ${status === "copied" ? "text-success" : status === "failed" ? "text-error" : "text-text-dimmed hover:text-text-bright"}`}
+      className={`relative grid size-8 place-items-center rounded-sm hover:bg-background-hover focus-visible:outline-2 focus-visible:outline-indigo-500 ${presentation.color}`}
     >
-      {status === "copied" ? <IconCheck className="size-4 shrink-0" /> : <IconCopy className="size-4 shrink-0" />}
-      <span className="sr-only" aria-live="polite">{feedback}</span>
+      <StatusIcon className="size-4 shrink-0" />
+      <span className="sr-only" aria-live="polite">{presentation.feedback}</span>
       <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
     </button>
   );
