@@ -6,7 +6,7 @@
  */
 import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap, IconTextWrapDisabled, IconX } from "@tabler/icons-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { interpolateSql, type SqlBinding } from "./capture-formatting";
 
@@ -158,14 +158,22 @@ function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapp
 }) {
   const [wrapped, setWrapped] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const expandButton = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+
+  const closeExpanded = () => {
+    setExpanded(false);
+    expandButton.current?.focus();
+  };
 
   useEffect(() => {
     if (!expanded) return;
+    dialog.current?.querySelector<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      setExpanded(false);
+      closeExpanded();
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
@@ -188,9 +196,9 @@ function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapp
           )}
           <CopyButton value={copyValue} label={label} />
           {fullscreen ? (
-            <ControlButton label={`Close expanded ${label}`} onClick={() => setExpanded(false)}><IconX className="size-4 shrink-0" /></ControlButton>
+            <ControlButton label={`Close expanded ${label}`} onClick={closeExpanded}><IconX className="size-4 shrink-0" /></ControlButton>
           ) : (
-            <ControlButton label={`Expand ${label}`} onClick={() => setExpanded(true)}><IconArrowsMaximize className="size-4 shrink-0" /></ControlButton>
+            <ControlButton buttonRef={expandButton} label={`Expand ${label}`} onClick={() => setExpanded(true)}><IconArrowsMaximize className="size-4 shrink-0" /></ControlButton>
           )}
         </div>
       </div>
@@ -202,13 +210,29 @@ function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapp
     <section aria-label={`${label} preview`} className="@container min-w-0">
       {frame(false)}
       {expanded && createPortal(
-        <div role="dialog" aria-modal="true" aria-label={`Expanded ${label}`} className="fixed inset-0 z-999 bg-background-deep/90 p-3 backdrop-blur-sm sm:p-8">
+        <div ref={dialog} role="dialog" aria-modal="true" aria-label={`Expanded ${label}`} onKeyDown={trapFocus} className="fixed inset-0 z-999 bg-background-deep/90 p-3 backdrop-blur-sm sm:p-8">
           {frame(true)}
         </div>,
         document.body,
       )}
     </section>
   );
+
+  function trapFocus(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const focusable = [...(dialog.current?.querySelectorAll<HTMLElement>("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])") ?? [])]
+      .filter((element) => !element.hasAttribute("disabled"));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable.at(-1)!;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
 }
 
 function ModeSwitch<T extends string>({ label, value, options, onChange }: {
@@ -274,9 +298,9 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
   );
 }
 
-function ControlButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+function ControlButton({ label, onClick, children, buttonRef }: { label: string; onClick: () => void; children: ReactNode; buttonRef?: RefObject<HTMLButtonElement | null> }) {
   return (
-    <button type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
+    <button ref={buttonRef} type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
       {children}
       <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
     </button>

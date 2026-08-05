@@ -1,7 +1,7 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { HtmlCapturePreview } from "./CapturePreview";
+import { HtmlCapturePreview, JsonCapturePreview } from "./CapturePreview";
 
 describe("HtmlCapturePreview", () => {
   afterEach(() => {
@@ -31,6 +31,27 @@ describe("HtmlCapturePreview", () => {
     expect(source.getAttribute("aria-selected")).toBe("true");
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.textContent).toContain("Receipt");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("focuses expanded evidence and returns focus after Escape", () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(<JsonCapturePreview label="Context" value={{ runId: "run-1" }} />));
+    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Context"]')!;
+    expand.focus();
+    flushSync(() => expand.click());
+
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"][aria-label="Expanded Context"]')!;
+    expect(dialog).not.toBeNull();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(expand);
 
     flushSync(() => root.unmount());
   });

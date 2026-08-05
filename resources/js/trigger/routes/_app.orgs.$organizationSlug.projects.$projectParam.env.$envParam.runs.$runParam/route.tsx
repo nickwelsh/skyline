@@ -15,7 +15,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { Badge } from "~/components/primitives/Badge";
 import { Button } from "~/components/primitives/Buttons";
@@ -66,6 +66,7 @@ type Inspector = TraceNode & {
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
   detailSections: Array<{ label: string; value: unknown }>;
 };
+type InspectorDetailsRenderer = ComponentType<{ inspector: Inspector }>;
 type PanelHandle = NonNullable<React.ComponentProps<typeof ResizablePanel>["handle"]> extends React.Ref<infer Handle> ? Handle : never;
 type RouteData = {
   generatedAt: string;
@@ -117,6 +118,7 @@ type RouteData = {
   };
   navigation: { previousPath: string | null; nextPath: string | null; runsPath: string };
   loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<Inspector>;
+  renderInspectorDetails: InspectorDetailsRenderer;
 };
 
 const panels = {
@@ -560,7 +562,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
           </div>
         )}
         {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} />}
-        {inspector && tab === "detail" && <InspectorDetails inspector={inspector} />}
+        {inspector && tab === "detail" && <InspectorDetails inspector={inspector} renderDetails={data.renderInspectorDetails} />}
         {inspector && tab === "metadata" && (
           <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
         )}
@@ -598,7 +600,7 @@ function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: 
   );
 }
 
-function InspectorDetails({ inspector }: { inspector: Inspector }) {
+function InspectorDetails({ inspector, renderDetails: RenderDetails }: { inspector: Inspector; renderDetails: InspectorDetailsRenderer }) {
   return (
     <div className="space-y-5">
       <div>
@@ -613,12 +615,7 @@ function InspectorDetails({ inspector }: { inspector: Inspector }) {
           : <span className="font-mono text-text-dimmed">{inspector.source.file}:{inspector.source.line}</span>)}
         {inspector.telemetryEventHref && <a href={inspector.telemetryEventHref} className="text-text-link">Telemetry event</a>}
       </div>
-      {inspector.detailSections.map((section) => (
-        <section key={section.label} aria-label={section.label}>
-          <Header3>{section.label}</Header3>
-          <pre className="mt-2 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(section.value, null, 2)}</pre>
-        </section>
-      ))}
+      <RenderDetails inspector={inspector} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "./FixtureAdapter";
+import { ExternalOperationInspector } from "./ExternalOperationInspector";
 import { presentRunDetail } from "./RunDetailAdapter";
 
 describe("RunDetailAdapter", () => {
@@ -22,6 +23,7 @@ describe("RunDetailAdapter", () => {
       path: "/runs/run_01J8R4H9S9J12V04CNH6F6JQ3M?tableState=cursor%3Dopaque",
     });
     expect(detail.navigation.runsPath).toBe("/runs?cursor=opaque");
+    expect(detail.renderInspectorDetails).toBe(ExternalOperationInspector);
     expect(detail.trace.nodes[0]).toMatchObject({
       id: `run_${dto.run.id}`,
       inspectorHref: `/skyline/api/runs/${dto.run.id}/nodes/run_${dto.run.id}`,

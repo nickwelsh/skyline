@@ -1,8 +1,8 @@
 import type { InspectorDto, TracePageDto } from "./dto";
+import { ExternalOperationInspector } from "./ExternalOperationInspector";
+import type { ExternalInspector } from "./InspectorPresentation";
 
-export type RunDetailInspector = InspectorDto & {
-  detailSections: Array<{ label: string; value: unknown }>;
-};
+export type RunDetailInspector = ExternalInspector;
 
 export type RunDetailRouteData = {
   generatedAt: string;
@@ -36,6 +36,7 @@ export type RunDetailRouteData = {
     runsPath: string;
   };
   loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<RunDetailInspector>;
+  renderInspectorDetails: typeof ExternalOperationInspector;
 };
 
 export function presentRunDetail(
@@ -86,6 +87,7 @@ export function presentRunDetail(
       runsPath: `/runs${listState.size ? `?${listState}` : ""}`,
     },
     loadInspector: async (nodeId, signal) => presentInspector(await loadInspector(nodeId, signal)),
+    renderInspectorDetails: ExternalOperationInspector,
   };
 }
 
