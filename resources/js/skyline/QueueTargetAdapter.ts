@@ -8,6 +8,7 @@ import type {
   QueueTargetsQuery,
   RunStatus,
 } from "./dto";
+import { formatDuration } from "./Duration";
 
 export function queueTargetsQuery(request: Request): QueueTargetsQuery {
   const params = new URL(request.url).searchParams;
@@ -45,9 +46,9 @@ export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsRout
       recordedRuns: target.recordedRunCount.toLocaleString(),
       recordedRunCounts: target.recordedRunCounts,
       queueTimeSampleCount: target.queueTime.sampleCount,
-      medianQueueTime: duration(target.queueTime.medianUs),
-      p95QueueTime: duration(target.queueTime.p95Us),
-      maximumQueueTime: duration(target.queueTime.maximumUs),
+      medianQueueTime: formatDuration(target.queueTime.medianUs),
+      p95QueueTime: formatDuration(target.queueTime.p95Us),
+      maximumQueueTime: formatDuration(target.queueTime.maximumUs),
       firstObservedAt: target.firstObservedAt,
       lastObservedAt: target.lastObservedAt,
     })),
@@ -87,8 +88,8 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
       traceIdentity: run.traceId,
       attemptCount: run.attemptCount,
       triggeredAt: run.triggeredAt,
-      queueDuration: duration(run.queueDurationUs),
-      duration: duration(run.durationUs ?? run.activeDurationUs),
+      queueDuration: formatDuration(run.queueDurationUs),
+      duration: formatDuration(run.durationUs ?? run.activeDurationUs),
     })),
     pagination: {
       previous: page.pagination.previous ?? undefined,
@@ -102,14 +103,6 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
 
 function busyCount(counts: Record<RunStatus, number>) {
   return counts.queued + counts.running + counts.retrying;
-}
-
-function duration(microseconds: number | null | undefined) {
-  if (microseconds === null || microseconds === undefined) return "—";
-  if (microseconds < 1_000) return `${microseconds}µs`;
-  const milliseconds = microseconds / 1_000;
-  if (milliseconds < 1_000) return `${milliseconds.toFixed(milliseconds >= 100 ? 0 : 2)}ms`;
-  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
 }
 
 function value(params: URLSearchParams, key: string) {
