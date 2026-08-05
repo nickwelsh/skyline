@@ -10,7 +10,11 @@
     "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
     "resources/js/trigger/Tooltip.tsx": "75810913c698bd0f156283a2fa134a733c4bf21a5325dded829ef1ea854bb4fc",
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
-    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
+    "resources/js/trigger/primitives/TreeView/TreeView.tsx": "165ee440bf7183f74f166c52306b07dce269f2d535757cc69a93374fe7920856",
+    "resources/js/trigger/primitives/TreeView/reducer.ts": "f47de2709b343a9cfdcab78e5c5b9c10f4dec672886859a56cc441e433b4f852",
+    "resources/js/trigger/primitives/TreeView/utils.ts": "a3f916aa23fb59d88bdeab802bc57ec125f16f46c27e109744d48e9468296035",
+    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406",
+    "resources/js/trigger/utils/cn.ts": "e3a032baa677062639c05146364807423e34168f9eea5ced0e35beee7b1a8f82"
   },
   "files": [
     {
@@ -138,23 +142,30 @@
     {
       "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
       "sha256": "eb9e7fe5809bd0a7e6f9b231ca10cc038875b8282215f9754d89a506a15f5eab",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "target": "resources/js/trigger/primitives/TreeView/TreeView.tsx",
       "mode": "adapted",
-      "modifications": "Narrowed flat tree to Skyline DTOs while retaining selection, expansion, filtering, and keyboard behavior."
+      "modifications": "Changed only the cn import path and added provenance."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/reducer.ts",
       "sha256": "5098140eef133d482b1b3c0c9067ee57fae47ad69cfba5902d04d2eb322c5ada",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "target": "resources/js/trigger/primitives/TreeView/reducer.ts",
       "mode": "adapted",
-      "modifications": "Inlined the reduced expansion and visibility state required by Skyline."
+      "modifications": "Added provenance only."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/utils.ts",
       "sha256": "2de2e91f3b52a48d96c9fa7f07af2f0f4a2bd4806d877ecba07aa6c41b2e134e",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "target": "resources/js/trigger/primitives/TreeView/utils.ts",
       "mode": "adapted",
-      "modifications": "Inlined only descendant, depth, and visible-row helpers."
+      "modifications": "Added provenance only."
+    },
+    {
+      "source": "apps/webapp/app/utils/cn.ts",
+      "sha256": "c3add868cf2ffb9b1ddbfb0f8cf5770bd161ca3fa0c37c806254ed714a35b76a",
+      "target": "resources/js/trigger/utils/cn.ts",
+      "mode": "adapted",
+      "modifications": "Added provenance only."
     },
     {
       "source": "apps/webapp/app/components/primitives/Timeline.tsx",
