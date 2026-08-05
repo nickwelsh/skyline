@@ -14,15 +14,20 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | --- | --- | --- |
 | React / React DOM | 18.3.1 | MIT |
 | Heroicons React | 2.0.13 | MIT |
-| Radix UI Dialog / Tooltip | 1.0.3 / 1.0.5 | MIT |
+| Radix UI Dialog / Popover / Slider / Switch / Tooltip | 1.0.3 / 1.0.5 / 1.1.2 / 1.0.3 / 1.0.5 | MIT |
 | Tabler Icons React | 3.36.1 | MIT |
+| TanStack React Virtual | 3.0.4 | MIT |
 | Window Splitter React / State | 1.1.3 | MIT |
+| assert-never | 1.2.1 | MIT |
+| clsx | 1.2.1 | MIT |
 | Framer Motion | 10.12.11 | MIT |
 | Lucide React | 0.229.0 | ISC |
 | non.geist package | 1.0.2 | MIT |
 | Geist font software | bundled by non.geist 1.0.2 | OFL-1.1 |
 | Prism React Renderer | 2.4.1 | MIT |
+| React Hotkeys Hook | 4.4.1 | MIT |
 | Tailwind CSS and build plugins | 4.3.1 | MIT |
+| tailwind-merge | 3.6.0 | MIT |
 | Tailwind Forms | 0.5.11 | MIT |
 | Tailwind Typography | 0.5.20 | MIT |
 | Tailwind Scrollbar | 4.0.2 | MIT |
