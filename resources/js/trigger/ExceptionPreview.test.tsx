@@ -1,18 +1,15 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { FailedAttemptInspector } from "./FailedAttemptInspector";
-import type { ExceptionDetails } from "./dto";
+import { ExceptionPreview, type ExceptionPreviewData } from "./ExceptionPreview";
 
-describe("FailedAttemptInspector", () => {
+describe("ExceptionPreview", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.restoreAllMocks();
   });
 
-  it("presents captured application and vendor frames through Trigger interactions", async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
+  it("preserves Trigger's failure composition with related frame disclosures", () => {
     const { container, root } = render(exception());
 
     expect(container.textContent).toContain("RuntimeException");
@@ -20,27 +17,40 @@ describe("FailedAttemptInspector", () => {
     expect(container.textContent).toContain("app/Jobs/ChargeCard.php:42");
     expect(container.textContent).not.toContain("Illuminate\\Queue\\Worker->process");
 
-    const copyMarkdown = container.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')!;
-    await copyMarkdown.click();
-    expect(writeText).toHaveBeenCalledWith("# RuntimeException - Job failed\n\nPayment failed.\n");
-
     const showFrames = container.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
     flushSync(() => showFrames.click());
     expect(showFrames.getAttribute("aria-expanded")).toBe("true");
-    expect(container.querySelector('button[aria-label="Wrap application frame 1"]')).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Expand application frame 1"]')).not.toBeNull();
+    expect(container.querySelector(`#${showFrames.getAttribute("aria-controls")}`)).not.toBeNull();
 
-    const vendor = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("1 vendor frame"))!;
-    expect(vendor.getAttribute("aria-expanded")).toBe("false");
+    const application = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("App\\Jobs\\ChargeCard->handle"))!;
+    expect(application.getAttribute("aria-controls")).toBe("exception-frame-0");
+    expect(container.querySelector("#exception-frame-0")).not.toBeNull();
+
+    const vendor = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("1 vendor frame"))!;
+    expect(vendor.getAttribute("aria-controls")).toBe("exception-vendor-1");
     flushSync(() => vendor.click());
-    expect(container.textContent).toContain("Illuminate\\Queue\\Worker->process");
+    expect(container.querySelector("#exception-vendor-1")?.textContent).toContain("Illuminate\\Queue\\Worker->process");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("reports clipboard failure instead of false success", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
+    });
+    const { container, root } = render(exception());
+    const copy = container.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')!;
+
+    await copy.click();
+    await vi.waitFor(() => expect(copy.textContent).toContain("Copy failed"));
+    expect(copy.getAttribute("title")).toBe("Copy failed");
 
     flushSync(() => root.unmount());
   });
 
   it("states when source and frame metadata were not captured", () => {
-    const unavailable = { ...exception(), location: null, frames: [] };
-    const { container, root } = render(unavailable);
+    const { container, root } = render({ ...exception(), location: null, frames: [] });
 
     expect(container.textContent).toContain("Source location not captured");
     expect(container.textContent).toContain("Stack trace not captured");
@@ -52,15 +62,15 @@ describe("FailedAttemptInspector", () => {
   });
 });
 
-function render(value: ExceptionDetails) {
+function render(value: ExceptionPreviewData) {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
-  flushSync(() => root.render(<FailedAttemptInspector exception={value} />));
+  flushSync(() => root.render(<ExceptionPreview exception={value} />));
   return { container, root };
 }
 
-function exception(): ExceptionDetails {
+function exception(): ExceptionPreviewData {
   return {
     class: "RuntimeException",
     message: "Payment failed.",

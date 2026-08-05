@@ -38,6 +38,7 @@ import * as Timeline from "~/components/primitives/Timeline";
 import { TaskRunStatusCombo, TaskRunStatusIcon, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { TreeView, type FlatTree, useTree } from "~/primitives/TreeView/TreeView";
 import { cn } from "~/utils/cn";
+import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 
 type AttemptStatus = "running" | "completed" | "released" | "failed";
 type TraceNode = {
@@ -61,33 +62,12 @@ type TraceNode = {
 };
 type Inspector = TraceNode & {
   overview: Record<string, string | number | null>;
-  exception?: ExceptionDetails | null;
+  exception?: ExceptionPreviewData | null;
   source?: { file: string; line: number; href: string | null } | null;
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
   detailSections: Array<{ label: string; value: unknown }>;
 };
-type ExceptionDetails = {
-  class: string;
-  message: string;
-  messageTruncated: boolean;
-  messageOriginalBytes: number;
-  code: string | null;
-  location: { file: string; line: number | null; href: string | null } | null;
-  frames: Array<{
-    file: string;
-    line: number | null;
-    class: string | null;
-    type: string | null;
-    function: string;
-    isVendor: boolean;
-    href: string | null;
-    snippet: { code: string; startingLine: number; highlightedLine: number } | null;
-  }>;
-  framesTruncated: boolean;
-  markdown: string;
-};
 type InspectorDetailsRenderer = ComponentType<{ inspector: Inspector }>;
-type FailedAttemptRenderer = ComponentType<{ exception: ExceptionDetails }>;
 type PanelHandle = NonNullable<React.ComponentProps<typeof ResizablePanel>["handle"]> extends React.Ref<infer Handle> ? Handle : never;
 type RouteData = {
   generatedAt: string;
@@ -140,7 +120,6 @@ type RouteData = {
   navigation: { previousPath: string | null; nextPath: string | null; runsPath: string };
   loadInspector: (nodeId: string, signal?: AbortSignal) => Promise<Inspector>;
   renderInspectorDetails: InspectorDetailsRenderer;
-  renderFailedAttempt: FailedAttemptRenderer;
 };
 
 const panels = {
@@ -577,7 +556,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
       <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
         {error && <div role="alert" className="text-error">{error.message}</div>}
-        {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} renderFailedAttempt={data.renderFailedAttempt} />}
+        {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />}
         {inspector && tab === "detail" && <InspectorDetails inspector={inspector} renderDetails={data.renderInspectorDetails} />}
         {inspector && tab === "metadata" && (
           <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
@@ -587,12 +566,11 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   );
 }
 
-function InspectorOverview({ data, node, inspector, failure, renderFailedAttempt: RenderFailedAttempt }: {
+function InspectorOverview({ data, node, inspector, failure }: {
   data: RouteData;
   node?: TraceNode;
   inspector: Inspector;
   failure?: { class: string; message: string; messageTruncated: boolean } | null;
-  renderFailedAttempt: FailedAttemptRenderer;
 }) {
   const isRouteRun = inspector.runId === data.run.id;
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
@@ -619,7 +597,7 @@ function InspectorOverview({ data, node, inspector, failure, renderFailedAttempt
         <Property name="Duration" value={formatDuration(node ? node.durationUs : data.run.durationUs)} />
       </dl>
       {inspector.exception
-        ? <RenderFailedAttempt exception={inspector.exception} />
+        ? <ExceptionPreview exception={inspector.exception} />
         : failure && (
           <div role="status" className="rounded border border-grid-bright bg-background-bright p-3 text-sm text-text-dimmed">
             Exception evidence unavailable. Skyline retained only the captured {failure.class} summary.

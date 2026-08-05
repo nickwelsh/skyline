@@ -1,3 +1,10 @@
+/*!
+ * Adapted from Trigger.dev RunError in
+ * apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Retains the failure container, heading, message callout, and code-viewer
+ * composition; accepts Skyline's captured PHP frames and editor links.
+ */
 import {
   IconChevronDown,
   IconChevronUp,
@@ -7,9 +14,12 @@ import {
   IconFolderOpen,
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-import { CopyButton, HighlightedCode } from "./CapturePreview";
+import { CopyButton } from "./CapturePreview";
+import { CodeBlock } from "./CodeBlock";
+import { Callout } from "./components/primitives/Callout";
+import { Header3 } from "./components/primitives/Headers";
 
-type ExceptionFrame = {
+export type ExceptionPreviewFrame = {
   file: string;
   line: number | null;
   class: string | null;
@@ -20,95 +30,103 @@ type ExceptionFrame = {
   snippet: { code: string; startingLine: number; highlightedLine: number } | null;
 };
 
-type ExceptionDetails = {
+export type ExceptionPreviewData = {
   class: string;
   message: string;
   messageTruncated: boolean;
   messageOriginalBytes: number;
   code: string | null;
-  runtime: { php: string; laravel: string };
-  location: { file: string; line: number | null; href: string | null };
-  frames: ExceptionFrame[];
+  location: { file: string; line: number | null; href: string | null } | null;
+  frames: ExceptionPreviewFrame[];
   framesTruncated: boolean;
   markdown: string;
 };
 
-type FrameEntry = { frame: ExceptionFrame; index: number };
+type FrameEntry = { frame: ExceptionPreviewFrame; index: number };
 
-export function ExceptionPreview({ exception }: { exception: ExceptionDetails }) {
+export function ExceptionPreview({ exception }: { exception: ExceptionPreviewData }) {
   const [expanded, setExpanded] = useState(false);
   const groups = useMemo(() => groupFrames(exception.frames), [exception.frames]);
   const mainFrame = exception.frames.findIndex((frame) => !frame.isVendor);
 
   return (
-    <section aria-label="Exception" className="@container overflow-hidden rounded border border-error/40 bg-error/5">
-      <div className="flex flex-col gap-3 p-3">
-        <div className="flex min-w-0 flex-wrap items-start gap-2">
-          <div className="min-w-0 flex-1 font-mono text-base text-error @sm:text-xs">{exception.class}</div>
-          <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
-        </div>
-        <p className="text-pretty text-base text-text-bright @sm:text-sm">{exception.message}</p>
-        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-base text-text-faint @sm:text-xs">
-          <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
-          <div className="font-mono">Laravel {exception.runtime.laravel}</div>
-          <div className="font-mono">PHP {exception.runtime.php}</div>
-          {exception.code && <div className="font-mono">Code {exception.code}</div>}
-        </div>
+    <section aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
+        <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
       </div>
-      <button
-        type="button"
-        aria-expanded={expanded}
-        aria-controls="exception-trace"
-        onClick={() => setExpanded((value) => !value)}
-        className="relative flex h-11 w-full items-center gap-2 border-t border-error/20 px-3 text-base text-text-faint hover:bg-error/5 hover:text-text-bright @sm:h-9 @sm:text-xs"
-      >
-        <IconCode className="size-4 shrink-0" />
-        <span>{expanded ? "Hide trace" : `Show ${exception.frames.length.toLocaleString()} ${exception.frames.length === 1 ? "frame" : "frames"}`}</span>
-        {exception.framesTruncated && <span>· Truncated</span>}
-        {expanded ? <IconChevronUp className="ml-auto size-4 shrink-0" /> : <IconChevronDown className="ml-auto size-4 shrink-0" />}
-        <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
-      </button>
-      {expanded && (
-        <div id="exception-trace" className="flex flex-col gap-2 border-t border-error/20 p-2">
-          {groups.map((group, index) => group.vendor
-            ? <VendorFrames key={`vendor-${index}`} entries={group.entries} />
-            : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} />))}
-        </div>
-      )}
+      <Callout variant="error">
+        <pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">
+          {exception.message}
+        </pre>
+      </Callout>
+      {exception.messageTruncated && <div className="text-xs text-warning">Exception message truncated</div>}
+      <div className="flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs text-text-faint">
+        {exception.location
+          ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
+          : <span>Source location not captured</span>}
+        {exception.code && <span>Code {exception.code}</span>}
+      </div>
+      {exception.frames.length > 0 ? (
+        <>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="exception-trace"
+            onClick={() => setExpanded((value) => !value)}
+            className="relative flex min-h-9 w-full items-center gap-2 border-t border-grid-bright pt-2 text-left text-xs text-text-dimmed hover:text-text-bright focus-custom"
+          >
+            <IconCode className="size-4 shrink-0" />
+            <span>{expanded ? "Hide trace" : `Show ${exception.frames.length.toLocaleString()} ${exception.frames.length === 1 ? "frame" : "frames"}`}</span>
+            {exception.framesTruncated && <span>· Truncated</span>}
+            {expanded ? <IconChevronUp className="ml-auto size-4 shrink-0" /> : <IconChevronDown className="ml-auto size-4 shrink-0" />}
+          </button>
+          {expanded && (
+            <div id="exception-trace" className="flex max-h-[40rem] flex-col gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+              {groups.map((group) => group.vendor
+                ? <VendorFrames key={`vendor-${group.entries[0].index}`} entries={group.entries} />
+                : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} />))}
+            </div>
+          )}
+        </>
+      ) : <div className="border-t border-grid-bright pt-2 text-xs text-text-faint">Stack trace not captured</div>}
     </section>
   );
 }
 
 function ApplicationFrame({ entry, main }: { entry: FrameEntry; main: boolean }) {
-  const { frame } = entry;
+  const { frame, index } = entry;
   const [expanded, setExpanded] = useState(main && frame.snippet !== null);
+  const panelId = `exception-frame-${index}`;
 
   return (
-    <article className="overflow-hidden rounded border border-grid-bright bg-background-deep">
+    <article className="shrink-0 overflow-hidden rounded border border-grid-bright bg-background-deep">
       <div className="flex min-w-0 items-stretch">
         <button
           type="button"
           disabled={!frame.snippet}
           aria-expanded={frame.snippet ? expanded : undefined}
+          aria-controls={frame.snippet ? panelId : undefined}
           onClick={() => frame.snippet && setExpanded((value) => !value)}
-          className="relative flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left hover:bg-background-hover disabled:cursor-default disabled:hover:bg-transparent @sm:min-h-9"
+          className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-left hover:bg-background-hover disabled:cursor-default disabled:hover:bg-transparent focus-custom"
         >
-          <div className="min-w-0 flex-1 truncate font-mono text-base text-text-bright @sm:text-xs">{formatCall(frame)}</div>
-          {frame.snippet && (expanded ? <IconChevronUp className="size-4 shrink-0 text-text-faint" /> : <IconChevronDown className="size-4 shrink-0 text-text-faint" />)}
-          <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-bright">{formatCall(frame)}</span>
+          {frame.snippet && (expanded ? <IconChevronUp className="size-4 shrink-0" /> : <IconChevronDown className="size-4 shrink-0" />)}
         </button>
-        <div className="flex min-w-0 max-w-1/2 items-center border-l border-grid-bright px-3 text-base text-text-faint @sm:text-xs">
+        <div className="flex min-w-0 max-w-1/2 items-center border-l border-grid-bright px-3 text-xs text-text-faint">
           <SourceLink file={frame.file} line={frame.line} href={frame.href} compact />
         </div>
       </div>
       {expanded && frame.snippet && (
-        <div className="border-t border-grid-bright bg-background-dimmed">
-          <HighlightedCode
+        <div id={panelId} className="border-t border-grid-bright bg-background-dimmed">
+          <CodeBlock
             code={frame.snippet.code}
             language="php"
-            startingLine={frame.snippet.startingLine}
-            highlightedLine={frame.snippet.highlightedLine}
-            wrap={false}
+            highlightedRanges={[[frame.snippet.highlightedLine - frame.snippet.startingLine + 1, frame.snippet.highlightedLine - frame.snippet.startingLine + 1]]}
+            label={`application frame ${index + 1}`}
+            maxLines={20}
+            showLineNumbers
+            showTextWrapping
           />
         </div>
       )}
@@ -118,26 +136,27 @@ function ApplicationFrame({ entry, main }: { entry: FrameEntry; main: boolean })
 
 function VendorFrames({ entries }: { entries: FrameEntry[] }) {
   const [expanded, setExpanded] = useState(false);
+  const panelId = `exception-vendor-${entries[0].index}`;
 
   return (
-    <div className="overflow-hidden rounded border border-dashed border-grid-bright bg-background-dimmed">
+    <div className="shrink-0 overflow-hidden rounded border border-dashed border-grid-bright bg-background-dimmed">
       <button
         type="button"
         aria-expanded={expanded}
+        aria-controls={panelId}
         onClick={() => setExpanded((value) => !value)}
-        className="relative flex h-11 w-full items-center gap-2 px-3 text-base text-text-faint hover:bg-background-hover hover:text-text-bright @sm:h-9 @sm:text-xs"
+        className="flex min-h-9 w-full items-center gap-2 px-3 text-xs text-text-faint hover:bg-background-hover hover:text-text-bright focus-custom"
       >
-        {expanded ? <IconFolderOpen className="size-4 shrink-0" /> : <IconFolder className="size-4 shrink-0" />}
+        {expanded ? <IconFolderOpen className="size-4" /> : <IconFolder className="size-4" />}
         <span>{entries.length.toLocaleString()} vendor {entries.length === 1 ? "frame" : "frames"}</span>
-        {expanded ? <IconChevronUp className="ml-auto size-4 shrink-0" /> : <IconChevronDown className="ml-auto size-4 shrink-0" />}
-        <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
+        {expanded ? <IconChevronUp className="ml-auto size-4" /> : <IconChevronDown className="ml-auto size-4" />}
       </button>
       {expanded && (
-        <ol role="list" className="divide-y divide-grid-dimmed border-t border-grid-bright">
+        <ol id={panelId} role="list" className="divide-y divide-grid-dimmed border-t border-grid-bright">
           {entries.map(({ frame, index }) => (
-            <li key={`${frame.file}:${frame.line}:${index}`} className="flex min-w-0 flex-col gap-1 p-3 @sm:flex-row @sm:items-center @sm:justify-between">
-              <div className="min-w-0 truncate font-mono text-base text-text-bright @sm:text-xs">{formatCall(frame)}</div>
-              <div className="min-w-0 shrink-0 text-base text-text-faint @sm:max-w-1/2 @sm:text-xs"><SourceLink file={frame.file} line={frame.line} href={frame.href} compact /></div>
+            <li key={`${frame.file}:${frame.line}:${index}`} className="flex min-w-0 flex-col gap-1 p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+              <span className="min-w-0 truncate font-mono text-text-bright">{formatCall(frame)}</span>
+              <SourceLink file={frame.file} line={frame.line} href={frame.href} compact />
             </li>
           ))}
         </ol>
@@ -147,20 +166,20 @@ function VendorFrames({ entries }: { entries: FrameEntry[] }) {
 }
 
 function SourceLink({ file, line, href, compact = false }: { file: string; line: number | null; href: string | null; compact?: boolean }) {
-  const location = `${file}:${line ?? 0}`;
+  const location = `${file}:${line ?? "?"}`;
   const content = <><span className={compact ? "truncate" : "min-w-0 truncate"}>{location}</span>{href && <IconExternalLink className="size-4 shrink-0" />}</>;
 
-  return href ? (
-    <a href={href} title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
-  ) : <div className="flex min-w-0 items-center gap-1">{content}</div>;
+  return href
+    ? <a href={href} title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
+    : <span className="flex min-w-0 items-center gap-1">{content}</span>;
 }
 
-function formatCall(frame: ExceptionFrame) {
+function formatCall(frame: ExceptionPreviewFrame) {
   if (frame.class && frame.type) return `${frame.class}${frame.type}${frame.function}`;
   return frame.function || "throw";
 }
 
-function groupFrames(frames: ExceptionFrame[]) {
+function groupFrames(frames: ExceptionPreviewFrame[]) {
   return frames.reduce<Array<{ vendor: boolean; entries: FrameEntry[] }>>((groups, frame, index) => {
     const group = groups.at(-1);
     if (!group || group.vendor !== frame.isVendor) groups.push({ vendor: frame.isVendor, entries: [] });
