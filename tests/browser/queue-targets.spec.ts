@@ -1,15 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import type { QueueTargetDetailDto, QueueTargetsPageDto, RunStatus } from "../../resources/js/skyline/dto";
+import baseline from "./fixtures/nw-221-trigger-queues-baseline.json" with { type: "json" };
 
 const queueId = `queue_${"a".repeat(64)}`;
 
 test("Queues preserve URL filters, keyboard clearing, detail charts, pagination, and Run navigation", async ({ page }) => {
+  for (const source of Object.values(baseline.sourceFiles)) {
+    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
+  }
   await routeQueues(page);
   await page.goto("/skyline/queues");
 
   await expect(page.getByRole("heading", { name: "Queues" })).toBeVisible();
   await expect(page.getByText("this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
   await expect(page.getByText("Recorded Runs", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Recorded Runs by status" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Queue-time samples" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "First observed" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Last observed" })).toBeVisible();
+  await expect(page.getByLabel("Recorded Run status breakdown").first()).toContainText("queued1");
   await expect(page.getByText("Broker depth")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
 
@@ -20,19 +32,28 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).toHaveURL(/search=billing/);
   await page.getByLabel("Search queues").press("Escape");
   await expect(page).not.toHaveURL(/search=/);
+  await page.getByLabel("Search queues").press("Escape");
+  await expect(page.getByLabel("Search queues")).not.toBeFocused();
   await page.getByLabel("Time range").selectOption("24h");
   await expect(page).toHaveURL(/from=/);
   await expect(page).toHaveURL(/to=/);
 
-  await page.getByRole("link", { name: /this-is-a-very-long-observed/ }).click();
+  const targetLink = page.getByRole("link", { name: /this-is-a-very-long-observed/ });
+  await expect(targetLink).toHaveAttribute("tabindex", "0");
+  await targetLink.focus();
+  await targetLink.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/skyline/queues/${queueId}`));
   await expect(page.getByRole("heading", { name: "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Recorded Run activity chart" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Queue time chart" })).toBeVisible();
   await expect(page.getByText("Insufficient samples for a queue-time trend.")).toBeVisible();
   await expect(page.getByText("Recorded Runs, not broker depth")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Queue-time samples" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "First observed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Last observed" })).toBeVisible();
+  await expect(page.getByLabel("Recorded Run status breakdown")).toContainText("running2");
 
-  await page.getByLabel("Run status").selectOption(["failed"]);
+  await page.getByLabel("Run status", { exact: true }).selectOption(["failed"]);
   await expect(page).toHaveURL(/status=failed/);
   await page.getByText("Invoice", { exact: true }).click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run_1$/);
@@ -40,20 +61,34 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
 
 test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found, idle, busy, and insufficient samples", async ({ page }) => {
   let mode: "populated" | "initial-empty" | "filtered-empty" | "error" = "populated";
-  let delay = false;
+  let detailMode: "populated" | "filtered-empty" | "error" | "idle" = "populated";
+  let delayList = false;
+  let delayDetail = false;
   await page.route("**/skyline/api/queues**", async (route) => {
-    if (delay) await new Promise((resolve) => setTimeout(resolve, 150));
-    if (mode === "error") {
-      await route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Queue evidence unavailable." } } });
-      return;
-    }
     const url = new URL(route.request().url());
     if (url.pathname.endsWith("queue_missing")) {
       await route.fulfill({ status: 404, json: { error: { code: "not_found", message: "Missing." } } });
       return;
     }
     if (url.pathname.endsWith(queueId)) {
-      await route.fulfill({ json: detailResponse() });
+      if (delayDetail) await new Promise((resolve) => setTimeout(resolve, 150));
+      if (detailMode === "error") {
+        await route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Queue detail unavailable." } } });
+        return;
+      }
+      const response = detailResponse();
+      if (detailMode === "filtered-empty") {
+        response.runs = [];
+        response.hasAnyRuns = true;
+        response.filters.status = ["failed"];
+      }
+      if (detailMode === "idle") response.queueTarget.recordedRunCounts = counts({ completed: 4 });
+      await route.fulfill({ json: response });
+      return;
+    }
+    if (delayList) await new Promise((resolve) => setTimeout(resolve, 500));
+    if (mode === "error") {
+      await route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Queue evidence unavailable." } } });
       return;
     }
     const response = listResponse();
@@ -69,10 +104,10 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   await expect(page.getByText("Busy", { exact: true })).toBeVisible();
   await expect(page.getByText("Idle", { exact: true })).toBeVisible();
 
-  delay = true;
+  delayList = true;
   await page.getByLabel("Connection").selectOption("redis");
-  await expect(page.locator("tbody")).toHaveAttribute("aria-busy", "true");
-  delay = false;
+  await expect(page.locator("tbody")).toHaveClass(/opacity-50/);
+  delayList = false;
 
   mode = "initial-empty";
   await page.goto("/skyline/queues");
@@ -86,6 +121,63 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   mode = "populated";
   await page.goto("/skyline/queues/queue_missing");
   await expect(page.getByRole("alert")).toContainText("Queue target not found");
+
+  detailMode = "filtered-empty";
+  await page.goto(`/skyline/queues/${queueId}?status=failed`);
+  await expect(page.getByRole("heading", { name: "No matching Runs" })).toBeVisible();
+  detailMode = "populated";
+  delayDetail = true;
+  await page.getByLabel("Run status", { exact: true }).selectOption([]);
+  await expect(page.getByLabel("Loading Queue-target Runs")).toBeVisible();
+  delayDetail = false;
+  await expect(page.getByText("Invoice", { exact: true })).toBeVisible();
+  detailMode = "idle";
+  await page.reload();
+  await expect(page.getByText("Idle", { exact: true })).toBeVisible();
+  detailMode = "error";
+  await page.reload();
+  await expect(page.getByRole("alert")).toContainText("Queue-target evidence could not be loaded.");
+});
+
+test("Queues cursor-paginate list and recorded Runs through URL-backed API reads", async ({ page }) => {
+  await page.route("**/skyline/api/queues**", async (route) => {
+    const url = new URL(route.request().url());
+    const cursor = url.searchParams.get("cursor");
+    if (url.pathname.endsWith(queueId)) {
+      const response = detailResponse();
+      response.runs = [run(cursor === "next-runs" ? "run_2" : "run_1")];
+      response.pagination = cursor === "next-runs"
+        ? { previous: "previous-runs", next: null }
+        : { previous: null, next: "next-runs" };
+      await route.fulfill({ json: response });
+      return;
+    }
+    const response = listResponse();
+    response.queueTargets = cursor === "next-targets"
+      ? [summary(`queue_${"c".repeat(64)}`, "exports", {})]
+      : [summary(queueId, "billing", { running: 1 })];
+    response.pagination = cursor === "next-targets"
+      ? { previous: "previous-targets", next: null }
+      : { previous: null, next: "next-targets" };
+    await route.fulfill({ json: response });
+  });
+
+  await page.goto("/skyline/queues");
+  await page.locator('a[href*="direction=forward"]').click();
+  await expect(page).toHaveURL(/cursor=next-targets&direction=forward/);
+  await expect(page.getByText("exports", { exact: true })).toBeVisible();
+  await page.locator('a[href*="direction=backward"]').click();
+  await expect(page).toHaveURL(/cursor=previous-targets&direction=backward/);
+  await expect(page.getByText("billing", { exact: true })).toBeVisible();
+
+  await page.goto(`/skyline/queues/${queueId}`);
+  await expect(page.getByText("run_1", { exact: true })).toBeVisible();
+  await page.locator('a[href*="direction=forward"]').click();
+  await expect(page).toHaveURL(/cursor=next-runs&direction=forward/);
+  await expect(page.getByText("run_2", { exact: true })).toBeVisible();
+  await page.locator('a[href*="direction=backward"]').click();
+  await expect(page).toHaveURL(/cursor=previous-runs&direction=backward/);
+  await expect(page.getByText("run_1", { exact: true })).toBeVisible();
 });
 
 async function routeQueues(page: Page) {
@@ -104,7 +196,7 @@ function listResponse(): QueueTargetsPageDto {
     queueTargets: [summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }), summary(`queue_${"b".repeat(64)}`, "mail", {})],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
-    options: { connections: ["redis", "sqs"] },
+    options: { connections: ["redis", "sqs"], timeRanges: queueTimeRanges() },
     hasAnyQueueTargets: true,
   };
 }
@@ -121,24 +213,28 @@ function detailResponse(): QueueTargetDetailDto {
       activity: [{ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1, recordedRunCounts: counts({ completed: 1 }) }],
       queueTime: [{ timestamp: "2026-08-05T12:00:00.000000000Z", sampleCount: 1, medianUs: 2000, p95Us: 2000, maximumUs: 2000 }],
     },
-    runs: [{
-      id: "run_1",
-      href: "/skyline/runs/run_1",
-      traceId: "trace_1",
-      name: "App\\Jobs\\Invoice",
-      status: "failed",
-      attemptCount: 2,
-      triggeredAt: "2026-08-05T12:00:00.000000000Z",
-      startedAt: "2026-08-05T12:00:00.002000000Z",
-      finishedAt: "2026-08-05T12:00:01.000000000Z",
-      queueDurationUs: 2000,
-      durationUs: 998000,
-      activeDurationUs: null,
-    }],
+    runs: [run("run_1")],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
-    options: { statuses: ["queued", "running", "retrying", "completed", "failed"] },
+    options: { statuses: ["queued", "running", "retrying", "completed", "failed"], timeRanges: queueTimeRanges() },
     hasAnyRuns: true,
+  };
+}
+
+function run(id: string): QueueTargetDetailDto["runs"][number] {
+  return {
+    id,
+    href: `/skyline/runs/${id}`,
+    traceId: `trace_${id}`,
+    name: "App\\Jobs\\Invoice",
+    status: "failed",
+    attemptCount: 2,
+    triggeredAt: "2026-08-05T12:00:00.000000000Z",
+    startedAt: "2026-08-05T12:00:00.002000000Z",
+    finishedAt: "2026-08-05T12:00:01.000000000Z",
+    queueDurationUs: 2000,
+    durationUs: 998000,
+    activeDurationUs: null,
   };
 }
 
@@ -168,4 +264,13 @@ function capabilities() {
     runs: { view: true, cancel: false, replay: false },
     shell: { shortcuts: true },
   };
+}
+
+function queueTimeRanges() {
+  return [
+    { value: "all" as const, label: "All time", durationSeconds: null },
+    { value: "1h" as const, label: "Last hour", durationSeconds: 3_600 },
+    { value: "24h" as const, label: "Last 24 hours", durationSeconds: 86_400 },
+    { value: "7d" as const, label: "Last 7 days", durationSeconds: 604_800 },
+  ];
 }

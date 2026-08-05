@@ -60,10 +60,14 @@ export function QueueTargetFilters({
           placeholder="Search queues…"
           className="h-6 w-full rounded border border-border-bright/50 bg-input-bg pl-7 pr-7 text-xs text-text-bright outline-hidden focus-custom"
           onKeyDown={(event) => {
-            if (event.key === "Escape" && event.currentTarget.value) {
-              event.preventDefault();
-              event.currentTarget.value = "";
-              update({ search: undefined });
+            if (event.key === "Escape") {
+              if (event.currentTarget.value) {
+                event.preventDefault();
+                event.currentTarget.value = "";
+                update({ search: undefined });
+              } else {
+                event.currentTarget.blur();
+              }
             }
           }}
         />

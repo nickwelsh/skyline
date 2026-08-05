@@ -1,0 +1,70 @@
+{
+  "generatedBy": "node scripts/extract-trigger-queues-baseline.mjs",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "listRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx",
+      "sha256": "6886ec6796402be23fdde107696453065aa29074d2cb4a857123fcb73c5dd18d"
+    },
+    "detailRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx",
+      "sha256": "7d827e04376bebd0c40fd417faf7247f4f7126fe35cfd4392542e3d7aae4fdbd"
+    },
+    "metricsLayout": {
+      "path": "apps/webapp/app/components/layout/MetricsLayout.tsx",
+      "sha256": "c1d0f0d75bf8becbfba8ac122db51b1363a972dff653400f513ba67af9a4f209"
+    },
+    "table": {
+      "path": "apps/webapp/app/components/primitives/Table.tsx",
+      "sha256": "98c22b2102bbc395268dd16d2894b24df9ddc6759cb15fc5bfa9510013f1504c"
+    },
+    "searchInput": {
+      "path": "apps/webapp/app/components/primitives/SearchInput.tsx",
+      "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338"
+    },
+    "queueMetricCards": {
+      "path": "apps/webapp/app/components/queues/QueueMetricCards.tsx",
+      "sha256": "615db4d1b3c0ebfc23a2a3105f8d00286ee3f5e24d87ce98742424a5e33108cd"
+    }
+  },
+  "contract": {
+    "list": {
+      "filters": true,
+      "statGrid": true,
+      "chartGrid": true,
+      "content": true,
+      "table": true,
+      "pagination": true
+    },
+    "detail": {
+      "filters": true,
+      "insetCharts": true,
+      "content": true,
+      "table": true,
+      "pagination": true
+    },
+    "layout": {
+      "responsiveColumns": true,
+      "roundedCards": true,
+      "gridBorders": true
+    },
+    "actions": {
+      "upstreamAdministrativeQueueControls": true,
+      "skylineAdministrativeQueueControls": false,
+      "observedRunLinks": true
+    },
+    "url": {
+      "timeFilter": true,
+      "pagination": true
+    },
+    "keyboard": {
+      "searchSubmit": "Enter",
+      "searchClear": "Escape",
+      "emptySearchEscape": "blur"
+    },
+    "accessibility": {
+      "semanticTable": true,
+      "tabbableDetailLink": true
+    }
+  }
+}
