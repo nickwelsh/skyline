@@ -31,6 +31,10 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Attempts" }).locator("+ dd")).toHaveText("2");
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Triggered" }).locator("+ dd")).toHaveText("2026-08-04T20:01:21.000000000Z");
   await expect(page.getByRole("link", { name: /Child:/ })).toHaveAttribute("href", /\/skyline\/runs\/run_01J8R4H9S9J12V04CNH6F6JQ3M/);
+  await page.locator('[data-node-id="run_run_01J8R4H9S9J12V04CNH6F6JQ3M"]').click();
+  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Run" }).locator("+ dd")).toHaveText("run_01J8R4H9S9J12V04CNH6F6JQ3M");
+  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Job type" }).locator("+ dd")).toHaveText("—");
+  await page.locator(`[data-node-id="${rootNodeId}"]`).click();
   await page.keyboard.press("w");
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toHaveCount(0);
   await page.keyboard.press("e");
@@ -184,7 +188,7 @@ test("long inspector metadata remains readable in the constrained panel", async 
   await page.setViewportSize({ width: 1024, height: 480 });
   await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}&tab=metadata`);
 
-  await expect(page.getByText(/^Trace truncated at \d+ nodes$/)).toBeVisible();
+  await expect(page.getByText(/^Showing \d+ of \d+ nodes$/)).toBeVisible();
   const metadata = page.getByRole("tabpanel", { name: "Metadata" }).locator("pre");
   await expect(metadata).toContainText("long-payload-long-payload");
   expect(await metadata.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);

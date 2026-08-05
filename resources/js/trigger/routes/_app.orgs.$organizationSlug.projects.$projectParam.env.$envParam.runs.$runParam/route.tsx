@@ -235,7 +235,8 @@ export default function RunDetailRoute() {
             collapseAnimation={RESIZABLE_PANEL_ANIMATION}
             isStaticAtRest
             aria-hidden={!selectedId}
-            className={cn("overflow-hidden", !selectedId && "max-w-0")}
+            {...(!selectedId ? { inert: "" } : {})}
+            className={cn("max-w-full overflow-hidden transition-[max-width] duration-300 ease-in-out", !selectedId && "max-w-0")}
           >
             <InspectorPanel data={data} selectedId={selectedId} onClose={() => select(undefined)} />
           </ResizablePanel>
@@ -314,7 +315,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
       <div className="flex items-center justify-between px-3 text-xs text-text-faint">
         <span className="flex items-center gap-3">
           <RelationshipLinks data={data} />
-          {data.trace.isTruncated && <span role="status" className="text-warning">Trace truncated at {data.trace.nodeCount} nodes</span>}
+          {data.trace.isTruncated && <span role="status" className="text-warning">Showing {data.trace.nodes.length} of {data.trace.nodeCount} nodes</span>}
         </span>
         {data.trace.polling && (
           <span className="flex items-center gap-1 text-blue-500"><span className="size-2 animate-pulse rounded-full bg-blue-500" />Live reloading</span>
@@ -546,7 +547,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
       </div>
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-4">
         {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
-          <InspectorTab key={item.id} active={tab === item.id} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
+          <InspectorTab key={item.id} active={tab === item.id} enabled={Boolean(selectedId)} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
         ))}
       </div>
       <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
@@ -569,6 +570,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
 }
 
 function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: TraceNode; inspector: Inspector }) {
+  const isRouteRun = inspector.runId === data.run.id;
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
   return (
     <div className="space-y-4">
@@ -578,16 +580,16 @@ function InspectorOverview({ data, node, inspector }: { data: RouteData; node?: 
       </div>
       <dl className="grid grid-cols-[8rem_1fr] gap-2 text-sm">
         <Property name="Run" value={inspector.runId} />
-        <Property name="Job type" value={data.run.jobType} />
-        <Property name="Queue target" value={data.run.queueTarget} />
-        <Property name="Driver" value={data.run.driverId} />
-        <Property name="Queue-time source" value={data.run.queueTimeSource} />
-        <Property name="Attempts" value={data.run.attemptCount} />
-        <Property name="Triggered" value={data.run.triggeredAt} />
-        <Property name="Queued" value={data.run.queuedAt} />
-        <Property name="Started" value={attempt?.startedAt ?? data.run.startedAt} />
-        <Property name="Finished" value={attempt?.finishedAt ?? data.run.finishedAt} />
-        <Property name="Queue duration" value={formatDuration(attempt?.queueDurationUs ?? data.run.queueDurationUs)} />
+        <Property name="Job type" value={isRouteRun ? data.run.jobType : null} />
+        <Property name="Queue target" value={isRouteRun ? data.run.queueTarget : null} />
+        <Property name="Driver" value={isRouteRun ? data.run.driverId : null} />
+        <Property name="Queue-time source" value={isRouteRun ? data.run.queueTimeSource : null} />
+        <Property name="Attempts" value={isRouteRun ? data.run.attemptCount : null} />
+        <Property name="Triggered" value={isRouteRun ? data.run.triggeredAt : null} />
+        <Property name="Queued" value={isRouteRun ? data.run.queuedAt : null} />
+        <Property name="Started" value={attempt?.startedAt ?? (isRouteRun ? data.run.startedAt : null)} />
+        <Property name="Finished" value={attempt?.finishedAt ?? (isRouteRun ? data.run.finishedAt : null)} />
+        <Property name="Queue duration" value={formatDuration(attempt?.queueDurationUs ?? (isRouteRun ? data.run.queueDurationUs : null))} />
         {attempt && <Property name="Attempt" value={attempt.number} />}
         {attempt && <Property name="Attempt queue source" value={attempt.queueTimeSource} />}
         <Property name="Duration" value={formatDuration(node?.durationUs ?? data.run.durationUs)} />
@@ -625,16 +627,17 @@ function Property({ name, value }: { name: string; value: unknown }) {
   return <><dt className="text-text-faint">{name}</dt><dd className="min-w-0 break-words font-mono text-text-bright">{value === null || value === undefined ? "—" : String(value)}</dd></>;
 }
 
-function InspectorTab({ active, shortcut, onClick, children }: { active: boolean; shortcut: string; onClick: () => void; children: React.ReactNode }) {
+function InspectorTab({ active, enabled, shortcut, onClick, children }: { active: boolean; enabled: boolean; shortcut: string; onClick: () => void; children: React.ReactNode }) {
   const ref = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    if (!enabled) return;
     const listener = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isEditable(event.target)) return;
       if (event.key.toLowerCase() === shortcut) { event.preventDefault(); ref.current?.click(); }
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [shortcut]);
+  }, [enabled, shortcut]);
   return (
     <button ref={ref} type="button" role="tab" aria-label={String(children)} aria-selected={active} onClick={onClick} className="group flex h-10 flex-col items-center focus-custom">
       <span className={cn("flex flex-1 items-center gap-1 text-sm", active ? "text-text-bright" : "text-text-dimmed group-hover:text-text-bright")}>{children}<kbd className="rounded-sm border border-border-bright px-1 font-mono text-xxs text-text-faint">{shortcut.toUpperCase()}</kbd></span>
