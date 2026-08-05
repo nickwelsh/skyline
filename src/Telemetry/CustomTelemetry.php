@@ -52,7 +52,8 @@ final class CustomTelemetry
             'run_id' => $active->runId,
             'attempt' => $active->number,
         ];
-        $this->stack[] = ['span' => $span, 'context' => $span->storeInContext($parent)];
+        $context = $span->storeInContext($parent);
+        $this->stack[] = ['span' => $span, 'context' => $context];
 
         try {
             $value = $callback();
@@ -65,7 +66,7 @@ final class CustomTelemetry
         }
 
         if ($value instanceof PromiseInterface) {
-            return $value->then(
+            $settled = $value->then(
                 function (mixed $result) use ($span): mixed {
                     $this->complete($span);
 
@@ -76,6 +77,11 @@ final class CustomTelemetry
 
                     return Create::rejectionFor($reason);
                 },
+            );
+
+            return new ContextualPromise(
+                $settled,
+                fn (callable $callback, mixed $result): mixed => $this->within($span, $context, $callback, $result),
             );
         }
 
@@ -192,5 +198,16 @@ final class CustomTelemetry
         unset($this->pending[$id]);
 
         return true;
+    }
+
+    private function within(SpanInterface $span, ContextInterface $context, callable $callback, mixed $value): mixed
+    {
+        $this->stack[] = ['span' => $span, 'context' => $context];
+
+        try {
+            return $callback($value);
+        } finally {
+            array_pop($this->stack);
+        }
     }
 }

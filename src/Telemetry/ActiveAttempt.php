@@ -46,9 +46,14 @@ final class ActiveAttempt
             return;
         }
 
-        $this->aggregates[$role] ??= ['count' => 0, 'duration_ns' => 0];
-        $this->aggregates[$role]['count']++;
-        $this->aggregates[$role]['duration_ns'] += max(0, $duration);
+        $summaryRole = match ($role) {
+            'sql', 'http', 'cache', 'custom' => $role,
+            'redis' => 'cache',
+            default => 'other',
+        };
+        $this->aggregates[$summaryRole] ??= ['count' => 0, 'duration_ns' => 0];
+        $this->aggregates[$summaryRole]['count']++;
+        $this->aggregates[$summaryRole]['duration_ns'] += max(0, $duration);
     }
 
     public function reserveBreadcrumb(int $limit): bool

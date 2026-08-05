@@ -31,6 +31,14 @@ final class CustomTelemetryJob implements ShouldQueue
             throw new RuntimeException('Custom telemetry changed the async result.');
         }
 
+        $nestedAsync = Skyline::measure('Async parent', fn () => Create::promiseFor('ready'))
+            ->then(fn (): int => Skyline::measure('Async child', fn (): int => 7))
+            ->wait();
+
+        if ($nestedAsync !== 7) {
+            throw new RuntimeException('Custom telemetry changed the nested async result.');
+        }
+
         $original = new LogicException('private failure');
 
         try {

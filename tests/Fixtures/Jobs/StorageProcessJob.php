@@ -16,6 +16,11 @@ final class StorageProcessJob implements ShouldQueue
     public function handle(): void
     {
         Storage::disk('telemetry')->put('private/customer/report.txt', 'private contents');
+        $writeStream = fopen('php://temp', 'w+b');
+        fwrite($writeStream, 'stream contents!');
+        rewind($writeStream);
+        Storage::disk('telemetry')->writeStream('private/customer/stream.txt', $writeStream);
+        fclose($writeStream);
 
         if (Storage::disk('telemetry')->get('private/customer/report.txt') !== 'private contents') {
             throw new RuntimeException('Storage telemetry changed file contents.');
@@ -31,7 +36,7 @@ final class StorageProcessJob implements ShouldQueue
         Storage::disk('telemetry')->copy('private/customer/report.txt', 'private/customer/report-copy.txt');
         Storage::disk('telemetry')->move('private/customer/report-copy.txt', 'private/customer/report-moved.txt');
         Storage::disk('telemetry')->size('private/customer/report-moved.txt');
-        Storage::disk('telemetry')->delete(['private/customer/report.txt', 'private/customer/report-moved.txt']);
+        Storage::disk('telemetry')->delete(['private/customer/report.txt', 'private/customer/report-moved.txt', 'private/customer/stream.txt']);
 
         $success = Process::run([PHP_BINARY, '-r', 'fwrite(STDOUT, "private output");']);
         $failure = Process::run([PHP_BINARY, '-r', 'exit(7);']);

@@ -71,7 +71,7 @@ final readonly class InstrumentedFilesystemOperator implements FilesystemOperato
 
     public function writeStream(string $location, $contents, array $config = []): void
     {
-        $this->record('write_stream', [$location], fn () => $this->inner->writeStream($location, $contents, $config));
+        $this->record('write_stream', [$location], fn () => $this->inner->writeStream($location, $contents, $config), $this->streamBytes($contents));
     }
 
     public function setVisibility(string $path, string $visibility): void
@@ -113,5 +113,22 @@ final readonly class InstrumentedFilesystemOperator implements FilesystemOperato
     private function record(string $operation, array $paths, callable $callback, ?int $bytes = null): mixed
     {
         return $this->telemetry->record($this->disk, $this->driver, $operation, $paths, $callback, $bytes);
+    }
+
+    private function streamBytes(mixed $stream): ?int
+    {
+        if (! is_resource($stream)) {
+            return null;
+        }
+
+        $metadata = stream_get_meta_data($stream);
+        $stat = fstat($stream);
+        $offset = ftell($stream);
+
+        if (! ($metadata['seekable'] ?? false) || ! is_array($stat) || ! is_int($stat['size'] ?? null) || ! is_int($offset)) {
+            return null;
+        }
+
+        return max(0, $stat['size'] - $offset);
     }
 }

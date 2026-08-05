@@ -57,6 +57,12 @@ final class StorageInstrumentation
 
             if ($bytes === null && $operation === 'read' && is_string($result)) {
                 $span->setAttribute('storage.bytes', strlen($result));
+            } elseif ($bytes === null && $operation === 'read_stream' && is_resource($result)) {
+                $stat = fstat($result);
+
+                if (is_array($stat) && is_int($stat['size'] ?? null)) {
+                    $span->setAttribute('storage.bytes', max(0, $stat['size']));
+                }
             } elseif ($bytes === null && $operation === 'size' && is_int($result)) {
                 $span->setAttribute('storage.bytes', $result);
             }

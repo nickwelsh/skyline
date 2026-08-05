@@ -69,9 +69,10 @@ it('captures nested custom spans and events while preserving application behavio
         fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
     );
 
-    expect($custom)->toHaveKeys(['Generate PDF', 'Upload PDF', 'Async export', 'Fail safely'])
+    expect($custom)->toHaveKeys(['Generate PDF', 'Upload PDF', 'Async export', 'Async parent', 'Async child', 'Fail safely'])
         ->and($custom['Generate PDF']->getParentSpanId())->toBe($consumer->getSpanId())
         ->and($custom['Upload PDF']->getParentSpanId())->toBe($custom['Generate PDF']->getSpanId())
+        ->and($custom['Async child']->getParentSpanId())->toBe($custom['Async parent']->getSpanId())
         ->and($custom['Fail safely']->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
         ->and($custom['Generate PDF']->getEvents())->toHaveCount(1)
         ->and($custom['Generate PDF']->getEvents()[0]->getName())->toBe('Rendered page')
@@ -131,9 +132,11 @@ it('captures storage and process operations without content paths arguments or o
         ->values();
 
     expect($storage->map(fn ($span) => $span->getAttributes()->get('storage.operation'))->all())
-        ->toBe(['write', 'read', 'read_stream', 'copy', 'move', 'size', 'delete', 'delete'])
+        ->toBe(['write', 'write_stream', 'read', 'read_stream', 'copy', 'move', 'size', 'delete', 'delete', 'delete'])
         ->and($storage[0]->getAttributes()->get('storage.bytes'))->toBe(16)
         ->and($storage[1]->getAttributes()->get('storage.bytes'))->toBe(16)
+        ->and($storage[2]->getAttributes()->get('storage.bytes'))->toBe(16)
+        ->and($storage[3]->getAttributes()->get('storage.bytes'))->toBe(16)
         ->and($processes)->toHaveCount(4)
         ->and($processes->map(fn ($span) => $span->getAttributes()->get('process.exit_code'))->all())->toBe([0, 7, 0, null])
         ->and($processes[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
@@ -186,12 +189,16 @@ it('closes unfinished child telemetry at the Attempt boundary', function (): voi
     $unfinished = collect($sink->spans)
         ->filter(fn ($span) => in_array($span->getAttributes()->get('skyline.role'), ['cache', 'custom', 'transaction'], true))
         ->values();
+    $consumer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer',
+    );
 
     expect($unfinished)->toHaveCount(3)
         ->and($unfinished->every(fn ($span) => $span->getStatus()->getCode() === StatusCode::STATUS_ERROR))->toBeTrue()
         ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'cache')->getAttributes()->get('cache.outcome'))->toBe('incomplete')
         ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'custom')->getAttributes()->get('skyline.outcome'))->toBe('incomplete')
-        ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'transaction')->getAttributes()->get('db.transaction.outcome'))->toBe('incomplete');
+        ->and($unfinished->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'transaction')->getAttributes()->get('db.transaction.outcome'))->toBe('incomplete')
+        ->and($consumer->getAttributes()->get('skyline.summary.other.count'))->toBe(1);
 });
 
 it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
