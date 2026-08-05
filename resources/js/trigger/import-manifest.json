@@ -9,13 +9,16 @@
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
     "resources/js/trigger/assets/icons/TaskIcon.tsx": "36c9c8bbf4c88d9de209fea8cb9ff77f56287a25de12721e5a5491f81acbf1f6",
     "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
+    "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx": "53467025c2fc97d7330062887692f8fe0f3dadbbed72c3c97eda901ea7e2ae4a",
     "resources/js/trigger/components/primitives/Buttons.tsx": "1c26f52ed48d40ff48a5468bb503148d60d41bf3c2a9a99b548fdf66479ce9ef",
     "resources/js/trigger/components/primitives/Callout.tsx": "fa4d4fbd02434ed7d2ab357688857bc2c6b9746e7040c6f8ead60d51fb1b0cd6",
     "resources/js/trigger/components/primitives/CopyableText.tsx": "ea02a6a08c6f2619776b779d3c77fedc41f9547c34323ce9e9b2a8673ab4bb2c",
+    "resources/js/trigger/components/primitives/DateTime.tsx": "bce8af128fea3fbf78b87091675cae6ed613bd0f1d419d14600309c28014e169",
     "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
     "resources/js/trigger/components/primitives/Icon.tsx": "b2f1d6795d235d68b3946e2e5313e730a0dc46c1feb689b196e149ceeb224af0",
     "resources/js/trigger/components/primitives/InfoPanel.tsx": "dd9bda9df0717ca42e484d9e1aea0352fd403bd5051a442defc86e02518a572c",
     "resources/js/trigger/components/primitives/Input.tsx": "dc9231eb95381c8fb0a4b857f24a790ad3a99668e1b5083ca993766ddb65cfe9",
+    "resources/js/trigger/components/primitives/PageHeader.tsx": "c2e61de064fc1eb39866d1e134b271e090a438360e8e5abac95f8870ba35b9ea",
     "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
     "resources/js/trigger/components/primitives/Popover.tsx": "e0b30e6d159b3f576326de3c8c2f15a3e13302607043ce711de6980079108586",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
@@ -78,9 +81,23 @@
     {
       "source": "apps/webapp/app/components/primitives/PageHeader.tsx",
       "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
+      "target": "resources/js/trigger/components/primitives/PageHeader.tsx",
       "mode": "adapted",
-      "modifications": "Retained header geometry; removed agent, docs, replay, cancel, and organization controls."
+      "modifications": "Retained only NavBar, PageTitle, and PageAccessories run-route geometry; replaced Remix Link with a native anchor; removed navigation loading, organization banner, dashboard agent, favorites, and accessory tooltip behavior."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/DateTime.tsx",
+      "sha256": "f7b4ce83810c33baa084abfa0dc2a2c9541e76d4a521782c33dfc63a330245dd",
+      "target": "resources/js/trigger/components/primitives/DateTime.tsx",
+      "mode": "adapted",
+      "modifications": "Retained only DateTimeShort and its formatter; replaced Remix loader and locale-provider preferences with browser Intl locale and timezone resolution; removed the remaining date, tooltip, and copy APIs."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/BreadcrumbIcon.tsx",
+      "sha256": "95a04cdb374e80e5c9f9d04d7c7887fcb8de35769442551c392a341bb7b42a6e",
+      "target": "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
     },
     {
       "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
