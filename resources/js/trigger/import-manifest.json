@@ -8,6 +8,7 @@
     "resources/js/trigger/Tabs.tsx": "09c71dcea8dbae0105a67be167d0b25d57f124631b4742cdf43fff3f9a670be2",
     "resources/js/trigger/Tooltip.tsx": "75810913c698bd0f156283a2fa134a733c4bf21a5325dded829ef1ea854bb4fc",
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
+    "resources/js/trigger/assets/icons/TaskIcon.tsx": "36c9c8bbf4c88d9de209fea8cb9ff77f56287a25de12721e5a5491f81acbf1f6",
     "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
     "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
     "resources/js/trigger/components/primitives/Icon.tsx": "b2f1d6795d235d68b3946e2e5313e730a0dc46c1feb689b196e149ceeb224af0",
@@ -22,6 +23,9 @@
     "resources/js/trigger/components/primitives/Spinner.tsx": "70b8a9fddf357735c96002152a2366e0fd05f52e564dcf2504173e71d7bf0187",
     "resources/js/trigger/components/primitives/Switch.tsx": "d5394ec4ea561765345b72890c92e15cc4508183b69e6722fe738d08a04ea312",
     "resources/js/trigger/components/primitives/Timeline.tsx": "b187055eb17bfca5ab001ffc808d0fcd7b6500f497e80afa0d1f2f8498580649",
+    "resources/js/trigger/components/runs/v3/RunIcon.tsx": "072b6a7070df72948c8cd573b67fa5cb75b713eb86d8dab0e3463ca3513695cf",
+    "resources/js/trigger/components/runs/v3/SpanTitle.tsx": "85ba23f7eda13ea64658f4bfe1e930e4503143d30efd9e5a4aefc1207d5dc6bb",
+    "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx": "a6bf4e0aa77a353a845b586bcf20eda97f24791967a4e22873382976cda7c261",
     "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
     "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
     "resources/js/trigger/hooks/useSearchParam.ts": "61c261a11ca6837cbbf675b843bad104f7a3268e68e86c9a16da7465f0fcd27d",
@@ -340,6 +344,46 @@
       "target": "resources/js/trigger/hooks/useShortcutKeys.tsx",
       "mode": "adapted",
       "modifications": "Changed only package-local provider import paths and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunIcon.tsx",
+      "sha256": "1919b883442134370bb7f3c4fbe259ca03c8a232566874edba9ce254e4dec3f4",
+      "target": "resources/js/trigger/components/runs/v3/RunIcon.tsx",
+      "mode": "adapted",
+      "modifications": "Replaced Trigger icon-name, sprite, AI-provider, and product-entity branches with an exhaustive Skyline NodeKind mapping; retained task/attempt geometry, semantic colors, and hover behavior."
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/SpanTitle.tsx",
+      "sha256": "f432b02182c1afdb228c3fba9126db1268ca59ca4c8f2b1511178488cb1ff507",
+      "target": "resources/js/trigger/components/runs/v3/SpanTitle.tsx",
+      "mode": "adapted",
+      "modifications": "Replaced Trigger core/database style types with NodeKind and local presentation types; retained title/accessory markup and semantic event colors while omitting unused Tabler pill icons."
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunStatus.tsx",
+      "sha256": "115bd0ec472d067da965d538ac102d3ccfe7ef0a1b6c41cfd62d4f4276ce2fff",
+      "target": "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx",
+      "mode": "adapted",
+      "modifications": "Mapped Trigger task statuses, labels, descriptions, icons, guards, and chart colors onto Skyline RunStatus; removed Trigger-only status reasons and imports."
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AttemptIcon.tsx",
+      "sha256": "055908c69d259ea4dbf3db2d024675251a5c1280f1e0b3f2d32a63b2550d5eb0",
+      "target": "resources/js/trigger/assets/icons/AttemptIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/InfoIcon.tsx",
+      "sha256": "a0d02665b70a97fdd2feb6d031c5dead1975ccf8fbb1c180cdee59b0832e3966",
+      "target": "resources/js/trigger/assets/icons/InfoIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TaskIcon.tsx",
+      "sha256": "52e46fa0bfc21ec1d4575c6d491bcec9048577827e948e647b3809b7b8fb5a95",
+      "target": "resources/js/trigger/assets/icons/TaskIcon.tsx",
+      "mode": "adapted",
+      "modifications": "Retained the pinned TaskIcon geometry and omitted unused cached and small variants."
     },
     {
       "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx",
