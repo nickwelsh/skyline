@@ -1,0 +1,170 @@
+<?php
+
+use Illuminate\Support\Facades\DB;
+use NickWelsh\Skyline\Read\Nanoseconds;
+
+it('lists only confirmed named asynchronous Queue targets with recorded aggregates', function (): void {
+    seedQueueTargetRun('a', 'completed', 'redis', 'billing', 1_000_000);
+    seedQueueTargetRun('b', 'failed', 'redis', 'billing', 3_000_000);
+    seedQueueTargetRun('c', 'running', 'database', 'default', null);
+    seedQueueTargetRun('sync', 'completed', 'sync', 'sync', 2_000_000);
+    seedQueueTargetRun('unnamed', 'completed', 'redis', '', 2_000_000);
+    seedQueueTargetRun('unconfirmed', 'completed', 'redis', 'ignored', 2_000_000, false);
+
+    $response = $this->getJson('/skyline/api/queues')->assertOk()
+        ->assertJsonPath('schemaVersion', 1)
+        ->assertJsonPath('hasAnyQueueTargets', true)
+        ->assertJsonPath('options.connections', ['database', 'redis'])
+        ->assertJsonCount(2, 'queueTargets')
+        ->assertJsonPath('queueTargets.0.connection', 'database')
+        ->assertJsonPath('queueTargets.0.queue', 'default')
+        ->assertJsonPath('queueTargets.0.recordedRunCounts.running', 1)
+        ->assertJsonPath('queueTargets.0.queueTime.sampleCount', 0)
+        ->assertJsonPath('queueTargets.1.id', 'queue_'.hash('sha256', "redis\0billing"))
+        ->assertJsonPath('queueTargets.1.recordedRunCount', 2)
+        ->assertJsonPath('queueTargets.1.recordedRunCounts.completed', 1)
+        ->assertJsonPath('queueTargets.1.recordedRunCounts.failed', 1)
+        ->assertJsonPath('queueTargets.1.queueTime.sampleCount', 2)
+        ->assertJsonPath('queueTargets.1.queueTime.medianUs', 2000)
+        ->assertJsonPath('queueTargets.1.queueTime.p95Us', 2900)
+        ->assertJsonPath('queueTargets.1.queueTime.maximumUs', 3000);
+
+    expect($response->json('queueTargets.1.firstObservedAt'))->toEndWith('Z')
+        ->and($response->json('queueTargets.1.lastObservedAt'))->toEndWith('Z')
+        ->and($response->getContent())->not->toContain('brokerDepth')
+        ->not->toContain('workers')
+        ->not->toContain('concurrency');
+});
+
+it('filters Queue targets with server supplied URL options and explicit invalid queries', function (): void {
+    seedQueueTargetRun('billing', 'completed', 'redis', 'billing', 2_000_000);
+    seedQueueTargetRun('mail', 'completed', 'sqs', 'outbound-mail', 4_000_000);
+
+    $page = $this->getJson('/skyline/api/queues?'.http_build_query([
+        'connection' => 'redis',
+        'search' => 'bill',
+    ]))->assertOk()
+        ->assertJsonCount(1, 'queueTargets')
+        ->assertJsonPath('filters.connection', 'redis')
+        ->assertJsonPath('filters.search', 'bill')
+        ->assertJsonPath('queueTargets.0.queue', 'billing');
+
+    expect($page->json('options.connections'))->toBe(['redis', 'sqs']);
+
+    $this->getJson('/skyline/api/queues?connection=missing')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+    $this->getJson('/skyline/api/queues?from=tomorrow')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+});
+
+it('shows Queue-target activity, queue-time history, and cursor-paginated filtered Runs', function (): void {
+    for ($index = 0; $index < 27; $index++) {
+        seedQueueTargetRun(
+            sprintf('%02d', $index),
+            $index % 2 === 0 ? 'completed' : 'failed',
+            'redis',
+            'billing',
+            ($index + 1) * 1_000_000,
+        );
+    }
+    seedQueueTargetRun('other', 'completed', 'redis', 'other', 1_000_000);
+    $id = 'queue_'.hash('sha256', "redis\0billing");
+
+    $first = $this->getJson('/skyline/api/queues/'.$id.'?'.http_build_query([
+        'status' => ['completed'],
+        'search' => 'Job',
+    ]))->assertOk()
+        ->assertJsonPath('queueTarget.id', $id)
+        ->assertJsonPath('queueTarget.connection', 'redis')
+        ->assertJsonPath('queueTarget.queue', 'billing')
+        ->assertJsonPath('filters.status', ['completed'])
+        ->assertJsonCount(14, 'runs')
+        ->assertJsonCount(27, 'series.activity')
+        ->assertJsonCount(27, 'series.queueTime')
+        ->assertJsonPath('pagination.previous', null)
+        ->assertJsonPath('pagination.next', null);
+
+    expect(collect($first->json('runs'))->every(fn (array $run): bool => $run['status'] === 'completed'))->toBeTrue()
+        ->and($first->json('runs.0.href'))->toStartWith('/skyline/runs/');
+
+    $unfiltered = $this->getJson('/skyline/api/queues/'.$id)->assertOk()->assertJsonCount(25, 'runs');
+    $next = $unfiltered->json('pagination.next');
+    expect($next)->toBeString()->not->toContain('run-');
+
+    $second = $this->getJson('/skyline/api/queues/'.$id.'?'.http_build_query(['cursor' => $next]))
+        ->assertOk()
+        ->assertJsonCount(2, 'runs');
+    $previous = $second->json('pagination.previous');
+
+    expect($this->getJson('/skyline/api/queues/'.$id.'?'.http_build_query(['cursor' => $previous]))
+        ->assertOk()->json('runs'))->toBe($unfiltered->json('runs'));
+});
+
+it('distinguishes not-found Queue targets from filtered-empty detail', function (): void {
+    seedQueueTargetRun('one', 'completed', 'redis', 'billing', null);
+    $id = 'queue_'.hash('sha256', "redis\0billing");
+
+    $this->getJson('/skyline/api/queues/'.$id.'?search=missing')
+        ->assertOk()
+        ->assertJsonPath('hasAnyRuns', true)
+        ->assertJsonCount(0, 'runs');
+
+    $this->getJson('/skyline/api/queues/queue_missing')
+        ->assertNotFound()
+        ->assertJsonPath('error.code', 'not_found');
+});
+
+function seedQueueTargetRun(
+    string $suffix,
+    string $status,
+    ?string $connection,
+    ?string $queue,
+    ?int $queueTimeNs,
+    bool $confirmed = true,
+): void {
+    $ordinal = crc32($suffix);
+    $traceId = sprintf('%032x', $ordinal);
+    $runId = 'queue-run-'.$suffix;
+    $triggeredAt = Nanoseconds::now() - ($ordinal * 1_000_000);
+    $confirmedAt = Nanoseconds::now();
+
+    DB::table('skyline_traces')->insert([
+        'trace_id' => $traceId,
+        'root_run_id' => $runId,
+        'revision' => 1,
+        'last_activity_at' => $confirmedAt,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    DB::table('skyline_runs')->insert([
+        'run_id' => $runId,
+        'trace_id' => $traceId,
+        'job_name' => 'App\\Jobs\\Job'.$suffix,
+        'connection' => $connection,
+        'queue' => $queue,
+        'status' => $status,
+        'triggered_at' => $triggeredAt,
+        'queued_at' => $queueTimeNs === null ? null : $triggeredAt,
+        'started_at' => $status === 'queued' ? null : $triggeredAt + ($queueTimeNs ?? 1_000_000),
+        'finished_at' => in_array($status, ['completed', 'failed'], true) ? $triggeredAt + 10_000_000 : null,
+        'confirmed_at' => $confirmed ? $confirmedAt : null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    if ($queueTimeNs !== null) {
+        DB::table('skyline_attempts')->insert([
+            'run_id' => $runId,
+            'attempt_number' => 1,
+            'status' => $status === 'failed' ? 'failed' : ($status === 'running' ? 'running' : 'completed'),
+            'started_at' => $triggeredAt + $queueTimeNs,
+            'finished_at' => in_array($status, ['completed', 'failed'], true) ? $triggeredAt + 10_000_000 : null,
+            'queue_time_ns' => $queueTimeNs,
+            'queue_time_source' => 'framework_event',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+}
