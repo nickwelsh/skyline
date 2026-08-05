@@ -63,6 +63,16 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(0);
 });
 
+test("SQL queries have distinct minimum-width timeline marks", async ({ page }) => {
+  await page.goto(`/skyline/runs/${retryRun}?node=run_${retryRun}`);
+
+  const queryMark = page.locator('[data-timeline-node-id="span_17ba81b7da8f8b64"]');
+  await expect(queryMark).toBeVisible();
+  await expect(queryMark).toHaveClass(/bg-query/);
+  await expect(queryMark).toHaveAttribute("title", /Started 208ms · Duration 46ms$/);
+  expect((await queryMark.boundingBox())?.width).toBeGreaterThanOrEqual(6);
+});
+
 test("fixed fixtures retain reviewed Runs and trace visuals", async ({ page }) => {
   await page.goto("/skyline");
   await expect(page).toHaveScreenshot("runs.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });

@@ -5,7 +5,7 @@
   "adaptedTargets": {
     "resources/js/trigger/Resizable.tsx": "b67a37a9f7c4f75a70ec11004f100f718096f2dbd94bb5434b0c30eab1caab10",
     "resources/js/trigger/Timeline.tsx": "fb91f3540f0ce923c4a1bef111371c1a65178607f43cf33ad6db42f804d5d996",
-    "resources/js/trigger/TriggerInterface.tsx": "db42fc8851c17919b603c0d4a6149f313dd3c01f39788f5d49b75b064be3a966",
+    "resources/js/trigger/TriggerInterface.tsx": "90005a0316f66f44cb69f5c94f4687fcd9eab3c9ec4222c24c9614a9043a20f1",
     "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
@@ -82,7 +82,7 @@
       "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5",
       "target": "resources/js/trigger/TriggerInterface.tsx",
       "mode": "adapted",
-      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout."
+      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added minimum-width query marks with timing tooltips."
     },
     {
       "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",

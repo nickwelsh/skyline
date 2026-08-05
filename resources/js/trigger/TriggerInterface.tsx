@@ -640,8 +640,12 @@ function TraceContent({ adapter, basePath, runId, navigate, tracePage, onRefresh
                       <div>
                         {visibleNodes.map((node) => (
                           <Timeline.Row key={node.id} className={`h-8 border-b border-grid-dimmed ${selectedId === node.id ? "bg-indigo-500/8" : ""}`} onClick={() => selectNode(node.id)}>
-                            <Timeline.Span startMs={Math.max(0, node.offsetUs / 1_000 - queueOffset)} durationMs={Math.max(2, nodeDurationMs(node, totalDuration, queueOffset))} className="top-[7px] h-[18px] min-w-1 px-1">
-                              <div className={`h-full rounded-sm ${barClass(node)} ${node.kind === "run" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" : ""}`}>
+                            <Timeline.Span startMs={Math.max(0, node.offsetUs / 1_000 - queueOffset)} durationMs={Math.max(2, nodeDurationMs(node, totalDuration, queueOffset))} className={`top-[7px] h-[18px] ${node.kind === "query" ? "min-w-[6px]" : "min-w-1"}`}>
+                              <div
+                                data-timeline-node-id={node.id}
+                                title={`${node.label} · Started ${formatDuration(Math.max(0, node.offsetUs / 1_000 - queueOffset))} · Duration ${formatDuration(nodeDurationMs(node, totalDuration, queueOffset))}`}
+                                className={`h-full rounded-sm px-1 ${barClass(node)} ${node.kind === "run" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]" : node.kind === "query" ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" : ""}`}
+                              >
                                 {nodeDurationMs(node, totalDuration, queueOffset) > totalDuration * 0.08 && <span className="px-1 font-mono text-xxs text-white/90">{formatDuration(nodeDurationMs(node, totalDuration, queueOffset))}</span>}
                               </div>
                             </Timeline.Span>
@@ -803,7 +807,7 @@ function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
-function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; return "bg-charcoal-550"; }
+function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
   const duration = node.durationUs === null ? Math.max(0, totalDuration - node.offsetUs / 1_000) : node.durationUs / 1_000;
   return node.parentId === null ? Math.max(0, duration - queueOffset) : duration;
