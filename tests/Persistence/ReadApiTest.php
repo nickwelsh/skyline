@@ -195,10 +195,18 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     $trace = $this->getJson('/skyline/api/runs/'.$run->run_id)
         ->assertOk()
         ->assertJsonPath('run.id', $run->run_id)
+        ->assertJsonPath('run.queueTarget.connection', 'sync')
+        ->assertJsonPath('run.driverId', $run->driver_id)
+        ->assertJsonPath('run.queueTimeSource', $run->queue_time_source)
+        ->assertJsonPath('attempts.0.number', 1)
+        ->assertJsonPath('attempts.0.inspectorHref', '/skyline/api/runs/'.$run->run_id.'/nodes/attempt_'.$run->run_id.'_1')
+        ->assertJsonPath('relationships.parent', null)
         ->assertJsonPath('trace.nodes.0.id', 'run_'.$run->run_id)
+        ->assertJsonPath('trace.nodes.0.inspectorHref', '/skyline/api/runs/'.$run->run_id.'/nodes/run_'.$run->run_id)
         ->assertJsonPath('trace.nodes.0.kind', 'run')
         ->assertJsonPath('trace.nodes.1.kind', 'attempt')
-        ->assertJsonPath('trace.nodes.2.kind', 'query');
+        ->assertJsonPath('trace.nodes.2.kind', 'query')
+        ->assertJsonPath('trace.nodes.2.telemetryEventHref', '/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id);
     $etag = $trace->headers->get('ETag');
 
     expect($trace->headers->get('Cache-Control'))->toContain('private')->toContain('no-store');
@@ -231,6 +239,29 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     expect($inspector->getContent())
         ->not->toContain('private-job-payload')
         ->not->toContain('do-not-capture');
+});
+
+it('projects ordered Attempt failures and causal Run relationships', function (): void {
+    ParentJob::dispatchSync();
+    $parent = DB::table('skyline_runs')->where('job_name', ParentJob::class)->first();
+    $child = DB::table('skyline_runs')->where('job_name', ChildJob::class)->first();
+
+    DB::table('skyline_attempts')->where('run_id', $parent->run_id)->where('attempt_number', 1)->update([
+        'status' => 'failed',
+        'exception_class' => 'RuntimeException',
+        'exception_message' => 'First try failed',
+    ]);
+
+    $response = $this->getJson('/skyline/api/runs/'.$parent->run_id)
+        ->assertOk()
+        ->assertJsonPath('attempts.0.number', 1)
+        ->assertJsonPath('attempts.0.failure.class', 'RuntimeException')
+        ->assertJsonPath('attempts.0.failure.message', 'First try failed')
+        ->assertJsonPath('relationships.children.0.id', $child->run_id)
+        ->assertJsonPath('relationships.children.0.parentRunId', $parent->run_id)
+        ->assertJsonPath('relationships.children.0.inspectorHref', '/skyline/api/runs/'.$parent->run_id.'/nodes/run_'.$child->run_id);
+
+    expect(collect($response->json('attempts'))->pluck('number')->all())->toBe([1]);
 });
 
 it('serves opt-in SQL bindings and result previews outside generic metadata', function (): void {

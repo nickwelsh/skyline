@@ -39,6 +39,10 @@ final class TraceViewBuilder
 
         foreach ($ordered as &$node) {
             unset($node['_startedAt']);
+            $node['inspectorHref'] = $this->nodeHref($selected->run_id, $node['id']);
+            $node['telemetryEventHref'] = in_array($node['kind'], ['run', 'attempt'], true)
+                ? null
+                : $node['inspectorHref'];
         }
 
         unset($node);
@@ -53,6 +57,45 @@ final class TraceViewBuilder
         $pollUntil = $terminal && $selected->finished_at !== null
             ? (int) $selected->finished_at + 30_000_000_000
             : null;
+        $attemptViews = $attempts->map(function (object $attempt) use ($selected): array {
+            $sanitizer = new PrivacySanitizer;
+            $message = $attempt->exception_message === null
+                ? null
+                : $sanitizer->string(
+                    (string) $attempt->exception_message,
+                    max(1, (int) config('skyline.privacy.exception_message_bytes', 16_384)),
+                    'attempt.failure.message',
+                );
+
+            return [
+                'id' => NodeIds::attempt($attempt->run_id, (int) $attempt->attempt_number),
+                'number' => (int) $attempt->attempt_number,
+                'status' => $attempt->status,
+                'startedAt' => Nanoseconds::toRfc3339((int) $attempt->started_at),
+                'finishedAt' => Nanoseconds::toRfc3339($attempt->finished_at === null ? null : (int) $attempt->finished_at),
+                'queueDurationUs' => $attempt->queue_time_ns === null ? null : intdiv((int) $attempt->queue_time_ns, 1000),
+                'queueTimeSource' => $attempt->queue_time_source,
+                'failure' => $attempt->exception_class === null ? null : [
+                    'class' => $attempt->exception_class,
+                    'message' => $message['value'] ?? '',
+                    'messageTruncated' => $message['isTruncated'] ?? false,
+                ],
+                'inspectorHref' => $this->nodeHref($selected->run_id, NodeIds::attempt(
+                    $attempt->run_id,
+                    (int) $attempt->attempt_number,
+                )),
+            ];
+        })->all();
+        $children = $snapshot->runs
+            ->where('parent_run_id', $selected->run_id)
+            ->map(fn (object $run): array => [
+                'id' => $run->run_id,
+                'parentRunId' => $run->parent_run_id,
+                'name' => $run->job_name,
+                'status' => $run->status,
+                'runHref' => $this->runHref($run->run_id),
+                'inspectorHref' => $this->nodeHref($selected->run_id, NodeIds::run($run->run_id)),
+            ])->values()->all();
 
         return [
             'run' => [
@@ -61,6 +104,12 @@ final class TraceViewBuilder
                 'status' => $selected->status,
                 'connection' => $selected->connection,
                 'queue' => $selected->queue,
+                'queueTarget' => [
+                    'connection' => $selected->connection,
+                    'queue' => $selected->queue,
+                ],
+                'driverId' => $selected->driver_id,
+                'queueTimeSource' => $selected->queue_time_source,
                 'attemptCount' => $attempts->count(),
                 'triggeredAt' => Nanoseconds::toRfc3339((int) $selected->triggered_at),
                 'queuedAt' => $selected->connection === 'sync' ? null : Nanoseconds::toRfc3339(
@@ -79,6 +128,14 @@ final class TraceViewBuilder
                 'traceId' => $snapshot->trace->trace_id,
                 'rootRunId' => $snapshot->trace->root_run_id,
                 'parentRunId' => $selected->parent_run_id,
+            ],
+            'attempts' => $attemptViews,
+            'relationships' => [
+                'parent' => $selected->parent_run_id === null ? null : [
+                    'id' => $selected->parent_run_id,
+                    'runHref' => $this->runHref($selected->parent_run_id),
+                ],
+                'children' => $children,
             ],
             'trace' => [
                 'revision' => (int) $snapshot->trace->revision,
@@ -400,5 +457,15 @@ final class TraceViewBuilder
     private function truncate(string $value, int $bytes): string
     {
         return Utf8::truncate($value, $bytes);
+    }
+
+    private function runHref(string $runId): string
+    {
+        return '/'.trim((string) config('skyline.path', 'skyline'), '/').'/api/runs/'.rawurlencode($runId);
+    }
+
+    private function nodeHref(string $runId, string $nodeId): string
+    {
+        return $this->runHref($runId).'/nodes/'.rawurlencode($nodeId);
     }
 }
