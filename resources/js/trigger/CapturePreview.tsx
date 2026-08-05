@@ -8,8 +8,7 @@ import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import type { SqlBinding } from "../skyline/dto";
-import { interpolateSql } from "./capture-formatting";
+import { interpolateSql, type SqlBinding } from "./capture-formatting";
 
 type JsonMode = "tree" | "text";
 type SqlMode = "parameterized" | "bindings";

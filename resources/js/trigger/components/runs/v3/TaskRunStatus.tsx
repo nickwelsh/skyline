@@ -11,9 +11,10 @@ import {
 } from "@heroicons/react/20/solid";
 import assertNever from "assert-never";
 
-import type { RunStatus } from "../../../../skyline/dto";
 import { Spinner } from "../../primitives/Spinner";
 import { cn } from "../../../utils/cn";
+
+export type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 
 export const allTaskRunStatuses = [
   "queued",

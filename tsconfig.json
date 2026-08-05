@@ -6,6 +6,10 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": {
+      "@remix-run/react": ["./resources/js/skyline/remix-react.ts"],
+      "~/*": ["./resources/js/trigger/*"]
+    },
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,

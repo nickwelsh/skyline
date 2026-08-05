@@ -18,6 +18,12 @@ const triggeredAtByRun = new Map([
   ["run_01J8R3RXZ6A7J19G4Y53CXF7F4", "2026-08-04T19:58:11.000000000Z"],
 ]);
 
+const capabilities = {
+  navigation: { runs: true },
+  runs: { view: true, cancel: false, replay: false },
+  shell: { shortcuts: true },
+};
+
 export class FixtureAdapter implements SkylineDtoAdapter {
   async runs(query: RunsQuery = {}): Promise<RunsPageDto> {
     const source = scenarios[0].runs;
@@ -32,7 +38,8 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
-      observedAt: "2026-08-04T20:02:00.000000000Z",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
       runs: filtered.slice(offset, offset + 25).map((run, index) => this.summary(run, offset + index)),
       pagination: {
         next: offset + 25 < filtered.length ? String(offset + 25) : null,
@@ -49,6 +56,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
           connection: run.connection,
           queue: run.queue,
         }])).values()],
+        traceIdentities: [...new Set(source.map((run) => `fixture-${run.id}`))],
       },
       hasAnyRuns: source.length > 0,
     };
@@ -59,7 +67,8 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
-      observedAt: page.observedAt,
+      generatedAt: page.generatedAt,
+      capabilities,
       runs: runIds.length ? page.runs.filter((run) => runIds.includes(run.id)) : [],
       newRunCount: 0,
       pollCursor: "fixture-poll-next",
@@ -76,7 +85,8 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
-      observedAt: "2026-08-04T20:02:00.000000000Z",
+      generatedAt: "2026-08-04T20:02:00.000000000Z",
+      capabilities,
       run: {
         ...summary,
         traceId: String(rawNodes[0].metadata.traceId ?? "fixture-trace"),
@@ -165,6 +175,8 @@ export class FixtureAdapter implements SkylineDtoAdapter {
 
     return {
       id: run.id,
+      traceId: `fixture-${run.id}`,
+      isRoot: index !== 1,
       name: run.name,
       status: run.status,
       connection: run.connection,

@@ -10,7 +10,7 @@ import { forwardRef, useCallback, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./Tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/primitives/Tooltip";
 
 type CodeBlockProps = {
   code: string;

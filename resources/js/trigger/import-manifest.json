@@ -3,486 +3,57 @@
   "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
   "license": "Apache-2.0",
   "adaptedTargets": {
-    "resources/js/trigger/CodeBlock.tsx": "4f0c5dedc6e39406c105f7bd5eca33c64dbf2259c551e8e5e8be3eba99687a3c",
-    "resources/js/trigger/Dialog.tsx": "203e5386944e3143616c18fccdb8812efdc18ad7a25998b7c225416ba74556a6",
-    "resources/js/trigger/Tabs.tsx": "09c71dcea8dbae0105a67be167d0b25d57f124631b4742cdf43fff3f9a670be2",
-    "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
-    "resources/js/trigger/assets/icons/TaskIcon.tsx": "36c9c8bbf4c88d9de209fea8cb9ff77f56287a25de12721e5a5491f81acbf1f6",
-    "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
-    "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx": "53467025c2fc97d7330062887692f8fe0f3dadbbed72c3c97eda901ea7e2ae4a",
-    "resources/js/trigger/components/primitives/Buttons.tsx": "1c26f52ed48d40ff48a5468bb503148d60d41bf3c2a9a99b548fdf66479ce9ef",
-    "resources/js/trigger/components/primitives/Callout.tsx": "fa4d4fbd02434ed7d2ab357688857bc2c6b9746e7040c6f8ead60d51fb1b0cd6",
-    "resources/js/trigger/components/primitives/CopyableText.tsx": "ea02a6a08c6f2619776b779d3c77fedc41f9547c34323ce9e9b2a8673ab4bb2c",
-    "resources/js/trigger/components/primitives/DateTime.tsx": "bce8af128fea3fbf78b87091675cae6ed613bd0f1d419d14600309c28014e169",
-    "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
+    "resources/js/trigger/root.tsx": "526c05ae9cac13b01f22fc32641f1b516d6a8bb361aff8e6ea4722db635197d5",
+    "resources/js/trigger/components/navigation/SideMenu.tsx": "672f2c879340dd2360fdaf8425c49d6a5cf4934b4d6f68aa2e82fcb5720fb32d",
+    "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx": "69acd46ca586527cd501113e8650352557e935ac2aa70b481024449dba337a81",
+    "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts": "167b74338ca9efc5bcfb731372722920c38e9b0edb8cb171aedf1ce730160ca7",
+    "resources/js/trigger/components/runs/v3/TaskRunsTable.tsx": "47069ad0b7175939fcb5224af0f124147f5e12cf06f3f36c81a2013a5bafc52b",
+    "resources/js/trigger/components/runs/v3/RunFilters.tsx": "04b0a006dd99a844e79279db79733ef3b6c4a1bf718c63cb3afcae469b3dd71f",
+    "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx": "5c51f6fded39f750fb46fcdd3b30ff20c1472881246c5ce38f7a91b0bc3a5d56",
+    "resources/js/trigger/components/primitives/Buttons.tsx": "f644a248dd735450c5f3e2d414691d691a42e4e0ccffcfa18e4eb10f2f162d29",
     "resources/js/trigger/components/primitives/Icon.tsx": "b2f1d6795d235d68b3946e2e5313e730a0dc46c1feb689b196e149ceeb224af0",
-    "resources/js/trigger/components/primitives/InfoPanel.tsx": "dd9bda9df0717ca42e484d9e1aea0352fd403bd5051a442defc86e02518a572c",
-    "resources/js/trigger/components/primitives/Input.tsx": "dc9231eb95381c8fb0a4b857f24a790ad3a99668e1b5083ca993766ddb65cfe9",
-    "resources/js/trigger/components/primitives/PageHeader.tsx": "c2e61de064fc1eb39866d1e134b271e090a438360e8e5abac95f8870ba35b9ea",
-    "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
-    "resources/js/trigger/components/primitives/Popover.tsx": "e0b30e6d159b3f576326de3c8c2f15a3e13302607043ce711de6980079108586",
-    "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
-    "resources/js/trigger/components/primitives/Resizable.tsx": "998d2529c8c0d8cee0f973583c46d9a8becfade2ca71e240b4290ba57752c4d7",
-    "resources/js/trigger/components/primitives/SearchInput.tsx": "5f0259884d97ec6ea0fe6b260634a856e91e79241f65a7635f17c8c310b54d3d",
     "resources/js/trigger/components/primitives/ShortcutKey.tsx": "45bb2b8ba36d7b52514b40b1185fee56d07a5b4cd4243236f4c628881eb3abc6",
-    "resources/js/trigger/components/primitives/Slider.tsx": "e190c053986b34c7e1472e7f086e06dc047f8a8b36cc1109d757608194889d9a",
     "resources/js/trigger/components/primitives/Spinner.tsx": "70b8a9fddf357735c96002152a2366e0fd05f52e564dcf2504173e71d7bf0187",
-    "resources/js/trigger/components/primitives/Switch.tsx": "d5394ec4ea561765345b72890c92e15cc4508183b69e6722fe738d08a04ea312",
-    "resources/js/trigger/components/primitives/Timeline.tsx": "b187055eb17bfca5ab001ffc808d0fcd7b6500f497e80afa0d1f2f8498580649",
     "resources/js/trigger/components/primitives/Tooltip.tsx": "f949cf2952aa3a394d10ac6a45b04b2f3fef89817b3ebeb752100f10a3251d2d",
-    "resources/js/trigger/components/runs/v3/RunIcon.tsx": "072b6a7070df72948c8cd573b67fa5cb75b713eb86d8dab0e3463ca3513695cf",
-    "resources/js/trigger/components/runs/v3/SpanTitle.tsx": "85ba23f7eda13ea64658f4bfe1e930e4503143d30efd9e5a4aefc1207d5dc6bb",
-    "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx": "a6bf4e0aa77a353a845b586bcf20eda97f24791967a4e22873382976cda7c261",
-    "resources/js/trigger/hooks/useCopy.ts": "3401fab8cf4d26a592123c1c682781a9d24cf4fc195dfdb7a59ddc2d0d148c1d",
-    "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
-    "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
-    "resources/js/trigger/hooks/useSearchParam.ts": "61c261a11ca6837cbbf675b843bad104f7a3268e68e86c9a16da7465f0fcd27d",
+    "resources/js/trigger/components/primitives/PageHeader.tsx": "c2e61de064fc1eb39866d1e134b271e090a438360e8e5abac95f8870ba35b9ea",
+    "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx": "53467025c2fc97d7330062887692f8fe0f3dadbbed72c3c97eda901ea7e2ae4a",
+    "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
+    "resources/js/trigger/components/primitives/DateTime.tsx": "bce8af128fea3fbf78b87091675cae6ed613bd0f1d419d14600309c28014e169",
     "resources/js/trigger/hooks/useShortcutKeys.tsx": "24f52df218ca86c08f8d15730f4757b1a596821f503f9dd6ebb12edea22aa74e",
-    "resources/js/trigger/primitives/TreeView/TreeView.tsx": "165ee440bf7183f74f166c52306b07dce269f2d535757cc69a93374fe7920856",
-    "resources/js/trigger/primitives/TreeView/reducer.ts": "f47de2709b343a9cfdcab78e5c5b9c10f4dec672886859a56cc441e433b4f852",
-    "resources/js/trigger/primitives/TreeView/utils.ts": "a3f916aa23fb59d88bdeab802bc57ec125f16f46c27e109744d48e9468296035",
-    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406",
-    "resources/js/trigger/utils/cn.ts": "e3a032baa677062639c05146364807423e34168f9eea5ced0e35beee7b1a8f82"
+    "resources/js/trigger/utils/cn.ts": "e3a032baa677062639c05146364807423e34168f9eea5ced0e35beee7b1a8f82",
+    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406"
   },
   "files": [
-    {
-      "source": "LICENSE",
-      "sha256": "9e9e22db5ae77f7ce1119294d0386cbbab2791cc77fb68d97c90627d7d96c5e1",
-      "target": "licenses/trigger.dev-APACHE-2.0.txt",
-      "mode": "exact"
-    },
-    {
-      "source": "patches/@window-splitter__state@1.1.3.patch",
-      "sha256": "ecf02927f78361c14d8f8347604fd355ba36f2fc4f9ba9a08cd63adc101b7327",
-      "target": "patches/@window-splitter__state@1.1.3.patch",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/root.tsx",
-      "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Removed Remix document/auth/analytics; retained height, theme, font, and shell contracts."
-    },
-    {
-      "source": "apps/webapp/app/components/layout/AppLayout.tsx",
-      "sha256": "a0d88fc2e144b5455bd2c2ec44da172d926d41302f0b72ea8a642cc301dc835c",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained two-column shell; replaced Trigger routing with package-local history routing."
-    },
-    {
-      "source": "apps/webapp/app/components/navigation/SideMenu.tsx",
-      "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained 44/224/400px resize and snap behavior; removed unsupported destinations and Trigger trademarks; added Skyline branding."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/PageHeader.tsx",
-      "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546",
-      "target": "resources/js/trigger/components/primitives/PageHeader.tsx",
-      "mode": "adapted",
-      "modifications": "Retained only NavBar, PageTitle, and PageAccessories run-route geometry; replaced Remix Link with a native anchor; removed navigation loading, organization banner, dashboard agent, favorites, and accessory tooltip behavior."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/DateTime.tsx",
-      "sha256": "f7b4ce83810c33baa084abfa0dc2a2c9541e76d4a521782c33dfc63a330245dd",
-      "target": "resources/js/trigger/components/primitives/DateTime.tsx",
-      "mode": "adapted",
-      "modifications": "Retained only DateTimeShort and its formatter; replaced Remix loader and locale-provider preferences with browser Intl locale and timezone resolution; removed the remaining date, tooltip, and copy APIs."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/BreadcrumbIcon.tsx",
-      "sha256": "95a04cdb374e80e5c9f9d04d7c7887fcb8de35769442551c392a341bb7b42a6e",
-      "target": "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
-      "sha256": "f33c21454703fc9023a50cac8194e26710c82587ab99f4ab51797cdb7b82ade2",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Replaced Remix loader and Trigger presenters with Skyline Runs DTO adapters and endpoint state."
-    },
-    {
-      "source": "apps/webapp/app/components/runs/v3/TaskRunsTable.tsx",
-      "sha256": "d354bfdb3dbe2c19e8a29f307d4e89870ac50fb430344a2bdb84c8c3988b633d",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained dense sticky row navigation; removed version, machine, region, cost, test, tags, cancel, replay, and output columns/actions."
-    },
-    {
-      "source": "apps/webapp/app/components/ListPagination.tsx",
-      "sha256": "8188a2e2ff4c79d4567bc7512b46fd7683c1082a72c4f2848dea4332656e7071",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained 25-row cursor controls and j/k shortcuts against opaque Skyline cursors."
-    },
-    {
-      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts",
-      "sha256": "b9c316fb0421c73d95164334e66512c0cb1b9995c88bcba15fd850f04186721c",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained 3s active-row and 6s new-Run polling cadence through the adapter boundary."
-    },
-    {
-      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx",
-      "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Replaced Remix data/routing with Skyline Trace endpoints; retained tree, timeline, filters, keyboard controls, selection, and panel layout; added exact-width duration bars, point marks for short spans, timing tooltips, and selectable chronological breadcrumb nodes."
-    },
-    {
-      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
-      "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Retained generic inspector tabs, lifecycle, SQL, exception, context, and metadata; removed payload/output/log/AI/waitpoint/stream/export branches; constrained the inspector body for independent scrolling; added bounded SQL previews and metadata with highlighted modes, JSON tree/text views, copy actions, query source editor links, and a collapsed Laravel-style exception trace with source previews."
-    },
-    {
-      "source": "apps/webapp/app/components/code/CodeBlock.tsx",
-      "sha256": "dcde4f986fe25fd44668d5efb8659f24eace2bbf70c2fede58445ba5018c7b37",
-      "target": "resources/js/trigger/CodeBlock.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only imports, modal copy button plumbing, and accessibility labels; retained Trigger syntax highlighting, geometry, icons, tooltips, wrapping, copy, and modal controls."
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/TextWrapIcon.tsx",
-      "sha256": "047c309156a5d4fa41e46722da3234ceb37e6bc31372c0347be550e0ce3031da",
-      "target": "resources/js/trigger/TextWrapIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/TextInlineIcon.tsx",
-      "sha256": "f846be7b43729e4402b025ba2838c68c8b8596c621a431c2aa63e3428e810e55",
-      "target": "resources/js/trigger/TextInlineIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Tooltip.tsx",
-      "sha256": "3e2a6d447005ad0ca045cd824dce173a627b25444f6c100926281cd5c9f512f8",
-      "target": "resources/js/trigger/components/primitives/Tooltip.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance; retained the former root path as a Skyline compatibility re-export."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Callout.tsx",
-      "sha256": "4a0c56e35558292a8b8913c4fe291a0c73ee820381c632078612349ed108059d",
-      "target": "resources/js/trigger/components/primitives/Callout.tsx",
-      "mode": "adapted",
-      "modifications": "Changed the cn import path, replaced the internal Remix Link with a plain anchor, and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/CopyableText.tsx",
-      "sha256": "6c18b06abb178457e23fcf2926a50d6d459a7981a4e00caa6176cd086188895a",
-      "target": "resources/js/trigger/components/primitives/CopyableText.tsx",
-      "mode": "adapted",
-      "modifications": "Changed package-local imports, replaced the unavailable Buttons dependency with an equivalent native minimal button, and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/hooks/useCopy.ts",
-      "sha256": "cff54bd2b2eadd8e5f46774e5efd1f9837b4319bac2d25fc2d30bdec1c6337e8",
-      "target": "resources/js/trigger/hooks/useCopy.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Dialog.tsx",
-      "sha256": "c7f3db37aa900cafcd8008eecfb47d35620d73f93315d3fd8f0c395fcc4c723b",
-      "target": "resources/js/trigger/Dialog.tsx",
-      "mode": "adapted",
-      "modifications": "Retained the Radix overlay, content, animation, and close chrome; inlined the shortcut key markup and removed unused exports."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Tabs.tsx",
-      "sha256": "27dbb5ac828b3910c66a06ba4a25354836151c1d5916de2e6980c7c2b7431886",
-      "target": "resources/js/trigger/Tabs.tsx",
-      "mode": "adapted",
-      "modifications": "Retained the shared Framer Motion underline, keyboard shortcuts, and shortcut labels; removed Remix routing and shared primitive dependencies."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Badge.tsx",
-      "sha256": "6d358289190f1014fe8623c34f06b37f01e0ff7793bb257884779e88e70b693c",
-      "target": "resources/js/trigger/components/primitives/Badge.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Headers.tsx",
-      "sha256": "0cbd405882913615e0c013fbd3db275f7ee7202aa8c0d73fca4716f1cc0b3d66",
-      "target": "resources/js/trigger/components/primitives/Headers.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Paragraph.tsx",
-      "sha256": "d0a245406bcc19221ebc771c0c335a61fb17e06e5a732f417b877620c2f11b4f",
-      "target": "resources/js/trigger/components/primitives/Paragraph.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/PropertyTable.tsx",
-      "sha256": "f0b2ce27da084c1313d3b49813f77d706beb0a69d58dbe7fff71a888c207641e",
-      "target": "resources/js/trigger/components/primitives/PropertyTable.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/InfoPanel.tsx",
-      "sha256": "b7f4f14100719d164924ab7f9025a6685dd62fe8e3e6a8d13ad703bbfe960ece",
-      "target": "resources/js/trigger/components/primitives/InfoPanel.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/hooks/useDebounce.ts",
-      "sha256": "0333d66e432efb9eeffb9df8c6b19e2dcd00bca4ef80e313a3e2a90fa8dda95a",
-      "target": "resources/js/trigger/hooks/useDebounce.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/hooks/useInitialDimensions.ts",
-      "sha256": "bbeb6d0d2a1ba700d790da986a2dac9923c8fbbdc5634447bbc13b855979a9e9",
-      "target": "resources/js/trigger/hooks/useInitialDimensions.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
-      "sha256": "eb9e7fe5809bd0a7e6f9b231ca10cc038875b8282215f9754d89a506a15f5eab",
-      "target": "resources/js/trigger/primitives/TreeView/TreeView.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/TreeView/reducer.ts",
-      "sha256": "5098140eef133d482b1b3c0c9067ee57fae47ad69cfba5902d04d2eb322c5ada",
-      "target": "resources/js/trigger/primitives/TreeView/reducer.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/TreeView/utils.ts",
-      "sha256": "2de2e91f3b52a48d96c9fa7f07af2f0f4a2bd4806d877ecba07aa6c41b2e134e",
-      "target": "resources/js/trigger/primitives/TreeView/utils.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/utils/cn.ts",
-      "sha256": "c3add868cf2ffb9b1ddbfb0f8cf5770bd161ca3fa0c37c806254ed714a35b76a",
-      "target": "resources/js/trigger/utils/cn.ts",
-      "mode": "adapted",
-      "modifications": "Added provenance only."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Timeline.tsx",
-      "sha256": "1bfef56606dbb7b9ae9fcc65a7a05f9ad1898692e6415d8c9069f9f65d2f1e6d",
-      "target": "resources/js/trigger/components/primitives/Timeline.tsx",
-      "mode": "adapted",
-      "modifications": "Changed the lerp import path, added provenance, and exposed rendered width to duration marks; retained the prior root path as a compatibility re-export."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Resizable.tsx",
-      "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837",
-      "target": "resources/js/trigger/components/primitives/Resizable.tsx",
-      "mode": "adapted",
-      "modifications": "Changed the cn import path and replaced Remix root-loader browser detection with Skyline client detection; retained the prior root path as a compatibility re-export."
-    },
-    {
-      "source": "apps/webapp/app/components/run/RunTimeline.tsx",
-      "sha256": "7abf99cd6f09bc237e80900f5dccd72685faec8cb4a81137cd46517955705929",
-      "target": "resources/js/trigger/TriggerInterface.tsx",
-      "mode": "adapted",
-      "modifications": "Mapped Skyline lifecycle timestamps into the retained inspector timeline."
-    },
-    {
-      "source": "apps/webapp/app/tailwind.css",
-      "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121",
-      "target": "resources/js/trigger/tailwind.css",
-      "mode": "adapted",
-      "modifications": "Removed only unreachable react-grid-layout, react-resizable, and streamdown imports."
-    },
-    {
-      "source": "apps/webapp/app/utils/lerp.ts",
-      "sha256": "7c73d632e97268f7bc0a30c0e5e4c6170db207c0124164596bc0f655c34c62ce",
-      "target": "resources/js/trigger/lerp.ts",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Input.tsx",
-      "sha256": "2274ff25847ed8553a991f9ade8dbbd7f68172343a00e0edb2defe1333145793",
-      "target": "resources/js/trigger/components/primitives/Input.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Icon.tsx",
-      "sha256": "8b517bdde2ae2b850859955826134d48768ca7b624f04ea11b13e7715a5eaa48",
-      "target": "resources/js/trigger/components/primitives/Icon.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Spinner.tsx",
-      "sha256": "c22befe583f5b4541f31783763c0d0811f6ca14c3e137d867d98963e268aba97",
-      "target": "resources/js/trigger/components/primitives/Spinner.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/OperatingSystemProvider.tsx",
-      "sha256": "9fb0745f86d7f49f604cd0cfe722d5b6b7f251f95fa26d663b9e5c08f58a94db",
-      "target": "resources/js/trigger/components/primitives/OperatingSystemProvider.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/ShortcutsProvider.tsx",
-      "sha256": "0630f1750faaf78edbe353d2be1f2a88b2cb11103ae57d77238fb632d20fd401",
-      "target": "resources/js/trigger/components/primitives/ShortcutsProvider.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/ShortcutKey.tsx",
-      "sha256": "27171bcb4f85f6525224e906eab80265be65beda909b334d4b8da45bda4ee345",
-      "target": "resources/js/trigger/components/primitives/ShortcutKey.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only package-local asset, hook, and cn import paths and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Buttons.tsx",
-      "sha256": "ad6e5c75e1967dfd60d332337bc5e128b8a455cebc2466614c7757072f70ae27",
-      "target": "resources/js/trigger/components/primitives/Buttons.tsx",
-      "mode": "adapted",
-      "modifications": "Retained Button, LinkButton, ButtonContent, shortcut/loading/tooltip behavior, run-view secondary, tertiary, minimal, and danger variants, plus external/resource new-tab and width semantics; replaced Remix navigation with a plain anchor and omitted AgentDotMatrix, NavLinkButton, ExtLink, replace routing, primary/warning/docs/ask-ai/menu variants, and large sizes."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Popover.tsx",
-      "sha256": "3f165f32b1af75952dd7688fd301db9a62423a893c1bbcac0d3111a2f8221397",
-      "target": "resources/js/trigger/components/primitives/Popover.tsx",
-      "mode": "adapted",
-      "modifications": "Retained Popover, PopoverTrigger, PopoverContent, PopoverArrowTrigger, markup, collision behavior, and arrow variants; omitted Remix-backed menu items and unrelated section, custom, side-menu, and ellipse triggers."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/SearchInput.tsx",
-      "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338",
-      "target": "resources/js/trigger/components/primitives/SearchInput.tsx",
-      "mode": "adapted",
-      "modifications": "Changed package-local import paths, composed the existing Tooltip primitives in place of the omitted SimpleTooltip helper, and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/hooks/useSearchParam.ts",
-      "sha256": "94048319d6058392f1cfca28a247fb66d652728faad8bdb97b59d5fa76537741",
-      "target": "resources/js/trigger/hooks/useSearchParam.ts",
-      "mode": "adapted",
-      "modifications": "Replaced Remix navigation and optimistic location with browser history replacement and popstate tracking; retained the search-param API."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Slider.tsx",
-      "sha256": "cfa0503b5c641cf67328e9f9c6fb9a10fe37fb3279fe2ee90f4cedf6486c7e84",
-      "target": "resources/js/trigger/components/primitives/Slider.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only the cn import path and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/primitives/Switch.tsx",
-      "sha256": "a9b90292458dbfa9fa01f2b1b297f775e87680ac65ce7760a06e99932ebacd9a",
-      "target": "resources/js/trigger/components/primitives/Switch.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only package-local hook and cn import paths and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/hooks/useShortcutKeys.tsx",
-      "sha256": "27c93e779d13b6020f0a9605811a2ae9b642f3d812327cd19e02f902ec4f27b3",
-      "target": "resources/js/trigger/hooks/useShortcutKeys.tsx",
-      "mode": "adapted",
-      "modifications": "Changed only package-local provider import paths and added provenance."
-    },
-    {
-      "source": "apps/webapp/app/components/runs/v3/RunIcon.tsx",
-      "sha256": "1919b883442134370bb7f3c4fbe259ca03c8a232566874edba9ce254e4dec3f4",
-      "target": "resources/js/trigger/components/runs/v3/RunIcon.tsx",
-      "mode": "adapted",
-      "modifications": "Replaced Trigger icon-name, sprite, AI-provider, and product-entity branches with an exhaustive Skyline NodeKind mapping; retained task/attempt geometry, semantic colors, and hover behavior."
-    },
-    {
-      "source": "apps/webapp/app/components/runs/v3/SpanTitle.tsx",
-      "sha256": "f432b02182c1afdb228c3fba9126db1268ca59ca4c8f2b1511178488cb1ff507",
-      "target": "resources/js/trigger/components/runs/v3/SpanTitle.tsx",
-      "mode": "adapted",
-      "modifications": "Replaced Trigger core/database style types with NodeKind and local presentation types; retained title/accessory markup and semantic event colors while omitting unused Tabler pill icons."
-    },
-    {
-      "source": "apps/webapp/app/components/runs/v3/TaskRunStatus.tsx",
-      "sha256": "115bd0ec472d067da965d538ac102d3ccfe7ef0a1b6c41cfd62d4f4276ce2fff",
-      "target": "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx",
-      "mode": "adapted",
-      "modifications": "Mapped Trigger task statuses, labels, descriptions, icons, guards, and chart colors onto Skyline RunStatus; removed Trigger-only status reasons and imports."
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/AttemptIcon.tsx",
-      "sha256": "055908c69d259ea4dbf3db2d024675251a5c1280f1e0b3f2d32a63b2550d5eb0",
-      "target": "resources/js/trigger/assets/icons/AttemptIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/InfoIcon.tsx",
-      "sha256": "a0d02665b70a97fdd2feb6d031c5dead1975ccf8fbb1c180cdee59b0832e3966",
-      "target": "resources/js/trigger/assets/icons/InfoIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/TaskIcon.tsx",
-      "sha256": "52e46fa0bfc21ec1d4575c6d491bcec9048577827e948e647b3809b7b8fb5a95",
-      "target": "resources/js/trigger/assets/icons/TaskIcon.tsx",
-      "mode": "adapted",
-      "modifications": "Retained the pinned TaskIcon geometry and omitted unused cached and small variants."
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/DropdownIcon.tsx",
-      "sha256": "0786a6bd293bc2f0c6e7c63d8335971bebac743f3f4b8c1aa83abf8aff3a540b",
-      "target": "resources/js/trigger/assets/icons/DropdownIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx",
-      "sha256": "82f402f461f3d22ea00fa6b2982cdc83a71ade4bf8dfaeebf5461c6c4e96d737",
-      "target": "resources/js/trigger/assets/icons/KeyboardDownIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardLeftIcon.tsx",
-      "sha256": "195e593b3c8df1507382f1ed32dc11fada16c8fd4a2fd78a80700422de80112d",
-      "target": "resources/js/trigger/assets/icons/KeyboardLeftIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardRightIcon.tsx",
-      "sha256": "d6519bc5d02794b673fbf3ebb71ec637325a302ec0939dbb593cf0ee56a26d32",
-      "target": "resources/js/trigger/assets/icons/KeyboardRightIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardUpIcon.tsx",
-      "sha256": "e0592a39680eaa41dc5ad6ae71caffc4b3b1ff331378048d625717daa596dab0",
-      "target": "resources/js/trigger/assets/icons/KeyboardUpIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardWindowsIcon.tsx",
-      "sha256": "b792fc5774135836102e3578b08f33b458a58a2a3837be1157e5886fc4e74a16",
-      "target": "resources/js/trigger/assets/icons/KeyboardWindowsIcon.tsx",
-      "mode": "exact"
-    },
-    {
-      "source": "apps/webapp/app/assets/icons/KeyboardEnterIcon.tsx",
-      "sha256": "6f642acc31cda208bc81082a9e0e8abd4a7267584b43fe1ce05c355229be944e",
-      "target": "resources/js/trigger/assets/icons/KeyboardEnterIcon.tsx",
-      "mode": "exact"
-    }
+    { "source": "LICENSE", "sha256": "9e9e22db5ae77f7ce1119294d0386cbbab2791cc77fb68d97c90627d7d96c5e1", "target": "licenses/trigger.dev-APACHE-2.0.txt", "mode": "exact" },
+    { "source": "patches/@window-splitter__state@1.1.3.patch", "sha256": "ecf02927f78361c14d8f8347604fd355ba36f2fc4f9ba9a08cd63adc101b7327", "target": "patches/@window-splitter__state@1.1.3.patch", "mode": "exact" },
+    { "source": "apps/webapp/app/root.tsx", "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089", "target": "resources/js/trigger/root.tsx", "mode": "adapted", "modifications": "Removed document, server, auth, analytics, and toast providers; retained root shell composition around external static-router inputs." },
+    { "source": "apps/webapp/app/components/layout/AppLayout.tsx", "sha256": "a0d88fc2e144b5455bd2c2ec44da172d926d41302f0b72ea8a642cc301dc835c", "target": "resources/js/trigger/components/layout/AppLayout.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/components/navigation/SideMenu.tsx", "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f", "target": "resources/js/trigger/components/navigation/SideMenu.tsx", "mode": "adapted", "modifications": "Retained source sidebar geometry and resizing; removed tenant, account, write, and capability-unavailable navigation." },
+    { "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx", "sha256": "f33c21454703fc9023a50cac8194e26710c82587ab99f4ab51797cdb7b82ade2", "target": "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx", "mode": "adapted", "modifications": "Removed server loader and tenant/write concerns; retained route header, filters, table, pagination, loading, empty, and error composition over external loader data." },
+    { "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts", "sha256": "b9c316fb0421c73d95164334e66512c0cb1b9995c88bcba15fd850f04186721c", "target": "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts", "mode": "adapted", "modifications": "Replaced Trigger server resource polling with active-list React Router revalidation." },
+    { "source": "apps/webapp/app/components/runs/v3/TaskRunsTable.tsx", "sha256": "d354bfdb3dbe2c19e8a29f307d4e89870ac50fb430344a2bdb84c8c3988b633d", "target": "resources/js/trigger/components/runs/v3/TaskRunsTable.tsx", "mode": "adapted", "modifications": "Retained dense sticky Runs presenter; removed execution-owned, deployment, machine, region, version, cost, test, selection, and row-action columns." },
+    { "source": "apps/webapp/app/components/runs/v3/RunFilters.tsx", "sha256": "66313d045f6df4c0e2e35f11e52ae550d6910c6a8a3d4da263a8eaaae20f0d6d", "target": "resources/js/trigger/components/runs/v3/RunFilters.tsx", "mode": "adapted", "modifications": "Retained URL-backed filter composition narrowed to status, Job type, Queue target, Trace, root-only, and time range." },
+    { "source": "apps/webapp/app/components/ListPagination.tsx", "sha256": "8188a2e2ff4c79d4567bc7512b46fd7683c1082a72c4f2848dea4332656e7071", "target": "resources/js/trigger/components/ListPagination.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/components/runs/v3/TaskRunStatus.tsx", "sha256": "115bd0ec472d067da965d538ac102d3ccfe7ef0a1b6c41cfd62d4f4276ce2fff", "target": "resources/js/trigger/components/runs/v3/TaskRunStatus.tsx", "mode": "adapted", "modifications": "Narrowed Trigger execution states to the host-presented read statuses." },
+    { "source": "apps/webapp/app/components/primitives/Buttons.tsx", "sha256": "ad6e5c75e1967dfd60d332337bc5e128b8a455cebc2466614c7757072f70ae27", "target": "resources/js/trigger/components/primitives/Buttons.tsx", "mode": "adapted", "modifications": "Retained reached button and link variants with compatibility-seam navigation; omitted unreached product variants." },
+    { "source": "apps/webapp/app/components/primitives/Icon.tsx", "sha256": "8b517bdde2ae2b850859955826134d48768ca7b624f04ea11b13e7715a5eaa48", "target": "resources/js/trigger/components/primitives/Icon.tsx", "mode": "adapted", "modifications": "Changed only package-local import paths and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/ShortcutKey.tsx", "sha256": "27171bcb4f85f6525224e906eab80265be65beda909b334d4b8da45bda4ee345", "target": "resources/js/trigger/components/primitives/ShortcutKey.tsx", "mode": "adapted", "modifications": "Changed only package-local imports and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/Spinner.tsx", "sha256": "c22befe583f5b4541f31783763c0d0811f6ca14c3e137d867d98963e268aba97", "target": "resources/js/trigger/components/primitives/Spinner.tsx", "mode": "adapted", "modifications": "Changed only package-local imports and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/Tooltip.tsx", "sha256": "3e2a6d447005ad0ca045cd824dce173a627b25444f6c100926281cd5c9f512f8", "target": "resources/js/trigger/components/primitives/Tooltip.tsx", "mode": "adapted", "modifications": "Changed only package-local imports and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/PageHeader.tsx", "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546", "target": "resources/js/trigger/components/primitives/PageHeader.tsx", "mode": "adapted", "modifications": "Retained reached navigation and title geometry; removed unreached tenant and dashboard concerns." },
+    { "source": "apps/webapp/app/components/primitives/BreadcrumbIcon.tsx", "sha256": "95a04cdb374e80e5c9f9d04d7c7887fcb8de35769442551c392a341bb7b42a6e", "target": "resources/js/trigger/components/primitives/BreadcrumbIcon.tsx", "mode": "adapted", "modifications": "Changed only the cn import path and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/Headers.tsx", "sha256": "0cbd405882913615e0c013fbd3db275f7ee7202aa8c0d73fca4716f1cc0b3d66", "target": "resources/js/trigger/components/primitives/Headers.tsx", "mode": "adapted", "modifications": "Changed only the cn import path and added provenance." },
+    { "source": "apps/webapp/app/components/primitives/DateTime.tsx", "sha256": "f7b4ce83810c33baa084abfa0dc2a2c9541e76d4a521782c33dfc63a330245dd", "target": "resources/js/trigger/components/primitives/DateTime.tsx", "mode": "adapted", "modifications": "Retained the reached short date presenter and replaced server preference contexts with browser locale and timezone." },
+    { "source": "apps/webapp/app/components/primitives/OperatingSystemProvider.tsx", "sha256": "9fb0745f86d7f49f604cd0cfe722d5b6b7f251f95fa26d663b9e5c08f58a94db", "target": "resources/js/trigger/components/primitives/OperatingSystemProvider.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/components/primitives/ShortcutsProvider.tsx", "sha256": "0630f1750faaf78edbe353d2be1f2a88b2cb11103ae57d77238fb632d20fd401", "target": "resources/js/trigger/components/primitives/ShortcutsProvider.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/hooks/useShortcutKeys.tsx", "sha256": "27c93e779d13b6020f0a9605811a2ae9b642f3d812327cd19e02f902ec4f27b3", "target": "resources/js/trigger/hooks/useShortcutKeys.tsx", "mode": "adapted", "modifications": "Changed only package-local imports and added provenance." },
+    { "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx", "sha256": "82f402f461f3d22ea00fa6b2982cdc83a71ade4bf8dfaeebf5461c6c4e96d737", "target": "resources/js/trigger/assets/icons/KeyboardDownIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/assets/icons/KeyboardLeftIcon.tsx", "sha256": "195e593b3c8df1507382f1ed32dc11fada16c8fd4a2fd78a80700422de80112d", "target": "resources/js/trigger/assets/icons/KeyboardLeftIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/assets/icons/KeyboardRightIcon.tsx", "sha256": "d6519bc5d02794b673fbf3ebb71ec637325a302ec0939dbb593cf0ee56a26d32", "target": "resources/js/trigger/assets/icons/KeyboardRightIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/assets/icons/KeyboardUpIcon.tsx", "sha256": "e0592a39680eaa41dc5ad6ae71caffc4b3b1ff331378048d625717daa596dab0", "target": "resources/js/trigger/assets/icons/KeyboardUpIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/assets/icons/KeyboardWindowsIcon.tsx", "sha256": "b792fc5774135836102e3578b08f33b458a58a2a3837be1157e5886fc4e74a16", "target": "resources/js/trigger/assets/icons/KeyboardWindowsIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/assets/icons/KeyboardEnterIcon.tsx", "sha256": "6f642acc31cda208bc81082a9e0e8abd4a7267584b43fe1ce05c355229be944e", "target": "resources/js/trigger/assets/icons/KeyboardEnterIcon.tsx", "mode": "exact" },
+    { "source": "apps/webapp/app/utils/cn.ts", "sha256": "c3add868cf2ffb9b1ddbfb0f8cf5770bd161ca3fa0c37c806254ed714a35b76a", "target": "resources/js/trigger/utils/cn.ts", "mode": "adapted", "modifications": "Added provenance only." },
+    { "source": "apps/webapp/app/tailwind.css", "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121", "target": "resources/js/trigger/tailwind.css", "mode": "adapted", "modifications": "Removed only imports proven unreachable by the packaged client closure." }
   ]
 }

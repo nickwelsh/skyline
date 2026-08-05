@@ -10,10 +10,21 @@ describe("HttpAdapter", () => {
       .mockResolvedValueOnce(jsonResponse({ runs: [], newRunCount: 0, pollCursor: "next" }));
     const adapter = new HttpAdapter("/monitoring");
 
-    await adapter.runs({ search: "Invoice", status: ["running", "failed"], cursor: "opaque" });
+    await adapter.runs({
+      search: "Invoice",
+      status: ["running", "failed"],
+      cursor: "opaque",
+      job: "App\\Jobs\\Invoice",
+      connection: "redis",
+      queue: "mail",
+      trace: "trace-01",
+      rootOnly: true,
+      triggeredFrom: "2026-08-01T00:00:00Z",
+      triggeredTo: "2026-08-02T00:00:00Z",
+    });
     await adapter.updates({ status: ["running"] }, "poll", ["run-a", "run-b"]);
 
-    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/runs?cursor=opaque&search=Invoice&status%5B%5D=running&status%5B%5D=failed");
+    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/runs?cursor=opaque&search=Invoice&status%5B%5D=running&status%5B%5D=failed&job=App%5CJobs%5CInvoice&connection=redis&queue=mail&trace=trace-01&rootOnly=true&triggeredFrom=2026-08-01T00%3A00%3A00Z&triggeredTo=2026-08-02T00%3A00%3A00Z");
     expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/runs/updates?status%5B%5D=running&since=poll&runIds%5B%5D=run-a&runIds%5B%5D=run-b");
   });
 

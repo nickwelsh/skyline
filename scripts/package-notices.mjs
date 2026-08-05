@@ -26,11 +26,15 @@ const packages = [
   "react",
   "react-dom",
   "react-hotkeys-hook",
+  "react-router",
+  "react-router-dom",
+  "@remix-run/router",
   "tailwind-scrollbar",
   "tailwind-scrollbar-hide",
   "tailwindcss",
   "tailwind-merge",
   "tw-animate-css",
+  "zod",
 ];
 
 mkdirSync(destination, { recursive: true });

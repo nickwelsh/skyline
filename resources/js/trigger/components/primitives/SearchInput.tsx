@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { Input } from "./Input";
 import { ShortcutKey } from "./ShortcutKey";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../Tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./Tooltip";
 import { useSearchParams } from "../../hooks/useSearchParam";
 import { cn } from "../../utils/cn";
 

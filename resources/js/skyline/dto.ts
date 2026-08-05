@@ -4,6 +4,8 @@ export type NodeKind = "run" | "attempt" | "breadcrumb" | "query" | "request" | 
 
 export type RunSummary = {
   id: string;
+  traceId: string;
+  isRoot: boolean;
   name: string;
   status: RunStatus;
   connection: string | null;
@@ -79,14 +81,30 @@ export type RunsQuery = {
   job?: string;
   connection?: string;
   queue?: string;
+  trace?: string;
+  rootOnly?: boolean;
   triggeredFrom?: string;
   triggeredTo?: string;
+};
+
+export type SkylineCapabilities = {
+  navigation: Record<string, boolean> & { runs: boolean };
+  runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean };
+  shell: Record<string, boolean> & { shortcuts: boolean };
+};
+
+export type SkylineBootstrap = {
+  basePath: string;
+  applicationName: string;
+  environmentLabel: string;
+  capabilities: SkylineCapabilities;
 };
 
 export type RunsPageDto = {
   schemaVersion: 1;
   packageVersion: string;
-  observedAt: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
   runs: RunSummary[];
   pagination: { next: string | null; previous: string | null };
   pollCursor: string;
@@ -97,6 +115,7 @@ export type RunsPageDto = {
     statuses: RunStatus[];
     jobNames: string[];
     queueTargets: Array<{ connection: string; queue: string }>;
+    traceIdentities: string[];
   };
   hasAnyRuns: boolean;
 };
@@ -104,7 +123,8 @@ export type RunsPageDto = {
 export type RunsUpdatesDto = {
   schemaVersion: 1;
   packageVersion: string;
-  observedAt: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
   runs: RunSummary[];
   newRunCount: number;
   pollCursor: string;
@@ -113,7 +133,8 @@ export type RunsUpdatesDto = {
 export type TracePageDto = {
   schemaVersion: 1;
   packageVersion: string;
-  observedAt: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
   run: Omit<RunSummary, "activeDurationUs" | "revision"> & {
     traceId: string;
     rootRunId: string | null;

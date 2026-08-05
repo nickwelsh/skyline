@@ -21,9 +21,12 @@ if (!Array.isArray(manifest.files) || manifest.files.length === 0) fail("Trigger
 if (!manifest.adaptedTargets || typeof manifest.adaptedTargets !== "object") fail("Trigger import manifest has no adapted target hashes.");
 
 const seen = new Set();
+const targets = new Set();
 for (const file of manifest.files) {
   if (seen.has(file.source)) fail(`Duplicate Trigger source: ${file.source}`);
   seen.add(file.source);
+  if (targets.has(file.target)) fail(`Multiple Trigger sources target one module: ${file.target}`);
+  targets.add(file.target);
   if (!/^[a-f0-9]{64}$/.test(file.sha256)) fail(`Invalid hash for ${file.source}`);
   if (!existsSync(join(root, file.target))) fail(`Missing vendored target: ${file.target}`);
   if (file.mode === "exact" && digest(join(root, file.target)) !== file.sha256) {
@@ -35,6 +38,23 @@ for (const file of manifest.files) {
     if (digest(join(root, file.target)) !== targetHash) fail(`Adapted vendored target drifted: ${file.target}`);
     if (!readFileSync(join(root, file.target), "utf8").includes(manifest.commit)) fail(`Adapted target lacks provenance: ${file.target}`);
   }
+  if (/\.[cm]?[jt]sx?$/.test(file.target)) {
+    const contents = readFileSync(join(root, file.target), "utf8");
+    if (/from\s+["'][^"']*skyline(?:\/|["'])/i.test(contents)) {
+      fail(`Vendored source imports a Skyline concern: ${file.target}`);
+    }
+  }
+}
+
+for (const removed of [
+  "resources/js/trigger/TriggerInterface.tsx",
+  "resources/js/trigger/Timeline.tsx",
+  "resources/js/trigger/Resizable.tsx",
+  "resources/js/trigger/Tooltip.tsx",
+  "tests/browser/trigger-interface.spec.ts",
+  "tests/browser/trigger-interface.spec.ts-snapshots",
+]) {
+  if (existsSync(join(root, removed))) fail(`Approximate frontend artifact remains: ${removed}`);
 }
 
 if (checkOnly) {

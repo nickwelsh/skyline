@@ -11,6 +11,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { Link } from "@remix-run/react";
 
 import { type ShortcutDefinition, useShortcutKeys } from "../../hooks/useShortcutKeys";
 import { cn } from "../../utils/cn";
@@ -363,8 +364,8 @@ export const LinkButton = ({
   const isExternalOrResource = to.startsWith("http") || to.startsWith("/resources");
 
   return (
-    <a
-      href={to}
+    <Link
+      to={to}
       ref={innerRef}
       target={opensInNewTab}
       rel={opensInNewTab === "_blank" ? "noopener noreferrer" : undefined}
@@ -379,6 +380,6 @@ export const LinkButton = ({
       download={download}
     >
       <ButtonContent {...props} />
-    </a>
+    </Link>
   );
 };

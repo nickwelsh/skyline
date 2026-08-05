@@ -1,4 +1,8 @@
-import type { SqlBinding } from "../skyline/dto";
+export type SqlBinding = {
+  position: number;
+  column: string | null;
+  value: unknown;
+};
 
 export function interpolateSql(sql: string, bindings: SqlBinding[]): string {
   const values = new Map(bindings.map((binding) => [binding.position, binding.value]));

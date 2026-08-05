@@ -7,8 +7,31 @@ import {
   IconFolderOpen,
 } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
-import type { ExceptionDetails, ExceptionFrame } from "../skyline/dto";
 import { CopyButton, HighlightedCode } from "./CapturePreview";
+
+type ExceptionFrame = {
+  file: string;
+  line: number | null;
+  class: string | null;
+  type: string | null;
+  function: string;
+  isVendor: boolean;
+  href: string | null;
+  snippet: { code: string; startingLine: number; highlightedLine: number } | null;
+};
+
+type ExceptionDetails = {
+  class: string;
+  message: string;
+  messageTruncated: boolean;
+  messageOriginalBytes: number;
+  code: string | null;
+  runtime: { php: string; laravel: string };
+  location: { file: string; line: number | null; href: string | null };
+  frames: ExceptionFrame[];
+  framesTruncated: boolean;
+  markdown: string;
+};
 
 type FrameEntry = { frame: ExceptionFrame; index: number };
 

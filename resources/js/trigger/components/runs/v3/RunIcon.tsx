@@ -17,7 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 import assertNever from "assert-never";
 
-import type { NodeKind } from "../../../../skyline/dto";
+export type NodeKind = "run" | "attempt" | "breadcrumb" | "query" | "request" | "cache" | "redis" | "custom" | "transaction" | "mail" | "notification" | "storage" | "process" | "span";
 import { AttemptIcon } from "../../../assets/icons/AttemptIcon";
 import { InfoIcon } from "../../../assets/icons/InfoIcon";
 import { TaskIcon } from "../../../assets/icons/TaskIcon";

@@ -6,7 +6,7 @@
 import { ChevronRightIcon } from "@heroicons/react/20/solid";
 import { Fragment } from "react";
 
-import type { NodeKind } from "../../../../skyline/dto";
+import type { NodeKind } from "./RunIcon";
 import { cn } from "../../../utils/cn";
 
 export type SpanLevel = "TRACE" | "LOG" | "INFO" | "DEBUG" | "WARN" | "ERROR";

@@ -60,6 +60,8 @@ export class HttpAdapter implements SkylineDtoAdapter {
     if (query.job) params.set("job", query.job);
     if (query.connection) params.set("connection", query.connection);
     if (query.queue) params.set("queue", query.queue);
+    if (query.trace) params.set("trace", query.trace);
+    if (query.rootOnly !== undefined) params.set("rootOnly", String(query.rootOnly));
     if (query.triggeredFrom) params.set("triggeredFrom", query.triggeredFrom);
     if (query.triggeredTo) params.set("triggeredTo", query.triggeredTo);
     return params;
