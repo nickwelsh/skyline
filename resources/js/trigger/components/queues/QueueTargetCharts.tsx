@@ -15,7 +15,7 @@ export function QueueTargetCharts({
   queueTime: Array<Point & { sampleCount: number; medianUs: number; p95Us: number; maximumUs: number }>;
 }) {
   return (
-    <section aria-label="Queue-target activity" className="grid grid-cols-2 gap-3 p-3">
+    <section aria-label="Queue-target activity" className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
       <SeriesCard title="Recorded Run activity" points={activity.map((point) => ({ ...point, value: point.recordedRuns }))} color="var(--color-queues-chart)" />
       <SeriesCard
         title="Queue time"
@@ -40,7 +40,7 @@ function SeriesCard({
 }) {
   const path = line(points.map((point) => point.value));
   return (
-    <figure className="h-52 rounded border border-grid-bright bg-background-bright p-3">
+    <figure className="h-52 rounded-lg border border-grid-bright bg-background-bright p-3">
       <Header3>{title}</Header3>
       {points.length === 0 ? (
         <div className="grid h-36 place-items-center text-xs text-text-dimmed">No recorded activity</div>

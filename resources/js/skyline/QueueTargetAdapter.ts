@@ -1,6 +1,5 @@
 import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
-import type { QueueTargetDetailRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
-import type { QueueTargetsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
+import type { QueueTargetDetailPresentation, QueueTargetsPresentation } from "./QueueTargetPresentation";
 import type {
   QueueTargetDetailDto,
   QueueTargetRunsQuery,
@@ -33,7 +32,7 @@ export function queueTargetQuery(request: Request): QueueTargetRunsQuery {
   });
 }
 
-export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsRouteData {
+export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPresentation {
   return {
     generatedAt: page.generatedAt,
     queueTargets: page.queueTargets.map((target) => ({
@@ -57,16 +56,17 @@ export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsRout
       next: page.pagination.next ?? undefined,
     },
     connectionOptions: page.options.connections,
+    timeRanges: page.options.timeRanges,
     hasAnyQueueTargets: page.hasAnyQueueTargets,
     hasFilters: Object.values(page.filters).some(hasFilterValue),
   };
 }
 
-export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetailRouteData {
+export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetailPresentation {
   const target = presentQueueTargets({
     ...page,
     queueTargets: [page.queueTarget],
-    options: { connections: [page.queueTarget.connection] },
+    options: { connections: [page.queueTarget.connection], timeRanges: page.options.timeRanges },
     hasAnyQueueTargets: true,
   }).queueTargets[0];
 
@@ -96,6 +96,7 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
       next: page.pagination.next ?? undefined,
     },
     statusOptions: page.options.statuses,
+    timeRanges: page.options.timeRanges,
     hasAnyRuns: page.hasAnyRuns,
     hasFilters: Object.values(page.filters).some(hasFilterValue),
   };

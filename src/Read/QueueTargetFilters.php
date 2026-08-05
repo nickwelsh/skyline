@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 final readonly class QueueTargetFilters
 {
     private const TIME_RANGES = [
-        ['value' => 'all', 'label' => 'All time'],
-        ['value' => '1h', 'label' => 'Last hour'],
-        ['value' => '24h', 'label' => 'Last 24 hours'],
-        ['value' => '7d', 'label' => 'Last 7 days'],
+        ['value' => 'all', 'label' => 'All time', 'durationSeconds' => null],
+        ['value' => '1h', 'label' => 'Last hour', 'durationSeconds' => 3_600],
+        ['value' => '24h', 'label' => 'Last 24 hours', 'durationSeconds' => 86_400],
+        ['value' => '7d', 'label' => 'Last 7 days', 'durationSeconds' => 604_800],
     ];
 
     /** @param list<string> $statuses */
@@ -62,7 +62,7 @@ final readonly class QueueTargetFilters
         ];
     }
 
-    /** @return list<array{value: string, label: string}> */
+    /** @return list<array{value: string, label: string, durationSeconds: ?int}> */
     public static function options(): array
     {
         return self::TIME_RANGES;

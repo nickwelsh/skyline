@@ -54,7 +54,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       queueTargets,
       pagination: { next: null, previous: null },
       filters: { connection: query.connection ?? null, search: query.search ?? null, from: query.from ?? null, to: query.to ?? null, status: [] },
-      options: { connections },
+      options: { connections, timeRanges: fixtureQueueTimeRanges },
       hasAnyQueueTargets: grouped.size > 0,
     };
   }
@@ -104,7 +104,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       }),
       pagination: { next: null, previous: null },
       filters: { connection: null, search: query.search ?? null, from: query.from ?? null, to: query.to ?? null, status: query.status ?? [] },
-      options: { statuses: ["queued", "running", "retrying", "completed", "failed"] },
+      options: { statuses: ["queued", "running", "retrying", "completed", "failed"], timeRanges: fixtureQueueTimeRanges },
       hasAnyRuns: source.length > 0,
     };
   }
@@ -493,6 +493,13 @@ const fixtureTimeRanges = [
   { value: "7d" as const, label: "Last 7 days" },
   { value: "30d" as const, label: "Last 30 days" },
   { value: "all" as const, label: "All time" },
+];
+
+const fixtureQueueTimeRanges = [
+  { value: "all" as const, label: "All time", durationSeconds: null },
+  { value: "1h" as const, label: "Last hour", durationSeconds: 3_600 },
+  { value: "24h" as const, label: "Last 24 hours", durationSeconds: 86_400 },
+  { value: "7d" as const, label: "Last 7 days", durationSeconds: 604_800 },
 ];
 
 function fixtureJobId(name: string) {

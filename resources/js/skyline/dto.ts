@@ -135,6 +135,7 @@ export type JobSummary = {
 };
 
 export type TimeRangeOption = { value: NonNullable<JobsQuery["period"]>; label: string };
+export type QueueTimeRangeOption = { value: "all" | "1h" | "24h" | "7d"; label: string; durationSeconds: number | null };
 
 export type JobsPageDto = {
   schemaVersion: 1;
@@ -198,7 +199,7 @@ export type QueueTargetsPageDto = {
   queueTargets: QueueTargetSummary[];
   pagination: { next: string | null; previous: string | null };
   filters: QueueTargetFilters;
-  options: { connections: string[] };
+  options: { connections: string[]; timeRanges: QueueTimeRangeOption[] };
   hasAnyQueueTargets: boolean;
 };
 export type QueueTargetRunSummary = {
@@ -229,7 +230,7 @@ export type QueueTargetDetailDto = {
   runs: QueueTargetRunSummary[];
   pagination: { next: string | null; previous: string | null };
   filters: QueueTargetFilters;
-  options: { statuses: RunStatus[] };
+  options: { statuses: RunStatus[]; timeRanges: QueueTimeRangeOption[] };
   hasAnyRuns: boolean;
 };
 

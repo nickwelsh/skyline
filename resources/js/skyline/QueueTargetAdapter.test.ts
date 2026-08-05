@@ -30,6 +30,16 @@ describe("QueueTargetAdapter", () => {
       maximumQueueTime: "5.00ms",
     }));
     expect(route.connectionOptions).toEqual(["redis", "sqs"]);
+    expect(route.timeRanges).toEqual([
+      { value: "all", label: "All time", durationSeconds: null },
+      { value: "24h", label: "Last 24 hours", durationSeconds: 86_400 },
+    ]);
+    expect(route.queueTargets[0]).toEqual(expect.objectContaining({
+      recordedRunCounts: { queued: 1, running: 1, retrying: 0, completed: 1, failed: 0 },
+      queueTimeSampleCount: 2,
+      firstObservedAt: "2026-08-05T11:00:00.000000000Z",
+      lastObservedAt: "2026-08-05T12:00:00.000000000Z",
+    }));
     expect(JSON.stringify(route)).not.toMatch(/brokerDepth|workers|concurrency|pause/i);
   });
 
@@ -44,6 +54,10 @@ describe("QueueTargetAdapter", () => {
       jobType: "App\\Jobs\\Invoice",
       queueTarget: "redis / billing",
     }));
+    expect(route.timeRanges).toEqual([
+      { value: "all", label: "All time", durationSeconds: null },
+      { value: "24h", label: "Last 24 hours", durationSeconds: 86_400 },
+    ]);
   });
 });
 
@@ -56,7 +70,10 @@ function listPage(): QueueTargetsPageDto {
     queueTargets: [summary()],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
-    options: { connections: ["redis", "sqs"] },
+    options: {
+      connections: ["redis", "sqs"],
+      timeRanges: [{ value: "all", label: "All time", durationSeconds: null }, { value: "24h", label: "Last 24 hours", durationSeconds: 86_400 }],
+    },
     hasAnyQueueTargets: true,
   };
 }
@@ -92,7 +109,10 @@ function detailPage(): QueueTargetDetailDto {
     }],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
-    options: { statuses: ["queued", "running", "retrying", "completed", "failed"] },
+    options: {
+      statuses: ["queued", "running", "retrying", "completed", "failed"],
+      timeRanges: [{ value: "all", label: "All time", durationSeconds: null }, { value: "24h", label: "Last 24 hours", durationSeconds: 86_400 }],
+    },
     hasAnyRuns: true,
     queueCapabilities: {
       pause: false,

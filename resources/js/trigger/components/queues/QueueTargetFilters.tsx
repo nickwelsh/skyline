@@ -6,15 +6,18 @@
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
+import type { QueueTimeRangeOption } from "../../../skyline/dto";
 
 export function QueueTargetFilters({
   connections,
   generatedAt,
   statuses,
+  timeRanges,
 }: {
   connections?: string[];
   generatedAt: string;
   statuses?: RunStatus[];
+  timeRanges: QueueTimeRangeOption[];
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,7 +42,7 @@ export function QueueTargetFilters({
   };
 
   return (
-    <div className="flex min-h-11 flex-wrap items-center gap-2 border-b border-grid-bright bg-background-bright px-3 py-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       <form
         role="search"
         className="relative min-w-52"
@@ -113,13 +116,10 @@ export function QueueTargetFilters({
         <select
           aria-label="Time range"
           value={timeRangeValue(params)}
-          onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt))}
+          onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt, timeRanges))}
           className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
         >
-          <option value="all">All time</option>
-          <option value="1h">Last hour</option>
-          <option value="24h">Last 24 hours</option>
-          <option value="7d">Last 7 days</option>
+          {timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           {params.has("from") && <option value="custom">Custom range</option>}
         </select>
       </label>
@@ -132,10 +132,11 @@ function timeRangeValue(params: URLSearchParams) {
   return params.get("range") ?? "custom";
 }
 
-function timeRange(value: string, generatedAt: string) {
+function timeRange(value: string, generatedAt: string, options: QueueTimeRangeOption[]) {
   if (value === "all") return { from: undefined, to: undefined, range: undefined };
   if (value === "custom") return {};
-  const milliseconds = value === "1h" ? 3_600_000 : value === "24h" ? 86_400_000 : 604_800_000;
+  const milliseconds = (options.find((option) => option.value === value)?.durationSeconds ?? 0) * 1_000;
+  if (milliseconds === 0) return {};
   const to = new Date(generatedAt);
   const from = new Date(to.getTime() - milliseconds);
   return { from: from.toISOString(), to: to.toISOString(), range: value };
