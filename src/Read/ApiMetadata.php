@@ -6,13 +6,16 @@ use Composer\InstalledVersions;
 
 final class ApiMetadata
 {
-    /** @return array{schemaVersion: 1, packageVersion: string, observedAt: string} */
-    public function at(int $observedAt): array
+    public function __construct(private Capabilities $capabilities) {}
+
+    /** @return array{schemaVersion: 1, packageVersion: string, generatedAt: string, capabilities: array<string, array<string, bool>>} */
+    public function at(int $generatedAt): array
     {
         return [
             'schemaVersion' => 1,
             'packageVersion' => InstalledVersions::getPrettyVersion('nickwelsh/skyline') ?? 'dev',
-            'observedAt' => Nanoseconds::toRfc3339($observedAt),
+            'generatedAt' => Nanoseconds::toRfc3339($generatedAt),
+            'capabilities' => $this->capabilities->all(),
         ];
     }
 }

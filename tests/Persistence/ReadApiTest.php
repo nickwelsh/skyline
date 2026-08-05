@@ -73,6 +73,56 @@ it('filters Runs and rejects invalid query state explicitly', function (): void 
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('exposes the versioned Runs contract and filters by Trace and root identity', function (): void {
+    seedReadRun(1, 'completed', true, 'App\\Jobs\\Parent');
+    $traceId = sprintf('%032x', 2);
+    $triggeredAt = Nanoseconds::now();
+    DB::table('skyline_runs')->insert([
+        'run_id' => 'run-child',
+        'trace_id' => $traceId,
+        'parent_run_id' => 'run-01',
+        'job_name' => 'App\\Jobs\\Child',
+        'connection' => 'redis',
+        'queue' => 'default',
+        'status' => 'running',
+        'triggered_at' => $triggeredAt,
+        'queued_at' => $triggeredAt,
+        'started_at' => $triggeredAt,
+        'confirmed_at' => $triggeredAt,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $response = $this->getJson('/skyline/api/runs?'.http_build_query([
+        'trace' => $traceId,
+        'rootOnly' => 'false',
+    ]))->assertOk()
+        ->assertJsonPath('schemaVersion', 1)
+        ->assertJsonPath('capabilities.runs.view', true)
+        ->assertJsonPath('capabilities.runs.cancel', false)
+        ->assertJsonPath('filters.trace', $traceId)
+        ->assertJsonPath('filters.rootOnly', false)
+        ->assertJsonPath('runs.0.traceId', $traceId)
+        ->assertJsonPath('runs.0.isRoot', false)
+        ->assertJsonPath('runs.1.isRoot', true)
+        ->assertJsonPath('options.traceIdentities.0', $traceId);
+
+    expect($response->json('generatedAt'))->toEndWith('Z')
+        ->and($response->json('runs.0.triggeredAt'))->toEndWith('Z')
+        ->and($response->json('runs.0.activeDurationUs'))->toBeInt();
+
+    $this->getJson('/skyline/api/runs?'.http_build_query([
+        'trace' => $traceId,
+        'rootOnly' => 'true',
+    ]))->assertOk()
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.id', 'run-01');
+
+    $this->getJson('/skyline/api/runs?rootOnly=maybe')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+});
+
 it('polls changed active rows and counts filtered new Runs', function (): void {
     seedReadRun(1, 'completed');
     $page = $this->getJson('/skyline/api/runs')->assertOk();

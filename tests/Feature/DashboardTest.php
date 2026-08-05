@@ -8,7 +8,7 @@ it('serves the skyline shell and precompiled assets locally', function (): void 
     $response = $this->get('/skyline')
         ->assertOk()
         ->assertSee('id="skyline"', false)
-        ->assertSee('data-base-path="/skyline"', false)
+        ->assertSee('id="skyline-bootstrap"', false)
         ->assertSee('/skyline/assets/'.$entry['file'], false)
         ->assertSee('/skyline/assets/'.$entry['css'][0], false);
 
@@ -23,6 +23,28 @@ it('serves the skyline shell and precompiled assets locally', function (): void 
 
 it('serves the shell for client-side routes', function (): void {
     $this->get('/skyline/runs/example')->assertOk()->assertSee('id="skyline"', false);
+});
+
+it('boots from one escaped inline payload with Application identity and capabilities', function (): void {
+    config()->set('app.name', '</script><script>alert("no")</script>');
+    $this->app->detectEnvironment(fn (): string => 'staging');
+    Gate::define('viewSkyline', fn ($user = null): bool => true);
+
+    $response = $this->get('/skyline')->assertOk();
+
+    $response->assertSee('id="skyline-bootstrap"', false)
+        ->assertSee('type="application/json"', false)
+        ->assertDontSee('</script><script>alert', false);
+
+    preg_match('/<script id="skyline-bootstrap" type="application\/json">(.*?)<\/script>/s', $response->getContent(), $match);
+    $bootstrap = json_decode($match[1], true, flags: JSON_THROW_ON_ERROR);
+
+    expect($bootstrap)->toMatchArray([
+        'basePath' => '/skyline',
+        'applicationName' => '</script><script>alert("no")</script>',
+        'environmentLabel' => 'staging',
+    ])->and($bootstrap['capabilities']['navigation']['runs'])->toBeTrue()
+        ->and($bootstrap['capabilities']['runs']['cancel'])->toBeFalse();
 });
 
 it('denies non-local requests by default', function (): void {

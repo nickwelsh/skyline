@@ -270,6 +270,8 @@ final readonly class RunsQuery
 
             return [
                 'id' => $run->run_id,
+                'traceId' => $run->trace_id,
+                'isRoot' => $run->parent_run_id === null,
                 'name' => $run->job_name,
                 'status' => $run->status,
                 'connection' => $run->connection,
@@ -297,7 +299,7 @@ final readonly class RunsQuery
         })->all();
     }
 
-    /** @return array{statuses: list<string>, jobNames: list<string>, queueTargets: list<array{connection: string, queue: string}>} */
+    /** @return array{statuses: list<string>, jobNames: list<string>, queueTargets: list<array{connection: string, queue: string}>, traceIdentities: list<string>} */
     private function options(): array
     {
         $query = $this->connection()->table('skyline_runs')->whereNotNull('confirmed_at');
@@ -312,6 +314,7 @@ final readonly class RunsQuery
                 'connection' => $target->connection,
                 'queue' => $target->queue,
             ])->all(),
+            'traceIdentities' => (clone $query)->distinct()->orderBy('trace_id')->pluck('trace_id')->all(),
         ];
     }
 
