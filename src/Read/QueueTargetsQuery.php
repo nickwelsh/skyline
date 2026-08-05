@@ -80,7 +80,7 @@ final readonly class QueueTargetsQuery
             'filters' => $filters->toArray(),
             'options' => ['statuses' => self::STATUSES],
             'hasAnyRuns' => (clone $targetQuery)->exists(),
-            'capabilities' => [
+            'queueCapabilities' => [
                 'pause' => false,
                 'resume' => false,
                 'concurrency' => false,
