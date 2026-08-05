@@ -10,6 +10,13 @@
     "resources/js/trigger/Timeline.tsx": "019c2153e336eb30c7a56777dbb7209f407c441afa51cbb5daa34752527a49be",
     "resources/js/trigger/Tooltip.tsx": "75810913c698bd0f156283a2fa134a733c4bf21a5325dded829ef1ea854bb4fc",
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
+    "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
+    "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
+    "resources/js/trigger/components/primitives/InfoPanel.tsx": "dd9bda9df0717ca42e484d9e1aea0352fd403bd5051a442defc86e02518a572c",
+    "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
+    "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
+    "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
+    "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
     "resources/js/trigger/primitives/TreeView/TreeView.tsx": "165ee440bf7183f74f166c52306b07dce269f2d535757cc69a93374fe7920856",
     "resources/js/trigger/primitives/TreeView/reducer.ts": "f47de2709b343a9cfdcab78e5c5b9c10f4dec672886859a56cc441e433b4f852",
     "resources/js/trigger/primitives/TreeView/utils.ts": "a3f916aa23fb59d88bdeab802bc57ec125f16f46c27e109744d48e9468296035",
@@ -138,6 +145,55 @@
       "target": "resources/js/trigger/Tabs.tsx",
       "mode": "adapted",
       "modifications": "Retained the shared Framer Motion underline, keyboard shortcuts, and shortcut labels; removed Remix routing and shared primitive dependencies."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Badge.tsx",
+      "sha256": "6d358289190f1014fe8623c34f06b37f01e0ff7793bb257884779e88e70b693c",
+      "target": "resources/js/trigger/components/primitives/Badge.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Headers.tsx",
+      "sha256": "0cbd405882913615e0c013fbd3db275f7ee7202aa8c0d73fca4716f1cc0b3d66",
+      "target": "resources/js/trigger/components/primitives/Headers.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Paragraph.tsx",
+      "sha256": "d0a245406bcc19221ebc771c0c335a61fb17e06e5a732f417b877620c2f11b4f",
+      "target": "resources/js/trigger/components/primitives/Paragraph.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PropertyTable.tsx",
+      "sha256": "f0b2ce27da084c1313d3b49813f77d706beb0a69d58dbe7fff71a888c207641e",
+      "target": "resources/js/trigger/components/primitives/PropertyTable.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/InfoPanel.tsx",
+      "sha256": "b7f4f14100719d164924ab7f9025a6685dd62fe8e3e6a8d13ad703bbfe960ece",
+      "target": "resources/js/trigger/components/primitives/InfoPanel.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/hooks/useDebounce.ts",
+      "sha256": "0333d66e432efb9eeffb9df8c6b19e2dcd00bca4ef80e313a3e2a90fa8dda95a",
+      "target": "resources/js/trigger/hooks/useDebounce.ts",
+      "mode": "adapted",
+      "modifications": "Added provenance only."
+    },
+    {
+      "source": "apps/webapp/app/hooks/useInitialDimensions.ts",
+      "sha256": "bbeb6d0d2a1ba700d790da986a2dac9923c8fbbdc5634447bbc13b855979a9e9",
+      "target": "resources/js/trigger/hooks/useInitialDimensions.ts",
+      "mode": "adapted",
+      "modifications": "Added provenance only."
     },
     {
       "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
