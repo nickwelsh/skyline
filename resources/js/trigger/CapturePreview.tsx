@@ -6,6 +6,7 @@ import { interpolateSql } from "./capture-formatting";
 
 type JsonMode = "tree" | "text";
 type SqlMode = "parameterized" | "bindings";
+type HtmlMode = "render" | "source";
 
 const codeTheme: PrismTheme = {
   plain: {
@@ -98,6 +99,39 @@ export function TextCapturePreview({ label, value, summary, truncated = false, l
   return (
     <CapturePanel label={label} summary={summary} truncated={truncated} copyValue={value}>
       <HighlightedCode code={value} language={language} />
+    </CapturePanel>
+  );
+}
+
+export function HtmlCapturePreview({ label, value, summary, truncated = false }: {
+  label: string;
+  value: string;
+  summary?: string;
+  truncated?: boolean;
+}) {
+  const [mode, setMode] = useState<HtmlMode>("render");
+
+  return (
+    <CapturePanel
+      label={label}
+      summary={summary}
+      truncated={truncated}
+      copyValue={value}
+      actions={(
+        <ModeSwitch
+          label={`${label} display`}
+          value={mode}
+          options={[
+            { value: "render", label: "Render" },
+            { value: "source", label: "Source" },
+          ]}
+          onChange={setMode}
+        />
+      )}
+    >
+      {mode === "render"
+        ? <iframe title={`${label} rendered preview`} sandbox="" referrerPolicy="no-referrer" srcDoc={renderableHtml(value)} className="h-128 w-full bg-white" />
+        : <HighlightedCode code={value} language="markup" />}
     </CapturePanel>
   );
 }
@@ -324,4 +358,14 @@ function stringifyJson(value: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+function renderableHtml(value: string): string {
+  const policy = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data: blob: cid:; style-src \'unsafe-inline\'; font-src data:">';
+
+  if (/<head(?:\s[^>]*)?>/i.test(value)) {
+    return value.replace(/<head(?:\s[^>]*)?>/i, (head) => `${head}${policy}`);
+  }
+
+  return `<!doctype html><html><head>${policy}</head><body>${value}</body></html>`;
 }

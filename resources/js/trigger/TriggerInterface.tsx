@@ -31,7 +31,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
 import type { HttpMessageCapture, InspectorDto, NodeKind, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
-import { JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
+import { HtmlCapturePreview, JsonCapturePreview, SqlCapturePreview, TextCapturePreview } from "./CapturePreview";
 import { ExceptionPreview } from "./ExceptionPreview";
 import * as Timeline from "./Timeline";
 import { RESIZABLE_PANEL_ANIMATION, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./Resizable";
@@ -990,7 +990,7 @@ function DeliveryDetail({ node }: { node: InspectorDto }) {
       {delivery.recipientIdentity && <JsonCapturePreview label="Recipient identity" value={delivery.recipientIdentity.value} summary={humanize(delivery.recipientIdentity.type)} truncated={delivery.recipientIdentity.truncated} />}
       {delivery.subject && <TextCapturePreview label="Subject" value={delivery.subject.value} truncated={delivery.subject.truncated} language="text" />}
       {delivery.text && <TextCapturePreview label="Text body" value={delivery.text.value} truncated={delivery.text.truncated} language="text" />}
-      {delivery.html && <TextCapturePreview label="HTML body" value={delivery.html.value} truncated={delivery.html.truncated} />}
+      {delivery.html && <HtmlCapturePreview label="HTML body" value={delivery.html.value} truncated={delivery.html.truncated} />}
       {delivery.messageData && <JsonCapturePreview label="Notification data" value={delivery.messageData.value} summary={humanize(delivery.messageData.type)} truncated={delivery.messageData.truncated} />}
       {delivery.operationData && <JsonCapturePreview label={delivery.outcome === "failed" ? "Failure data" : "Channel response"} value={delivery.operationData.value} summary={humanize(delivery.operationData.type)} truncated={delivery.operationData.truncated} />}
       {!hasRecipients && <CaptureNote>Recipient capture is off. Enable SKYLINE_DELIVERY_CAPTURE_RECIPIENTS or SKYLINE_CAPTURE_ALL to inspect identities.</CaptureNote>}
