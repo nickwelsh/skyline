@@ -7,7 +7,8 @@ it('registers package defaults', function (): void {
     expect(config('skyline'))->toMatchArray([
         'path' => 'skyline',
         'middleware' => ['web'],
-    ])->and(config('skyline.sql.capture_bindings'))->toBeFalse()
+    ])->and(config('skyline.capture_all'))->toBeFalse()
+        ->and(config('skyline.sql.capture_bindings'))->toBeFalse()
         ->and(config('skyline.sql.capture_results'))->toBeFalse()
         ->and(config('skyline.sql.capture_source'))->toBeFalse()
         ->and(config('skyline.sql.max_result_rows'))->toBe(25)
@@ -32,11 +33,45 @@ it('registers package defaults', function (): void {
         ->and(config('skyline.storage.enabled'))->toBeTrue()
         ->and(config('skyline.storage.capture_paths'))->toBeFalse()
         ->and(config('skyline.storage.capture_source'))->toBeFalse()
+        ->and(config('skyline.storage.links'))->toBe([])
         ->and(config('skyline.process.enabled'))->toBeTrue()
         ->and(config('skyline.process.capture_source'))->toBeFalse()
         ->and(config('skyline.logging.enabled'))->toBeFalse()
         ->and(config('skyline.logging.levels'))->toBe(['warning', 'error', 'critical', 'alert', 'emergency'])
         ->and(config('skyline.logging.context_allowlist'))->toBe(['code', 'status']);
+});
+
+it('uses one capture default while preserving individual overrides', function (): void {
+    putenv('SKYLINE_CAPTURE_ALL=true');
+    putenv('SKYLINE_HTTP_CAPTURE_REQUEST_BODY=false');
+
+    try {
+        $config = require dirname(__DIR__, 2).'/config/skyline.php';
+        $inherited = [
+            'sql.capture_bindings',
+            'sql.capture_results',
+            'sql.capture_source',
+            'http.capture_query',
+            'http.capture_request_headers',
+            'http.capture_response_headers',
+            'http.capture_response_body',
+            'http.capture_source',
+            'cache.capture_keys',
+            'cache.capture_source',
+            'delivery.capture_source',
+            'storage.capture_paths',
+            'storage.capture_source',
+            'process.capture_source',
+            'logging.enabled',
+        ];
+
+        expect($config['capture_all'])->toBeTrue()
+            ->and(collect($inherited)->every(fn (string $key): bool => data_get($config, $key) === true))->toBeTrue()
+            ->and(data_get($config, 'http.capture_request_body'))->toBeFalse();
+    } finally {
+        putenv('SKYLINE_CAPTURE_ALL');
+        putenv('SKYLINE_HTTP_CAPTURE_REQUEST_BODY');
+    }
 });
 
 it('publishes config and the migration directory', function (): void {

@@ -2,8 +2,12 @@
 
 use NickWelsh\Skyline\Persistence\PersistentTelemetrySink;
 
+$captureAll = env('SKYLINE_CAPTURE_ALL', false);
+
 return [
     'enabled' => env('SKYLINE_ENABLED', true),
+
+    'capture_all' => $captureAll,
 
     'path' => env('SKYLINE_PATH', 'skyline'),
 
@@ -27,9 +31,9 @@ return [
     ],
 
     'sql' => [
-        'capture_bindings' => env('SKYLINE_SQL_CAPTURE_BINDINGS', false),
-        'capture_results' => env('SKYLINE_SQL_CAPTURE_RESULTS', false),
-        'capture_source' => env('SKYLINE_SQL_CAPTURE_SOURCE', false),
+        'capture_bindings' => env('SKYLINE_SQL_CAPTURE_BINDINGS', $captureAll),
+        'capture_results' => env('SKYLINE_SQL_CAPTURE_RESULTS', $captureAll),
+        'capture_source' => env('SKYLINE_SQL_CAPTURE_SOURCE', $captureAll),
         'max_binding_bytes' => env('SKYLINE_SQL_MAX_BINDING_BYTES', 16_384),
         'max_result_rows' => env('SKYLINE_SQL_MAX_RESULT_ROWS', 25),
         'max_result_bytes' => env('SKYLINE_SQL_MAX_RESULT_BYTES', 65_536),
@@ -52,12 +56,12 @@ return [
 
     'http' => [
         'enabled' => env('SKYLINE_HTTP_ENABLED', true),
-        'capture_query' => env('SKYLINE_HTTP_CAPTURE_QUERY', false),
-        'capture_request_headers' => env('SKYLINE_HTTP_CAPTURE_REQUEST_HEADERS', false),
-        'capture_request_body' => env('SKYLINE_HTTP_CAPTURE_REQUEST_BODY', false),
-        'capture_response_headers' => env('SKYLINE_HTTP_CAPTURE_RESPONSE_HEADERS', false),
-        'capture_response_body' => env('SKYLINE_HTTP_CAPTURE_RESPONSE_BODY', false),
-        'capture_source' => env('SKYLINE_HTTP_CAPTURE_SOURCE', false),
+        'capture_query' => env('SKYLINE_HTTP_CAPTURE_QUERY', $captureAll),
+        'capture_request_headers' => env('SKYLINE_HTTP_CAPTURE_REQUEST_HEADERS', $captureAll),
+        'capture_request_body' => env('SKYLINE_HTTP_CAPTURE_REQUEST_BODY', $captureAll),
+        'capture_response_headers' => env('SKYLINE_HTTP_CAPTURE_RESPONSE_HEADERS', $captureAll),
+        'capture_response_body' => env('SKYLINE_HTTP_CAPTURE_RESPONSE_BODY', $captureAll),
+        'capture_source' => env('SKYLINE_HTTP_CAPTURE_SOURCE', $captureAll),
         'max_url_bytes' => env('SKYLINE_HTTP_MAX_URL_BYTES', 8_192),
         'max_header_bytes' => env('SKYLINE_HTTP_MAX_HEADER_BYTES', 16_384),
         'max_body_bytes' => env('SKYLINE_HTTP_MAX_BODY_BYTES', 65_536),
@@ -102,8 +106,8 @@ return [
 
     'cache' => [
         'enabled' => env('SKYLINE_CACHE_ENABLED', true),
-        'capture_keys' => env('SKYLINE_CACHE_CAPTURE_KEYS', false),
-        'capture_source' => env('SKYLINE_CACHE_CAPTURE_SOURCE', false),
+        'capture_keys' => env('SKYLINE_CACHE_CAPTURE_KEYS', $captureAll),
+        'capture_source' => env('SKYLINE_CACHE_CAPTURE_SOURCE', $captureAll),
         'max_key_bytes' => env('SKYLINE_CACHE_MAX_KEY_BYTES', 256),
     ],
 
@@ -115,23 +119,24 @@ return [
 
     'delivery' => [
         'enabled' => env('SKYLINE_DELIVERY_ENABLED', true),
-        'capture_source' => env('SKYLINE_DELIVERY_CAPTURE_SOURCE', false),
+        'capture_source' => env('SKYLINE_DELIVERY_CAPTURE_SOURCE', $captureAll),
     ],
 
     'storage' => [
         'enabled' => env('SKYLINE_STORAGE_ENABLED', true),
-        'capture_paths' => env('SKYLINE_STORAGE_CAPTURE_PATHS', false),
-        'capture_source' => env('SKYLINE_STORAGE_CAPTURE_SOURCE', false),
+        'capture_paths' => env('SKYLINE_STORAGE_CAPTURE_PATHS', $captureAll),
+        'capture_source' => env('SKYLINE_STORAGE_CAPTURE_SOURCE', $captureAll),
         'max_path_bytes' => env('SKYLINE_STORAGE_MAX_PATH_BYTES', 512),
+        'links' => [],
     ],
 
     'process' => [
         'enabled' => env('SKYLINE_PROCESS_ENABLED', true),
-        'capture_source' => env('SKYLINE_PROCESS_CAPTURE_SOURCE', false),
+        'capture_source' => env('SKYLINE_PROCESS_CAPTURE_SOURCE', $captureAll),
     ],
 
     'logging' => [
-        'enabled' => env('SKYLINE_LOGGING_ENABLED', false),
+        'enabled' => env('SKYLINE_LOGGING_ENABLED', $captureAll),
         'levels' => ['warning', 'error', 'critical', 'alert', 'emergency'],
         'channel' => env('SKYLINE_LOGGING_CHANNEL'),
         'context_allowlist' => ['code', 'status'],

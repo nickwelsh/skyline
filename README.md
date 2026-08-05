@@ -27,6 +27,14 @@ Telemetry uses an isolated clone of the default database connection. Set `SKYLIN
 
 Set `SKYLINE_ENABLED=false` to stop capture while keeping the dashboard, API, migrations, and commands available.
 
+Optional capture remains off by default. Enable every optional capture in development with one switch:
+
+```dotenv
+SKYLINE_CAPTURE_ALL=true
+```
+
+Every individual capture environment variable inherits this value and can still override it. For example, `SKYLINE_HTTP_CAPTURE_REQUEST_BODY=false` keeps request bodies off while the shared switch enables everything else. The shared switch includes SQL bindings/results, HTTP query/headers/bodies, raw cache keys, storage paths, source locations, and log breadcrumbs; keep it disabled in production unless all captured data is approved.
+
 Skyline captures every eligible Run and flushes normalized telemetry in bounded batches. Defaults are 5,000 operations or two seconds at a worker-loop boundary; configure `SKYLINE_BATCH_MAX_OPERATIONS` and `SKYLINE_BATCH_MAX_DELAY_MS` when needed.
 
 SQL bindings and outputs are sensitive and disabled by default. Enable either independently for short-lived debugging:
@@ -104,7 +112,7 @@ Laravel database transactions are captured automatically. Nested transactions br
 
 Laravel mail and notification delivery is captured automatically for synchronous and queued work. Mail records mailable class, mailer, recipient count, duration, and outcome. Notifications produce one span per channel and recipient. Addresses, subjects, rendered bodies, attachments, routes, responses, and payloads are never captured. Set `SKYLINE_DELIVERY_CAPTURE_SOURCE=true` for bounded application source locations or `SKYLINE_DELIVERY_ENABLED=false` to disable delivery spans. Laravel mail does not emit a failure event, so a send started without a matching sent event is marked incomplete when its Attempt ends.
 
-Laravel Storage disks record reads, writes, deletes, copies, moves, streams, and metadata operations. Contents are never inspected for telemetry, and streams retain their original position and ownership. Paths are hashed by default; bounded raw paths and source locations require `SKYLINE_STORAGE_CAPTURE_PATHS=true` and `SKYLINE_STORAGE_CAPTURE_SOURCE=true` respectively.
+Laravel Storage disks record reads, writes, deletes, copies, moves, streams, and metadata operations. Contents are never inspected for telemetry, and streams retain their original position and ownership. Paths are hashed by default; bounded raw paths and source locations require `SKYLINE_STORAGE_CAPTURE_PATHS=true` and `SKYLINE_STORAGE_CAPTURE_SOURCE=true` respectively. With path capture enabled, local disks offer editor links and disks with a `url` offer public links. For disks needing an explicit mapping, configure `skyline.storage.links.<disk>` as a base URL or a template containing `{path}`.
 
 Laravel Process records synchronous and asynchronous execution duration, executable basename, timeout, exit code, and outcome. Arguments, environment, input, stdout, and stderr are never captured or consumed. Source capture requires `SKYLINE_PROCESS_CAPTURE_SOURCE=true`. Process fakes use the same wrapper. Symfony Process instances can use `Skyline::process($process)` to preserve `Process::run()` behavior while recording the same bounded process span; instances constructed and run entirely outside Skyline cannot be intercepted safely.
 
