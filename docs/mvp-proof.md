@@ -58,7 +58,8 @@ The harness disables Xdebug for measured child processes. Debugger/developer hoo
 
 ## Security, privacy, and operations
 
-- Skyline never stores SQL bindings or Job payloads. Parameterized queries retain placeholders. Literal values already embedded in raw SQL remain part of the SQL text, so applications must parameterize sensitive values.
+- Skyline never stores Job payloads. SQL bindings and result previews are disabled by default; parameterized queries otherwise retain placeholders. `SKYLINE_SQL_CAPTURE_BINDINGS` and `SKYLINE_SQL_CAPTURE_RESULTS` deliberately cross that privacy boundary and should remain disabled in production unless approved. Sensitive configured column names are redacted, but applications must still treat enabled capture as sensitive data. Literal values already embedded in raw SQL remain part of the SQL text, so applications must parameterize sensitive values.
+- Result previews are bounded to 25 rows and 64KB by default. Write queries record affected-row counts. Cursor and streamed results are never consumed. A connection with a custom PDO statement class is left untouched and logs a warning instead of capturing results.
 - Capture is never sampled. Records flush in transactional batches after 5,000 operations, after a two-second worker-loop delay, or at normal process termination. Live queued/running state can therefore lag, and a hard kill can lose the unflushed window.
 - Exception class, message, relative frames, and bounded metadata are visible to authorized operators. Avoid secrets in exception messages.
 - Storage defaults to an isolated clone of the default connection. Set `SKYLINE_DB_CONNECTION` for a dedicated configured connection.

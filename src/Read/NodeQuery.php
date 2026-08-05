@@ -2,6 +2,8 @@
 
 namespace NickWelsh\Skyline\Read;
 
+use Throwable;
+
 final readonly class NodeQuery
 {
     public function __construct(
@@ -121,6 +123,8 @@ final readonly class NodeQuery
                 'statusDescription' => $span->status_description,
             ],
             'sql' => $sql,
+            'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
+            'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
             'metadata' => $this->spanMetadata($span),
         ];
     }
@@ -133,6 +137,8 @@ final readonly class NodeQuery
         }
 
         $sanitizer = new PrivacySanitizer;
+        $attributes = $this->json($span->attributes);
+        unset($attributes['skyline.sql.bindings'], $attributes['skyline.sql.result']);
         $events = collect($this->json($span->events))->map(function (array $event) use ($sanitizer): array {
             return [
                 'name' => $event['name'] ?? 'Event',
@@ -158,7 +164,7 @@ final readonly class NodeQuery
         ])->all();
 
         return $sanitizer->metadata([
-            'attributes' => $sanitizer->attributes($this->json($span->attributes)),
+            'attributes' => $sanitizer->attributes($attributes),
             'events' => $events,
             'links' => $links,
             'resource' => $resource,
@@ -167,6 +173,24 @@ final readonly class NodeQuery
                 'version' => $span->scope_version,
             ],
         ]);
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed>|null */
+    private function sqlCapture(array $attributes, string $key): ?array
+    {
+        $value = $attributes[$key] ?? null;
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+
+            return is_array($decoded) ? $decoded : null;
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /** @return array<string, mixed> */

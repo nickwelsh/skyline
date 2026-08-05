@@ -49,6 +49,7 @@ final class QueueInstrumentation
         private readonly LoggerInterface $logger,
         private readonly PersistenceGuard $persistenceGuard,
         private readonly SkylineConnection $persistenceConnection,
+        private readonly SqlCapture $sqlCapture,
     ) {
         $provider = new TracerProvider(
             new SimpleSpanProcessor(new SinkSpanExporter($sink, $logger)),
@@ -66,6 +67,7 @@ final class QueueInstrumentation
         }
 
         $this->booted = true;
+        $this->sqlCapture->boot();
 
         Queue::createPayloadUsing(
             fn (string $connection, ?string $queue, array $payload): array => $this->guard(
@@ -405,13 +407,12 @@ final class QueueInstrumentation
 
     private function query(QueryExecuted $query): void
     {
-        if ($this->persistenceGuard->active() || $this->persistenceConnection->owns($query->connectionName)) {
-            return;
-        }
-
         $active = $this->attempts->current();
+        $ignored = $this->persistenceGuard->active()
+            || $this->persistenceConnection->owns($query->connectionName);
+        $capture = $this->sqlCapture->attributes($query, ! $ignored && $active !== null);
 
-        if ($active === null) {
+        if ($ignored || $active === null) {
             return;
         }
 
@@ -429,6 +430,7 @@ final class QueueInstrumentation
                 'db.namespace' => $query->connectionName,
                 'db.query.text' => $query->sql,
                 'db.operation.name' => $operation,
+                ...$capture,
             ])
             ->startSpan();
         $span->setStatus(StatusCode::STATUS_OK);

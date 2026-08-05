@@ -124,7 +124,11 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
   await expect(page.locator('[data-node-id="span_live_sql"]')).toBeVisible();
   await page.locator('[data-node-id="span_live_sql"]').click();
   await page.getByRole("tab", { name: "Detail" }).click();
-  await expect(page.getByRole("tabpanel").locator("pre")).toHaveText("select * from invoices where id = ?");
+  await expect(page.getByRole("tabpanel").locator("pre").first()).toHaveText("select * from invoices where id = ?");
+  await expect(page.getByText("Bindings", { exact: true })).toBeVisible();
+  await expect(page.getByText("Result preview", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 row returned", { exact: false })).toBeVisible();
+  await expect(page.getByRole("tabpanel")).toContainText("invoice-42");
   expect(requests.some((request) => request.endsWith("/nodes/span_live_sql"))).toBe(true);
 });
 
@@ -205,6 +209,8 @@ const inspectorResponse = {
     ...traceNodes[2],
     overview: { runId: "live-run", spanId: "live_sql" },
     sql: { value: "select * from invoices where id = ?", isTruncated: false, originalBytes: 35 },
+    bindings: { items: [{ position: 0, column: "id", value: 42 }], truncated: false },
+    result: { kind: "rows", rows: [{ id: 42, reference: "invoice-42" }], rowCount: 1, truncated: false },
     metadata: { value: { attributes: { "db.system.name": "mysql" } }, isTruncated: false, truncated: [] },
   },
 };

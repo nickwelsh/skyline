@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use NickWelsh\Skyline\Read\Nanoseconds;
+use NickWelsh\Skyline\Telemetry\SqlCapture;
 use Tests\Fixtures\Jobs\ChildJob;
 use Tests\Fixtures\Jobs\FailingJob;
 use Tests\Fixtures\Jobs\ParentJob;
@@ -163,6 +164,28 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     expect($inspector->getContent())
         ->not->toContain('private-job-payload')
         ->not->toContain('do-not-capture');
+});
+
+it('serves opt-in SQL bindings and result previews outside generic metadata', function (): void {
+    config()->set('skyline.sql.capture_bindings', true);
+    config()->set('skyline.sql.capture_results', true);
+    app(SqlCapture::class)->boot();
+    SqlJob::dispatchSync();
+    $run = DB::table('skyline_runs')->where('job_name', SqlJob::class)->first();
+    $span = DB::table('skyline_spans')->where('role', 'sql')->first();
+
+    $inspector = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
+        ->assertOk()
+        ->assertJsonPath('node.bindings.items.0.position', 0)
+        ->assertJsonPath('node.bindings.items.0.value', 'do-not-capture')
+        ->assertJsonPath('node.bindings.truncated', false)
+        ->assertJsonPath('node.result.kind', 'rows')
+        ->assertJsonPath('node.result.rowCount', 1)
+        ->assertJsonPath('node.result.rows.0.private_value', 'do-not-capture')
+        ->assertJsonPath('node.result.truncated', false);
+
+    expect(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.bindings'))->toBeNull()
+        ->and(data_get($inspector->json(), 'node.metadata.value.attributes.skyline.sql.result'))->toBeNull();
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {

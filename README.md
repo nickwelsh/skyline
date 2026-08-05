@@ -29,6 +29,15 @@ Set `SKYLINE_ENABLED=false` to stop capture while keeping the dashboard, API, mi
 
 Skyline captures every eligible Run and flushes normalized telemetry in bounded batches. Defaults are 5,000 operations or two seconds at a worker-loop boundary; configure `SKYLINE_BATCH_MAX_OPERATIONS` and `SKYLINE_BATCH_MAX_DELAY_MS` when needed.
 
+SQL bindings and outputs are sensitive and disabled by default. Enable either independently for short-lived debugging:
+
+```dotenv
+SKYLINE_SQL_CAPTURE_BINDINGS=true
+SKYLINE_SQL_CAPTURE_RESULTS=true
+```
+
+Result capture stores a redacted preview of up to 25 returned rows or the affected-row count for writes, bounded to 64KB per query. It never consumes cursors or streams. Configure `SKYLINE_SQL_MAX_BINDING_BYTES`, `SKYLINE_SQL_MAX_RESULT_ROWS`, `SKYLINE_SQL_MAX_RESULT_BYTES`, and `sql.redact_columns` in the published Skyline config. Leave both capture switches disabled in production unless storing query data is explicitly approved.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

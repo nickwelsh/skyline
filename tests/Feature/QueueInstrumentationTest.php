@@ -14,6 +14,7 @@ use Illuminate\Queue\WorkerOptions;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Schema;
 use NickWelsh\Skyline\Telemetry\Lifecycle;
+use NickWelsh\Skyline\Telemetry\SqlCapture;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -27,6 +28,7 @@ use Tests\Fixtures\Jobs\FailingSqlJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
+use Tests\Fixtures\Jobs\SqlOutputJob;
 use Tests\Fixtures\RecordingTelemetrySink;
 
 function setUpDatabaseQueue(): void
@@ -93,6 +95,48 @@ it('emits a producer, Attempt consumer, and parameterized SQL span for an unchan
         'attempt_outcome' => 'completed',
         'run_status' => 'completed',
     ]);
+});
+
+it('captures bounded redacted SQL bindings and outputs only when opted in', function (): void {
+    config()->set('skyline.sql.capture_bindings', true);
+    config()->set('skyline.sql.capture_results', true);
+    config()->set('skyline.sql.max_result_rows', 1);
+    app(SqlCapture::class)->boot();
+
+    Schema::create('sql_capture_values', function (Blueprint $table): void {
+        $table->id();
+        $table->string('name');
+        $table->string('password');
+        $table->string('api_token');
+    });
+
+    SqlOutputJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $sql = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'sql');
+    $insert = $sql->first(fn ($span) => $span->getAttributes()->get('db.operation.name') === 'INSERT');
+    $select = $sql->first(fn ($span) => $span->getAttributes()->get('db.operation.name') === 'SELECT');
+    $bindings = json_decode($insert->getAttributes()->get('skyline.sql.bindings'), true, flags: JSON_THROW_ON_ERROR);
+    $write = json_decode($insert->getAttributes()->get('skyline.sql.result'), true, flags: JSON_THROW_ON_ERROR);
+    $result = json_decode($select->getAttributes()->get('skyline.sql.result'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($bindings['items'])->toContain([
+        'position' => 0,
+        'column' => 'name',
+        'value' => 'first-visible',
+    ])->and(json_encode($bindings))->not->toContain('password-secret')->not->toContain('token-secret')
+        ->and($write)->toMatchArray(['kind' => 'affected', 'affectedRows' => 1])
+        ->and($result['kind'])->toBe('rows')
+        ->and($result['rowCount'])->toBe(2)
+        ->and($result['truncated'])->toBeTrue()
+        ->and($result['rows'])->toHaveCount(1)
+        ->and($result['rows'][0])->toMatchArray([
+            'name' => 'first-visible',
+            'password' => '[REDACTED]',
+            'api_token' => '[REDACTED]',
+        ]);
 });
 
 it('keeps one Run across queued retry Attempts with exact and estimated queue-time provenance', function (): void {

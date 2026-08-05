@@ -6,6 +6,7 @@ use Tests\Fixtures\Jobs\SqlJob;
 
 it('migrates and persists a complete parameterized trace on the configured SQL engine', function (): void {
     SqlJob::dispatchSync('private-job-payload');
+    $attributes = DB::table('skyline_spans')->where('role', 'sql')->value('attributes');
 
     expect(Schema::hasTable('skyline_traces'))->toBeTrue()
         ->and(Schema::hasTable('skyline_runs'))->toBeTrue()
@@ -15,7 +16,9 @@ it('migrates and persists a complete parameterized trace on the configured SQL e
         ->and(DB::table('skyline_runs')->value('status'))->toBe('completed')
         ->and(DB::table('skyline_attempts')->value('status'))->toBe('completed')
         ->and(DB::table('skyline_spans')->count())->toBe(3)
-        ->and(DB::table('skyline_spans')->where('role', 'sql')->value('attributes'))
-        ->toContain('select ? as private_value')
+        ->and($attributes)->toContain('select ? as private_value')
+        ->toContain('skyline.sql.bindings')
+        ->toContain('skyline.sql.result')
+        ->toContain('do-not-capture')
         ->not->toContain('private-job-payload');
 });

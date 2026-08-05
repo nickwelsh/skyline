@@ -781,8 +781,19 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
 }
 
 function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] }) {
-  if (node.kind === "query") return <div><div className="mb-2 text-xs text-text-faint">Parameterized SQL</div><pre className="whitespace-pre-wrap rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{node.sql?.value}</pre></div>;
+  if (node.kind === "query") return (
+    <div className="space-y-4">
+      <CapturePreview label="Parameterized SQL" value={node.sql?.value ?? ""} />
+      {node.bindings && <CapturePreview label="Bindings" value={node.bindings.items} truncated={node.bindings.truncated} />}
+      {node.result?.kind === "rows" && <CapturePreview label="Result preview" summary={`${node.result.rowCount.toLocaleString()} ${node.result.rowCount === 1 ? "row" : "rows"} returned`} value={node.result.rows} truncated={node.result.truncated} />}
+      {node.result?.kind === "affected" && <CapturePreview label="Result" summary={`${node.result.affectedRows.toLocaleString()} ${node.result.affectedRows === 1 ? "row" : "rows"} affected`} value={{ affectedRows: node.result.affectedRows }} />}
+    </div>
+  );
   return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
+}
+
+function CapturePreview({ label, value, summary, truncated = false }: { label: string; value: unknown; summary?: string; truncated?: boolean }) {
+  return <div><div className="mb-2 flex items-center gap-2 text-xs text-text-faint"><span>{label}</span>{summary && <span>· {summary}</span>}{truncated && <span className="rounded border border-amber-500/40 bg-amber-500/10 px-1 text-amber-300">Truncated</span>}</div><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre></div>;
 }
 
 function PropertyList({ values }: { values: Record<string, string | number | null | undefined> }) {

@@ -127,6 +127,20 @@ export type InspectorDto = TraceNode & {
     framesTruncated: boolean;
   } | null;
   sql?: { value: string; isTruncated: boolean; originalBytes: number };
+  bindings?: {
+    items: Array<{ position: number; column: string | null; value: unknown }>;
+    truncated: boolean;
+  } | null;
+  result?: {
+    kind: "rows";
+    rows: unknown[];
+    rowCount: number;
+    truncated: boolean;
+  } | {
+    kind: "affected";
+    affectedRows: number;
+    truncated: boolean;
+  } | null;
   metadata: {
     value: Record<string, unknown>;
     isTruncated: boolean;

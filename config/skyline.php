@@ -26,6 +26,29 @@ return [
         'max_delay_ms' => env('SKYLINE_BATCH_MAX_DELAY_MS', 2_000),
     ],
 
+    'sql' => [
+        'capture_bindings' => env('SKYLINE_SQL_CAPTURE_BINDINGS', false),
+        'capture_results' => env('SKYLINE_SQL_CAPTURE_RESULTS', false),
+        'max_binding_bytes' => env('SKYLINE_SQL_MAX_BINDING_BYTES', 16_384),
+        'max_result_rows' => env('SKYLINE_SQL_MAX_RESULT_ROWS', 25),
+        'max_result_bytes' => env('SKYLINE_SQL_MAX_RESULT_BYTES', 65_536),
+        'redact_columns' => [
+            'password',
+            'passwd',
+            'token',
+            'secret',
+            'authorization',
+            'cookie',
+            'api_key',
+            'access_key',
+            'private_key',
+            'credit_card',
+            'card_number',
+            'cvv',
+            'ssn',
+        ],
+    ],
+
     'trace_node_limit' => 25_000,
 
     'trace_poll_node_limit' => 1_000,
