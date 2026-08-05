@@ -10,11 +10,12 @@ import { cn } from "~/utils/cn";
 
 type SideMenuProps = {
   applicationName: string;
+  brandMark: React.ReactNode;
   environmentLabel: string;
   runsPath: string;
 };
 
-export function SideMenu({ applicationName, environmentLabel, runsPath }: SideMenuProps) {
+export function SideMenu({ applicationName, brandMark, environmentLabel, runsPath }: SideMenuProps) {
   const location = useLocation();
   const [width, setWidth] = useState(224);
   const widthRef = useRef(width);
@@ -55,7 +56,7 @@ export function SideMenu({ applicationName, environmentLabel, runsPath }: SideMe
       style={{ width, "--sm-label-opacity": labelOpacity } as CSSProperties}
     >
       <div className="flex h-11 items-center gap-2 border-b border-grid-bright px-3">
-        <span className="flex size-6 shrink-0 items-center justify-center rounded bg-amber-400 font-bold text-charcoal-950">S</span>
+        {brandMark}
         <span className="min-w-0 truncate font-semibold text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
       </div>
       <div className="px-2 py-3">

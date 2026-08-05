@@ -1,4 +1,8 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
+import type { RunsPageDto } from "../../resources/js/skyline/dto";
+import fixture from "./fixtures/nw-217-runs.json" with { type: "json" };
 
 const traceId = "00000000000000000000000000000001";
 
@@ -22,10 +26,14 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await page.getByLabel("Queue target").selectOption(`redis\u0000default`);
   await page.getByLabel("Trace").selectOption(traceId);
   await page.getByLabel("Root Runs only").click();
+  await page.getByLabel("Triggered from").fill("2026-08-05T08:00");
+  await page.getByLabel("Triggered to").fill("2026-08-05T09:00");
   await expect(page).toHaveURL(/job=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/connection=redis/);
   await expect(page).toHaveURL(/trace=00000000000000000000000000000001/);
   await expect(page).toHaveURL(/rootOnly=true/);
+  await expect(page).toHaveURL(/triggeredFrom=/);
+  await expect(page).toHaveURL(/triggeredTo=/);
 
   await page.locator('a[href*="cursor=next-cursor"]').click();
   await expect(page).toHaveURL(/cursor=next-cursor/);
@@ -34,6 +42,19 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page).toHaveURL(/\/skyline\/runs\/run-01\?tableState=/);
   await page.goBack();
   await expect(page).toHaveURL(/cursor=next-cursor/);
+});
+
+test("paired pinned Trigger.dev and Skyline Runs fixture stays deterministic", async ({ page }) => {
+  const triggerReference = new URL("./runs-list.spec.ts-snapshots/nw-217-trigger-runs.png", import.meta.url);
+  const sourceHash = createHash("sha256").update(readFileSync(triggerReference)).digest("hex");
+  expect(sourceHash).toBe(fixture.triggerReference.artifactSha256);
+
+  await page.setViewportSize(fixture.viewport);
+  await routeRuns(page, pageResponse("completed"));
+  await page.goto("/skyline/runs");
+  await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect(page.locator("main")).toHaveScreenshot("nw-217/skyline-runs.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
 });
 
 test("Runs exposes loading, initial-empty, filtered-empty, API-error, and polling states", async ({ page }) => {
@@ -60,6 +81,8 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await expect.poll(() => requests).toBeGreaterThan(1);
   await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+  const requestsAfterCompletion = requests;
+  await expect.poll(() => requests).toBeGreaterThan(requestsAfterCompletion);
 
   mode = "initial-empty";
   await page.goto("/skyline/runs");
@@ -77,44 +100,11 @@ async function routeRuns(page: Page, response: ReturnType<typeof pageResponse>) 
 }
 
 function pageResponse(status: "running" | "completed" = "running") {
-  return {
-    schemaVersion: 1,
-    packageVersion: "fixture",
-    generatedAt: "2026-08-05T12:00:00.000000000Z",
-    capabilities: {
-      navigation: { runs: true },
-      runs: { view: true, cancel: false, replay: false },
-      shell: { shortcuts: true },
-    },
-    runs: [{
-      id: "run-01",
-      traceId,
-      isRoot: true,
-      name: "App\\Jobs\\GenerateMonthlyInvoices",
-      status,
-      connection: "redis",
-      queue: "default",
-      attemptCount: 1,
-      triggeredAt: "2026-08-05T11:59:00.000000000Z",
-      queuedAt: "2026-08-05T11:59:00.000000000Z",
-      startedAt: "2026-08-05T11:59:00.001000000Z",
-      finishedAt: status === "completed" ? "2026-08-05T11:59:01.001000000Z" : null,
-      queueDurationUs: 1_000,
-      durationUs: status === "completed" ? 1_000_000 : null,
-      activeDurationUs: status === "running" ? 1_000_000 : null,
-      revision: status === "completed" ? 2 : 1,
-    }],
-    pagination: { previous: null, next: "next-cursor" },
-    pollCursor: "poll",
-    polling: { activeRunsIntervalMs: 50, newRunsIntervalMs: 100 },
-    tableState: "table-state",
-    filters: { status: [] as string[], job: null, connection: null, queue: null, trace: null, rootOnly: false, triggeredFrom: null, triggeredTo: null, search: null as string | null },
-    options: {
-      statuses: ["queued", "running", "retrying", "completed", "failed"],
-      jobNames: ["App\\Jobs\\GenerateMonthlyInvoices"],
-      queueTargets: [{ connection: "redis", queue: "default" }],
-      traceIdentities: [traceId],
-    },
-    hasAnyRuns: true,
-  };
+  const response = structuredClone(fixture.apiResponse) as RunsPageDto;
+  response.runs[0].status = status;
+  response.runs[0].finishedAt = status === "completed" ? "2026-08-05T11:59:01.001000000Z" : null;
+  response.runs[0].durationUs = status === "completed" ? 1_000_000 : null;
+  response.runs[0].activeDurationUs = status === "running" ? 1_000_000 : null;
+  response.runs[0].revision = status === "completed" ? 2 : 1;
+  return response;
 }

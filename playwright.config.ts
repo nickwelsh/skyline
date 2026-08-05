@@ -10,7 +10,9 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:4174",
     colorScheme: "dark",
+    locale: "en-US",
     screenshot: "only-on-failure",
+    timezoneId: "America/New_York",
     trace: "retain-on-failure",
   },
   webServer: {

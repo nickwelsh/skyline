@@ -16,12 +16,15 @@ export type RunFilterOptions = {
 
 export function RunsFilters({ options }: { options: RunFilterOptions }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const update = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
+  const commit = (next: URLSearchParams) => {
     next.delete("cursor");
     next.delete("direction");
-    value ? next.set(key, value) : next.delete(key);
     setSearchParams(next);
+  };
+  const update = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    value ? next.set(key, value) : next.delete(key);
+    commit(next);
   };
 
   return (
@@ -46,8 +49,6 @@ export function RunsFilters({ options }: { options: RunFilterOptions }) {
       </FilterSelect>
       <FilterSelect label="Queue target" value={queueValue(searchParams)} onChange={(value) => {
         const next = new URLSearchParams(searchParams);
-        next.delete("cursor");
-        next.delete("direction");
         if (!value) {
           next.delete("connection");
           next.delete("queue");
@@ -56,7 +57,7 @@ export function RunsFilters({ options }: { options: RunFilterOptions }) {
           next.set("connection", connection);
           next.set("queue", queue);
         }
-        setSearchParams(next);
+        commit(next);
       }}>
         {options.queueTargets.map((target) => (
           <option key={`${target.connection}\u0000${target.queue}`} value={`${target.connection}\u0000${target.queue}`}>{target.connection} / {target.queue}</option>

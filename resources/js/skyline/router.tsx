@@ -2,6 +2,7 @@ import { Navigate, createBrowserRouter, type LoaderFunctionArgs } from "react-ro
 import { HttpAdapter } from "./HttpAdapter";
 import { presentRuns, runsQuery } from "./RunListAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
+import { BrandMark } from "./BrandMark";
 import { TriggerShell } from "../trigger/root";
 import RunsRoute, { RunsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
 
@@ -11,7 +12,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
   return createBrowserRouter([
     {
       path: "/",
-      element: <TriggerShell applicationName={bootstrap.applicationName} environmentLabel={bootstrap.environmentLabel} />,
+      element: <TriggerShell applicationName={bootstrap.applicationName} brandMark={<BrandMark />} environmentLabel={bootstrap.environmentLabel} />,
       children: [
         { index: true, element: <Navigate to="runs" replace /> },
         { path: "runs", loader: runsLoader, element: <RunsRoute />, errorElement: <RunsErrorBoundary /> },

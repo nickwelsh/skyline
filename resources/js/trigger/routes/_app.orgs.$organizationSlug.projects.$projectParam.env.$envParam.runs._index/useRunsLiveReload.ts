@@ -7,15 +7,23 @@ import { useRevalidator } from "@remix-run/react";
 import { useEffect } from "react";
 import type { PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 
-export function useRunsLiveReload({ runs, pollIntervalMs }: { runs: PresentedRun[]; pollIntervalMs: number }) {
+export function useRunsLiveReload({
+  runs,
+  activeRunsIntervalMs,
+  newRunsIntervalMs,
+}: {
+  runs: PresentedRun[];
+  activeRunsIntervalMs: number;
+  newRunsIntervalMs: number;
+}) {
   const revalidator = useRevalidator();
   const hasActiveRuns = runs.some((run) => ["queued", "running", "retrying"].includes(run.status));
+  const pollIntervalMs = hasActiveRuns ? activeRunsIntervalMs : newRunsIntervalMs;
 
   useEffect(() => {
-    if (!hasActiveRuns) return;
     const timer = window.setInterval(() => revalidator.revalidate(), pollIntervalMs);
     return () => window.clearInterval(timer);
-  }, [hasActiveRuns, pollIntervalMs, revalidator]);
+  }, [pollIntervalMs, revalidator]);
 
   return revalidator;
 }

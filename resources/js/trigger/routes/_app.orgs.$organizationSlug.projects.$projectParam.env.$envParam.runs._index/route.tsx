@@ -27,7 +27,11 @@ export type RunsRouteData = {
 export default function RunsRoute() {
   const data = useLoaderData() as RunsRouteData;
   const navigation = useNavigation();
-  const revalidator = useRunsLiveReload({ runs: data.runs, pollIntervalMs: data.polling.activeRunsIntervalMs });
+  const revalidator = useRunsLiveReload({
+    runs: data.runs,
+    activeRunsIntervalMs: data.polling.activeRunsIntervalMs,
+    newRunsIntervalMs: data.polling.newRunsIntervalMs,
+  });
   const isLoading = navigation.state !== "idle" || revalidator.state !== "idle";
 
   return (

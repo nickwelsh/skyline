@@ -1,0 +1,51 @@
+{
+  "viewport": { "width": 1600, "height": 900 },
+  "captureRegion": { "x": 223, "y": 0, "width": 1377, "height": 900 },
+  "triggerReference": {
+    "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+    "path": "docs/images/replay-runs-list.png",
+    "sourceSha256": "477626dfa38ac95b7669a32edb60638de97b12b637f95a184b9c41998c3e3fe5",
+    "artifactSha256": "cdfc03bae4293dc524db74255a21903007bf0de97b0f91ab8ad8140d5beefed1"
+  },
+  "allowedDifferences": ["branding", "fixture data", "unsupported navigation and actions"],
+  "apiResponse": {
+    "schemaVersion": 1,
+    "packageVersion": "fixture",
+    "generatedAt": "2026-08-05T12:00:00.000000000Z",
+    "capabilities": {
+      "navigation": { "runs": true },
+      "runs": { "view": true, "cancel": false, "replay": false },
+      "shell": { "shortcuts": true }
+    },
+    "runs": [{
+      "id": "run-01",
+      "traceId": "00000000000000000000000000000001",
+      "isRoot": true,
+      "name": "App\\Jobs\\GenerateMonthlyInvoices",
+      "status": "completed",
+      "connection": "redis",
+      "queue": "default",
+      "attemptCount": 1,
+      "triggeredAt": "2026-08-05T11:59:00.000000000Z",
+      "queuedAt": "2026-08-05T11:59:00.000000000Z",
+      "startedAt": "2026-08-05T11:59:00.001000000Z",
+      "finishedAt": "2026-08-05T11:59:01.001000000Z",
+      "queueDurationUs": 1000,
+      "durationUs": 1000000,
+      "activeDurationUs": null,
+      "revision": 2
+    }],
+    "pagination": { "previous": null, "next": "next-cursor" },
+    "pollCursor": "poll",
+    "polling": { "activeRunsIntervalMs": 50, "newRunsIntervalMs": 100 },
+    "tableState": "table-state",
+    "filters": { "status": [], "job": null, "connection": null, "queue": null, "trace": null, "rootOnly": false, "triggeredFrom": null, "triggeredTo": null, "search": null },
+    "options": {
+      "statuses": ["queued", "running", "retrying", "completed", "failed"],
+      "jobNames": ["App\\Jobs\\GenerateMonthlyInvoices"],
+      "queueTargets": [{ "connection": "redis", "queue": "default" }],
+      "traceIdentities": ["00000000000000000000000000000001"]
+    },
+    "hasAnyRuns": true
+  }
+}

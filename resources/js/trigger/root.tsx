@@ -9,14 +9,15 @@ import { SideMenu } from "~/components/navigation/SideMenu";
 
 type TriggerShellProps = {
   applicationName: string;
+  brandMark: React.ReactNode;
   environmentLabel: string;
 };
 
-export function TriggerShell({ applicationName, environmentLabel }: TriggerShellProps) {
+export function TriggerShell({ applicationName, brandMark, environmentLabel }: TriggerShellProps) {
   return (
     <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
       <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
-        <SideMenu applicationName={applicationName} environmentLabel={environmentLabel} runsPath="/runs" />
+        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} runsPath="/runs" />
         <main className="min-w-0 overflow-hidden"><Outlet /></main>
       </div>
     </AppContainer>
