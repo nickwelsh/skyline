@@ -469,9 +469,10 @@ function fixtureTimestamp(run: Scenario["runs"][number]): string {
 }
 
 function withinPeriod(run: Scenario["runs"][number], period: JobsQuery["period"]): boolean {
-  const durations = { "1h": 3_600_000, "24h": 86_400_000, "7d": 604_800_000, "30d": 2_592_000_000 };
-  if (!period || period === "all") return true;
-  return new Date(fixtureTimestamp(run)).getTime() >= new Date(fixtureGeneratedAt).getTime() - durations[period];
+  if (!period) return true;
+  const durationMs = fixtureJobPeriods[period].durationMs;
+  if (durationMs === null) return true;
+  return new Date(fixtureTimestamp(run)).getTime() >= new Date(fixtureGeneratedAt).getTime() - durationMs;
 }
 
 function fixtureOffset(cursor: string | undefined): number {
@@ -486,13 +487,20 @@ function parseDuration(value: string): number {
   return value.endsWith("s") ? amount * 1_000 : amount;
 }
 
-const fixtureTimeRanges = [
-  { value: "1h" as const, label: "Last hour" },
-  { value: "24h" as const, label: "Last 24 hours" },
-  { value: "7d" as const, label: "Last 7 days" },
-  { value: "30d" as const, label: "Last 30 days" },
-  { value: "all" as const, label: "All time" },
-];
+type FixtureJobPeriod = NonNullable<JobsQuery["period"]>;
+
+const fixtureJobPeriods = {
+  "1h": { label: "Last hour", durationMs: 3_600_000 },
+  "24h": { label: "Last 24 hours", durationMs: 86_400_000 },
+  "7d": { label: "Last 7 days", durationMs: 604_800_000 },
+  "30d": { label: "Last 30 days", durationMs: 2_592_000_000 },
+  all: { label: "All time", durationMs: null },
+} satisfies Record<FixtureJobPeriod, { label: string; durationMs: number | null }>;
+
+const fixtureTimeRanges = Object.entries(fixtureJobPeriods).map(([value, definition]) => ({
+  value: value as FixtureJobPeriod,
+  label: definition.label,
+}));
 
 const fixtureQueueTimeRanges = [
   { value: "all" as const, label: "All time", durationSeconds: null },
