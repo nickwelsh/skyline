@@ -1,5 +1,6 @@
 import type { RunsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
 import type { RunSummary, RunsPageDto, RunsQuery } from "./dto";
+import { formatDuration } from "./Duration";
 import { compactQuery, queryStatuses, queryValue } from "./QueryParams";
 
 export function runsQuery(request: Request): RunsQuery {
@@ -51,15 +52,7 @@ export function presentRun(run: RunSummary, tableState: string) {
     traceIdentity: run.traceId,
     attemptCount: run.attemptCount,
     triggeredAt: run.triggeredAt,
-    queueDuration: duration(run.queueDurationUs),
-    duration: duration(run.durationUs ?? run.activeDurationUs),
+    queueDuration: formatDuration(run.queueDurationUs),
+    duration: formatDuration(run.durationUs ?? run.activeDurationUs),
   };
-}
-
-function duration(microseconds: number | null | undefined) {
-  if (microseconds === null || microseconds === undefined) return "—";
-  if (microseconds < 1_000) return `${microseconds}µs`;
-  const milliseconds = microseconds / 1_000;
-  if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
-  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
 }
