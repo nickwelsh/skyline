@@ -118,6 +118,18 @@ return [
         'capture_source' => env('SKYLINE_DELIVERY_CAPTURE_SOURCE', false),
     ],
 
+    'storage' => [
+        'enabled' => env('SKYLINE_STORAGE_ENABLED', true),
+        'capture_paths' => env('SKYLINE_STORAGE_CAPTURE_PATHS', false),
+        'capture_source' => env('SKYLINE_STORAGE_CAPTURE_SOURCE', false),
+        'max_path_bytes' => env('SKYLINE_STORAGE_MAX_PATH_BYTES', 512),
+    ],
+
+    'process' => [
+        'enabled' => env('SKYLINE_PROCESS_ENABLED', true),
+        'capture_source' => env('SKYLINE_PROCESS_CAPTURE_SOURCE', false),
+    ],
+
     'editor' => [
         'name' => env('SKYLINE_EDITOR'),
         'base_path' => env('SKYLINE_EDITOR_BASE_PATH'),

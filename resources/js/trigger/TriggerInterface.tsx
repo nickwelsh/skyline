@@ -15,6 +15,7 @@ import {
   IconCloudDataConnection,
   IconDatabase,
   IconExternalLink,
+  IconFolder,
   IconListDetails,
   IconMail,
   IconPlayerPlayFilled,
@@ -22,6 +23,7 @@ import {
   IconSearch,
   IconServer,
   IconStack2,
+  IconTerminal2,
   IconWorldWww,
   IconX,
 } from "@tabler/icons-react";
@@ -722,6 +724,8 @@ function NodeIcon({ node }: { node: TraceNode }) {
   if (node.kind === "cache" || node.kind === "redis") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-amber-400"><IconCloudDataConnection className="size-3.5" /></span>;
   if (node.kind === "transaction") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-indigo-400"><IconArrowsExchange className="size-3.5" /></span>;
   if (node.kind === "mail" || node.kind === "notification") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-fuchsia-400"><IconMail className="size-3.5" /></span>;
+  if (node.kind === "storage") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-emerald-400"><IconFolder className="size-3.5" /></span>;
+  if (node.kind === "process") return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-orange-400"><IconTerminal2 className="size-3.5" /></span>;
   return <span className="grid size-5 shrink-0 place-items-center rounded bg-charcoal-700 text-cyan-400"><IconWorldWww className="size-3.5" /></span>;
 }
 
@@ -806,6 +810,12 @@ function Detail({ node, run }: { node: InspectorDto; run: TracePageDto["run"] })
       <HttpMessagePreview label="Response" capture={node.http.response} />
     </div>
   );
+  if (node.kind !== "attempt") return (
+    <div className="space-y-4">
+      {node.source && <NodeSource source={node.source} />}
+      <PropertyList values={node.overview} />
+    </div>
+  );
   return <PropertyList values={{ Job: run.name, Connection: run.connection, Queue: run.queue, Attempts: run.attemptCount, Duration: formatOptionalDurationUs(run.durationUs) }} />;
 }
 
@@ -862,7 +872,7 @@ function formatDuration(ms: number) { return ms >= 1000 ? `${(ms / 1000).toFixed
 function formatOptionalDurationUs(us?: number | null) { return us === null || us === undefined ? "—" : formatDuration(us / 1_000); }
 function formatTime(iso?: string | null) { return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "—"; }
 function clamp(value: number, min: number, max: number) { return Math.min(max, Math.max(min, value)); }
-function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; return "bg-charcoal-550"; }
+function barClass(node: TraceNode) { if (node.isError) return "bg-error"; if (node.isPartial) return "bg-amber-500"; if (node.kind === "run") return "bg-success"; if (node.kind === "query") return "bg-query"; if (node.kind === "request") return "bg-cyan-500"; if (node.kind === "cache" || node.kind === "redis") return "bg-amber-500"; if (node.kind === "transaction") return "bg-indigo-500"; if (node.kind === "mail" || node.kind === "notification") return "bg-fuchsia-500"; if (node.kind === "storage") return "bg-emerald-500"; if (node.kind === "process") return "bg-orange-500"; return "bg-charcoal-550"; }
 function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: number) {
   const duration = node.durationUs === null ? Math.max(0, totalDuration - node.offsetUs / 1_000) : node.durationUs / 1_000;
   return node.parentId === null ? Math.max(0, duration - queueOffset) : duration;

@@ -104,6 +104,10 @@ Laravel database transactions are captured automatically. Nested transactions br
 
 Laravel mail and notification delivery is captured automatically for synchronous and queued work. Mail records mailable class, mailer, recipient count, duration, and outcome. Notifications produce one span per channel and recipient. Addresses, subjects, rendered bodies, attachments, routes, responses, and payloads are never captured. Set `SKYLINE_DELIVERY_CAPTURE_SOURCE=true` for bounded application source locations or `SKYLINE_DELIVERY_ENABLED=false` to disable delivery spans. Laravel mail does not emit a failure event, so a send started without a matching sent event is marked incomplete when its Attempt ends.
 
+Laravel Storage disks record reads, writes, deletes, copies, moves, streams, and metadata operations. Contents are never inspected for telemetry, and streams retain their original position and ownership. Paths are hashed by default; bounded raw paths and source locations require `SKYLINE_STORAGE_CAPTURE_PATHS=true` and `SKYLINE_STORAGE_CAPTURE_SOURCE=true` respectively.
+
+Laravel Process records synchronous and asynchronous execution duration, executable basename, timeout, exit code, and outcome. Arguments, environment, input, stdout, and stderr are never captured or consumed. Source capture requires `SKYLINE_PROCESS_CAPTURE_SOURCE=true`. Process fakes use the same wrapper. Direct Symfony Process instances cannot be intercepted safely; wrap those calls in `Skyline::measure()` when they need a domain span.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

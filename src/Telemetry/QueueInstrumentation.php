@@ -46,6 +46,7 @@ final class QueueInstrumentation
         private readonly CacheInstrumentation $cache,
         private readonly DatabaseTransactionInstrumentation $transactions,
         private readonly DeliveryInstrumentation $delivery,
+        private readonly ProcessInstrumentation $processes,
     ) {}
 
     public function boot(): void
@@ -364,6 +365,7 @@ final class QueueInstrumentation
     private function finish(ActiveAttempt $active): void
     {
         $this->delivery->finishAttempt($active);
+        $this->processes->finishAttempt($active);
         $result = $active->result ?? AttemptResult::Completed;
         $attemptOutcome = $result->attemptOutcome();
         $runStatus = $result->runStatus();

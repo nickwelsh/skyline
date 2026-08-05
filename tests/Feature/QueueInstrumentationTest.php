@@ -45,6 +45,7 @@ use Tests\Fixtures\Jobs\RedisJob;
 use Tests\Fixtures\Jobs\RetryJob;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SqlOutputJob;
+use Tests\Fixtures\Jobs\StorageProcessJob;
 use Tests\Fixtures\Jobs\TransactionJob;
 use Tests\Fixtures\Mail\QueuedTestMailable;
 use Tests\Fixtures\Mail\TestMailable;
@@ -102,6 +103,43 @@ it('captures mail and per-channel notification delivery without recipient identi
         ->not->toContain('private subject')
         ->not->toContain('private body')
         ->not->toContain('private-route');
+});
+
+it('captures storage and process operations without content paths arguments or output', function (): void {
+    $root = storage_path('framework/testing/disks/telemetry');
+    config()->set('filesystems.disks.telemetry', [
+        'driver' => 'local',
+        'root' => $root,
+        'throw' => true,
+    ]);
+
+    StorageProcessJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $storage = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'storage')
+        ->values();
+    $processes = collect($sink->spans)
+        ->filter(fn ($span) => $span->getAttributes()->get('skyline.role') === 'process')
+        ->values();
+
+    expect($storage->map(fn ($span) => $span->getAttributes()->get('storage.operation'))->all())
+        ->toBe(['write', 'read', 'read_stream', 'copy', 'move', 'size', 'delete', 'delete'])
+        ->and($storage[0]->getAttributes()->get('storage.bytes'))->toBe(16)
+        ->and($storage[1]->getAttributes()->get('storage.bytes'))->toBe(16)
+        ->and($processes)->toHaveCount(4)
+        ->and($processes->map(fn ($span) => $span->getAttributes()->get('process.exit_code'))->all())->toBe([0, 7, 0, null])
+        ->and($processes[1]->getStatus()->getCode())->toBe(StatusCode::STATUS_ERROR)
+        ->and($processes[3]->getAttributes()->get('process.timed_out'))->toBeTrue();
+
+    expect(json_encode([
+        ...$storage->map(fn ($span) => $span->getAttributes()->toArray())->all(),
+        ...$processes->map(fn ($span) => $span->getAttributes()->toArray())->all(),
+    ]))->not->toContain('private/customer')
+        ->not->toContain('private contents')
+        ->not->toContain('private output')
+        ->not->toContain('exit(7)');
 });
 
 it('records handled mail transport failures without changing application control flow', function (): void {

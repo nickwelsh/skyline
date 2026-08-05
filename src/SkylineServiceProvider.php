@@ -4,6 +4,8 @@ namespace NickWelsh\Skyline;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Auth\Access\Gate as GateContract;
+use Illuminate\Filesystem\FilesystemManager;
+use Illuminate\Process\Factory as ProcessFactory;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\ServiceProvider;
 use NickWelsh\Skyline\Console\PruneCommand;
@@ -17,12 +19,16 @@ use NickWelsh\Skyline\Telemetry\CacheInstrumentation;
 use NickWelsh\Skyline\Telemetry\CustomTelemetry;
 use NickWelsh\Skyline\Telemetry\DatabaseTransactionInstrumentation;
 use NickWelsh\Skyline\Telemetry\DeliveryInstrumentation;
+use NickWelsh\Skyline\Telemetry\InstrumentedFilesystemManager;
+use NickWelsh\Skyline\Telemetry\InstrumentedProcessFactory;
 use NickWelsh\Skyline\Telemetry\OutgoingHttpInstrumentation;
+use NickWelsh\Skyline\Telemetry\ProcessInstrumentation;
 use NickWelsh\Skyline\Telemetry\QueueInstrumentation;
 use NickWelsh\Skyline\Telemetry\SkylineTracer;
 use NickWelsh\Skyline\Telemetry\SourceLocator;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
 use NickWelsh\Skyline\Telemetry\SqlResultRegistry;
+use NickWelsh\Skyline\Telemetry\StorageInstrumentation;
 use NickWelsh\Skyline\Telemetry\TelemetrySink;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -51,6 +57,17 @@ final class SkylineServiceProvider extends ServiceProvider
         $this->app->singleton(CustomTelemetry::class);
         $this->app->singleton(DatabaseTransactionInstrumentation::class);
         $this->app->singleton(DeliveryInstrumentation::class);
+        $this->app->singleton(ProcessInstrumentation::class);
+        $this->app->singleton(StorageInstrumentation::class);
+        $this->app->singleton(
+            ProcessFactory::class,
+            fn ($app) => new InstrumentedProcessFactory($app->make(ProcessInstrumentation::class)),
+        );
+        $this->app->singleton(
+            'filesystem',
+            fn ($app) => new InstrumentedFilesystemManager($app, $app->make(StorageInstrumentation::class)),
+        );
+        $this->app->alias('filesystem', FilesystemManager::class);
         $this->app->singleton(OutgoingHttpInstrumentation::class);
         $this->app->singleton(SkylineTracer::class);
         $this->app->singleton(SourceLocator::class);
