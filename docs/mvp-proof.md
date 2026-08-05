@@ -63,6 +63,7 @@ The harness disables Xdebug for measured child processes. Debugger/developer hoo
 - SQL source capture is disabled by default. `SKYLINE_SQL_CAPTURE_SOURCE=true` stores one application file path and line number per query without arguments or a full stack. Configure `SKYLINE_EDITOR` and optional `SKYLINE_EDITOR_BASE_PATH` for editor links.
 - Capture is never sampled. Records flush in transactional batches after 5,000 operations, after a two-second worker-loop delay, or at normal process termination. Live queued/running state can therefore lag, and a hard kill can lose the unflushed window.
 - Exception class, message, relative frames, and bounded metadata are visible to authorized operators. Avoid secrets in exception messages.
+- Expanded exception traces can expose application source snippets to authorized operators. Snippets are read on demand, limited to the failing lines, and never persisted. Keep the `viewSkyline` Gate restricted accordingly.
 - Storage defaults to an isolated clone of the default connection. Set `SKYLINE_DB_CONNECTION` for a dedicated configured connection.
 - Retention defaults to 24 hours. Set `SKYLINE_RETENTION_HOURS`, run `php artisan skyline:prune` manually when needed, and keep Laravel's scheduler running for daily pruning.
 - Pruning only deletes terminal Traces older than the cutoff. It deletes each Trace as a unit and leaves active Traces intact.

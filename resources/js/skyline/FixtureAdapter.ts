@@ -123,9 +123,11 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         messageTruncated: false,
         messageOriginalBytes: fixture.exception.message.length,
         code: null,
+        runtime: { php: "8.4.8", laravel: "12.42.0" },
         location: {
           file: fixture.exception.frames[0]?.file ?? "unknown",
           line: fixture.exception.frames[0]?.line ?? null,
+          href: null,
         },
         frames: fixture.exception.frames.map((frame) => ({
           file: frame.file,
@@ -133,8 +135,16 @@ export class FixtureAdapter implements SkylineDtoAdapter {
           class: null,
           type: null,
           function: frame.call,
+          isVendor: frame.file.startsWith("vendor/"),
+          href: null,
+          snippet: frame.file.startsWith("vendor/") ? null : {
+            code: "public function handle(): void\n{\n    throw new RuntimeException('Job failed');\n}\n",
+            startingLine: Math.max(1, frame.line - 2),
+            highlightedLine: frame.line,
+          },
         })),
         framesTruncated: false,
+        markdown: `# ${fixture.exception.class} - Job failed\n\n${fixture.exception.message}\n\n## Stack Trace\n`,
       } : null,
       sql: fixture.sql ? { value: fixture.sql, isTruncated: false, originalBytes: fixture.sql.length } : undefined,
       metadata: { value: fixture.metadata, isTruncated: false, truncated: [] },

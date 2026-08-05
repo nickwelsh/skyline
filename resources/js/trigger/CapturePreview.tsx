@@ -141,7 +141,12 @@ function ModeSwitch<T extends string>({ label, value, options, onChange }: {
   );
 }
 
-function CopyButton({ value, label }: { value: string; label: string }) {
+export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copied" }: {
+  value: string;
+  label: string;
+  idleText?: string;
+  copiedText?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const timeout = useRef<number>();
 
@@ -167,27 +172,34 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       className={`relative flex h-9 items-center gap-1 rounded border border-grid-bright bg-background-bright py-1 pr-2 pl-1.5 hover:bg-background-hover @sm:h-7 ${copied ? "text-success" : "text-text-faint hover:text-text-bright"}`}
     >
       {copied ? <IconCheck className="size-5 shrink-0 @sm:size-4" /> : <IconCopy className="size-5 shrink-0 @sm:size-4" />}
-      <span>{copied ? "Copied" : "Copy"}</span>
+      <span>{copied ? copiedText : idleText}</span>
       <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
     </button>
   );
 }
 
-function HighlightedCode({ code, language }: { code: string; language: Language }) {
+export function HighlightedCode({ code, language, startingLine, highlightedLine, wrap = true }: {
+  code: string;
+  language: Language;
+  startingLine?: number;
+  highlightedLine?: number;
+  wrap?: boolean;
+}) {
   return (
     <Highlight theme={codeTheme} code={code} language={language}>
       {({ className, style, tokens, getLineProps, getTokenProps }) => (
         <pre
           dir="ltr"
           translate="no"
-          className={`max-h-80 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-base @sm:text-xs ${className}`}
+          className={`max-h-80 overflow-auto p-3 font-mono text-base @sm:text-xs ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"} ${className}`}
           style={{ ...style, backgroundColor: "transparent" }}
         >
           {tokens.map((line, lineIndex) => {
             const lineProps = getLineProps({ line });
             return (
-              <div key={lineIndex} {...lineProps} className={`min-w-0 ${lineProps.className ?? ""}`}>
-                {line.map((token, tokenIndex) => <span key={tokenIndex} {...getTokenProps({ token })} />)}
+              <div key={lineIndex} {...lineProps} className={`flex min-w-0 ${startingLine !== undefined && startingLine + lineIndex === highlightedLine ? "bg-error/10" : ""} ${lineProps.className ?? ""}`}>
+                {startingLine !== undefined && <div aria-hidden="true" className="w-8 shrink-0 pr-3 text-right tabular-nums text-text-faint">{startingLine + lineIndex}</div>}
+                <div className="min-w-0 flex-1">{line.map((token, tokenIndex) => <span key={tokenIndex} {...getTokenProps({ token })} />)}</div>
               </div>
             );
           })}

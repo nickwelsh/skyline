@@ -41,6 +41,8 @@ Result capture stores a redacted preview of up to 25 returned rows or the affect
 
 Source capture stores the first application `file:line` frame for each query. Set `SKYLINE_EDITOR` to `cursor`, `phpstorm`, `vscode`, or `zed` for clickable links. In containers, set `SKYLINE_EDITOR_BASE_PATH` to the matching local project path. Skyline also honors Laravel's `app.editor` string or array configuration, including custom `href` templates.
 
+Failed Attempts show a collapsed Laravel-style exception preview. Expanding it reveals highlighted application source, folded vendor frames, and editor links. Copy as Markdown produces a bounded exception report suitable for issues or debugging. Source is read on demand from the host filesystem and is not persisted by Skyline.
+
 See [MVP proof and operations](docs/mvp-proof.md) for the reproducible clean-app proof, supported runtime/database matrix, authorization and privacy requirements, retention operations, and release checks.
 
 ### Interface development

@@ -11,6 +11,7 @@ final readonly class NodeQuery
         private TraceViewBuilder $builder,
         private ApiMetadata $metadata,
         private EditorLink $editorLink,
+        private ExceptionPresenter $exceptions,
     ) {}
 
     /** @return array<string, mixed> */
@@ -80,6 +81,7 @@ final readonly class NodeQuery
         $consumer = $snapshot->spans->first(fn (object $span): bool => $span->run_id === $attempt->run_id
             && (int) $span->attempt_number === (int) $attempt->attempt_number
             && $span->role === 'consumer');
+        $run = $snapshot->runs->firstWhere('run_id', $attempt->run_id);
 
         return [
             'overview' => [
@@ -91,7 +93,9 @@ final readonly class NodeQuery
                 'spanId' => $consumer?->span_id,
                 'parentSpanId' => $consumer?->parent_span_id,
             ],
-            'exception' => $attempt->exception_class === null ? null : $this->exception($attempt),
+            'exception' => $attempt->exception_class === null
+                ? null
+                : $this->exceptions->present($attempt, $run?->job_name),
             'metadata' => $this->spanMetadata($consumer),
         ];
     }
@@ -217,58 +221,6 @@ final readonly class NodeQuery
             'line' => $line,
             'href' => $this->editorLink->href($file, $line),
         ];
-    }
-
-    /** @return array<string, mixed> */
-    private function exception(object $attempt): array
-    {
-        $sanitizer = new PrivacySanitizer;
-        $message = $sanitizer->string(
-            (string) $attempt->exception_message,
-            max(1, (int) config('skyline.privacy.exception_message_bytes', 16_384)),
-            'exception.message',
-        );
-        $lines = preg_split('/\R/', (string) $attempt->exception_trace) ?: [];
-        $frames = [];
-
-        foreach (array_slice($lines, 0, 100) as $line) {
-            if (! preg_match('/^#\d+\s+(.+?)(?:\((\d+)\))?:\s+(.+)$/', $line, $matches)) {
-                continue;
-            }
-
-            $call = $this->call($matches[3]);
-            $frames[] = [
-                'file' => $this->relativeFile($matches[1]),
-                'line' => isset($matches[2]) && $matches[2] !== '' ? (int) $matches[2] : null,
-                ...$call,
-            ];
-        }
-
-        return [
-            'class' => $attempt->exception_class,
-            'message' => $message['value'],
-            'messageTruncated' => $message['isTruncated'],
-            'messageOriginalBytes' => $message['originalBytes'],
-            'code' => $attempt->exception_code,
-            'location' => [
-                'file' => $this->relativeFile((string) $attempt->exception_file),
-                'line' => $attempt->exception_line === null ? null : (int) $attempt->exception_line,
-            ],
-            'frames' => $frames,
-            'framesTruncated' => count($lines) > 100,
-        ];
-    }
-
-    /** @return array{class: ?string, type: ?string, function: string} */
-    private function call(string $call): array
-    {
-        $call = preg_replace('/\([^)]*\).*$/', '', $call) ?? $call;
-
-        if (preg_match('/^(.+?)(::|->)([^:]+)$/', $call, $matches)) {
-            return ['class' => $matches[1], 'type' => $matches[2], 'function' => $matches[3]];
-        }
-
-        return ['class' => null, 'type' => null, 'function' => $call];
     }
 
     private function relativeFile(string $file): string

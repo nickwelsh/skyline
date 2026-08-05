@@ -33,7 +33,8 @@ test("Runs keeps Trigger's dense shell, URL filters, navigation, and branding bo
   await expect(page.getByText(retryRun, { exact: true })).toBeVisible();
 });
 
-test("trace preserves selection, keyboard controls, filters, panels, and inspector", async ({ page }) => {
+test("trace preserves selection, keyboard controls, filters, panels, and inspector", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "http://127.0.0.1:4174" });
   await page.goto(`/skyline/runs/${retryRun}?node=run_${retryRun}`);
 
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true }).first()).toBeVisible();
@@ -42,6 +43,15 @@ test("trace preserves selection, keyboard controls, filters, panels, and inspect
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(/node=attempt_01J8R4NQX6K3PV4W0A1H2Z7M9C_1/);
   await expect(page.getByText("Illuminate\\Database\\DeadlockException")).toBeVisible();
+  const exception = page.getByRole("region", { name: "Exception" });
+  await expect(exception.getByRole("button", { name: "Show 2 frames" })).toBeVisible();
+  await expect(exception.getByText("1 vendor frame")).toHaveCount(0);
+  await exception.getByRole("button", { name: "Copy exception as Markdown" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("# Illuminate\\Database\\DeadlockException - Job failed");
+  await exception.getByRole("button", { name: "Show 2 frames" }).click();
+  await expect(exception.getByText("GenerateMonthlyInvoices->handle()", { exact: true })).toBeVisible();
+  await exception.getByRole("button", { name: "1 vendor frame" }).click();
+  await expect(exception.getByText("CallQueuedHandler->call()", { exact: true })).toBeVisible();
 
   const queueTime = page.getByRole("switch", { name: "Queue time" });
   await expect(queueTime).toHaveAttribute("aria-checked", "false");
@@ -86,6 +96,10 @@ test("long inspector content scrolls independently", async ({ page }) => {
 
   const inspector = page.getByRole("tabpanel");
   await expect(inspector).toBeVisible();
+  await expect(inspector.getByText("Illuminate\\Queue\\Worker->frame1")).toHaveCount(0);
+  await inspector.getByRole("button", { name: "Show 40 frames" }).click();
+  await expect(inspector.locator("pre")).toContainText("throw new RuntimeException");
+  await inspector.getByRole("button", { name: "39 vendor frames" }).click();
   expect(await inspector.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
 
   await inspector.hover();
@@ -99,6 +113,11 @@ test("fixed fixtures retain reviewed Runs and trace visuals", async ({ page }) =
 
   await page.goto(`/skyline/runs/${retryRun}?node=run_${retryRun}`);
   await expect(page).toHaveScreenshot("retry-trace.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
+
+  await page.keyboard.press("ArrowDown");
+  await expect(page).toHaveScreenshot("exception-collapsed.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
+  await page.getByRole("region", { name: "Exception" }).getByRole("button", { name: "Show 2 frames" }).click();
+  await expect(page).toHaveScreenshot("exception-expanded.png", { animations: "disabled", maxDiffPixelRatio: 0.01 });
 });
 
 test("production adapter drives real endpoint state, stable node URLs, and lazy inspector", async ({ page, context }) => {
@@ -258,13 +277,32 @@ const longExceptionInspectorResponse = {
     exception: {
       class: "RuntimeException",
       message: "A deliberately long failure stack",
-      frames: Array.from({ length: 40 }, (_, index) => ({
+      messageTruncated: false,
+      messageOriginalBytes: 33,
+      code: "0",
+      runtime: { php: "8.4.8", laravel: "12.42.0" },
+      location: { file: "app/Jobs/LiveInvoiceJob.php", line: 42, href: "vscode://file//workspace/app/Jobs/LiveInvoiceJob.php:42" },
+      frames: [{
+        file: "app/Jobs/LiveInvoiceJob.php",
+        line: 42,
+        class: "App\\Jobs\\LiveInvoiceJob",
+        type: "->",
+        function: "handle",
+        isVendor: false,
+        href: "vscode://file//workspace/app/Jobs/LiveInvoiceJob.php:42",
+        snippet: { code: "public function handle(): void\n{\n    throw new RuntimeException('Failed');\n}\n", startingLine: 40, highlightedLine: 42 },
+      }, ...Array.from({ length: 39 }, (_, index) => ({
         file: `vendor/laravel/framework/src/Illuminate/Queue/Worker${index}.php`,
         line: index + 1,
         class: "Illuminate\\Queue\\Worker",
         type: "->",
-        function: `frame${index}`,
-      })),
+        function: `frame${index + 1}`,
+        isVendor: true,
+        href: null,
+        snippet: null,
+      }))],
+      framesTruncated: false,
+      markdown: "# RuntimeException - Job failed\n\nA deliberately long failure stack\n\n## Stack Trace\n",
     },
     metadata: { value: { attributes: {} }, isTruncated: false, truncated: [] },
   },

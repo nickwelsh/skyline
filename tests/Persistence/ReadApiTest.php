@@ -196,6 +196,7 @@ it('serves opt-in SQL bindings and result previews outside generic metadata', fu
 });
 
 it('returns curated relative exception details without raw stack metadata', function (): void {
+    config()->set('app.editor', 'vscode');
     expect(fn () => FailingJob::dispatchSync())->toThrow(RuntimeException::class);
     $run = DB::table('skyline_runs')->where('job_name', FailingJob::class)->first();
     $attempt = DB::table('skyline_attempts')->where('run_id', $run->run_id)->first();
@@ -207,7 +208,16 @@ it('returns curated relative exception details without raw stack metadata', func
         ->assertJsonPath('node.exception.message', 'Expected Job failure.')
         ->assertJsonPath('node.exception.messageTruncated', false);
 
-    expect($response->json('node.exception.location.file'))->toBe('FailingJob.php')
+    expect($response->json('node.exception.location.file'))->toBe('tests/Fixtures/Jobs/FailingJob.php')
+        ->and($response->json('node.exception.frames.0.file'))->toBe('tests/Fixtures/Jobs/FailingJob.php')
+        ->and($response->json('node.exception.frames.0.isVendor'))->toBeFalse()
+        ->and($response->json('node.exception.frames.0.snippet.code'))->toContain("throw new RuntimeException('Expected Job failure.');")
+        ->and($response->json('node.exception.frames.0.href'))->toStartWith('vscode://file/')
+        ->and($response->json('node.exception.frames.1.isVendor'))->toBeTrue()
+        ->and($response->json('node.exception.markdown'))->toContain('# RuntimeException - Job failed')
+        ->toContain('## Stack Trace')
+        ->toContain('PHP '.PHP_VERSION)
+        ->toContain('Laravel '.app()->version())
         ->and($response->getContent())->not->toContain('/Users/')
         ->and($response->getContent())->not->toContain('exception.stacktrace');
 });
@@ -248,7 +258,8 @@ it('enforces SQL, exception, frame, and metadata presentation bounds', function 
         ->assertJsonPath('node.exception.framesTruncated', true)
         ->assertJsonCount(100, 'node.exception.frames')
         ->assertJsonPath('node.exception.frames.0.file', 'app/Jobs/Secret.php')
-        ->assertJsonPath('node.exception.frames.0.function', 'handle');
+        ->assertJsonPath('node.exception.frames.0.function', 'handle')
+        ->assertJsonPath('node.exception.frames.0.isVendor', false);
 
     expect($query->json('node.sql.value'))->toHaveLength(32)
         ->and($query->getContent())->not->toContain(str_repeat('database-name', 3))

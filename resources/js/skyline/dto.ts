@@ -25,6 +25,26 @@ export type ExceptionFrame = {
   class: string | null;
   type: string | null;
   function: string;
+  isVendor: boolean;
+  href: string | null;
+  snippet: {
+    code: string;
+    startingLine: number;
+    highlightedLine: number;
+  } | null;
+};
+
+export type ExceptionDetails = {
+  class: string;
+  message: string;
+  messageTruncated: boolean;
+  messageOriginalBytes: number;
+  code: string | null;
+  runtime: { php: string; laravel: string };
+  location: { file: string; line: number | null; href: string | null };
+  frames: ExceptionFrame[];
+  framesTruncated: boolean;
+  markdown: string;
 };
 
 export type SqlBinding = {
@@ -122,16 +142,7 @@ export type TracePageDto = {
 
 export type InspectorDto = TraceNode & {
   overview: Record<string, string | number | null>;
-  exception?: {
-    class: string;
-    message: string;
-    messageTruncated: boolean;
-    messageOriginalBytes: number;
-    code: string | null;
-    location: { file: string; line: number | null };
-    frames: ExceptionFrame[];
-    framesTruncated: boolean;
-  } | null;
+  exception?: ExceptionDetails | null;
   sql?: { value: string; isTruncated: boolean; originalBytes: number };
   source?: { file: string; line: number; href: string | null } | null;
   bindings?: {

@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SkylineApiError } from "../skyline/HttpAdapter";
 import type { InspectorDto, RunStatus, RunsPageDto, SkylineDtoAdapter, TraceNode, TracePageDto } from "../skyline/dto";
 import { JsonCapturePreview, SqlCapturePreview } from "./CapturePreview";
+import { ExceptionPreview } from "./ExceptionPreview";
 import * as Timeline from "./Timeline";
 import { RESIZABLE_PANEL_ANIMATION, ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./Resizable";
 
@@ -768,15 +769,7 @@ function Overview({ node, run }: { node: InspectorDto; run: TracePageDto["run"] 
           <Lifecycle label={run.status === "failed" ? "Failed" : "Finished"} value={formatOptionalDurationUs(run.durationUs)} last />
         </div>
       )}
-      {node.exception && (
-        <div className="rounded border border-error/40 bg-error/5 p-3">
-          <div className="font-mono text-xs text-error">{node.exception.class}</div>
-          <p className="mt-2 text-sm text-text-bright">{node.exception.message}</p>
-          <div className="mt-3 space-y-2 border-t border-error/20 pt-3 font-mono text-xxs">
-            {node.exception.frames.map((frame, index) => <div key={`${frame.file}:${frame.line}:${index}`}><div className="text-text-bright">{formatFrameCall(frame)}</div><div className="text-text-faint">{frame.file}:{frame.line}</div></div>)}
-          </div>
-        </div>
-      )}
+      {node.exception && <ExceptionPreview exception={node.exception} />}
       {node.kind !== "run" && <PropertyList values={{ Started: formatDuration(node.offsetUs / 1_000), Duration: node.durationUs === null ? "Running" : formatDuration(node.durationUs / 1_000), Status: node.status }} />}
     </div>
   );
@@ -847,9 +840,6 @@ function nodeDurationMs(node: TraceNode, totalDuration: number, queueOffset: num
 }
 function escapeRegExp(value: string) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 function isAbort(reason: unknown) { return reason instanceof DOMException && reason.name === "AbortError"; }
-function formatFrameCall(frame: NonNullable<InspectorDto["exception"]>["frames"][number]) {
-  return `${frame.class ?? ""}${frame.type ?? ""}${frame.function}`;
-}
 function mergeRunUpdates(current: RunsPageDto["runs"], updates: RunsPageDto["runs"], statuses?: RunStatus[]) {
   const changed = new Map(updates.map((run) => [run.id, run]));
   return current.flatMap((run) => {
