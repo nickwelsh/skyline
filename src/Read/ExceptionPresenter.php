@@ -22,20 +22,25 @@ final readonly class ExceptionPresenter
         );
         $lines = preg_split('/\R/', (string) $attempt->exception_trace) ?: [];
         $parsed = array_values(array_filter(array_map($this->parse(...), $lines)));
+        $originFile = is_string($attempt->exception_file) && $attempt->exception_file !== ''
+            ? $attempt->exception_file
+            : null;
         $originCall = $parsed[0] ?? ['class' => null, 'type' => null, 'function' => 'throw'];
-        $origin = [
-            'rawFile' => (string) $attempt->exception_file,
+        $origin = $originFile === null ? [] : [[
+            'rawFile' => $originFile,
             'line' => $attempt->exception_line === null ? null : (int) $attempt->exception_line,
             'class' => $originCall['class'],
             'type' => $originCall['type'],
             'function' => $originCall['function'],
-        ];
+        ]];
+        $capturedFrames = [...$origin, ...$parsed];
         $frames = array_map(
             $this->frame(...),
-            array_slice([$origin, ...$parsed], 0, self::FRAME_LIMIT),
+            array_slice($capturedFrames, 0, self::FRAME_LIMIT),
         );
         $class = (string) $attempt->exception_class;
         $code = $attempt->exception_code === null ? null : (string) $attempt->exception_code;
+        $location = $originFile === null ? null : $frames[0];
 
         return [
             'class' => $class,
@@ -43,18 +48,14 @@ final readonly class ExceptionPresenter
             'messageTruncated' => $message['isTruncated'],
             'messageOriginalBytes' => $message['originalBytes'],
             'code' => $code,
-            'runtime' => [
-                'php' => PHP_VERSION,
-                'laravel' => app()->version(),
-            ],
-            'location' => [
-                'file' => $frames[0]['file'],
-                'line' => $frames[0]['line'],
-                'href' => $frames[0]['href'],
+            'location' => $location === null ? null : [
+                'file' => $location['file'],
+                'line' => $location['line'],
+                'href' => $location['href'],
             ],
             'frames' => $frames,
-            'framesTruncated' => count($parsed) + 1 > self::FRAME_LIMIT,
-            'markdown' => $this->markdown($class, $message['value'], $code, $jobName, $frames),
+            'framesTruncated' => count($capturedFrames) > self::FRAME_LIMIT,
+            'markdown' => $this->markdown($class, $message['value'], $code, $jobName, $attempt, $frames),
         ];
     }
 
@@ -84,7 +85,9 @@ final readonly class ExceptionPresenter
             'type' => $frame['type'],
             'function' => $frame['function'],
             'isVendor' => $vendor,
-            'href' => $this->editorLink->href($frame['rawFile'], $frame['line']),
+            'href' => is_file($frame['rawFile']) && is_readable($frame['rawFile'])
+                ? $this->editorLink->href($frame['rawFile'], $frame['line'])
+                : null,
             'snippet' => $vendor ? null : $this->snippet($frame['rawFile'], $frame['line']),
         ];
     }
@@ -170,20 +173,21 @@ final readonly class ExceptionPresenter
     }
 
     /** @param list<array<string, mixed>> $frames */
-    private function markdown(string $class, string $message, ?string $code, ?string $jobName, array $frames): string
+    private function markdown(string $class, string $message, ?string $code, ?string $jobName, object $attempt, array $frames): string
     {
         $lines = [
             "# {$class} - Job failed",
             '',
             $message,
-            '',
-            'PHP '.PHP_VERSION,
-            'Laravel '.app()->version(),
         ];
 
         if ($jobName !== null) {
+            $lines[] = '';
             $lines[] = 'Job '.$jobName;
         }
+
+        $lines[] = 'Run '.$attempt->run_id;
+        $lines[] = 'Attempt '.(int) $attempt->attempt_number;
 
         if ($code !== null && $code !== '') {
             $lines[] = 'Code '.$code;

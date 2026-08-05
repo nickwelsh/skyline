@@ -595,10 +595,91 @@ it('returns curated relative exception details without raw stack metadata', func
         ->and($response->json('node.exception.frames.1.isVendor'))->toBeTrue()
         ->and($response->json('node.exception.markdown'))->toContain('# RuntimeException - Job failed')
         ->toContain('## Stack Trace')
-        ->toContain('PHP '.PHP_VERSION)
-        ->toContain('Laravel '.app()->version())
+        ->toContain('Run '.$run->run_id)
+        ->toContain('Attempt '.(int) $attempt->attempt_number)
+        ->and($response->json('node.exception'))->not->toHaveKey('runtime')
         ->and($response->getContent())->not->toContain('/Users/')
         ->and($response->getContent())->not->toContain('exception.stacktrace');
+});
+
+it('keeps failed Attempt evidence distinct without inventing uncaptured metadata', function (): void {
+    seedReadRun(71, 'failed', true, 'App\\Jobs\\RetriedFailure');
+    $runId = 'run-71';
+    $startedAt = Nanoseconds::now();
+
+    foreach ([
+        [
+            'attempt_number' => 1,
+            'exception_class' => RuntimeException::class,
+            'exception_message' => 'First failure.',
+            'exception_code' => '41',
+            'exception_file' => '/srv/product/app/Jobs/RetriedFailure.php',
+            'exception_line' => 12,
+            'exception_trace' => "#0 /srv/product/app/Jobs/RetriedFailure.php(12): App\\Jobs\\RetriedFailure->firstAttempt(private-value)\n#1 /srv/product/vendor/laravel/framework/src/Illuminate/Queue/Worker.php(99): Illuminate\\Queue\\Worker->process()",
+        ],
+        [
+            'attempt_number' => 2,
+            'exception_class' => LogicException::class,
+            'exception_message' => 'Second failure.',
+            'exception_code' => null,
+            'exception_file' => '/srv/product/app/Jobs/RetriedFailure.php',
+            'exception_line' => 22,
+            'exception_trace' => '#0 /srv/product/app/Jobs/RetriedFailure.php(22): App\\Jobs\\RetriedFailure->secondAttempt()',
+        ],
+        [
+            'attempt_number' => 3,
+            'exception_class' => RuntimeException::class,
+            'exception_message' => 'Metadata unavailable.',
+            'exception_code' => null,
+            'exception_file' => null,
+            'exception_line' => null,
+            'exception_trace' => null,
+        ],
+    ] as $failure) {
+        DB::table('skyline_attempts')->insert([
+            'run_id' => $runId,
+            'status' => 'failed',
+            'started_at' => $startedAt + $failure['attempt_number'],
+            'finished_at' => $startedAt + $failure['attempt_number'] + 1,
+            'queue_time_ns' => null,
+            'queue_time_source' => null,
+            ...$failure,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    $first = $this->getJson("/skyline/api/runs/{$runId}/nodes/attempt_{$runId}_1")->assertOk();
+    $second = $this->getJson("/skyline/api/runs/{$runId}/nodes/attempt_{$runId}_2")->assertOk();
+    $unavailable = $this->getJson("/skyline/api/runs/{$runId}/nodes/attempt_{$runId}_3")
+        ->assertOk()
+        ->assertJsonPath('node.overview.runId', $runId)
+        ->assertJsonPath('node.overview.attemptNumber', 3)
+        ->assertJsonPath('node.exception.location', null)
+        ->assertJsonCount(0, 'node.exception.frames');
+
+    expect($first->json('node.exception'))
+        ->toMatchArray([
+            'class' => RuntimeException::class,
+            'message' => 'First failure.',
+            'code' => '41',
+            'location' => ['file' => 'app/Jobs/RetriedFailure.php', 'line' => 12, 'href' => null],
+        ])
+        ->not->toBe($second->json('node.exception'))
+        ->and($second->json('node.exception'))
+        ->toMatchArray([
+            'class' => LogicException::class,
+            'message' => 'Second failure.',
+            'location' => ['file' => 'app/Jobs/RetriedFailure.php', 'line' => 22, 'href' => null],
+        ])
+        ->and($first->json('node.exception.markdown'))
+        ->toContain('Run run-71')
+        ->toContain('Attempt 1')
+        ->and($unavailable->json('node.exception'))
+        ->not->toHaveKey('runtime')
+        ->and($unavailable->getContent())
+        ->not->toContain('/srv/product')
+        ->not->toContain('private-value');
 });
 
 it('enforces SQL, exception, frame, and metadata presentation bounds', function (): void {
