@@ -12,11 +12,18 @@
     "resources/js/trigger/TriggerInterface.tsx": "8af55d9573ca4e2b38b76251d4de012d3ddf3a299564eb2f045f50c4d335cedf",
     "resources/js/trigger/components/primitives/Badge.tsx": "e8d39c6210b32bc35e77e9e895a4ceaa8c8875b26d68416da636849021c7be6a",
     "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
+    "resources/js/trigger/components/primitives/Icon.tsx": "b2f1d6795d235d68b3946e2e5313e730a0dc46c1feb689b196e149ceeb224af0",
     "resources/js/trigger/components/primitives/InfoPanel.tsx": "dd9bda9df0717ca42e484d9e1aea0352fd403bd5051a442defc86e02518a572c",
+    "resources/js/trigger/components/primitives/Input.tsx": "dc9231eb95381c8fb0a4b857f24a790ad3a99668e1b5083ca993766ddb65cfe9",
     "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
+    "resources/js/trigger/components/primitives/ShortcutKey.tsx": "45bb2b8ba36d7b52514b40b1185fee56d07a5b4cd4243236f4c628881eb3abc6",
+    "resources/js/trigger/components/primitives/Slider.tsx": "e190c053986b34c7e1472e7f086e06dc047f8a8b36cc1109d757608194889d9a",
+    "resources/js/trigger/components/primitives/Spinner.tsx": "70b8a9fddf357735c96002152a2366e0fd05f52e564dcf2504173e71d7bf0187",
+    "resources/js/trigger/components/primitives/Switch.tsx": "d5394ec4ea561765345b72890c92e15cc4508183b69e6722fe738d08a04ea312",
     "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
     "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
+    "resources/js/trigger/hooks/useShortcutKeys.tsx": "24f52df218ca86c08f8d15730f4757b1a596821f503f9dd6ebb12edea22aa74e",
     "resources/js/trigger/primitives/TreeView/TreeView.tsx": "165ee440bf7183f74f166c52306b07dce269f2d535757cc69a93374fe7920856",
     "resources/js/trigger/primitives/TreeView/reducer.ts": "f47de2709b343a9cfdcab78e5c5b9c10f4dec672886859a56cc441e433b4f852",
     "resources/js/trigger/primitives/TreeView/utils.ts": "a3f916aa23fb59d88bdeab802bc57ec125f16f46c27e109744d48e9468296035",
@@ -255,6 +262,103 @@
       "source": "apps/webapp/app/utils/lerp.ts",
       "sha256": "7c73d632e97268f7bc0a30c0e5e4c6170db207c0124164596bc0f655c34c62ce",
       "target": "resources/js/trigger/lerp.ts",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Input.tsx",
+      "sha256": "2274ff25847ed8553a991f9ade8dbbd7f68172343a00e0edb2defe1333145793",
+      "target": "resources/js/trigger/components/primitives/Input.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Icon.tsx",
+      "sha256": "8b517bdde2ae2b850859955826134d48768ca7b624f04ea11b13e7715a5eaa48",
+      "target": "resources/js/trigger/components/primitives/Icon.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Spinner.tsx",
+      "sha256": "c22befe583f5b4541f31783763c0d0811f6ca14c3e137d867d98963e268aba97",
+      "target": "resources/js/trigger/components/primitives/Spinner.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/OperatingSystemProvider.tsx",
+      "sha256": "9fb0745f86d7f49f604cd0cfe722d5b6b7f251f95fa26d663b9e5c08f58a94db",
+      "target": "resources/js/trigger/components/primitives/OperatingSystemProvider.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ShortcutsProvider.tsx",
+      "sha256": "0630f1750faaf78edbe353d2be1f2a88b2cb11103ae57d77238fb632d20fd401",
+      "target": "resources/js/trigger/components/primitives/ShortcutsProvider.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ShortcutKey.tsx",
+      "sha256": "27171bcb4f85f6525224e906eab80265be65beda909b334d4b8da45bda4ee345",
+      "target": "resources/js/trigger/components/primitives/ShortcutKey.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only package-local asset, hook, and cn import paths and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Slider.tsx",
+      "sha256": "cfa0503b5c641cf67328e9f9c6fb9a10fe37fb3279fe2ee90f4cedf6486c7e84",
+      "target": "resources/js/trigger/components/primitives/Slider.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only the cn import path and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Switch.tsx",
+      "sha256": "a9b90292458dbfa9fa01f2b1b297f775e87680ac65ce7760a06e99932ebacd9a",
+      "target": "resources/js/trigger/components/primitives/Switch.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only package-local hook and cn import paths and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/hooks/useShortcutKeys.tsx",
+      "sha256": "27c93e779d13b6020f0a9605811a2ae9b642f3d812327cd19e02f902ec4f27b3",
+      "target": "resources/js/trigger/hooks/useShortcutKeys.tsx",
+      "mode": "adapted",
+      "modifications": "Changed only package-local provider import paths and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx",
+      "sha256": "82f402f461f3d22ea00fa6b2982cdc83a71ade4bf8dfaeebf5461c6c4e96d737",
+      "target": "resources/js/trigger/assets/icons/KeyboardDownIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardLeftIcon.tsx",
+      "sha256": "195e593b3c8df1507382f1ed32dc11fada16c8fd4a2fd78a80700422de80112d",
+      "target": "resources/js/trigger/assets/icons/KeyboardLeftIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardRightIcon.tsx",
+      "sha256": "d6519bc5d02794b673fbf3ebb71ec637325a302ec0939dbb593cf0ee56a26d32",
+      "target": "resources/js/trigger/assets/icons/KeyboardRightIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardUpIcon.tsx",
+      "sha256": "e0592a39680eaa41dc5ad6ae71caffc4b3b1ff331378048d625717daa596dab0",
+      "target": "resources/js/trigger/assets/icons/KeyboardUpIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardWindowsIcon.tsx",
+      "sha256": "b792fc5774135836102e3578b08f33b458a58a2a3837be1157e5886fc4e74a16",
+      "target": "resources/js/trigger/assets/icons/KeyboardWindowsIcon.tsx",
+      "mode": "exact"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardEnterIcon.tsx",
+      "sha256": "6f642acc31cda208bc81082a9e0e8abd4a7267584b43fe1ce05c355229be944e",
+      "target": "resources/js/trigger/assets/icons/KeyboardEnterIcon.tsx",
       "mode": "exact"
     }
   ]
