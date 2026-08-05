@@ -6,6 +6,13 @@ use Illuminate\Http\Request;
 
 final readonly class QueueTargetFilters
 {
+    private const TIME_RANGES = [
+        ['value' => 'all', 'label' => 'All time'],
+        ['value' => '1h', 'label' => 'Last hour'],
+        ['value' => '24h', 'label' => 'Last 24 hours'],
+        ['value' => '7d', 'label' => 'Last 7 days'],
+    ];
+
     /** @param list<string> $statuses */
     private function __construct(
         public ?string $connection,
@@ -53,6 +60,12 @@ final readonly class QueueTargetFilters
             'to' => Nanoseconds::toRfc3339($this->to),
             'status' => $this->statuses,
         ];
+    }
+
+    /** @return list<array{value: string, label: string}> */
+    public static function options(): array
+    {
+        return self::TIME_RANGES;
     }
 
     private static function optionalString(Request $request, string $key, int $max): ?string

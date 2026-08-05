@@ -49,7 +49,9 @@ it('filters Queue targets with server supplied URL options and explicit invalid 
         ->assertJsonPath('filters.search', 'bill')
         ->assertJsonPath('queueTargets.0.queue', 'billing');
 
-    expect($page->json('options.connections'))->toBe(['redis', 'sqs']);
+    expect($page->json('options.connections'))->toBe(['redis', 'sqs'])
+        ->and(collect($page->json('options.timeRanges'))->pluck('value')->all())
+        ->toBe(['all', '1h', '24h', '7d']);
 
     $this->getJson('/skyline/api/queues?connection=missing')
         ->assertStatus(422)
@@ -57,6 +59,23 @@ it('filters Queue targets with server supplied URL options and explicit invalid 
     $this->getJson('/skyline/api/queues?from=tomorrow')
         ->assertStatus(422)
         ->assertJsonPath('error.code', 'invalid_query');
+});
+
+it('treats SQL wildcard characters as literal Queue-target Run search text', function (): void {
+    seedQueueTargetRun('percent', 'completed', 'redis', 'billing', 2_000_000, job: 'App\\Jobs\\Bill%Invoice');
+    seedQueueTargetRun('underscore', 'completed', 'redis', 'billing', 2_000_000, job: 'App\\Jobs\\Bill_Invoice');
+    seedQueueTargetRun('plain', 'completed', 'redis', 'billing', 2_000_000, job: 'App\\Jobs\\BillXInvoice');
+    $id = 'queue_'.hash('sha256', "redis\0billing");
+
+    $this->getJson('/skyline/api/queues/'.$id.'?'.http_build_query(['search' => '%']))
+        ->assertOk()
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.name', 'App\\Jobs\\Bill%Invoice');
+
+    $this->getJson('/skyline/api/queues/'.$id.'?'.http_build_query(['search' => '_']))
+        ->assertOk()
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.name', 'App\\Jobs\\Bill_Invoice');
 });
 
 it('cursor-paginates Queue targets in stable destination order', function (): void {
@@ -153,6 +172,7 @@ function seedQueueTargetRun(
     ?string $queue,
     ?int $queueTimeNs,
     bool $confirmed = true,
+    ?string $job = null,
 ): void {
     $ordinal = crc32($suffix);
     $traceId = sprintf('%032x', $ordinal);
@@ -171,7 +191,7 @@ function seedQueueTargetRun(
     DB::table('skyline_runs')->insert([
         'run_id' => $runId,
         'trace_id' => $traceId,
-        'job_name' => 'App\\Jobs\\Job'.$suffix,
+        'job_name' => $job ?? 'App\\Jobs\\Job'.$suffix,
         'connection' => $connection,
         'queue' => $queue,
         'status' => $status,

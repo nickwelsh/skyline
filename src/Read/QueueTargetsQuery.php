@@ -28,7 +28,7 @@ final readonly class QueueTargetsQuery
         $connections = $this->connections();
         $this->validateConnection($filters, $connections);
         $rows = $this->applyTime($this->baseQuery(), $filters)->get();
-        $groups = $rows->groupBy(fn (object $run): string => $run->connection."\0".$run->queue)
+        $groups = $rows->groupBy(fn (object $run): string => QueueTargetIdentity::fromRow($run)->groupKey())
             ->when($filters->connection !== null, fn (Collection $groups) => $groups->filter(
                 fn (Collection $runs) => $runs->first()->connection === $filters->connection,
             ))
@@ -41,7 +41,8 @@ final readonly class QueueTargetsQuery
                     return str_contains(strtolower($run->connection), $search)
                         || str_contains(strtolower($run->queue), $search);
                 });
-            })->sortKeys()->values();
+            })->sort(fn (Collection $left, Collection $right): int => QueueTargetIdentity::fromRow($left->first())
+            ->compare(QueueTargetIdentity::fromRow($right->first())))->values();
 
         [$groups, $previous, $next] = $this->targetPage($groups, $request->query('cursor'));
 
@@ -50,7 +51,7 @@ final readonly class QueueTargetsQuery
             'queueTargets' => $groups->map(fn (Collection $runs): array => $this->summary($runs))->all(),
             'pagination' => ['previous' => $previous, 'next' => $next],
             'filters' => $filters->toArray(),
-            'options' => ['connections' => $connections],
+            'options' => ['connections' => $connections, 'timeRanges' => QueueTargetFilters::options()],
             'hasAnyQueueTargets' => $this->baseQuery()->exists(),
         ];
     }
@@ -78,7 +79,7 @@ final readonly class QueueTargetsQuery
             'runs' => $this->runSummaries($rows, $observedAt),
             'pagination' => ['previous' => $previous, 'next' => $next],
             'filters' => $filters->toArray(),
-            'options' => ['statuses' => self::STATUSES],
+            'options' => ['statuses' => self::STATUSES, 'timeRanges' => QueueTargetFilters::options()],
             'hasAnyRuns' => (clone $targetQuery)->exists(),
             'queueCapabilities' => [
                 'pause' => false,
@@ -116,11 +117,10 @@ final readonly class QueueTargetsQuery
         return $query
             ->when($filters->statuses !== [], fn (Builder $query) => $query->whereIn('skyline_runs.status', $filters->statuses))
             ->when($filters->search !== null, function (Builder $query) use ($filters): void {
-                $search = addcslashes($filters->search, '%_');
-                $query->where(function (Builder $query) use ($search, $filters): void {
-                    $query->whereRaw('LOWER(skyline_runs.job_name) LIKE ?', ['%'.strtolower($search).'%'])
-                        ->orWhere('skyline_runs.run_id', $filters->search)
-                        ->orWhere('skyline_runs.run_id', 'like', $search.'%');
+                $query->where(function (Builder $query) use ($filters): void {
+                    PortableLike::whereContains($query, 'LOWER(skyline_runs.job_name)', strtolower($filters->search))
+                        ->orWhere('skyline_runs.run_id', $filters->search);
+                    PortableLike::orWherePrefix($query, 'skyline_runs.run_id', $filters->search);
                 });
             });
     }
@@ -162,15 +162,15 @@ final readonly class QueueTargetsQuery
             }
             $decoded = $this->cursors->decode($cursor, 'queue-targets');
             $direction = $decoded['direction'] ?? null;
-            $boundary = $decoded['key'] ?? null;
-            if (! in_array($direction, ['next', 'previous'], true) || ! is_string($boundary)) {
+            $boundary = QueueTargetIdentity::fromCursor($decoded);
+            if (! in_array($direction, ['next', 'previous'], true) || $boundary === null) {
                 throw new InvalidQuery('The cursor is invalid.');
             }
             $groups = $groups->filter(function (Collection $runs) use ($direction, $boundary): bool {
                 $first = $runs->first();
-                $key = $first->connection."\0".$first->queue;
+                $identity = QueueTargetIdentity::fromRow($first);
 
-                return $direction === 'next' ? $key > $boundary : $key < $boundary;
+                return $direction === 'next' ? $identity->compare($boundary) > 0 : $identity->compare($boundary) < 0;
             });
             if ($direction === 'previous') {
                 $groups = $groups->reverse()->values();
@@ -183,7 +183,8 @@ final readonly class QueueTargetsQuery
         }
         $first = $page->first()?->first();
         $last = $page->last()?->first();
-        $previous = $first !== null && $groups->contains(fn (Collection $runs) => ($runs->first()->connection."\0".$runs->first()->queue) < ($first->connection."\0".$first->queue))
+        $firstIdentity = $first === null ? null : QueueTargetIdentity::fromRow($first);
+        $previous = $firstIdentity !== null && $groups->contains(fn (Collection $runs) => QueueTargetIdentity::fromRow($runs->first())->compare($firstIdentity) < 0)
             ? $this->targetCursor('previous', $first)
             : ($cursor !== null && $direction === 'next' ? $this->targetCursor('previous', $first) : null);
         $next = $last !== null && ($groups->count() > self::PAGE_SIZE || ($cursor !== null && $direction === 'previous'))
@@ -197,7 +198,7 @@ final readonly class QueueTargetsQuery
     {
         return $this->cursors->encode('queue-targets', [
             'direction' => $direction,
-            'key' => $row->connection."\0".$row->queue,
+            ...QueueTargetIdentity::fromRow($row)->cursor(),
         ]);
     }
 
