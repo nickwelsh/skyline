@@ -16,6 +16,7 @@
     "resources/js/trigger/components/primitives/Paragraph.tsx": "3671d90e41af068805a47968830e1b71f87d8b713aa390e77680a58e6d96be3a",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
     "resources/js/trigger/components/primitives/Resizable.tsx": "998d2529c8c0d8cee0f973583c46d9a8becfade2ca71e240b4290ba57752c4d7",
+    "resources/js/trigger/components/primitives/SearchInput.tsx": "5f0259884d97ec6ea0fe6b260634a856e91e79241f65a7635f17c8c310b54d3d",
     "resources/js/trigger/components/primitives/ShortcutKey.tsx": "45bb2b8ba36d7b52514b40b1185fee56d07a5b4cd4243236f4c628881eb3abc6",
     "resources/js/trigger/components/primitives/Slider.tsx": "e190c053986b34c7e1472e7f086e06dc047f8a8b36cc1109d757608194889d9a",
     "resources/js/trigger/components/primitives/Spinner.tsx": "70b8a9fddf357735c96002152a2366e0fd05f52e564dcf2504173e71d7bf0187",
@@ -23,6 +24,7 @@
     "resources/js/trigger/components/primitives/Timeline.tsx": "b187055eb17bfca5ab001ffc808d0fcd7b6500f497e80afa0d1f2f8498580649",
     "resources/js/trigger/hooks/useDebounce.ts": "68711f4aeafdc0864da1324f28b29f4ecaf211c6f165b202882fd8e3a8b1f821",
     "resources/js/trigger/hooks/useInitialDimensions.ts": "86adc2459850304f4953a530084ed9110226cf6b3b334589c5466de97f513a16",
+    "resources/js/trigger/hooks/useSearchParam.ts": "61c261a11ca6837cbbf675b843bad104f7a3268e68e86c9a16da7465f0fcd27d",
     "resources/js/trigger/hooks/useShortcutKeys.tsx": "24f52df218ca86c08f8d15730f4757b1a596821f503f9dd6ebb12edea22aa74e",
     "resources/js/trigger/primitives/TreeView/TreeView.tsx": "165ee440bf7183f74f166c52306b07dce269f2d535757cc69a93374fe7920856",
     "resources/js/trigger/primitives/TreeView/reducer.ts": "f47de2709b343a9cfdcab78e5c5b9c10f4dec672886859a56cc441e433b4f852",
@@ -303,6 +305,20 @@
       "target": "resources/js/trigger/components/primitives/ShortcutKey.tsx",
       "mode": "adapted",
       "modifications": "Changed only package-local asset, hook, and cn import paths and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/SearchInput.tsx",
+      "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338",
+      "target": "resources/js/trigger/components/primitives/SearchInput.tsx",
+      "mode": "adapted",
+      "modifications": "Changed package-local import paths, composed the existing Tooltip primitives in place of the omitted SimpleTooltip helper, and added provenance."
+    },
+    {
+      "source": "apps/webapp/app/hooks/useSearchParam.ts",
+      "sha256": "94048319d6058392f1cfca28a247fb66d652728faad8bdb97b59d5fa76537741",
+      "target": "resources/js/trigger/hooks/useSearchParam.ts",
+      "mode": "adapted",
+      "modifications": "Replaced Remix navigation and optimistic location with browser history replacement and popstate tracking; retained the search-param API."
     },
     {
       "source": "apps/webapp/app/components/primitives/Slider.tsx",
