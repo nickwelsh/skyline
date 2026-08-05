@@ -151,6 +151,15 @@ test("production adapter drives real endpoint state, stable node URLs, and lazy 
 
   await expect(page.getByRole("tabpanel")).toContainText("invoice-42");
   expect(requests.some((request) => request.endsWith("/nodes/span_live_sql"))).toBe(true);
+
+  await page.getByRole("tab", { name: "Metadata" }).click();
+  const metadataPreview = page.getByRole("region", { name: "Metadata preview", exact: true });
+  await expect(metadataPreview.getByRole("tree", { name: "Metadata JSON tree" })).toContainText("db.system.name");
+  await metadataPreview.getByRole("group", { name: "Metadata display" }).getByRole("button", { name: "Text" }).click();
+  await expect(metadataPreview.locator("pre")).toContainText('"db.system.name": "mysql"');
+  expect(await metadataPreview.locator("pre span").count()).toBeGreaterThan(3);
+  await metadataPreview.getByRole("button", { name: "Copy Metadata" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain('"db.system.name": "mysql"');
 });
 
 test("production adapter renders authorization failures", async ({ page }) => {

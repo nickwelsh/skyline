@@ -748,7 +748,7 @@ function Inspector({ node, run, onClose }: { node: InspectorDto; run: TracePageD
           {tab === "Overview" && <Overview node={node} run={run} />}
           {tab === "Detail" && <Detail node={node} run={run} />}
           {tab === "Context" && <PropertyList values={{ ...node.overview, runId: node.runId, nodeId: node.id, parentId: node.parentId ?? "—", kind: node.kind }} />}
-          {tab === "Metadata" && <pre className="overflow-auto rounded border border-grid-bright bg-background-deep p-3 font-mono text-xs leading-5 text-text-bright">{JSON.stringify(node.metadata.value, null, 2)}</pre>}
+          {tab === "Metadata" && <JsonCapturePreview label="Metadata" value={node.metadata.value} truncated={node.metadata.isTruncated} />}
         </div>
       </div>
     </aside>
