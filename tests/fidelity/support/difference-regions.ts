@@ -92,12 +92,10 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
 }
 
 export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition): Promise<PresenterExtensionObservation> {
-  const [triggerPresenter, skylinePresenter, triggerAnchor, skylineAnchor] = await Promise.all([
-    observeElement(trigger, definition.id, definition.triggerSelector, "Trigger presenter"),
-    observeElement(skyline, definition.id, definition.skylineSelector, "Skyline presenter"),
-    observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor"),
-    observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor"),
-  ]);
+  const triggerPresenter = await observeElement(trigger, definition.id, definition.triggerSelector, "Trigger presenter");
+  const triggerAnchor = await observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor");
+  const skylinePresenter = await observeElement(skyline, definition.id, definition.skylineSelector, "Skyline presenter");
+  const skylineAnchor = await observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor");
   validatePairedAnchorIdentity(definition, triggerAnchor, skylineAnchor);
   if (triggerAnchor.accessibilitySha256 !== skylineAnchor.accessibilitySha256) throw new Error(`Allowed region ${definition.id} anchor changed accessibility.`);
   if (skylinePresenter.accessibleRole !== definition.skylineAccessibleRole || skylinePresenter.accessibleName !== definition.skylineAccessibleName) throw new Error(`Allowed region ${definition.id} changed Skyline accessible identity.`);
