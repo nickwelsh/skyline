@@ -125,9 +125,9 @@ export function QueueRunStatusFilter({ statuses }: { statuses: RunStatus[] }) {
 }
 
 function periodLabel(option: QueueTimeRangeOption) {
-  if (option.value === "1h") return "1hr";
-  if (option.value === "24h") return "24hr";
-  if (option.value === "7d") return "7d";
+  if (option.value === "1h") return "1 hr";
+  if (option.value === "24h") return "24 hours";
+  if (option.value === "7d") return "7 days";
   return option.label;
 }
 

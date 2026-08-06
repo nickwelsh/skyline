@@ -23,11 +23,11 @@ describe("QueuePeriodFilter", () => {
       </MemoryRouter>,
     ));
 
-    expect(container.textContent).toContain("Period:1hr");
+    expect(container.textContent).toContain("Period:1 hr");
     const anchor = container.querySelector<HTMLElement>('[data-skyline-anchor="queue-period-filter"]')!;
     expect(anchor.getAttribute("role")).toBe("combobox");
     expect(anchor.getAttribute("aria-haspopup")).toBe("listbox");
-    expect(anchor.getAttribute("aria-label")).toBe("Period: 1hr");
+    expect(anchor.getAttribute("aria-label")).toBe("Period: 1 hr");
     const chrome = anchor.querySelector<HTMLElement>(".flex.items-center.transition")!;
     expect(chrome.className).toContain("bg-secondary");
     expect(chrome.className).toContain("pl-1.5");
@@ -41,7 +41,7 @@ describe("QueuePeriodFilter", () => {
     const option = document.querySelector<HTMLElement>('[role="option"][data-value="24h"]')!;
     flushSync(() => option.click());
 
-    expect(container.textContent).toContain("Period:24hr");
+    expect(container.textContent).toContain("Period:24 hours");
     const query = new URLSearchParams(container.querySelector("output")!.textContent ?? "");
     expect(query.get("range")).toBe("24h");
     expect(query.has("cursor")).toBe(false);
@@ -50,9 +50,9 @@ describe("QueuePeriodFilter", () => {
     expect(query.get("to")).toBe("2026-08-05T12:00:00.000Z");
 
     flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Back"]')!.click());
-    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("1hr");
+    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("1 hr");
     flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Forward"]')!.click());
-    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("24hr");
+    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("24 hours");
 
     flushSync(() => root.unmount());
   });

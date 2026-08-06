@@ -56,10 +56,10 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).not.toHaveURL(/search=/);
   await queueSearch.press("Escape");
   await expect(queueSearch).not.toBeFocused();
-  const period = page.getByRole("combobox", { name: "Period: 1hr" });
+  const period = page.getByRole("combobox", { name: "Period: 1 hr" });
   await period.focus();
   await period.press("ArrowDown");
-  await page.getByRole("option", { name: "24hr" }).click();
+  await page.getByRole("option", { name: "24 hours" }).click();
   await expect(page).toHaveURL(/from=/);
   await expect(page).toHaveURL(/to=/);
 
@@ -115,21 +115,21 @@ test("Queue Period Select preserves keyboard and browser history semantics", asy
   await routeQueues(page);
   await page.goto(`/skyline/queues/${queueId}`);
 
-  const period = page.getByRole("combobox", { name: "Period: 1hr" });
+  const period = page.getByRole("combobox", { name: "Period: 1 hr" });
   await period.focus();
   await period.press("ArrowDown");
-  const option = page.getByRole("option", { name: "24hr" });
+  const option = page.getByRole("option", { name: "24 hours" });
   await expect(option).toBeVisible();
   await option.press("Enter");
   await expect(page).toHaveURL(/range=24h/);
-  await expect(page.getByRole("combobox", { name: "Period: 24hr" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Period: 24 hours" })).toBeVisible();
 
   await page.goBack();
-  await expect(page.getByRole("combobox", { name: "Period: 1hr" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Period: 1 hr" })).toBeVisible();
   await page.goForward();
-  await expect(page.getByRole("combobox", { name: "Period: 24hr" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Period: 24 hours" })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("combobox", { name: "Period: 24hr" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Period: 24 hours" })).toBeVisible();
 });
 
 test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found, idle, busy, and insufficient samples", async ({ page }) => {
