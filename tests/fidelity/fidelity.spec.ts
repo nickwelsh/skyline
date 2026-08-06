@@ -47,7 +47,7 @@ for (const capture of captures) {
       });
       await page.clock.runFor(10);
     }
-    await Promise.all([exposeOwnedState(page, scenario), exposeOwnedState(reference, scenario)]);
+    await Promise.all([exposeOwnedState(page, scenario, "skyline"), exposeOwnedState(reference, scenario, "trigger")]);
     await waitForDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
     await Promise.all([applyLiveSystemChange(page, capture), applyLiveSystemChange(reference, capture)]);
     await Promise.all([settleCapture(page), settleCapture(reference)]);

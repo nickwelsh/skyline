@@ -21,7 +21,7 @@ export async function seedOwnedState(page: Page, scenario: FidelityScenario, bas
   }
 }
 
-export async function exposeOwnedState(page: Page, scenario: FidelityScenario, options: { expandException?: boolean } = {}) {
+export async function exposeOwnedState(page: Page, scenario: FidelityScenario, application: "skyline" | "trigger", options: { expandException?: boolean } = {}) {
   if (scenario.id === "shell-appearance") await page.getByRole("button", { name: "Appearance" }).click();
   if (scenario.id === "shell-shortcuts-dialog") {
     await page.getByRole("button", { name: "Help & Feedback" }).click();
@@ -33,21 +33,32 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario, o
     await page.getByText("Customize sidebar", { exact: true }).click();
   }
   if (scenario.id === "shell-storage-warning") await page.getByRole("button", { name: "Collapse side menu" }).click();
-  if (scenario.id === "errors-stack-expansion") await page.getByRole("button", { name: /vendor frame/i }).first().click();
+  if (scenario.id === "errors-stack-expansion" && application === "skyline") {
+    const disclosure = page.getByRole("button", { name: "Show 2 frames", exact: true });
+    const count = await disclosure.count();
+    if (count !== 1) throw new Error(`Stack expansion disclosure must match exactly once; observed ${count}.`);
+    await disclosure.waitFor({ state: "visible" });
+    if (!await disclosure.isEnabled()) throw new Error("Stack expansion disclosure must be enabled.");
+    const controlledId = await disclosure.getAttribute("aria-controls");
+    if (!controlledId) throw new Error("Stack expansion disclosure must control the trace.");
+    await disclosure.click();
+    if (await disclosure.getAttribute("aria-expanded") !== "true") throw new Error("Stack expansion disclosure must be expanded.");
+    await page.locator(`[id=${JSON.stringify(controlledId)}]`).waitFor({ state: "visible" });
+  }
   if (scenario.id === "runs-inspectors" || scenario.id.startsWith("runs-exception")) {
     const attempt = scenario.id === "runs-exception-retry" ? 2 : 1;
     await page.getByRole("treeitem", { name: new RegExp(`Attempt ${attempt}`) }).first().click();
   }
   if (scenario.surface === "runs" && isNw223State(scenario.state)) {
     await page.getByRole("treeitem", { name: /(?:SQL query|Database transaction|Cache operation|Redis command)/ }).first().click();
-    if (new URL(page.url()).pathname.startsWith("/skyline/")) {
+    if (application === "skyline") {
       await page.getByRole("tab", { name: "Detail", exact: true }).click();
       if (scenario.state === "inspectors-sql-applied") await page.getByRole("tab", { name: "With bindings" }).click();
       if (scenario.state === "inspectors-sql-result") await page.getByRole("tab", { name: "Tree" }).click();
     }
   }
   if (scenario.id === "runs-exception-expanded" && options.expandException !== false) {
-    if (new URL(page.url()).pathname.startsWith("/skyline/")) {
+    if (application === "skyline") {
       await page.getByRole("button", { name: "Expand exception stack trace" }).click();
     } else {
       const code = page.locator(".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50 > [translate='no']");
@@ -65,7 +76,7 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario, o
     await page.getByRole("button", { name: "Apply" }).click();
   }
   if (scenario.id === "queues-filtering") await page.getByLabel("Connection").selectOption({ index: 1 });
-  if (scenario.id === "queues-paginated-runs" && new URL(page.url()).pathname.startsWith("/skyline/")) {
+  if (scenario.id === "queues-paginated-runs" && application === "skyline") {
     const recordedRuns = page.locator("[data-skyline-extension='queue-recorded-runs']");
     await recordedRuns.waitFor();
     const table = recordedRuns.getByRole("table");

@@ -8,7 +8,7 @@ test("Logs owned filter state uses source Tasks and Run ID controls", async ({ p
   const installed = await installSkylineFixture(page, scenario);
   await page.goto(scenarioPath(scenario, installed.catalog));
 
-  await exposeOwnedState(page, scenario);
+  await exposeOwnedState(page, scenario, "skyline");
 
   const url = new URL(page.url());
   expect(url.searchParams.get("jobType")).toBe(fixture.values.jobType);
@@ -20,7 +20,7 @@ test("Queue paginated-runs owned state exposes the recorded Runs table", async (
   const installed = await installSkylineFixture(page, scenario);
   await page.goto(scenarioPath(scenario, installed.catalog));
 
-  await exposeOwnedState(page, scenario);
+  await exposeOwnedState(page, scenario, "skyline");
 
   const recordedRuns = page.getByRole("region", { name: "Recorded runs" });
   await expect(recordedRuns.getByRole("table")).toBeVisible();

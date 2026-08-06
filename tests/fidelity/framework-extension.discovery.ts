@@ -49,8 +49,8 @@ for (const capture of captures) {
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
       const state = scenario.id === "errors-stack-expansion" ? "stack-expansion" : scenario.state;
       await Promise.all([
-        step(`state:skyline-${state}`, () => exposeOwnedState(skyline, scenario)),
-        step(`state:trigger-${state}`, () => exposeOwnedState(trigger, scenario)),
+        step(`state:skyline-${state}`, () => exposeOwnedState(skyline, scenario, "skyline")),
+        step(`state:trigger-${state}`, () => exposeOwnedState(trigger, scenario, "trigger")),
       ]);
       await Promise.all([applyLiveSystemChange(skyline, capture), applyLiveSystemChange(trigger, capture)]);
       await Promise.all([

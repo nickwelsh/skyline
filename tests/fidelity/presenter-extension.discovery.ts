@@ -77,8 +77,8 @@ for (const capture of captures) {
       const fixture = await installSkylineFixture(skyline, scenario);
       await Promise.all([skyline.goto(scenarioPath(scenario, fixture.catalog)), trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)]);
       await trigger.locator("html[data-oracle-ready='true']").waitFor();
-      await exposeOwnedState(skyline, scenario, { expandException: false });
-      await exposeOwnedState(trigger, scenario, { expandException: false });
+      await exposeOwnedState(skyline, scenario, "skyline", { expandException: false });
+      await exposeOwnedState(trigger, scenario, "trigger", { expandException: false });
       await trigger.locator(captureDefinition.triggerSelector).waitFor();
       await skyline.locator(captureDefinition.skylineSelector).waitFor();
       await applyLiveSystemChange(skyline, capture);
@@ -116,8 +116,8 @@ async function proveExpandedInteraction(browser: Browser, capture: string, scena
     const fixture = await installSkylineFixture(skyline, scenario);
     await Promise.all([skyline.goto(scenarioPath(scenario, fixture.catalog)), trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)]);
     await trigger.locator("html[data-oracle-ready='true']").waitFor();
-    await diagnosticStep(capture, "interaction:skyline-open", () => exposeOwnedState(skyline, scenario));
-    await diagnosticStep(capture, "interaction:trigger-open", () => exposeOwnedState(trigger, scenario));
+    await diagnosticStep(capture, "interaction:skyline-open", () => exposeOwnedState(skyline, scenario, "skyline"));
+    await diagnosticStep(capture, "interaction:trigger-open", () => exposeOwnedState(trigger, scenario, "trigger"));
     const triggerDialog = trigger.getByRole("dialog");
     const skylineDialog = skyline.getByRole("dialog");
     await diagnosticStep(capture, "interaction:trigger-visible", () => expect(triggerDialog).toBeVisible({ timeout: 2_000 }));
