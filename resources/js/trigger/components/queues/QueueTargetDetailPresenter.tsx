@@ -20,7 +20,7 @@ import { QueuePeriodFilter, QueueRunStatusFilter, type QueueTimeRangeOption } fr
 import type { PresentedQueueTarget } from "./QueueTargetsPresenter";
 
 type ActivityPoint = { timestamp: string; recordedRuns: number; recordedRunCounts: Record<RunStatus, number> };
-type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number; p95Us: number; maximumUs: number };
+type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null };
 
 export type QueueTargetDetailPresentation = {
   generatedAt: string;

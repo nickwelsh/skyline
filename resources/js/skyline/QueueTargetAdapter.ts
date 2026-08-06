@@ -50,16 +50,16 @@ export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPres
       queued: target.recordedRunCounts.queued,
       running: target.recordedRunCounts.running,
       limit: null,
-      limitedBy: "Environment",
+      limitedBy: null,
       health: queueHealth(target.recordedRunCounts),
-      delayP95: formatDuration(target.queueTime.p95Us),
-      backlog: [target.recordedRunCounts.queued],
+      delayP95: formatWaitUs(target.queueTime.p95Us),
+      backlog: [],
       recordedRuns: target.recordedRunCount.toLocaleString(),
       recordedRunCounts: target.recordedRunCounts,
       queueTimeSampleCount: target.queueTime.sampleCount,
-      medianQueueTime: formatDuration(target.queueTime.medianUs),
-      p95QueueTime: formatDuration(target.queueTime.p95Us),
-      maximumQueueTime: formatDuration(target.queueTime.maximumUs),
+      medianQueueTime: formatWaitUs(target.queueTime.medianUs),
+      p95QueueTime: formatWaitUs(target.queueTime.p95Us),
+      maximumQueueTime: formatWaitUs(target.queueTime.maximumUs),
       firstObservedAt: target.firstObservedAt,
       lastObservedAt: target.lastObservedAt,
     })),
@@ -91,14 +91,10 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
       queued: page.queueTarget.recordedRunCounts.queued,
       peakQueued: Math.max(0, ...page.series.activity.map((point) => point.recordedRunCounts.queued)),
       oldestWait: "0",
-      worstWait: formatDuration(Math.max(0, ...page.series.queueTime.map((point) => point.maximumUs ?? 0))),
+      worstWait: formatWaitUs(Math.max(0, ...page.series.queueTime.map((point) => point.maximumUs ?? 0))),
     },
     activity: page.series.activity,
-    queueTime: page.series.queueTime.filter((point): point is typeof point & {
-      medianUs: number;
-      p95Us: number;
-      maximumUs: number;
-    } => point.medianUs !== null && point.p95Us !== null && point.maximumUs !== null),
+    queueTime: page.series.queueTime,
     runs: page.runs.map((run): PresentedRun => ({
       id: run.id,
       path: `/runs/${encodeURIComponent(run.id)}`,
@@ -124,6 +120,15 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
 
 function busyCount(counts: Record<RunStatus, number>) {
   return counts.queued + counts.running + counts.retrying;
+}
+
+function formatWaitUs(microseconds: number | null): string {
+  if (microseconds === null) return "–";
+  const milliseconds = microseconds / 1_000;
+  if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
+  if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(1)}s`;
+  if (milliseconds < 3_600_000) return `${(milliseconds / 60_000).toFixed(1)}m`;
+  return `${(milliseconds / 3_600_000).toFixed(1)}h`;
 }
 
 function queueHealth(counts: Record<RunStatus, number>): "Backlogged" | "Active" | "Idle" {

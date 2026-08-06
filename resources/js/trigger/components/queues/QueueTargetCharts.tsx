@@ -30,7 +30,7 @@ export function QueueTargetCharts({
   recordedRuns,
 }: {
   activity: Array<Point & { recordedRuns: number; recordedRunCounts: Record<RunStatus, number> }>;
-  queueTime: Array<Point & { sampleCount: number; medianUs: number; p95Us: number; maximumUs: number }>;
+  queueTime: Array<Point & { sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null }>;
   recordedRuns?: ReactNode;
 }) {
   const running = activity.map((point) => point.recordedRunCounts.running);
@@ -43,7 +43,7 @@ export function QueueTargetCharts({
         <MetricChartCard title="Concurrency" className="aspect-[2/1]" showLegend points={activity.map((point, index) => ({ timestamp: point.timestamp, limit: null, running: running[index] }))} series={[{ key: "limit", color: "var(--color-queues-chart-ref)", label: "Limit" }, { key: "running", color: "var(--color-queues-chart)", label: "Running" }]} />
         <MetricChartCard title="Queue depth" className="aspect-[2/1]" points={activity.map((point, index) => ({ timestamp: point.timestamp, queued: queued[index] }))} series={[{ key: "queued", color: "var(--color-queues-chart)", label: "Queued" }]} />
         <MetricChartCard title="Throughput" className="aspect-[2/1]" showLegend extraLegend={[{ color: "var(--color-warning)", label: "Falling behind" }]} points={activity.map((point, index) => ({ timestamp: point.timestamp, enqueued: enqueued[index], started: started[index] }))} series={[{ key: "enqueued", color: "var(--color-queues-chart-ref)", label: "Enqueued" }, { key: "started", color: "var(--color-queues-chart)", label: "Started" }]} warningOverlay={{ series: "started", below: "enqueued" }} />
-        <MetricChartCard title="Scheduling delay" className="aspect-[2/1]" showLegend points={queueTime.map((point) => ({ timestamp: point.timestamp, p50: point.medianUs / 1_000, p95: point.p95Us / 1_000, p99: point.maximumUs / 1_000 }))} series={[{ key: "p50", color: "#22D3EE", label: "p50" }, { key: "p95", color: "#F59E0B", label: "p95" }, { key: "p99", color: "#EF4444", label: "p99" }]} valueFormat={formatWaitMs} />
+        <MetricChartCard title="Scheduling delay" className="aspect-[2/1]" showLegend points={queueTime.map((point) => ({ timestamp: point.timestamp, p50: waitPoint(point.medianUs, point.sampleCount), p95: waitPoint(point.p95Us, point.sampleCount), p99: waitPoint(point.maximumUs, point.sampleCount) }))} series={[{ key: "p50", color: "#22D3EE", label: "p50" }, { key: "p95", color: "#F59E0B", label: "p95" }, { key: "p99", color: "#EF4444", label: "p99" }]} valueFormat={formatWaitMs} />
         {recordedRuns ?? <MetricChartCard title="Throttled" className="h-52 sm:col-span-2" points={[]} series={[]} />}
       </section>
     </ChartSyncProvider>
@@ -85,5 +85,10 @@ export function MetricChartCard({
 function formatWaitMs(value: number) {
   if (value < 1_000) return `${Math.round(value)}ms`;
   if (value < 60_000) return `${(value / 1_000).toFixed(1)}s`;
-  return `${(value / 60_000).toFixed(1)}m`;
+  if (value < 3_600_000) return `${(value / 60_000).toFixed(1)}m`;
+  return `${(value / 3_600_000).toFixed(1)}h`;
+}
+
+function waitPoint(microseconds: number | null, sampleCount: number) {
+  return sampleCount > 0 && microseconds !== null ? microseconds / 1_000 : null;
 }

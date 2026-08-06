@@ -31,7 +31,7 @@ export type PresentedQueueTarget = {
   queued: number;
   running: number;
   limit: number | null;
-  limitedBy: "Environment";
+  limitedBy: "Environment" | null;
   health: "Backlogged" | "Active" | "Idle";
   delayP95: string;
   backlog: number[];
@@ -113,11 +113,11 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
             </TableCell>
             <MetricCell target={target} value={target.queued} />
             <MetricCell target={target} value={target.running} bright={target.running > 0} />
-            <MetricCell target={target} value={target.limit ?? "—"} />
-            <MetricCell target={target} value={target.limitedBy} />
+            <MetricCell target={target} value={target.limit ?? "–"} />
+            <MetricCell target={target} value={target.limitedBy ?? "–"} />
             <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} /></TableCell>
             <MetricCell target={target} value={target.queueTimeSampleCount > 0 ? target.delayP95 : "–"} bright={target.queueTimeSampleCount > 0} />
-            <TableCell to={target.path} alignment="right"><span className="sr-only">Backlog {target.queued}</span><BacklogSparkline values={target.backlog} /></TableCell>
+            <TableCell to={target.path} alignment="right"><BacklogSparkline values={target.backlog} /></TableCell>
             <TableCell />
           </TableRow>
         ))}
@@ -138,6 +138,7 @@ function QueueHealthBadge({ health }: { health: PresentedQueueTarget["health"] }
 }
 
 function BacklogSparkline({ values }: { values: number[] }) {
+  if (values.length === 0) return <span className="text-text-dimmed">–</span>;
   const maximum = Math.max(...values, 1);
   const points = values.map((value, index) => `${values.length === 1 ? 67 : index / (values.length - 1) * 134},${22 - value / maximum * 18}`).join(" ");
   return (

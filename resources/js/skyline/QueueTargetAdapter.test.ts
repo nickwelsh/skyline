@@ -28,10 +28,10 @@ describe("QueueTargetAdapter", () => {
       queued: 1,
       running: 1,
       limit: null,
-      limitedBy: "Environment",
+      limitedBy: null,
       health: "Backlogged",
-      delayP95: "4.70ms",
-      backlog: [1],
+      delayP95: "5ms",
+      backlog: [],
       recordedRuns: "3",
     }));
     expect(route.connectionOptions).toEqual(["redis", "sqs"]);
@@ -58,10 +58,11 @@ describe("QueueTargetAdapter", () => {
       queued: 1,
       peakQueued: 0,
       oldestWait: "0",
-      worstWait: "2.00ms",
+      worstWait: "2ms",
     });
     expect(route.activity[0]).toEqual(expect.objectContaining({ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1 }));
     expect(route.queueTime[0]).toEqual(expect.objectContaining({ medianUs: 2000, p95Us: 2000 }));
+    expect(route.queueTime[1]).toEqual(expect.objectContaining({ sampleCount: 0, medianUs: null, p95Us: null, maximumUs: null }));
     expect(route.runs[0]).toEqual(expect.objectContaining({
       path: "/runs/run_1",
       jobType: "App\\Jobs\\Invoice",
@@ -105,7 +106,10 @@ function detailPage(): QueueTargetDetailDto {
         recordedRuns: 1,
         recordedRunCounts: { queued: 0, running: 0, retrying: 0, completed: 1, failed: 0 },
       }],
-      queueTime: [{ timestamp: "2026-08-05T12:00:00.000000000Z", sampleCount: 1, medianUs: 2000, p95Us: 2000, maximumUs: 2000 }],
+      queueTime: [
+        { timestamp: "2026-08-05T12:00:00.000000000Z", sampleCount: 1, medianUs: 2000, p95Us: 2000, maximumUs: 2000 },
+        { timestamp: "2026-08-05T12:01:00.000000000Z", sampleCount: 0, medianUs: null, p95Us: null, maximumUs: null },
+      ],
     },
     runs: [{
       id: "run_1",
