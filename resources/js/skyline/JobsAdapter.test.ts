@@ -61,6 +61,7 @@ function jobSummary() {
   return {
     id: "job_invoice", name: "App\\Jobs\\Invoice", href: "/skyline/jobs/job_invoice", firstObservedAt: "2026-08-01T12:00:00Z",
     lastObservedAt: "2026-08-05T12:00:00Z", runCount: 2, statusCounts: { queued: 0, running: 0, retrying: 0, completed: 1, failed: 1 },
+    activity: [{ timestamp: "2026-08-05T12:00:00Z", total: 2, statusCounts: { queued: 0, running: 0, retrying: 0, completed: 1, failed: 1 } }],
     latestRun: { id: "run-1", status: "failed" as const, triggeredAt: "2026-08-05T12:00:00Z", href: "/skyline/runs/run-1" },
   };
 }

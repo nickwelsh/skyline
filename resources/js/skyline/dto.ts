@@ -130,6 +130,7 @@ export type JobSummary = {
   lastObservedAt: string;
   runCount: number;
   statusCounts: JobStatusCounts;
+  activity: Array<{ timestamp: string; total: number; statusCounts: JobStatusCounts }>;
   latestRun: { id: string; status: RunStatus; triggeredAt: string; href: string };
 };
 

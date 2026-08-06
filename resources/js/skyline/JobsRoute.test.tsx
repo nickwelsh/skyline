@@ -65,6 +65,11 @@ describe("Jobs list source chrome", () => {
       showJobGuidance: false,
       onJobGuidanceChange: () => {},
     };
+    data.jobs[0].activity = [{
+      timestamp: "2026-08-05T11:00:00Z",
+      total: 2,
+      statusCounts: { queued: 0, running: 1, retrying: 0, completed: 0, failed: 1 },
+    }];
     const router = createMemoryRouter([
       { path: "/jobs", loader: () => data, element: <JobsRoute /> },
     ], { initialEntries: ["/jobs"] });
@@ -83,6 +88,10 @@ describe("Jobs list source chrome", () => {
     expect(container.querySelector('[role="group"][aria-label="Task type"]')).toBeNull();
     expect(container.textContent).not.toContain("Standard");
     expect(container.textContent).not.toContain(".php");
+    expect(container.querySelector('[data-status="running"]')?.getAttribute("fill"))
+      .toBe("var(--color-run-executing)");
+    expect(container.querySelector('[data-status="failed"]')?.getAttribute("fill"))
+      .toBe("var(--color-run-completed-with-errors)");
 
     await act(async () => root.unmount());
   });

@@ -18,6 +18,7 @@ export type PresentedJob = {
   lastObservedAt: string;
   runCount: number;
   statusCounts: JobStatusCounts;
+  activity: JobDetailDto["activity"];
   latestRun: { id: string; status: RunStatus; triggeredAt: string; path: string };
 };
 

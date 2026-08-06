@@ -28,10 +28,14 @@ final readonly class JobsQuery
             ->orderByDesc('skyline_runs.triggered_at')
             ->orderByDesc('skyline_runs.run_id')
             ->get();
+        $recentActivity = $this->baseQuery()
+            ->where('skyline_runs.triggered_at', '>=', $observedAt - 86_400_000_000_000)
+            ->get()
+            ->groupBy('job_name');
 
         return [
             ...$this->metadata->at($observedAt),
-            'jobs' => $rows->groupBy('job_name')->map(fn (Collection $runs): array => $this->summary($runs))->values()->all(),
+            'jobs' => $rows->groupBy('job_name')->map(fn (Collection $runs, string $jobName): array => $this->summary($runs, $recentActivity->get($jobName, collect())))->values()->all(),
             'filters' => $filters->toArray(),
             'options' => ['timeRanges' => JobsFilters::options()],
             'hasAnyJobs' => $this->baseQuery()->exists(),
@@ -50,6 +54,7 @@ final readonly class JobsQuery
             ->orderByDesc('skyline_runs.triggered_at')
             ->orderByDesc('skyline_runs.run_id')
             ->get();
+        $recentActivity = $allRows->filter(fn (object $run): bool => $run->triggered_at >= $observedAt - 86_400_000_000_000);
         $activityRows = $filters->apply($this->baseQuery()->where('skyline_runs.job_name', $jobName));
         $statuses = $page['filters']['status'];
         if ($statuses !== []) {
@@ -58,7 +63,7 @@ final readonly class JobsQuery
 
         return [
             ...$this->metadata->at($observedAt),
-            'job' => $this->summary($allRows),
+            'job' => $this->summary($allRows, $recentActivity),
             'queueTargets' => $this->queueTargets($allRows),
             'activity' => $this->activity($activityRows->get()),
             'runs' => $page['runs'],
@@ -105,8 +110,8 @@ final readonly class JobsQuery
         return Request::create('/', 'GET', $query);
     }
 
-    /** @param Collection<int, object> $rows @return array<string, mixed> */
-    private function summary(Collection $rows): array
+    /** @param Collection<int, object> $rows @param Collection<int, object> $recentActivity @return array<string, mixed> */
+    private function summary(Collection $rows, Collection $recentActivity): array
     {
         $latest = $rows->sortByDesc(fn (object $run): string => sprintf('%020d:%s', $run->triggered_at, $run->run_id))->first();
         $basePath = '/'.trim((string) config('skyline.path', 'skyline'), '/');
@@ -120,6 +125,7 @@ final readonly class JobsQuery
             'lastObservedAt' => Nanoseconds::toRfc3339((int) $rows->max('triggered_at')),
             'runCount' => $rows->count(),
             'statusCounts' => $this->statusCounts($rows),
+            'activity' => $this->activity($recentActivity, 'Y-m-d\\TH:00:00\\Z'),
             'latestRun' => [
                 'id' => $latest->run_id,
                 'status' => $latest->status,
@@ -151,9 +157,9 @@ final readonly class JobsQuery
     }
 
     /** @param Collection<int, object> $rows @return list<array<string, mixed>> */
-    private function activity(Collection $rows): array
+    private function activity(Collection $rows, string $bucket = 'Y-m-d\\T00:00:00\\Z'): array
     {
-        return $rows->groupBy(fn (object $run): string => gmdate('Y-m-d\T00:00:00\Z', intdiv((int) $run->triggered_at, 1_000_000_000)))
+        return $rows->groupBy(fn (object $run): string => gmdate($bucket, intdiv((int) $run->triggered_at, 1_000_000_000)))
             ->map(function (Collection $bucket, string $timestamp): array {
                 return ['timestamp' => $timestamp, 'total' => $bucket->count(), 'statusCounts' => $this->statusCounts($bucket)];
             })->sortKeys()->values()->all();

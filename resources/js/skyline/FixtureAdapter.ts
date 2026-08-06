@@ -508,6 +508,18 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const sorted = [...runs].sort((left, right) => (triggeredAtByRun.get(right.id) ?? "").localeCompare(triggeredAtByRun.get(left.id) ?? ""));
     const latest = sorted[0];
     const observed = sorted.map((run, index) => triggeredAtByRun.get(run.id) ?? generatedTimestamp(index)).sort();
+    const recent = sorted.filter((run, index) => {
+      const triggeredAt = triggeredAtByRun.get(run.id) ?? generatedTimestamp(index);
+      return new Date(triggeredAt).getTime() >= new Date(fixtureGeneratedAt).getTime() - 86_400_000;
+    });
+    const activity = [...Map.groupBy(recent, (run) => {
+      const triggeredAt = triggeredAtByRun.get(run.id) ?? generatedTimestamp(sorted.indexOf(run));
+      return `${triggeredAt.slice(0, 13)}:00:00Z`;
+    }).entries()].map(([timestamp, entries]) => ({
+      timestamp,
+      total: entries.length,
+      statusCounts: statusCounts(entries),
+    })).sort((left, right) => left.timestamp.localeCompare(right.timestamp));
     const id = fixtureJobId(name);
     return {
       id,
@@ -517,6 +529,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       lastObservedAt: observed.at(-1) ?? observed[0],
       runCount: runs.length,
       statusCounts: statusCounts(runs),
+      activity,
       latestRun: {
         id: latest.id,
         status: latest.status,

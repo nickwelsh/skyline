@@ -60,6 +60,22 @@ it('treats Job search wildcards as literal text', function (): void {
         ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Invoice_100%');
 });
 
+it('reports truthful per-hour Job activity for the source 24-hour column', function (): void {
+    $now = Nanoseconds::now();
+    seedJobRun(1, 'App\\Jobs\\Invoice', 'completed', triggeredAt: $now - (25 * 3_600_000_000_000));
+    seedJobRun(2, 'App\\Jobs\\Invoice', 'running', triggeredAt: $now - (2 * 3_600_000_000_000));
+    seedJobRun(3, 'App\\Jobs\\Invoice', 'failed', triggeredAt: $now - 3_600_000_000_000);
+
+    $activity = $this->getJson('/skyline/api/jobs')->assertOk()->json('jobs.0.activity');
+
+    expect($activity)->toHaveCount(2)
+        ->and(array_sum(array_column($activity, 'total')))->toBe(2)
+        ->and(array_sum(array_column(array_column($activity, 'statusCounts'), 'completed')))->toBe(0)
+        ->and(array_sum(array_column(array_column($activity, 'statusCounts'), 'running')))->toBe(1)
+        ->and(array_sum(array_column(array_column($activity, 'statusCounts'), 'failed')))->toBe(1)
+        ->and(array_column($activity, 'timestamp'))->each->toMatch('/T\\d{2}:00:00Z$/');
+});
+
 it('shows Job activity Queue targets and cursor-paginated filtered Runs', function (): void {
     for ($index = 0; $index < 27; $index++) {
         seedJobRun(

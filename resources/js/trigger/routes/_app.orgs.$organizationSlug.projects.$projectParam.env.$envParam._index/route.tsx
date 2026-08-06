@@ -23,6 +23,7 @@ import {
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
+import { allTaskRunStatuses, getRunStatusChartColor } from "~/components/runs/v3/TaskRunStatus";
 import {
   Table,
   TableBlankRow,
@@ -46,6 +47,7 @@ type PresentedJob = {
   lastObservedAt: string;
   runCount: number;
   statusCounts: Record<RunStatus, number>;
+  activity: Array<{ timestamp: string; total: number; statusCounts: Record<RunStatus, number> }>;
   latestRun: { id: string; status: RunStatus; triggeredAt: string; path: string };
 };
 type JobsRouteData = {
@@ -256,21 +258,26 @@ function TaskRow({ job, isPanelAnimating }: { job: PresentedJob; isPanelAnimatin
   return <TableRow className="group">
     <TableCell to={job.path} isTabbableCell><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
     <TableCell to={job.path}>{job.statusCounts.running ?? 0}</TableCell>
-    <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity total={job.runCount} /></div></div></TableCell>
+    <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity activity={job.activity} /></div></div></TableCell>
     <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.name)}`} className="block rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright">View runs</Link>} />
   </TableRow>;
 }
 
-function StatusActivity({ total }: { total: number }) {
+function StatusActivity({ activity }: { activity: PresentedJob["activity"] }) {
+  const data = activity.map((point) => ({ timestamp: point.timestamp, total: point.total, ...point.statusCounts }));
+  const peak = Math.max(0, ...activity.map((point) => point.total));
+
   return (
     <ActivityBarChart
-      data={[{ total }]}
-      max={total}
+      data={data}
+      max={peak}
       tooltip={<span />}
-      peak={total.toLocaleString()}
+      peak={peak.toLocaleString()}
       peakTooltip="Peak runs in a single hour"
     >
-      <Bar dataKey="total" fill="var(--color-run-completed-successfully)" strokeWidth={0} isAnimationActive={false} />
+      {allTaskRunStatuses.map((status) => (
+        <Bar key={status} data-status={status} dataKey={status} stackId="status" fill={getRunStatusChartColor(status)} strokeWidth={0} isAnimationActive={false} />
+      ))}
     </ActivityBarChart>
   );
 }

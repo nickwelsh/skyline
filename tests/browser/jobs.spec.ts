@@ -13,7 +13,9 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
   await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   const listActivity = page.locator(".recharts-wrapper").first();
+  await expect(listActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);
   await expect(listActivity.locator('[fill="var(--color-run-completed-successfully)"]')).toBeVisible();
+  await expect(listActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
 
   const search = page.getByPlaceholder("Search tasks…");
   await search.fill("invoice");
@@ -253,6 +255,7 @@ function jobSummary() {
     lastObservedAt: "2026-08-05T12:00:00.000000000Z",
     runCount: 3,
     statusCounts: counts(),
+    activity: [{ timestamp: "2026-08-05T11:00:00Z", total: 3, statusCounts: counts() }],
     latestRun: { id: "run-1", status: "failed" as const, triggeredAt: "2026-08-05T11:59:00.000000000Z", href: "/skyline/runs/run-1" },
   };
 }
