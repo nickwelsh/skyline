@@ -341,7 +341,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
           <DormantShellActions capabilities={capabilities.shell} />
-          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
+          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} hasAppearanceAbove={capabilities.shell.appearance} />}
           <CollapseMenuButton collapsed={collapsed} onToggle={toggleCollapsed} />
         </div>
         </div>
