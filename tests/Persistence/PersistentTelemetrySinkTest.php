@@ -43,6 +43,7 @@ it('persists normalized Run, Attempt, and immutable spans without observing its 
         ->and(DB::table('skyline_runs')->count())->toBe(1)
         ->and(DB::table('skyline_attempts')->count())->toBe(1)
         ->and(DB::table('skyline_spans')->count())->toBe(3)
+        ->and(DB::table('skyline_telemetry_events')->where('variant', 'operation')->count())->toBe(1)
         ->and($run->status)->toBe('completed')
         ->and($run->confirmed_at)->not->toBeNull()
         ->and($attempt->status)->toBe('completed')

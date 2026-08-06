@@ -10,6 +10,7 @@ final readonly class SpanRepository
     public function __construct(
         private SkylineConnection $database,
         private TraceRepository $traces,
+        private TelemetryEventIndexer $telemetryEvents,
     ) {}
 
     public function insert(SpanDataInterface $span): bool
@@ -121,6 +122,11 @@ final readonly class SpanRepository
 
         foreach (array_chunk($rows, $chunkSize) as $chunk) {
             $inserted += $connection->table('skyline_spans')->insertOrIgnore($chunk);
+        }
+
+        $telemetryEvents = collect($rows)->flatMap($this->telemetryEvents->rows(...))->all();
+        foreach (array_chunk($telemetryEvents, $chunkSize) as $chunk) {
+            $connection->table('skyline_telemetry_events')->insertOrIgnore($chunk);
         }
 
         if ($touchTraces && $inserted > 0) {

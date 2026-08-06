@@ -54,10 +54,14 @@ abstract class CompatibilityTestCase extends Orchestra
 
         $migration = require dirname(__DIR__).'/database/migrations/2026_08_04_000000_create_skyline_telemetry_tables.php';
         $migration->up();
+        $migration = require dirname(__DIR__).'/database/migrations/2026_08_05_000000_create_skyline_telemetry_events_table.php';
+        $migration->up();
     }
 
     protected function tearDown(): void
     {
+        $migration = require dirname(__DIR__).'/database/migrations/2026_08_05_000000_create_skyline_telemetry_events_table.php';
+        $migration->down();
         $migration = require dirname(__DIR__).'/database/migrations/2026_08_04_000000_create_skyline_telemetry_tables.php';
         $migration->down();
         Queue::createPayloadUsing(null);

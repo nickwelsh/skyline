@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use NickWelsh\Skyline\Read\Nanoseconds;
+use NickWelsh\Skyline\Read\ObservedIds;
 
 it('projects a versioned time-ordered Telemetry-event union with stable causal identities', function (): void {
     seedTelemetryEventRun();
@@ -85,6 +86,35 @@ it('shows captured operation detail, causal links, and honest capture boundaries
     $this->getJson('/skyline/api/logs/event_missing')
         ->assertNotFound()
         ->assertJsonPath('error.code', 'not_found');
+});
+
+it('reapplies bounded allowlisted log presentation at the detail read boundary', function (): void {
+    config()->set('skyline.logging.context_allowlist', ['status']);
+    config()->set('skyline.logging.max_message_bytes', 64);
+    seedTelemetryEventRun();
+    DB::table('skyline_spans')->where('span_id', '00000000000000b1')->update([
+        'events' => json_encode([
+            ['name' => 'log', 'timestamp' => 1_786_000_000_001_000_000, 'attributes' => []],
+            ['name' => 'log', 'timestamp' => 1_786_000_000_003_000_000, 'attributes' => [
+                'log.level' => 'error',
+                'log.message' => 'authorization=raw-private-token '.str_repeat('bounded ', 20),
+                'log.context' => json_encode(['status' => 'token=context-secret', 'private' => 'never-present'], JSON_THROW_ON_ERROR),
+                'exception' => 'never-present',
+            ]],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $event = collect($this->getJson('/skyline/api/logs')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
+    $detail = $this->getJson('/skyline/api/logs/'.$event['id'])->assertOk()
+        ->assertJsonPath('telemetryEvent.capture.isTruncated', true)
+        ->assertJsonMissingPath('telemetryEvent.context.private')
+        ->assertJsonMissingPath('telemetryEvent.attributes.exception');
+
+    expect($detail->json('telemetryEvent.message'))->toContain('authorization=[REDACTED]')
+        ->and($detail->json('telemetryEvent.context.status'))->toBe('token=[REDACTED]')
+        ->and($detail->getContent())->not->toContain('raw-private-token')
+        ->not->toContain('context-secret')
+        ->not->toContain('never-present');
 });
 
 it('filters and cursor-paginates Telemetry events through server-supplied URL options', function (): void {
@@ -231,6 +261,11 @@ function seedTelemetryEventRun(): void
             'updated_at' => now(),
         ],
     ]);
+    DB::table('skyline_telemetry_events')->insert([
+        telemetryEventRow('000000000000000000000000000000a1', 'telemetry-run-1', 1, '00000000000000b1', null, 'log', 0, $now + 1_000_000, 'WARN', null, null, null, null, null, 'Import started', ['code' => 100]),
+        telemetryEventRow('000000000000000000000000000000a1', 'telemetry-run-1', 1, '00000000000000b1', null, 'log', 1, $now + 3_000_000, 'ERROR', null, null, null, null, null, 'Import failed', ['code' => 500]),
+        telemetryEventRow('000000000000000000000000000000a1', 'telemetry-run-1', 1, '00000000000000c1', '00000000000000b1', 'operation', 0, $now + 2_000_000, 'TRACE', 'Generate PDF', 'custom', 1, 'completed', 250, null, []),
+    ]);
 }
 
 function seedTelemetryOperation(int $index, string $jobType, string $status, int $startedAt): void
@@ -292,4 +327,48 @@ function seedTelemetryOperation(int $index, string $jobType, string $status, int
         'created_at' => now(),
         'updated_at' => now(),
     ]);
+    DB::table('skyline_telemetry_events')->insert(telemetryEventRow(
+        $traceId,
+        $runId,
+        1,
+        $spanId,
+        null,
+        'operation',
+        0,
+        $startedAt,
+        $status === 'ERROR' ? 'ERROR' : 'TRACE',
+        'HTTP GET',
+        'http',
+        3,
+        $status === 'ERROR' ? 'failed' : 'completed',
+        1_000,
+        null,
+        [],
+    ));
+}
+
+/** @return array<string, mixed> */
+function telemetryEventRow(string $traceId, string $runId, ?int $attempt, string $spanId, ?string $parentSpanId, string $variant, int $index, int $occurredAt, string $level, ?string $name, ?string $role, ?int $kind, ?string $status, ?int $durationUs, ?string $message, array $context): array
+{
+    return [
+        'event_id' => ObservedIds::telemetryEvent($traceId, $spanId, $variant, $index),
+        'trace_id' => $traceId,
+        'run_id' => $runId,
+        'attempt_number' => $attempt,
+        'span_id' => $spanId,
+        'parent_span_id' => $parentSpanId,
+        'variant' => $variant,
+        'event_index' => $index,
+        'occurred_at' => $occurredAt,
+        'level' => $level,
+        'name' => $name,
+        'role' => $role,
+        'kind' => $kind,
+        'status' => $status,
+        'duration_us' => $durationUs,
+        'message' => $message,
+        'context' => json_encode($context, JSON_THROW_ON_ERROR),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ];
 }

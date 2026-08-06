@@ -2,8 +2,8 @@
 
 namespace NickWelsh\Skyline\Read;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 final readonly class TelemetryEventsFilters
 {
@@ -49,16 +49,13 @@ final readonly class TelemetryEventsFilters
         return new self($levels, $jobType, $runId, $period, $duration === null ? null : $observedAt - $duration);
     }
 
-    /** @param Collection<int, array<string, mixed>> $events @return Collection<int, array<string, mixed>> */
-    public function apply(Collection $events): Collection
+    public function applyQuery(Builder $events): Builder
     {
         return $events
-            ->when($this->levels !== [], fn (Collection $events): Collection => $events->whereIn('level', $this->levels))
-            ->when($this->jobType !== null, fn (Collection $events): Collection => $events->where('jobType', $this->jobType))
-            ->when($this->runId !== null, fn (Collection $events): Collection => $events->where('runId', $this->runId))
-            ->when($this->from !== null, fn (Collection $events): Collection => $events->filter(
-                fn (array $event): bool => $event['_timestamp'] >= $this->from,
-            ))->values();
+            ->when($this->levels !== [], fn (Builder $events): Builder => $events->whereIn('skyline_telemetry_events.level', $this->levels))
+            ->when($this->jobType !== null, fn (Builder $events): Builder => $events->where('skyline_runs.job_name', $this->jobType))
+            ->when($this->runId !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.run_id', $this->runId))
+            ->when($this->from !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.occurred_at', '>=', $this->from));
     }
 
     /** @return array{levels: list<string>, jobType: ?string, runId: ?string, period: string} */

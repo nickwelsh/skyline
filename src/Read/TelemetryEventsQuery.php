@@ -3,6 +3,7 @@
 namespace NickWelsh\Skyline\Read;
 
 use Illuminate\Database\Connection;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
@@ -18,6 +19,7 @@ final readonly class TelemetryEventsQuery
         private CursorCodec $cursors,
         private ExceptionPresenter $exceptions,
         private ErrorGroupFingerprint $errorGroups,
+        private LogEventPresenter $logs,
     ) {}
 
     /** @return array<string, mixed> */
@@ -25,133 +27,113 @@ final readonly class TelemetryEventsQuery
     {
         $observedAt = Nanoseconds::now();
         $filters = TelemetryEventsFilters::fromRequest($request, $observedAt);
-        $all = $this->events()->sort($this->compare(...))->values();
-        $events = $filters->apply($all);
+        $events = $filters->applyQuery($this->query());
         $page = $this->eventPage($request, $events, $filters);
+        $all = $this->query();
 
         return [
             ...$this->metadata->at($observedAt),
-            'telemetryEvents' => $page['events']->map($this->withoutInternal(...))->all(),
+            'telemetryEvents' => $page['events']->map($this->summary(...))->all(),
             'pagination' => $page['pagination'],
             'filters' => $filters->toArray(),
             'options' => [
                 'levels' => TelemetryEventsFilters::levelOptions(),
-                'jobTypes' => $all->pluck('jobType')->unique()->sort()->values()->all(),
+                'jobTypes' => $this->jobTypes(),
                 'timeRanges' => JobsFilters::options(),
             ],
             'capture' => $this->capture(),
-            'hasAnyTelemetryEvents' => $all->isNotEmpty(),
+            'hasAnyTelemetryEvents' => (clone $all)->exists(),
         ];
     }
 
     /** @return array<string, mixed> */
     public function detail(string $id): array
     {
-        $event = $this->events()->firstWhere('id', $id);
-        if (! is_array($event)) {
+        $event = $this->query()->where('skyline_telemetry_events.event_id', $id)->first();
+        if ($event === null) {
+            throw new RecordNotFound('The Telemetry event was not found.');
+        }
+        $span = $this->connection()->table('skyline_spans')
+            ->where('trace_id', $event->trace_id)
+            ->where('span_id', $event->span_id)
+            ->first();
+        if ($span === null) {
             throw new RecordNotFound('The Telemetry event was not found.');
         }
 
         return [
             ...$this->metadata->at(Nanoseconds::now()),
-            'telemetryEvent' => $this->detailEvent($event),
+            'telemetryEvent' => $this->detailEvent($event, $span),
             'capture' => $this->capture(),
         ];
     }
 
-    /** @return Collection<int, array<string, mixed>> */
-    private function events(): Collection
+    private function query(): Builder
     {
-        return $this->connection()->table('skyline_spans')
-            ->join('skyline_runs', 'skyline_runs.run_id', '=', 'skyline_spans.run_id')
+        return $this->connection()->table('skyline_telemetry_events')
+            ->join('skyline_runs', 'skyline_runs.run_id', '=', 'skyline_telemetry_events.run_id')
             ->whereNotNull('skyline_runs.confirmed_at')
-            ->select(['skyline_spans.*', 'skyline_runs.job_name'])
-            ->get()
-            ->flatMap(function (object $span): array {
-                if ($span->role === 'consumer') {
-                    return collect($this->json($span->events))->map(function (mixed $event, int $index) use ($span): ?array {
-                        if (! is_array($event) || ($event['name'] ?? null) !== 'log') {
-                            return null;
-                        }
-
-                        return $this->log($span, $event, $index);
-                    })->filter()->values()->all();
-                }
-
-                return in_array($span->role, ['producer'], true) ? [] : [$this->operation($span)];
-            });
+            ->select([
+                'skyline_telemetry_events.*',
+                'skyline_runs.job_name',
+            ]);
     }
 
-    /** @param array<string, mixed> $event @return array<string, mixed> */
-    private function log(object $span, array $event, int $index): array
+    /** @return list<string> */
+    private function jobTypes(): array
     {
-        $attributes = is_array($event['attributes'] ?? null) ? $event['attributes'] : [];
-        $level = $this->level($attributes['log.level'] ?? null);
-        $context = $this->json(is_string($attributes['log.context'] ?? null) ? $attributes['log.context'] : null);
-
-        return [
-            ...$this->shared($span, 'log', $index, (int) ($event['timestamp'] ?? $span->started_at)),
-            'level' => $level,
-            'message' => is_string($attributes['log.message'] ?? null) ? $attributes['log.message'] : '',
-            'context' => $context,
-        ];
+        return $this->connection()->table('skyline_telemetry_events')
+            ->join('skyline_runs', 'skyline_runs.run_id', '=', 'skyline_telemetry_events.run_id')
+            ->whereNotNull('skyline_runs.confirmed_at')
+            ->select('skyline_runs.job_name')
+            ->distinct()
+            ->orderBy('skyline_runs.job_name')
+            ->pluck('skyline_runs.job_name')
+            ->all();
     }
 
     /** @return array<string, mixed> */
-    private function operation(object $span): array
+    private function summary(object $event): array
     {
-        $failed = strtolower((string) $span->status_code) === 'error';
-
-        return [
-            ...$this->shared($span, 'operation', 0, (int) $span->started_at),
-            'level' => $failed ? 'ERROR' : 'TRACE',
-            'name' => $span->name,
-            'role' => $span->role,
-            'kind' => (int) $span->kind,
-            'status' => $failed ? 'failed' : 'completed',
-            'durationUs' => intdiv((int) $span->ended_at - (int) $span->started_at, 1_000),
-            'operationHref' => $this->basePath().'/runs/'.rawurlencode($span->run_id).'?node='.rawurlencode(NodeIds::span($span->span_id)),
-        ];
-    }
-
-    /** @return array<string, mixed> */
-    private function shared(object $span, string $variant, int $index, int $timestamp): array
-    {
-        $id = ObservedIds::telemetryEvent($span->trace_id, $span->span_id, $variant, $index);
-
-        return [
+        $id = (string) $event->event_id;
+        $shared = [
             'id' => $id,
             'href' => $this->basePath().'/logs?event='.rawurlencode($id),
-            'variant' => $variant,
-            'runId' => $span->run_id,
-            'runHref' => $this->basePath().'/runs/'.rawurlencode($span->run_id),
-            'attemptNumber' => $span->attempt_number === null ? null : (int) $span->attempt_number,
-            'attemptHref' => $span->attempt_number === null ? null : $this->basePath().'/runs/'.rawurlencode($span->run_id).'?node='.rawurlencode(NodeIds::attempt($span->run_id, (int) $span->attempt_number)),
-            'jobType' => $span->job_name,
-            'jobHref' => $this->basePath().'/jobs/'.ObservedIds::job($span->job_name),
-            'timestamp' => Nanoseconds::toRfc3339($timestamp),
-            'traceId' => $span->trace_id,
-            'spanId' => $span->span_id,
-            'parentSpanId' => $span->parent_span_id,
-            '_timestamp' => $timestamp,
-            '_span' => $span,
-            '_eventIndex' => $index,
+            'variant' => $event->variant,
+            'runId' => $event->run_id,
+            'runHref' => $this->basePath().'/runs/'.rawurlencode($event->run_id),
+            'attemptNumber' => $event->attempt_number === null ? null : (int) $event->attempt_number,
+            'attemptHref' => $event->attempt_number === null ? null : $this->basePath().'/runs/'.rawurlencode($event->run_id).'?node='.rawurlencode(NodeIds::attempt($event->run_id, (int) $event->attempt_number)),
+            'jobType' => $event->job_name,
+            'jobHref' => $this->basePath().'/jobs/'.ObservedIds::job($event->job_name),
+            'timestamp' => Nanoseconds::toRfc3339((int) $event->occurred_at),
+            'traceId' => $event->trace_id,
+            'spanId' => $event->span_id,
+            'parentSpanId' => $event->parent_span_id,
+            'level' => $event->level,
+        ];
+
+        if ($event->variant === 'log') {
+            return [...$shared, 'message' => (string) ($event->message ?? ''), 'context' => $this->json($event->context)];
+        }
+
+        return [
+            ...$shared,
+            'name' => $event->name,
+            'role' => $event->role,
+            'kind' => (int) $event->kind,
+            'status' => $event->status,
+            'durationUs' => (int) $event->duration_us,
+            'operationHref' => $this->basePath().'/runs/'.rawurlencode($event->run_id).'?node='.rawurlencode(NodeIds::span($event->span_id)),
         ];
     }
 
-    /** @param array<string, mixed> $event @return array<string, mixed> */
-    private function withoutInternal(array $event): array
+    /** @return array{events: Collection<int, object>, pagination: array{previous: ?string, next: ?string}} */
+    private function eventPage(Request $request, Builder $events, TelemetryEventsFilters $filters): array
     {
-        return array_filter($event, fn (string|int $key): bool => ! is_string($key) || ! str_starts_with($key, '_'), ARRAY_FILTER_USE_KEY);
-    }
-
-    /** @param Collection<int, array<string, mixed>> $events @return array{events: Collection<int, array<string, mixed>>, pagination: array{previous: ?string, next: ?string}} */
-    private function eventPage(Request $request, Collection $events, TelemetryEventsFilters $filters): array
-    {
-        $all = $events;
-        $direction = 'next';
         $cursor = $request->query('cursor');
-
+        $direction = 'next';
+        $decoded = null;
         if ($cursor !== null) {
             if (! is_string($cursor)) {
                 throw new InvalidQuery('The cursor is invalid.');
@@ -165,104 +147,108 @@ final readonly class TelemetryEventsQuery
             ) {
                 throw new InvalidQuery('The cursor is invalid.');
             }
-            $events = $events->filter(function (array $event) use ($decoded, $direction): bool {
-                $comparison = $this->compareToCursor($event, $decoded);
-
-                return $direction === 'previous' ? $comparison < 0 : $comparison > 0;
-            })->values();
-            if ($direction === 'previous') {
-                $events = $events->take(-self::PAGE_SIZE)->values();
-            }
+            $this->beyond($events, $decoded['timestamp'], $decoded['id'], $direction);
         }
 
-        $page = $direction === 'previous' ? $events : $events->take(self::PAGE_SIZE)->values();
-        $first = $page->first();
-        $last = $page->last();
+        $ascending = $direction === 'previous';
+        $rows = $events
+            ->orderBy('skyline_telemetry_events.occurred_at', $ascending ? 'asc' : 'desc')
+            ->orderBy('skyline_telemetry_events.event_id', $ascending ? 'asc' : 'desc')
+            ->limit(self::PAGE_SIZE + 1)
+            ->get();
+        if ($rows->count() > self::PAGE_SIZE) {
+            $rows = $rows->take(self::PAGE_SIZE);
+        }
+        if ($ascending) {
+            $rows = $rows->reverse()->values();
+        }
+        $first = $rows->first();
+        $last = $rows->last();
 
         return [
-            'events' => $page,
+            'events' => $rows,
             'pagination' => [
-                'previous' => $first !== null && $all->contains(fn (array $event): bool => $this->compare($event, $first) < 0)
-                    ? $this->cursor('previous', $first, $filters) : null,
-                'next' => $last !== null && $all->contains(fn (array $event): bool => $this->compare($event, $last) > 0)
-                    ? $this->cursor('next', $last, $filters) : null,
+                'previous' => $first !== null && $this->existsBeyond($filters, $first, 'previous') ? $this->cursor('previous', $first, $filters) : null,
+                'next' => $last !== null && $this->existsBeyond($filters, $last, 'next') ? $this->cursor('next', $last, $filters) : null,
             ],
         ];
     }
 
-    /** @param array<string, mixed> $left @param array<string, mixed> $right */
-    private function compare(array $left, array $right): int
+    private function existsBeyond(TelemetryEventsFilters $filters, object $event, string $direction): bool
     {
-        return [$right['_timestamp'], $right['id']] <=> [$left['_timestamp'], $left['id']];
+        $query = $filters->applyQuery($this->query());
+        $this->beyond($query, (int) $event->occurred_at, (string) $event->event_id, $direction);
+
+        return $query->exists();
     }
 
-    /** @param array<string, mixed> $event @param array<string, mixed> $cursor */
-    private function compareToCursor(array $event, array $cursor): int
+    private function beyond(Builder $query, int $timestamp, string $id, string $direction): void
     {
-        return [$cursor['timestamp'], $cursor['id']] <=> [$event['_timestamp'], $event['id']];
+        $operator = $direction === 'previous' ? '>' : '<';
+        $query->where(function (Builder $query) use ($timestamp, $id, $operator): void {
+            $query->where('skyline_telemetry_events.occurred_at', $operator, $timestamp)
+                ->orWhere(function (Builder $query) use ($timestamp, $id, $operator): void {
+                    $query->where('skyline_telemetry_events.occurred_at', $timestamp)
+                        ->where('skyline_telemetry_events.event_id', $operator, $id);
+                });
+        });
     }
 
-    /** @param array<string, mixed> $event */
-    private function cursor(string $direction, array $event, TelemetryEventsFilters $filters): string
+    private function cursor(string $direction, object $event, TelemetryEventsFilters $filters): string
     {
         return $this->cursors->encode('telemetry-events', [
             'direction' => $direction,
-            'timestamp' => $event['_timestamp'],
-            'id' => $event['id'],
+            'timestamp' => (int) $event->occurred_at,
+            'id' => (string) $event->event_id,
             'filters' => $filters->toArray(),
         ]);
     }
 
-    /** @param array<string, mixed> $event @return array<string, mixed> */
-    private function detailEvent(array $event): array
+    /** @return array<string, mixed> */
+    private function detailEvent(object $event, object $span): array
     {
-        $summary = $this->withoutInternal($event);
-        $relationships = [
-            'traceId' => $summary['traceId'],
-            'spanId' => $summary['spanId'],
-            'parentSpanId' => $summary['parentSpanId'],
-        ];
+        $summary = $this->summary($event);
+        $relationships = ['traceId' => $summary['traceId'], 'spanId' => $summary['spanId'], 'parentSpanId' => $summary['parentSpanId']];
 
         if ($summary['variant'] === 'log') {
-            $span = $event['_span'];
-            $attributes = collect($this->json($span->events))->get((int) $event['_eventIndex']);
-            $attributes = is_array($attributes) && is_array($attributes['attributes'] ?? null) ? $attributes['attributes'] : [];
+            $raw = collect($this->json($span->events))->get((int) $event->event_index);
+            $attributes = is_array($raw) && is_array($raw['attributes'] ?? null) ? $raw['attributes'] : [];
+            $presented = $this->logs->present($attributes);
 
             return [
                 ...$summary,
+                'level' => $presented['level'],
+                'message' => $presented['message'],
+                'context' => $presented['context'],
                 'relationships' => $relationships,
-                'channel' => is_string($attributes['log.channel'] ?? null) ? $attributes['log.channel'] : null,
-                'errorHref' => $this->errorHref($span),
+                'channel' => $presented['channel'],
+                'attributes' => $presented['attributes'],
+                'capture' => $presented['capture'],
+                'errorHref' => $this->errorHref($span, $event->job_name),
             ];
         }
 
         $node = $this->nodes->get($summary['runId'], NodeIds::span($summary['spanId']))['node'];
         $metadata = is_array($node['metadata'] ?? null) ? $node['metadata'] : [];
         $value = is_array($metadata['value'] ?? null) ? $metadata['value'] : [];
-        $span = $event['_span'];
         $rawEvents = $this->json($span->events);
-        $events = collect(is_array($value['events'] ?? null) ? $value['events'] : [])
-            ->map(function (array $captured, int $index) use ($rawEvents): array {
-                $raw = is_array($rawEvents[$index] ?? null) ? $rawEvents[$index] : [];
+        $events = collect(is_array($value['events'] ?? null) ? $value['events'] : [])->map(function (array $captured, int $index) use ($rawEvents): array {
+            $raw = is_array($rawEvents[$index] ?? null) ? $rawEvents[$index] : [];
 
-                return [
-                    ...$captured,
-                    'timestamp' => Nanoseconds::toRfc3339(isset($raw['timestamp']) ? (int) $raw['timestamp'] : null),
-                ];
-            })->all();
+            return [...$captured, 'timestamp' => Nanoseconds::toRfc3339(isset($raw['timestamp']) ? (int) $raw['timestamp'] : null)];
+        })->all();
         $rawLinks = $this->json($span->links);
-        $links = collect(is_array($value['links'] ?? null) ? $value['links'] : [])
-            ->map(function (array $captured, int $index) use ($rawLinks): array {
-                $raw = is_array($rawLinks[$index] ?? null) ? $rawLinks[$index] : [];
+        $links = collect(is_array($value['links'] ?? null) ? $value['links'] : [])->map(function (array $captured, int $index) use ($rawLinks): array {
+            $raw = is_array($rawLinks[$index] ?? null) ? $rawLinks[$index] : [];
 
-                return [
-                    ...$captured,
-                    'traceId' => is_string($raw['trace_id'] ?? null) ? $raw['trace_id'] : null,
-                    'spanId' => is_string($raw['span_id'] ?? null) ? $raw['span_id'] : null,
-                    'traceFlags' => is_int($raw['trace_flags'] ?? null) ? $raw['trace_flags'] : null,
-                    'remote' => is_bool($raw['remote'] ?? null) ? $raw['remote'] : null,
-                ];
-            })->all();
+            return [
+                ...$captured,
+                'traceId' => is_string($raw['trace_id'] ?? null) ? $raw['trace_id'] : null,
+                'spanId' => is_string($raw['span_id'] ?? null) ? $raw['span_id'] : null,
+                'traceFlags' => is_int($raw['trace_flags'] ?? null) ? $raw['trace_flags'] : null,
+                'remote' => is_bool($raw['remote'] ?? null) ? $raw['remote'] : null,
+            ];
+        })->all();
 
         return [
             ...$summary,
@@ -272,31 +258,21 @@ final readonly class TelemetryEventsQuery
             'links' => $links,
             'resource' => is_array($value['resource'] ?? null) ? $value['resource'] : [],
             'instrumentation' => is_array($value['instrumentation'] ?? null) ? $value['instrumentation'] : [],
-            'capture' => [
-                'isTruncated' => (bool) ($metadata['isTruncated'] ?? false),
-                'truncated' => is_array($metadata['truncated'] ?? null) ? $metadata['truncated'] : [],
-            ],
-            'errorHref' => $this->errorHref($span),
+            'capture' => ['isTruncated' => (bool) ($metadata['isTruncated'] ?? false), 'truncated' => is_array($metadata['truncated'] ?? null) ? $metadata['truncated'] : []],
+            'errorHref' => $this->errorHref($span, $event->job_name),
         ];
     }
 
-    private function errorHref(object $span): ?string
+    private function errorHref(object $span, string $jobType): ?string
     {
         if ($span->attempt_number === null) {
             return null;
         }
-
-        $attempt = $this->connection()->table('skyline_attempts')
-            ->where('run_id', $span->run_id)
-            ->where('attempt_number', $span->attempt_number)
-            ->whereNotNull('exception_class')
-            ->first();
+        $attempt = $this->connection()->table('skyline_attempts')->where('run_id', $span->run_id)->where('attempt_number', $span->attempt_number)->whereNotNull('exception_class')->first();
         if ($attempt === null) {
             return null;
         }
-
-        $exception = $this->exceptions->present($attempt, $span->job_name);
-        $identity = $this->errorGroups->identify($span->job_name, $exception);
+        $identity = $this->errorGroups->identify($jobType, $this->exceptions->present($attempt, $jobType));
 
         return $this->basePath().'/errors/'.$identity['id'];
     }
@@ -311,25 +287,10 @@ final readonly class TelemetryEventsQuery
         ];
     }
 
-    private function level(mixed $level): string
-    {
-        return match (strtolower(is_string($level) ? $level : 'info')) {
-            'trace' => 'TRACE',
-            'debug' => 'DEBUG',
-            'warning', 'warn', 'notice' => 'WARN',
-            'error', 'critical', 'alert', 'emergency' => 'ERROR',
-            default => 'INFO',
-        };
-    }
-
-    /** @return array<string, mixed> */
+    /** @return array<int|string, mixed> */
     private function json(?string $value): array
     {
-        if ($value === null) {
-            return [];
-        }
-
-        $decoded = json_decode($value, true);
+        $decoded = $value === null ? [] : json_decode($value, true);
 
         return is_array($decoded) ? $decoded : [];
     }
