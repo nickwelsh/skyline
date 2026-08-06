@@ -14,6 +14,7 @@ type PanelSnapshotPort = {
 };
 
 const PanelPersistenceContext = createContext<PanelSnapshotPort | null>(null);
+const PanelResizeIntentContext = createContext<React.MutableRefObject<boolean> | null>(null);
 
 export function PanelPersistenceProvider({ port, children }: { port: PanelSnapshotPort | null; children: React.ReactNode }) {
   return <PanelPersistenceContext.Provider value={port}>{children}</PanelPersistenceContext.Provider>;
@@ -27,6 +28,7 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
   const saved = useMemo(() => autosaveId ? persistence?.readPanel(autosaveId) : undefined, [autosaveId, persistence]);
   const compatible = saved?.orientation === orientation && saved.itemIds.length === itemIds.length && saved.itemIds.every((id, index) => id === itemIds[index]);
   const latestSizes = useRef<Record<string, number>>({});
+  const userResize = useRef(false);
   const persistentChildren = useMemo(() => React.Children.map(children, (child) => {
     if (!React.isValidElement<React.ComponentProps<typeof Panel>>(child) || child.type !== ResizablePanel || typeof child.props.id !== "string") return child;
     const index = itemIds.indexOf(child.props.id);
@@ -35,7 +37,7 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
       ...(compatible ? { default: `${(saved?.sizes[index] ?? 0) * 100}%` } : {}),
       onResize: (size: { pixel: number; percentage: number }) => {
         originalResize?.(size);
-        if (!autosaveId || !persistence) return;
+        if (!autosaveId || !persistence || !userResize.current) return;
         latestSizes.current[child.props.id as string] = size.percentage;
         const sizes = itemIds.map((id) => latestSizes.current[id]);
         if (sizes.every((value) => typeof value === "number")) {
@@ -45,14 +47,18 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
     });
   }), [autosaveId, children, compatible, itemIds.join("\u0000"), orientation, persistence, saved]);
 
-  return <PanelGroup
-    className={cn(
-      "flex w-full overflow-hidden data-[panel-group-direction=vertical]:flex-col",
-      className
-    )}
-    orientation={orientation}
-    {...props}
-  >{persistentChildren}</PanelGroup>;
+  return (
+    <PanelResizeIntentContext.Provider value={userResize}>
+      <PanelGroup
+        className={cn(
+          "flex w-full overflow-hidden data-[panel-group-direction=vertical]:flex-col",
+          className
+        )}
+        orientation={orientation}
+        {...props}
+      >{persistentChildren}</PanelGroup>
+    </PanelResizeIntentContext.Provider>
+  );
 };
 
 // react-window-splitter drives the collapse animation through @react-spring/rafz,
@@ -76,13 +82,24 @@ const ResizablePanel = React.forwardRef<
 const ResizableHandle = ({
   withHandle = true,
   className,
+  onDragStart,
+  onDragEnd,
   ...props
 }: React.ComponentProps<typeof PanelResizer> & {
   withHandle?: boolean;
-}) => (
-  <PanelResizer
+}) => {
+  const userResize = useContext(PanelResizeIntentContext);
+  return <PanelResizer
     onMouseDown={(e: React.MouseEvent) => {
       e.preventDefault();
+    }}
+    onDragStart={() => {
+      if (userResize) userResize.current = true;
+      onDragStart?.();
+    }}
+    onDragEnd={() => {
+      onDragEnd?.();
+      if (userResize) userResize.current = false;
     }}
     className={cn(
       "group relative flex items-center justify-center focus-custom",
@@ -123,8 +140,8 @@ const ResizableHandle = ({
         </div>
       </>
     )}
-  </PanelResizer>
-);
+  </PanelResizer>;
+};
 
 // Firefox filtering happens inside ResizablePanel (see above).
 const RESIZABLE_PANEL_ANIMATION = { easing: "ease-in-out", duration: 300 } as const;
