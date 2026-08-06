@@ -1,8 +1,11 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/primitives/DateTime.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: retained reached short and accurate presenters; replaced provider data with browser Intl.
+ * Skyline adaptation: retained reached short, accurate, and relative presenters; replaced provider data with browser Intl.
  */
+import { formatDistanceToNow } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { SimpleTooltip } from "./Tooltip";
 
 type DateTimeShortProps = {
   date: Date | string;
@@ -49,6 +52,37 @@ export const DateTimeAccurate = ({ date, hour12 = true }: DateTimeShortProps) =>
   const timePart = formatDateTimeShort(realDate, timeZone, locales, hour12);
 
   return <span suppressHydrationWarning>{`${datePart} ${timePart}`.replace(/\s/g, String.fromCharCode(32))}</span>;
+};
+
+type RelativeDateTimeProps = {
+  date: Date | string;
+  capitalize?: boolean;
+};
+
+function getRelativeText(date: Date, capitalize = true): string {
+  const text = formatDistanceToNow(date, { addSuffix: true });
+  return capitalize ? text.charAt(0).toUpperCase() + text.slice(1) : text;
+}
+
+export const RelativeDateTime = ({ date, capitalize = true }: RelativeDateTimeProps) => {
+  const realDate = useMemo(() => typeof date === "string" ? new Date(date) : date, [date]);
+  const [relativeText, setRelativeText] = useState(() => getRelativeText(realDate, capitalize));
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setRelativeText(getRelativeText(realDate, capitalize)), 60_000);
+    return () => window.clearInterval(interval);
+  }, [realDate, capitalize]);
+
+  useEffect(() => setRelativeText(getRelativeText(realDate, capitalize)), [realDate, capitalize]);
+
+  return (
+    <SimpleTooltip
+      button={<span suppressHydrationWarning>{relativeText}</span>}
+      content={<DateTime date={realDate} />}
+      side="right"
+      asChild
+    />
+  );
 };
 
 function browserTimeZone(): string | undefined {

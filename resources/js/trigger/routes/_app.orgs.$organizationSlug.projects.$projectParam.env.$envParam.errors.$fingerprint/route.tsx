@@ -7,7 +7,7 @@
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
 import { CalendarIcon } from "@heroicons/react/20/solid";
-import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
@@ -18,7 +18,7 @@ import { ListPagination } from "~/components/ListPagination";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { LinkButton } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
-import { DateTime } from "~/components/primitives/DateTime";
+import { DateTime, RelativeDateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import * as Property from "~/components/primitives/PropertyTable";
@@ -278,22 +278,15 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
             </Property.Item>
             <Property.Item>
               <Property.Label>ID</Property.Label>
-              <Property.Value><CopyableText value={data.errorGroup.fingerprint.slice(-8)} /></Property.Value>
+              <Property.Value><CopyableText value={data.errorGroup.friendlyId} /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Task</Property.Label>
-              <Property.Value>
-                <Link
-                  to={data.errorGroup.jobPath}
-                  className="break-all font-mono text-xs text-text-bright hover:underline focus-custom"
-                >
-                  {data.errorGroup.jobType}
-                </Link>
-              </Property.Value>
+              <Property.Value><CopyableText value={data.errorGroup.jobType} /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Occurrences</Property.Label>
-              <Property.Value>{data.errorGroup.occurrenceCount.toLocaleString()}</Property.Value>
+              <Property.Value><span className="tabular-nums">{data.errorGroup.occurrenceCount.toLocaleString()}</span></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>First seen</Property.Label>
@@ -309,12 +302,6 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
       </div>
     </aside>
   );
-}
-
-function RelativeDateTime({ date }: { date: string }) {
-  const elapsed = Date.now() - new Date(date).getTime();
-  const hours = Math.max(1, Math.floor(elapsed / 3_600_000));
-  return <span title={date}>{hours} {hours === 1 ? "hour" : "hours"} ago</span>;
 }
 
 export function ErrorDetailErrorBoundary() {

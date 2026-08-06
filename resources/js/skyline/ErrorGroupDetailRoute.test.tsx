@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { OperatingSystemContextProvider } from "../trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "../trigger/components/primitives/ShortcutsProvider";
 import ErrorGroupDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
@@ -18,10 +18,15 @@ beforeAll(() => {
   });
 });
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  vi.useRealTimers();
+  document.body.replaceChildren();
+});
 
 describe("Error-group detail source chrome", () => {
   it("shows source-friendly identity and seven-day occurrence filter without Versions", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-05T12:02:00.000Z"));
     const adapter = new FixtureAdapter();
     const group = (await adapter.errorGroups()).errorGroups[0];
     const data = presentErrorGroupDetail(await adapter.errorGroup(group.id, { period: "7d" }));
@@ -50,6 +55,11 @@ describe("Error-group detail source chrome", () => {
     expect(container.textContent).not.toContain("Machine");
     expect(container.textContent).not.toContain("Queue target");
     expect(container.textContent).not.toContain("Trace");
+    const sidebar = container.querySelector<HTMLElement>('aside[aria-label="Error group details"]')!;
+    expect(sidebar.textContent).toContain(data.errorGroup.friendlyId);
+    expect(sidebar.querySelector(`a[href="${data.errorGroup.jobPath}"]`)).toBeNull();
+    expect(sidebar.querySelector(".tabular-nums")?.textContent).toBe("2");
+    expect(sidebar.textContent).toContain("About 16 hours ago");
 
     await act(async () => root.unmount());
   });
