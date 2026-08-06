@@ -53,6 +53,7 @@ describe("QueueTargetAdapter", () => {
       path: "/runs/run_1",
       jobType: "App\\Jobs\\Invoice",
       queueTarget: "redis / billing",
+      startedAt: "2026-08-05T12:00:00.002000000Z",
     }));
     expect(route.timeRanges).toEqual([
       { value: "all", label: "All time", durationSeconds: null },

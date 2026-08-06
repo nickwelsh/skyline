@@ -6,12 +6,15 @@
  */
 import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
+import { Button } from "~/components/primitives/Buttons";
+import { Card, CardHeader } from "~/components/primitives/charts/Card";
 import { DateTimeShort } from "~/components/primitives/DateTime";
 import { Header3 } from "~/components/primitives/Headers";
 import { Spinner } from "~/components/primitives/Spinner";
 import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
-import type { ReactNode } from "react";
+import { useLocation } from "@remix-run/react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QueueTargetCharts } from "./QueueTargetCharts";
 import { QueueTargetFilters, type QueueTimeRangeOption } from "./QueueTargetFilters";
 import { RecordedStatusBreakdown, type PresentedQueueTarget } from "./QueueTargetsPresenter";
@@ -34,11 +37,34 @@ export type QueueTargetDetailPresentation = {
 
 export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTargetDetailPresentation; loading: boolean }) {
   const target = data.queueTarget;
+  const location = useLocation();
+  const [showRecordedRuns, setShowRecordedRuns] = useState(() => new URLSearchParams(location.search).has("cursor"));
+  const recordedRunsControl = useRef<HTMLButtonElement>(null);
+  const restoreRecordedRunsFocus = useRef(false);
+
+  useEffect(() => {
+    if (showRecordedRuns) return;
+    recordedRunsControl.current?.setAttribute("aria-expanded", "false");
+    recordedRunsControl.current?.setAttribute("aria-controls", "queue-recorded-runs-panel");
+    if (!restoreRecordedRunsFocus.current) return;
+    restoreRecordedRunsFocus.current = false;
+    recordedRunsControl.current?.focus();
+  }, [showRecordedRuns]);
+
+  function closeRecordedRuns() {
+    restoreRecordedRunsFocus.current = true;
+    setShowRecordedRuns(false);
+  }
+
   return (
     <MetricsLayout.Root>
       <MetricsLayout.Filters className="px-2">
         <QueueTargetFilters statuses={data.statusOptions} generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
-        <ListPagination list={data} />
+        {!showRecordedRuns && (
+          <section data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs">
+            <Button ref={recordedRunsControl} variant="secondary/small" onClick={() => setShowRecordedRuns(true)}>Recorded runs</Button>
+          </section>
+        )}
       </MetricsLayout.Filters>
       <MetricsLayout.Grid columns={{ base: 2, lg: 4 }}>
         <ObservedStat label="Recorded Runs" value={target.recordedRuns} />
@@ -54,20 +80,58 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         </div>
       </MetricsLayout.Grid>
       <MetricsLayout.Content inset>
-        <QueueTargetCharts activity={data.activity} queueTime={data.queueTime} />
-      </MetricsLayout.Content>
-      <MetricsLayout.Content>
-        <section aria-labelledby="queue-runs-heading" className="border-t border-grid-bright">
-          <div className="px-3 py-3"><Header3 id="queue-runs-heading">Recorded Runs</Header3></div>
-          <div className="relative min-h-32">
-            {data.runs.length > 0
-              ? <TaskRunsTable runs={data.runs} isLoading={loading} />
-              : <RunsEmpty filtered={data.hasAnyRuns && data.hasFilters} />}
-            {loading && data.runs.length === 0 && <div aria-label="Loading Queue-target Runs" className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div>}
-          </div>
-        </section>
+        <QueueTargetCharts
+          activity={data.activity}
+          queueTime={data.queueTime}
+          recordedRuns={showRecordedRuns ? (
+            <RecordedRunsCard data={data} loading={loading} onClose={closeRecordedRuns} />
+          ) : undefined}
+        />
       </MetricsLayout.Content>
     </MetricsLayout.Root>
+  );
+}
+
+function RecordedRunsCard({
+  data,
+  loading,
+  onClose,
+}: {
+  data: QueueTargetDetailPresentation;
+  loading: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <section
+      id="queue-recorded-runs-panel"
+      data-skyline-extension="queue-recorded-runs"
+      aria-label="Recorded runs"
+      className="h-52 min-w-0"
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }}
+    >
+      <Card className="h-full overflow-hidden">
+        <CardHeader>
+          <span>Recorded Runs</span>
+          <span className="flex items-center gap-1">
+            <ListPagination list={data} />
+            <Button variant="secondary/small" aria-label="Close recorded runs" onClick={onClose}>Close</Button>
+          </span>
+        </CardHeader>
+        <div className="relative min-h-0 flex-1 overflow-auto">
+          {data.runs.length > 0
+            ? <TaskRunsTable runs={data.runs} isLoading={loading} />
+            : <RunsEmpty filtered={data.hasAnyRuns && data.hasFilters} />}
+          {loading && data.runs.length === 0 && (
+            <div aria-label="Loading Queue-target Runs" className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div>
+          )}
+        </div>
+      </Card>
+    </section>
   );
 }
 

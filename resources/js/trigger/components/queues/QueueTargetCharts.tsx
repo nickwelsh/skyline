@@ -4,25 +4,30 @@
  * Skyline adaptation: static observed Run/Queue-time series, no live broker metrics.
  */
 import { Header3 } from "~/components/primitives/Headers";
+import type { ReactNode } from "react";
 
 type Point = { timestamp: string };
 
 export function QueueTargetCharts({
   activity,
   queueTime,
+  recordedRuns,
 }: {
   activity: Array<Point & { recordedRuns: number }>;
   queueTime: Array<Point & { sampleCount: number; medianUs: number; p95Us: number; maximumUs: number }>;
+  recordedRuns?: ReactNode;
 }) {
   return (
     <section aria-label="Queue-target activity" className="grid grid-cols-1 gap-3 p-3 sm:grid-cols-2">
       <SeriesCard title="Recorded Run activity" points={activity.map((point) => ({ ...point, value: point.recordedRuns }))} color="var(--color-queues-chart)" />
-      <SeriesCard
-        title="Queue time"
-        points={queueTime.map((point) => ({ ...point, value: point.p95Us }))}
-        color="var(--color-queues-chart-ref)"
-        insufficient={queueTime.reduce((total, point) => total + point.sampleCount, 0) < 2}
-      />
+      {recordedRuns ?? (
+        <SeriesCard
+          title="Queue time"
+          points={queueTime.map((point) => ({ ...point, value: point.p95Us }))}
+          color="var(--color-queues-chart-ref)"
+          insufficient={queueTime.reduce((total, point) => total + point.sampleCount, 0) < 2}
+        />
+      )}
     </section>
   );
 }
