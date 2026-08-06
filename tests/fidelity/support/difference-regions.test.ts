@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   applicableFrameworkExtensions,
+  fingerprintComputedStyle,
   omitFrameworkExtensionAccessibility,
   requireSingleMatch,
   validateFrameworkExtensionObservation,
@@ -37,6 +38,14 @@ describe("framework-extension fidelity regions", () => {
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, rect: { ...anchor.rect, x: 11 } }, expected.captures[0])).toThrow(/geometry/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, computedStyleSha256: "c".repeat(64) }, expected.captures[0])).toThrow(/computed style/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, accessibleName: "Changed" }, expected.captures[0])).toThrow(/accessible identity/i);
+  });
+
+  test("ignores only non-rendered custom-property inventory", () => {
+    const trigger = [["--unused-trigger", "1", ""], ["color", "rgb(1, 2, 3)", ""]] as [string, string, string][];
+    const skyline = [["--unused-skyline", "2", ""], ["color", "rgb(1, 2, 3)", ""]] as [string, string, string][];
+
+    expect(fingerprintComputedStyle(trigger)).toBe(fingerprintComputedStyle(skyline));
+    expect(fingerprintComputedStyle(trigger)).not.toBe(fingerprintComputedStyle([["color", "rgb(3, 2, 1)", ""]]));
   });
 
   test("allows at most one exact capture region", () => {

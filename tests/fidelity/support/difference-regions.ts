@@ -37,7 +37,8 @@ export type FrameworkExtensionObservation = {
   anchorRect: Rect;
   anchorComputedStyleSha256: string;
 };
-type ElementObservation = { rect: Rect; accessibleRole: string; accessibleName: string; computedStyleSha256: string };
+type ComputedStyleEntry = [string, string, string];
+type ElementObservation = { rect: Rect; accessibleRole: string; accessibleName: string; computedStyleSha256: string; computedStyle?: ComputedStyleEntry[] };
 
 export async function observeDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences): Promise<DifferenceRegion[]> {
   const definitions = applicableFrameworkExtensions(capture, manifest);
@@ -92,7 +93,10 @@ export function validatePairedAnchor(definition: FrameworkExtensionDefinition, t
 
 export function validatePairedAnchorIdentity(definition: FrameworkExtensionDefinition, trigger: ElementObservation, skyline: ElementObservation) {
   if (JSON.stringify(trigger.rect) !== JSON.stringify(skyline.rect)) throw new Error(`Allowed region ${definition.id} anchor changed geometry.`);
-  if (trigger.computedStyleSha256 !== skyline.computedStyleSha256) throw new Error(`Allowed region ${definition.id} anchor changed computed style.`);
+  if (trigger.computedStyleSha256 !== skyline.computedStyleSha256) {
+    const difference = firstStyleDifference(trigger.computedStyle, skyline.computedStyle);
+    throw new Error(`Allowed region ${definition.id} anchor changed computed style${difference ? ` at ${difference}` : ""}.`);
+  }
   if (trigger.accessibleRole !== definition.anchorAccessibleRole || skyline.accessibleRole !== definition.anchorAccessibleRole
     || trigger.accessibleName !== definition.anchorAccessibleName || skyline.accessibleName !== definition.anchorAccessibleName) throw new Error(`Allowed region ${definition.id} anchor changed accessible identity.`);
 }
@@ -125,17 +129,36 @@ async function observeElement(page: Page, id: string, selector: string, label: s
   const [observation, accessibility] = await Promise.all([locator.evaluate((element) => {
     const box = element.getBoundingClientRect();
     const style = getComputedStyle(element);
-    const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+    const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as [string, string, string]);
     return {
       rect: { x: box.x, y: box.y, width: box.width, height: box.height },
       computedStyle,
     };
   }), observeAccessibleIdentity(page, selector)]);
-  return { ...observation, ...accessibility, computedStyleSha256: createHash("sha256").update(JSON.stringify(observation.computedStyle)).digest("hex") };
+  const computedStyle = standardComputedStyleEntries(observation.computedStyle);
+  return { ...observation, ...accessibility, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle) };
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {
   if (count !== 1) throw new Error(`Allowed region ${id} ${label} must match exactly one element.`);
+}
+
+/** Separate bundles expose different inherited, unused `--*` inventories; lock every resolved standard property instead. */
+export function standardComputedStyleEntries(entries: ComputedStyleEntry[]) {
+  return entries.filter(([property]) => !property.startsWith("--"));
+}
+
+export function fingerprintComputedStyle(entries: ComputedStyleEntry[]) {
+  return createHash("sha256").update(JSON.stringify(standardComputedStyleEntries(entries))).digest("hex");
+}
+
+function firstStyleDifference(trigger?: ComputedStyleEntry[], skyline?: ComputedStyleEntry[]) {
+  if (!trigger || !skyline) return undefined;
+  const length = Math.max(trigger.length, skyline.length);
+  for (let index = 0; index < length; index += 1) {
+    if (JSON.stringify(trigger[index]) !== JSON.stringify(skyline[index])) return `${trigger[index]?.[0] ?? skyline[index]?.[0]} (${JSON.stringify(trigger[index])} vs ${JSON.stringify(skyline[index])})`;
+  }
+  return undefined;
 }
 
 async function observeAccessibleIdentity(page: Page, selector: string) {
