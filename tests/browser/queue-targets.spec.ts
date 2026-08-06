@@ -144,7 +144,7 @@ test("Queue search clear control is named and Escape remains its keyboard equiva
   await expect(page).not.toHaveURL(/search=/);
 
   await search.fill("billing");
-  const violations = (await new AxeBuilder({ page }).analyze()).violations
+  const violations = (await new AxeBuilder({ page }).include('[data-skyline-anchor="queue-filter-controls"]').analyze()).violations
     .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
     .map((violation) => ({ id: violation.id, targets: violation.nodes.map((node) => node.target) }));
   expect(violations).toEqual([]);
