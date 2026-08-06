@@ -6,7 +6,6 @@ const listCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}/a
 const detailStatsCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L1053-L1220`;
 const detailChartsCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L396-L519`;
 
-const rootStates = ["queues-multiple-targets", "queues-filtering", "queues-long-labels", "queues-hidden-controls"];
 const stableRootStates = ["queues-multiple-targets", "queues-long-labels", "queues-hidden-controls"];
 const stableDetailStates = ["queues-idle", "queues-busy", "queues-activity-wait-history"];
 
@@ -22,29 +21,23 @@ export function queueCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOm
   const captureIds = expectedCaptureIds(matrix);
   const genericRootCaptures = captureIds.filter((capture) => capture.startsWith("queues-populated@"));
   const genericDetailCaptures = captureIds.filter((capture) => capture.startsWith("queue-found@"));
-  const rootCaptures = [...genericRootCaptures, ...captureIds.filter((capture) => rootStates.some((state) => capture.startsWith(`${state}@`)))].sort();
   const stableRootCaptures = [...genericRootCaptures, ...captureIds.filter((capture) => stableRootStates.some((state) => capture.startsWith(`${state}@`)))].sort();
-  const detailCaptures = [...genericDetailCaptures, ...captureIds.filter((capture) => [...stableDetailStates, "queues-paginated-runs"].some((state) => capture.startsWith(`${state}@`)))].sort();
   const stableDetailCaptures = [...genericDetailCaptures, ...captureIds.filter((capture) => stableDetailStates.some((state) => capture.startsWith(`${state}@`)))].sort();
 
-  const definitions: CapabilityOmissionDefinition[] = [
-    definition("queue-root-stats", rootCaptures, ["queue-root-running", "queue-root-environment-limit"], [listCitation]),
-    ...queueTargets.map((target) => definition(
-      `queue-target-${target.slug}`,
-      target.filtered ? rootCaptures : stableRootCaptures,
-      [
+  return [
+    definition("queue-root-capabilities", stableRootCaptures, [
+      "queue-root-running",
+      "queue-root-environment-limit",
+      ...queueTargets.flatMap((target) => [
         `queue-target-${target.id}-limit`,
         `queue-target-${target.id}-limited-by`,
         `queue-target-${target.id}-backlog`,
         `queue-target-${target.id}-pause-resume`,
         ...(target.backlogged ? [`queue-target-${target.id}-warning`, `queue-target-${target.id}-health`] : []),
-      ],
-      [listCitation],
-    )),
-    definition("queue-detail-concurrency", detailCaptures, ["queue-detail-concurrency", "queue-detail-concurrency-limit"], [detailStatsCitation, detailChartsCitation]),
-    definition("queue-detail-throttled", stableDetailCaptures, ["queue-detail-throttled"], [detailChartsCitation]),
+      ]),
+    ], [listCitation]),
+    definition("queue-detail-capabilities", stableDetailCaptures, ["queue-detail-concurrency", "queue-detail-concurrency-limit", "queue-detail-throttled"], [detailStatsCitation, detailChartsCitation]),
   ];
-  return definitions;
 }
 
 function definition(id: string, captures: string[], markers: string[], citations: string[]): CapabilityOmissionDefinition {
@@ -54,7 +47,8 @@ function definition(id: string, captures: string[], markers: string[], citations
     decision: "NW-221",
     acceptance: [
       "Scope only source-visible Queue capability data unavailable from Skyline evidence.",
-      "Keep each Trigger and Skyline node uniquely paired by semantic marker.",
+      "Keep each Trigger and Skyline node uniquely paired by semantic marker and exact geometry/style.",
+      "Lock exact subtree accessibility text/state, including explicit null and empty sentinels; accessible Queue surface ownership remains outside the omission.",
     ],
     citations,
     captures,

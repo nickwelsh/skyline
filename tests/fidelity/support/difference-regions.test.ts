@@ -5,6 +5,8 @@ import {
   applicableFrameworkExtensions,
   applicablePresenterExtensions,
   accessibilityOmissionSelectors,
+  fingerprintAccessibility,
+  fingerprintCapabilityAccessibility,
   fingerprintComputedStyle,
   omitFrameworkExtensionAccessibility,
   observeElementDom,
@@ -20,6 +22,19 @@ import {
 } from "./difference-regions";
 
 describe("framework-extension fidelity regions", () => {
+  test("capability markers fingerprint ignored wrapper subtrees without role identity", async () => {
+    const snapshot = "- text: unavailable";
+    const ariaSnapshot = vi.fn(async () => snapshot);
+
+    await expect(fingerprintCapabilityAccessibility({ ariaSnapshot })).resolves.toBe(fingerprintAccessibility(snapshot));
+    expect(ariaSnapshot).toHaveBeenCalledOnce();
+  });
+
+  test("capability markers lock distinct null and empty subtree sentinels", async () => {
+    await expect(fingerprintCapabilityAccessibility({ ariaSnapshot: async () => null })).resolves.toBe(fingerprintAccessibility("<null-capability-subtree>"));
+    await expect(fingerprintCapabilityAccessibility({ ariaSnapshot: async () => "" })).resolves.toBe(fingerprintAccessibility("<empty-capability-subtree>"));
+  });
+
   test("requires the exact selector, anchor-relative geometry, style, and accessible identity", () => {
     const expected = definition();
     const observed = {

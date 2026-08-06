@@ -8,14 +8,8 @@ describe("NW-221 Queue capability discovery definitions", () => {
 
   test("locks exact semantic markers without broad chrome or Recorded Runs", () => {
     expect(definitions.map(({ id }) => id)).toEqual([
-      "queue-root-stats",
-      "queue-target-database-reports",
-      "queue-target-redis-billing",
-      "queue-target-redis-default",
-      "queue-target-redis-mail",
-      "queue-target-sqs-imports",
-      "queue-detail-concurrency",
-      "queue-detail-throttled",
+      "queue-root-capabilities",
+      "queue-detail-capabilities",
     ]);
 
     const pairs = definitions.flatMap(({ selectorPairs }) => selectorPairs);
@@ -54,11 +48,9 @@ describe("NW-221 Queue capability discovery definitions", () => {
   });
 
   test("locks capture families around present capability nodes", () => {
-    expect(definitions.map(({ captures }) => captures.length)).toEqual([19, 19, 16, 16, 16, 16, 19, 16]);
-    expect(definitions[1].captures).toContain("queues-filtering@1440x960-classic");
-    expect(definitions[2].captures).not.toContain("queues-filtering@1440x960-classic");
-    expect(definitions[6].captures).toContain("queues-paginated-runs@1440x960-classic");
-    expect(definitions[7].captures).not.toContain("queues-paginated-runs@1440x960-classic");
+    expect(definitions.map(({ captures }) => captures.length)).toEqual([16, 16]);
+    expect(definitions[0].captures).not.toContain("queues-filtering@1440x960-classic");
+    expect(definitions[1].captures).not.toContain("queues-paginated-runs@1440x960-classic");
   });
 
   test("pins provenance and starts without inferred measurements", () => {

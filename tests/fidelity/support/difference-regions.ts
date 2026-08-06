@@ -157,8 +157,8 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
   }
   const selectorPairs = [];
   for (const observation of dom) {
-    const triggerElement = await observeElementAccessibility(trigger, observation.pair.triggerSelector, observation.trigger);
-    const skylineElement = await observeElementAccessibility(skyline, observation.pair.skylineSelector, observation.skyline);
+    const triggerElement = await observeCapabilityElementAccessibility(trigger, observation.pair.triggerSelector, observation.trigger);
+    const skylineElement = await observeCapabilityElementAccessibility(skyline, observation.pair.skylineSelector, observation.skyline);
     selectorPairs.push({
       ...observation.pair,
       triggerRect: triggerElement.rect,
@@ -412,6 +412,15 @@ async function observeElementAccessibility(page: Page, selector: string, observa
   const accessibility = await observeAccessibleIdentity(page, selector);
   const accessibilitySnapshot = await locator.ariaSnapshot();
   return { ...observation, ...accessibility, accessibilitySha256: fingerprintAccessibility(accessibilitySnapshot) };
+}
+
+async function observeCapabilityElementAccessibility(page: Page, selector: string, observation: Awaited<ReturnType<typeof observeElementDom>>) {
+  return { ...observation, accessibilitySha256: await fingerprintCapabilityAccessibility(page.locator(selector)) };
+}
+
+export async function fingerprintCapabilityAccessibility(locator: { ariaSnapshot(): Promise<string | null> }) {
+  const snapshot = await locator.ariaSnapshot();
+  return fingerprintAccessibility(snapshot === null ? "<null-capability-subtree>" : snapshot === "" ? "<empty-capability-subtree>" : snapshot);
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {
