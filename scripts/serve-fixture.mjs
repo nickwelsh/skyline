@@ -4,6 +4,7 @@ import { extname, join, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = process.env.SKYLINE_DIST ? resolve(process.env.SKYLINE_DIST) : join(root, "dist");
+const port = Number(process.env.SKYLINE_PORT ?? 4174);
 const manifest = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8"));
 const prepaintSource = readFileSync(join(root, "resources/js/skyline/uiPreferencesPrepaint.js"), "utf8");
 const entry = manifest["resources/js/app.tsx"];
@@ -41,4 +42,4 @@ createServer((request, response) => {
     return;
   }
   response.writeHead(404).end();
-}).listen(4174, "127.0.0.1");
+}).listen(port, "127.0.0.1");

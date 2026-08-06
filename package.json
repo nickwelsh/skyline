@@ -14,6 +14,7 @@
     "test:browser": "playwright test",
     "oracle:check": "node scripts/fidelity-oracle.mjs",
     "oracle:record": "node scripts/fidelity-oracle.mjs --record",
+    "oracle:test": "playwright test --config playwright.oracle.config.ts",
     "trigger:import": "node scripts/import-trigger.mjs",
     "trigger:check": "node scripts/import-trigger.mjs --check",
     "trigger:inspector-baseline": "node scripts/extract-trigger-inspector-baseline.mjs",
