@@ -38,6 +38,15 @@ describe("Queue capability markers", () => {
     expect(container.querySelectorAll('select[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
   });
 
+  it("reserves source chart geometry for unavailable backlog data", () => {
+    const container = render(<QueueTargetsPresenter data={list()} loading={false} />);
+    const placeholder = container.querySelector<HTMLElement>('[data-skyline-capability="queue-target-reports-backlog"]')!;
+
+    expect(placeholder.className).toBe("inline-flex h-[27px] w-[134px] items-center justify-end text-text-dimmed");
+    expect(placeholder.getAttribute("aria-label")).toBe("Backlog unavailable");
+    expect(placeholder.querySelector('[aria-hidden="true"]')?.textContent).toBe("–");
+  });
+
   it("marks unavailable detail concurrency and chart series without owning Recorded Runs", () => {
     const container = render(<QueueTargetDetailPresenter data={detail()} loading={false} />);
     const markers = [...container.querySelectorAll<HTMLElement>("[data-skyline-capability]")].map((node) => node.dataset.skylineCapability);

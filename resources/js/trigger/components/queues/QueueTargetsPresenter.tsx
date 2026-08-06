@@ -143,7 +143,17 @@ function QueueHealthBadge({ health, capabilityMarker }: { health: PresentedQueue
 }
 
 function BacklogSparkline({ values, capabilityMarker }: { values: number[]; capabilityMarker?: string }) {
-  if (values.length === 0) return <span data-skyline-capability={capabilityMarker} className="text-text-dimmed">–</span>;
+  if (values.length === 0) {
+    return (
+      <span
+        aria-label="Backlog unavailable"
+        data-skyline-capability={capabilityMarker}
+        className="inline-flex h-[27px] w-[134px] items-center justify-end text-text-dimmed"
+      >
+        <span aria-hidden="true">–</span>
+      </span>
+    );
+  }
   const maximum = Math.max(...values, 1);
   const points = values.map((value, index) => `${values.length === 1 ? 67 : index / (values.length - 1) * 134},${22 - value / maximum * 18}`).join(" ");
   return (
