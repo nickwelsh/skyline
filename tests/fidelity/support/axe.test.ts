@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { additionalAxeViolations, normalizedPartitionLedger, normalizeRadixTargets, pairedPresenterAxeDifferences, partitionAxeEvidence } from "./axe";
+import { additionalAxeViolations, normalizedPartitionLedger, normalizeRadixTargets, normalizeTargetPath, pairedPresenterAxeDifferences, partitionAxeEvidence, resolveUniqueAxeTarget } from "./axe";
 
 const violations = [
   violation("aria-dialog-name", "#radix-\\:r9\\:"),
@@ -20,6 +20,20 @@ describe("Axe fidelity evidence", () => {
     expect(() => normalizeRadixTargets(violations, ["radix-:r9:", "radix-:r9:"])).toThrow(/collision/i);
     expect(normalizeRadixTargets(violations, ["radix-:r9:", "radix-:ra:"]))
       .not.toEqual(normalizeRadixTargets(violations, ["radix-:ra:", "radix-:r9:"]));
+  });
+
+  test("preserves semantic iframe and shadow target segment order", () => {
+    const path = normalizeTargetPath(["iframe#oracle", "#radix-\\:r9\\:"]);
+    const nested = [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: path }] }];
+    expect(normalizeRadixTargets(nested, ["radix-:r9:"])[0].nodes[0].target).toEqual(["iframe#oracle", "#radix-generated-0"]);
+  });
+
+  test("fails closed when a target segment is not unique", () => {
+    document.body.innerHTML = '<div id="host"></div>';
+    const shadow = document.querySelector("#host")!.attachShadow({ mode: "open" });
+    shadow.innerHTML = "<button>one</button><button>two</button>";
+    expect(() => resolveUniqueAxeTarget(document, ["#host", "button"])).toThrow(/unique/i);
+    expect(resolveUniqueAxeTarget(document, ["#host", "button:first-child"])?.textContent).toBe("one");
   });
 
   test("requires identical rule, target structure, count, and impact", () => {

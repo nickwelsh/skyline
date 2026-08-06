@@ -11,7 +11,7 @@ export async function captureAxe(page: Page) {
     impact: violation.impact,
     tags: [...violation.tags].sort(),
     nodes: violation.nodes.map((node) => ({
-      target: node.target.map(String).sort(),
+      target: normalizeTargetPath(node.target),
       failureSummary: node.failureSummary?.replaceAll(/\s+/g, " ").trim(),
     })).sort((left, right) => JSON.stringify(left.target).localeCompare(JSON.stringify(right.target))),
   })).sort((left, right) => left.id.localeCompare(right.id));
@@ -38,11 +38,15 @@ export async function capturePartitionedAxe(page: Page, presenterSelector: strin
     return targetPaths.map((path) => {
       let root: Document | ShadowRoot = document;
       let target: Element | null = null;
-      for (const segment of path) {
-        target = root.querySelector(segment);
-        if (!target) throw new Error(`Unresolved Axe target ${JSON.stringify(path)}.`);
-        if (target instanceof HTMLIFrameElement && target.contentDocument) root = target.contentDocument;
-        else if (target.shadowRoot) root = target.shadowRoot;
+      for (const [index, segment] of path.entries()) {
+        const matches = root.querySelectorAll(segment);
+        if (matches.length !== 1) throw new Error(`Axe target segment must resolve uniquely: ${JSON.stringify({ path, segment, count: matches.length })}.`);
+        target = matches[0];
+        if (index < path.length - 1) {
+          if (target instanceof HTMLIFrameElement && target.contentDocument) root = target.contentDocument;
+          else if (target.shadowRoot) root = target.shadowRoot;
+          else throw new Error(`Axe target traversal root missing: ${JSON.stringify({ path, segment })}.`);
+        }
       }
       return presenter.contains(target);
     });
@@ -65,6 +69,26 @@ export function normalizeRadixTargets(violations: AxeEvidence, domOrderedIds: st
       target: node.target.map((target) => replacements.reduce((normalized, [source, replacement]) => normalized.replaceAll(source, replacement), target)),
     })),
   }));
+}
+
+export function normalizeTargetPath(target: unknown[]) {
+  return target.map(String);
+}
+
+export function resolveUniqueAxeTarget(root: Document | ShadowRoot, path: string[]) {
+  let queryRoot = root;
+  let target: Element | null = null;
+  for (const [index, segment] of path.entries()) {
+    const matches = queryRoot.querySelectorAll(segment);
+    if (matches.length !== 1) throw new Error(`Axe target segment must resolve uniquely: ${JSON.stringify({ path, segment, count: matches.length })}.`);
+    target = matches[0];
+    if (index < path.length - 1) {
+      if (target instanceof HTMLIFrameElement && target.contentDocument) queryRoot = target.contentDocument;
+      else if (target.shadowRoot) queryRoot = target.shadowRoot;
+      else throw new Error(`Axe target traversal root missing: ${JSON.stringify({ path, segment })}.`);
+    }
+  }
+  return target;
 }
 
 export function additionalAxeViolations(trigger: AxeEvidence, skyline: AxeEvidence) {
