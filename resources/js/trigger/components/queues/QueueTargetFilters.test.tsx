@@ -27,6 +27,7 @@ describe("QueuePeriodFilter", () => {
     const anchor = container.querySelector<HTMLElement>('[data-skyline-anchor="queue-period-filter"]')!;
     expect(anchor.getAttribute("role")).toBe("combobox");
     expect(anchor.getAttribute("aria-haspopup")).toBe("listbox");
+    expect(anchor.getAttribute("aria-label")).toBe("Period: 1hr");
     const chrome = anchor.querySelector<HTMLElement>(".flex.items-center.transition")!;
     expect(chrome.className).toContain("bg-secondary");
     expect(chrome.className).toContain("pl-1.5");

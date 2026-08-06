@@ -77,6 +77,7 @@ export function QueuePeriodFilter({
         <Ariakit.TooltipAnchor
           render={
             <Ariakit.Select
+              aria-label={`Period: ${selectedLabel}`}
               render={<div data-skyline-anchor="queue-period-filter" className="group cursor-pointer focus-custom" />}
             />
           }
