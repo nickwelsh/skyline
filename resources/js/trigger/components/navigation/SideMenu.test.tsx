@@ -85,6 +85,18 @@ describe("SideMenu capabilities", () => {
     expect((resizer.firstElementChild as HTMLElement).className).toBe("pointer-events-none absolute inset-y-0 left-1/2 w-0.75 -translate-x-1/2 bg-indigo-500 opacity-0 transition-opacity duration-300 group-hover/resize:opacity-100");
   });
 
+  it("uses exact source controls for the supported Observability extension", () => {
+    const container = renderSideMenu(fixtureCapabilities.navigation);
+    const section = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("Observability"))!;
+
+    expect(section.className).toBe("group/section flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-sm py-1 pl-1.5 pr-1 group-hover/sectionheader:bg-background-hover focus-custom");
+    for (const action of ["tasks", "runs", "logs", "errors", "queues"]) {
+      const link = container.querySelector<HTMLElement>(`[data-action="${action}"]`)!;
+      expect(link.className).toBe("h-8! block w-full group/menulink flex h-8 items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 focus-custom w-full text-text-dimmed group-hover/menuitem:bg-background-hover group-hover/menuitem:text-text-bright hover:bg-background-hover hover:text-text-bright");
+      expect(link.querySelector("span")?.className).toBe("overflow-hidden whitespace-nowrap min-w-0 flex-1 select-none text-left text-[0.90625rem] font-medium tracking-[-0.01em]");
+    }
+  });
+
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
     const container = renderSideMenu({
       ...fixtureCapabilities.navigation,

@@ -10,7 +10,7 @@ import {
   ChevronRightIcon,
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
-import { Link, useLocation } from "@remix-run/react";
+import { useLocation } from "@remix-run/react";
 import { type CSSProperties, type FunctionComponent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BugIcon } from "~/assets/icons/BugIcon";
 import { DevEnvironmentIconSmall, ProdEnvironmentIconSmall } from "~/assets/icons/EnvironmentIcons";
@@ -30,6 +30,7 @@ import {
 } from "./CustomizeSidebarDialog";
 import { useJobFavorites } from "./JobFavorites";
 import { SideMenuSection } from "./SideMenuSection";
+import { SideMenuItem } from "./SideMenuItem";
 import { isItemHidden, orderByPreference } from "./sideMenuTypes";
 import { AppearanceMenu, type AppearancePreference } from "./AppearanceMenu";
 import { HelpMenu, type HelpCapabilities } from "./HelpMenu";
@@ -351,11 +352,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
 }
 
 function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active: boolean; labelOpacity: number }) {
-  const ItemIcon = item.icon;
-  return <Link to={item.to} data-action={item.id} aria-current={active ? "page" : undefined} className={cn("group/menulink flex h-8 w-full items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 text-[0.90625rem] font-medium tracking-[-0.01em] focus-custom", active ? "bg-tertiary text-text-bright" : "text-text-dimmed hover:bg-background-hover hover:text-text-bright")}>
-    <ItemIcon className={cn("size-5 min-w-5 shrink-0", active ? cn(item.activeIconColor, "side-menu-active-icon") : "text-text-dimmed group-hover/menulink:text-text-bright")} />
-    <span className="min-w-0 truncate" style={{ opacity: labelOpacity }}>{item.name}</span>
-  </Link>;
+  return <SideMenuItem name={item.name} to={item.to} icon={item.icon} activeIconColor={item.activeIconColor} active={active} isCollapsed={labelOpacity === 0} data-action={item.id} />;
 }
 
 function EnvironmentIcon({ environmentLabel }: { environmentLabel: string }) {
