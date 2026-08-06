@@ -278,7 +278,7 @@ async function exerciseCapture(page: Page, region: Locator, named: boolean, scen
         return element ? {
           tag: element.tagName.toLowerCase(),
           role: element.getAttribute("role") ?? "",
-          name: element.getAttribute("aria-label") ?? element.textContent?.replaceAll(/\s+/g, " ").trim() ?? "",
+          name: element.getAttribute("aria-label") ?? (element.matches("button, [role='tab']") ? element.textContent?.replaceAll(/\s+/g, " ").trim() ?? "" : ""),
         } : null;
       }),
     }));

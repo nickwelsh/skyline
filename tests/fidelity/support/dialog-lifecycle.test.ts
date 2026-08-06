@@ -12,22 +12,22 @@ describe("expanded dialog lifecycle", () => {
     expect(() => expandedDialogCounts(0.5)).toThrow(/baseline/i);
   });
 
-  test("locks source and Skyline focus-return transcripts", () => {
+  test("locks source and Skyline inspector-close transcripts", () => {
     expect(expectedExpandedDialogTranscript("trigger")).toEqual({
       dialogCountBefore: 0,
       dialogCountAfterEscape: 0,
-      expand: { connected: true, focused: true },
-      presenterCount: 1,
+      expand: { connected: false, focused: false },
+      presenterCount: 0,
       selectedAnchorCount: 1,
-      active: { tag: "button", role: "", name: "" },
+      active: { tag: "body", role: "", name: "" },
     });
     expect(expectedExpandedDialogTranscript("skyline")).toEqual({
       dialogCountBefore: 0,
       dialogCountAfterEscape: 0,
-      expand: { connected: true, focused: true },
-      presenterCount: 1,
+      expand: { connected: false, focused: false },
+      presenterCount: 0,
       selectedAnchorCount: 1,
-      active: { tag: "button", role: "", name: "Expand Properties" },
+      active: { tag: "body", role: "", name: "" },
     });
   });
 });

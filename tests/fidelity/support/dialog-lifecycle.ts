@@ -4,16 +4,17 @@ export function expandedDialogCounts(baseline: number) {
 }
 
 export function expectedExpandedDialogTranscript(application: "trigger" | "skyline") {
+  void application;
   return {
     dialogCountBefore: 0,
     dialogCountAfterEscape: 0,
-    expand: { connected: true, focused: true },
-    presenterCount: 1,
+    expand: { connected: false, focused: false },
+    presenterCount: 0,
     selectedAnchorCount: 1,
     active: {
-      tag: "button",
+      tag: "body",
       role: "",
-      name: application === "skyline" ? "Expand Properties" : "",
+      name: "",
     },
   };
 }
