@@ -619,6 +619,7 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     await expect(expand).not.toBeFocused();
 
     if (scenario.key === "sql-captured") {
+      await expectCaptureTabKeyboard(page, detailRegion);
       await page.getByRole("tab", { name: "With bindings" }).click();
       await expect(detailRegion).toContainText("[REDACTED]");
       await page.getByRole("tab", { name: "Tree" }).click();
