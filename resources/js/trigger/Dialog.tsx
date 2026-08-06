@@ -36,7 +36,7 @@ const DialogContent = React.forwardRef<
     <DialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
-      className={`fixed z-50 w-full rounded-b-lg border bg-background-dimmed shadow-lg animate-in data-[state=open]:fade-in-90 data-[state=open]:slide-in-from-bottom-10 sm:rounded-lg sm:zoom-in-90 sm:data-[state=open]:slide-in-from-bottom-0 ${className ?? ""}`}
+      className={`fixed z-50 w-full rounded-b-lg border bg-background-dimmed antialiased shadow-lg animate-in data-[state=open]:fade-in-90 data-[state=open]:slide-in-from-bottom-10 sm:rounded-lg sm:zoom-in-90 sm:data-[state=open]:slide-in-from-bottom-0 ${className ?? ""}`}
       {...props}
     >
       <hr className="absolute left-0 top-11 w-full border-grid-bright" />

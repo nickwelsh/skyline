@@ -85,6 +85,7 @@ describe("ExceptionPreview", () => {
     flushSync(() => expand.click());
     await vi.waitFor(() => expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1));
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(dialog.className).toContain("antialiased");
     const title = document.getElementById(dialog.getAttribute("aria-labelledby")!);
     expect(title?.textContent).toBe("");
     expect(dialog.querySelector('[role="region"][aria-label="exception stack trace"]')).not.toBeNull();
