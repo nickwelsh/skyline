@@ -340,13 +340,46 @@ function triggerSpanRun(detail: any) {
 }
 
 function triggerErrors(page: any, layout: any) {
-  return { ...layout, data: { errorGroups: page.errorGroups.map((group: any) => ({ errorType: group.exceptionClass ?? "RuntimeException", errorMessage: group.message ?? group.errorMessage, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType ?? group.taskIdentifier, firstSeen: group.firstObservedAt ?? group.firstSeen, lastSeen: group.lastObservedAt ?? group.lastSeen, count: group.occurrenceCount ?? group.count, status: group.status ?? "UNRESOLVED", resolvedAt: null, ignoredUntil: null })), pagination: { next: page.pagination.next ?? undefined, previous: page.pagination.previous ?? undefined }, filters: { tasks: [], versions: [], statuses: [], search: null, period: { period: "1d" }, from: "2026-08-04T20:02:00.000Z", to: "2026-08-05T20:02:00.000Z", hasFilters: false, possibleTasks: [], wasClampedByRetention: false } }, occurrences: { data: {} }, defaultPeriod: "1d", retentionLimitDays: 30, organizationSlug: "fixture", projectParam: "fixture", envParam: "prod" };
+  return {
+    ...layout,
+    data: {
+      errorGroups: page.errorGroups.map((group: any) => ({ errorType: group.exceptionClass ?? "RuntimeException", errorMessage: group.message ?? group.errorMessage, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType ?? group.taskIdentifier, firstSeen: group.firstObservedAt ?? group.firstSeen, lastSeen: group.lastObservedAt ?? group.lastSeen, count: group.occurrenceCount ?? group.count, status: group.status ?? "UNRESOLVED", resolvedAt: null, ignoredUntil: null })),
+      pagination: { next: page.pagination.next ?? undefined, previous: page.pagination.previous ?? undefined },
+      filters: { tasks: [], versions: [], statuses: [], search: null, period: { period: "1d" }, from: "2026-08-04T20:02:00.000Z", to: "2026-08-05T20:02:00.000Z", hasFilters: false, possibleTasks: page.options.jobTypes.map((slug: string) => ({ slug })), wasClampedByRetention: false },
+    },
+    occurrences: { data: Object.fromEntries(page.errorGroups.map((group: any) => [group.fingerprint, group.activity.map((point: any) => ({ date: point.timestamp, count: point.occurrences }))])) },
+    defaultPeriod: "1d", retentionLimitDays: 30, organizationSlug: "fixture", projectParam: "fixture", envParam: "prod",
+  };
 }
 
 function triggerError(detail: any, layout: any) {
+  const version = "20260804.1";
   const group = detail.errorGroup;
   const state = { status: group?.status ?? "UNRESOLVED", resolvedAt: null, resolvedInVersion: null, resolvedBy: null, ignoredAt: null, ignoredUntil: null, ignoredReason: null, ignoredByUserId: null, ignoredByUserDisplayName: null, ignoredUntilOccurrenceRate: null, ignoredUntilTotalOccurrences: null, ignoredAtOccurrenceCount: null };
-  return { ...layout, data: { errorGroup: group ? { errorType: detail.representative.class, errorMessage: detail.representative.message, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType, firstSeen: group.firstObservedAt, lastSeen: group.lastObservedAt, count: group.occurrenceCount, affectedVersions: [], state } : undefined, runList: undefined }, activity: { data: detail.activity ?? [], versions: [] }, organizationSlug: "fixture", projectParam: "fixture", envParam: "prod", fingerprint: group?.fingerprint ?? group?.id ?? "fixture-error", canCancelRuns: false, canReplayRuns: false };
+  const runList = triggerRunList({
+    runs: detail.failedAttempts.map((attempt: any) => ({
+      id: attempt.runId,
+      name: attempt.jobType,
+      status: "failed",
+      triggeredAt: attempt.startedAt,
+      startedAt: attempt.startedAt,
+      finishedAt: attempt.finishedAt ?? attempt.observedAt,
+      activeDurationUs: Math.max(0, Date.parse(attempt.finishedAt ?? attempt.observedAt) - Date.parse(attempt.startedAt)) * 1_000,
+      queue: "default",
+      isRoot: true,
+    })),
+    pagination: detail.pagination,
+    hasAnyRuns: detail.hasAnyOccurrences,
+  });
+  return {
+    ...layout,
+    data: {
+      errorGroup: group ? { errorType: detail.representative.class, errorMessage: detail.representative.message, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType, firstSeen: group.firstObservedAt, lastSeen: group.lastObservedAt, count: group.occurrenceCount, affectedVersions: [version], state } : undefined,
+      runList,
+    },
+    activity: { data: detail.activity.map((point: any) => ({ date: point.timestamp, [version]: point.occurrences })), versions: detail.activity.length ? [version] : [] },
+    organizationSlug: "fixture", projectParam: "fixture", envParam: "prod", fingerprint: group?.fingerprint ?? group?.id ?? "fixture-error", canCancelRuns: false, canReplayRuns: false,
+  };
 }
 
 function triggerLogs(page: any, selected?: any) {
