@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import type { RunsPageDto } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
@@ -9,6 +10,25 @@ import { pinnedTriggerCommit, readPinnedTriggerSource } from "./support/pinned-t
 const storageKey = "skyline.ui-preferences.v1:/skyline";
 test.beforeEach(async ({ page }) => {
   await page.route("**/skyline/api/runs**", (route) => route.fulfill({ json: runsResponse() }));
+});
+
+test("environment label preserves pinned source contrast", async ({ page }) => {
+  await page.goto("/skyline/runs");
+
+  for (const scenario of [
+    { theme: "classic", viewport: { width: 1440, height: 960 } },
+    { theme: "light", viewport: { width: 1440, height: 960 } },
+    { theme: "classic", viewport: { width: 390, height: 844 } },
+  ] as const) {
+    await page.setViewportSize(scenario.viewport);
+    await page.evaluate(({ key, theme }) => localStorage.setItem(key, JSON.stringify({ version: 1, theme, contrast: 50 })), { key: storageKey, theme: scenario.theme });
+    await page.reload();
+
+    const label = page.getByTestId("side-menu-project").getByText("Production", { exact: true });
+    await expect(label).toHaveClass("overflow-hidden whitespace-nowrap text-left system-mono-label text-prod text-[0.90625rem] font-medium tracking-[-0.01em]");
+    const violations = (await new AxeBuilder({ page }).include('[data-testid="side-menu-project"]').analyze()).violations;
+    expect(violations.map((violation) => violation.id)).not.toContain("color-contrast");
+  }
 });
 
 test("source shell exposes only supported surfaces and persists customization", async ({ page }) => {

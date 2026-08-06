@@ -301,7 +301,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
             <div className={cn("flex h-8 items-center rounded pl-1.75", collapsed ? "justify-center pr-0.5" : "pr-1")}>
               <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                 <EnvironmentIcon environmentLabel={environmentLabel} />
-                <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-prod capitalize" style={{ opacity: labelOpacity }}>{environmentLabel}</span>
+                <span className="overflow-hidden whitespace-nowrap text-left system-mono-label text-prod text-[0.90625rem] font-medium tracking-[-0.01em]" style={{ opacity: labelOpacity }}>{environmentLabel}</span>
               </span>
             </div>
           </div>
