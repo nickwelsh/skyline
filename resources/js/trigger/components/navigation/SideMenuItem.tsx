@@ -18,13 +18,15 @@ type SideMenuItemProps = {
   active: boolean;
   isCollapsed: boolean;
   "data-action": string;
+  "data-skyline-extension"?: string;
 };
 
-export function SideMenuItem({ name, to, icon, activeIconColor, active, isCollapsed, "data-action": dataAction }: SideMenuItemProps) {
+export function SideMenuItem({ name, to, icon, activeIconColor, active, isCollapsed, "data-action": dataAction, "data-skyline-extension": skylineExtension }: SideMenuItemProps) {
   const link = (
     <Link
       to={to}
       data-action={dataAction}
+      data-skyline-extension={skylineExtension}
       aria-current={active ? "page" : undefined}
       className={cn(
         "group/menulink flex h-8 items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 focus-custom",

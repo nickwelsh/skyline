@@ -17,6 +17,7 @@ type Props = {
    * while hovering the header row, or while its popover is open.
    */
   headerMenu?: React.ReactNode;
+  "data-skyline-extension"?: string;
 };
 
 /** A collapsible section for the side menu. Collapsed state is controlled via props + a toggle callback. */
@@ -29,6 +30,7 @@ export function SideMenuSection({
   itemSpacingClassName = "space-y-px",
   headerAction,
   headerMenu,
+  "data-skyline-extension": skylineExtension,
 }: Props) {
   const [isCollapsed, setIsCollapsed] = useState(initialCollapsed);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -57,6 +59,7 @@ export function SideMenuSection({
           background and text color snap (no transition), matching the nav items.
         */}
         <button
+          data-skyline-extension={skylineExtension}
           type="button"
           // A real button for native keyboard toggle + focus ring. Out of the tab order when the
           // menu is collapsed (the header is hidden and can't be toggled). Hover styles key off

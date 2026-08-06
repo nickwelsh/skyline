@@ -75,6 +75,7 @@ describe("SideMenu capabilities", () => {
     expect(project.style.paddingLeft).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
     expect(project.style.paddingRight).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
     expect(navigation.className).toBe("min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover");
+    expect(navigation.getAttribute("data-skyline-anchor")).toBe("shell-navigation");
     expect(navigationContent.className).toBe("mb-6 flex w-full flex-col gap-4 overflow-hidden");
     expect(navigationContent.style.paddingLeft).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
     expect(navigationContent.style.paddingRight).toBe("0px");
@@ -90,10 +91,12 @@ describe("SideMenu capabilities", () => {
     const section = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("Observability"))!;
 
     expect(section.className).toBe("group/section flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-sm py-1 pl-1.5 pr-1 group-hover/sectionheader:bg-background-hover focus-custom");
+    expect(section.getAttribute("data-skyline-extension")).toBe("shell-observability-header");
     for (const action of ["tasks", "runs", "logs", "errors", "queues"]) {
       const link = container.querySelector<HTMLElement>(`[data-action="${action}"]`)!;
       expect(link.className).toBe("h-8! block w-full group/menulink flex h-8 items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 focus-custom w-full text-text-dimmed group-hover/menuitem:bg-background-hover group-hover/menuitem:text-text-bright hover:bg-background-hover hover:text-text-bright");
       expect(link.querySelector("span")?.className).toBe("overflow-hidden whitespace-nowrap min-w-0 flex-1 select-none text-left text-[0.90625rem] font-medium tracking-[-0.01em]");
+      expect(link.getAttribute("data-skyline-extension")).toBe(["logs", "errors", "queues"].includes(action) ? `shell-${action}-navigation` : null);
     }
   });
 
@@ -110,9 +113,11 @@ describe("SideMenu capabilities", () => {
     expect(footer.className).toBe("");
     expect(panel.className).toBe("flex flex-col gap-1 border-t border-grid-bright p-1");
     expect(controls.className).toBe("flex w-full items-center justify-between");
+    expect(controls.getAttribute("data-skyline-anchor")).toBe("shell-footer-controls");
     expect(help.className).toBe("group flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 hover:bg-background-hover focus-custom w-full justify-between");
     expect(help.querySelector("span > span")?.className).toBe("min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright");
     expect(appearance.className).toContain("min-w-0 flex-1");
+    expect(appearance.getAttribute("data-skyline-extension")).toBe("shell-appearance");
     expect(collapse.className).toBe("group/button outline-hidden focus-custom");
     expect(collapse.parentElement?.parentElement?.parentElement).toBe(controls);
   });

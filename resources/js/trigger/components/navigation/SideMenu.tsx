@@ -315,7 +315,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </div>
         </div>
         </div>
-        <div className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
+        <div data-skyline-anchor="shell-navigation" className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
           <nav aria-label="Application" className="mb-6 flex w-full flex-col gap-4 overflow-hidden" style={{ paddingLeft: sideMenuPadding, paddingRight: "0px" }}>
           <div className="w-full space-y-0">
           {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
@@ -326,7 +326,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
               <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
-            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
+            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} data-skyline-extension={section.id === "metrics" ? "shell-observability-header" : undefined} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
               {section.items.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}
@@ -336,7 +336,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         <div>
           <div className={cn("flex flex-col gap-1 border-t border-grid-bright p-1", collapsed && "items-center")}>
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
-        <div className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
+        <div data-skyline-anchor="shell-footer-controls" className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
           <DormantShellActions capabilities={capabilities.shell} />
           {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
@@ -359,7 +359,8 @@ function CollapseMenuButton({ collapsed, onToggle }: { collapsed: boolean; onTog
 }
 
 function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active: boolean; labelOpacity: number }) {
-  return <SideMenuItem name={item.name} to={item.to} icon={item.icon} activeIconColor={item.activeIconColor} active={active} isCollapsed={labelOpacity === 0} data-action={item.id} />;
+  const extension = ["logs", "errors", "queues"].includes(item.id) ? `shell-${item.id}-navigation` : undefined;
+  return <SideMenuItem name={item.name} to={item.to} icon={item.icon} activeIconColor={item.activeIconColor} active={active} isCollapsed={labelOpacity === 0} data-action={item.id} data-skyline-extension={extension} />;
 }
 
 function EnvironmentIcon({ environmentLabel }: { environmentLabel: string }) {
