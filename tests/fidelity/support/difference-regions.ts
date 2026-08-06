@@ -116,22 +116,34 @@ export function applicableFrameworkExtensions(capture: string, manifest: Allowed
 async function observeElement(page: Page, id: string, selector: string, label: string) {
   const locator = page.locator(selector);
   requireSingleMatch(await locator.count(), id, label);
-  const observation = await locator.evaluate((element) => {
+  const [observation, accessibility] = await Promise.all([locator.evaluate((element) => {
     const box = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
-    const explicitRole = element.getAttribute("role");
-    const accessibleRole = explicitRole ?? (element.matches("section[aria-label]") ? "region" : /^H[1-6]$/.test(element.tagName) ? "heading" : element.tagName.toLowerCase());
     return {
       rect: { x: box.x, y: box.y, width: box.width, height: box.height },
-      accessibleRole,
-      accessibleName: element.getAttribute("aria-label") ?? element.textContent?.trim() ?? "",
       computedStyle,
     };
-  });
-  return { ...observation, computedStyleSha256: createHash("sha256").update(JSON.stringify(observation.computedStyle)).digest("hex") };
+  }), observeAccessibleIdentity(page, selector)]);
+  return { ...observation, ...accessibility, computedStyleSha256: createHash("sha256").update(JSON.stringify(observation.computedStyle)).digest("hex") };
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {
   if (count !== 1) throw new Error(`Allowed region ${id} ${label} must match exactly one element.`);
+}
+
+async function observeAccessibleIdentity(page: Page, selector: string) {
+  const session = await page.context().newCDPSession(page);
+  try {
+    await session.send("Accessibility.enable");
+    const document = await session.send("DOM.getDocument") as { root: { nodeId: number } };
+    const match = await session.send("DOM.querySelector", { nodeId: document.root.nodeId, selector }) as { nodeId: number };
+    const description = await session.send("DOM.describeNode", { nodeId: match.nodeId }) as { node: { backendNodeId: number } };
+    const result = await session.send("Accessibility.getPartialAXTree", { backendNodeId: description.node.backendNodeId, fetchRelatives: false }) as { nodes: Array<{ ignored?: boolean; role?: { value?: unknown }; name?: { value?: unknown } }> };
+    const node = result.nodes.find((candidate) => !candidate.ignored && typeof candidate.role?.value === "string");
+    if (!node) throw new Error(`Selector ${selector} has no accessible node.`);
+    return { accessibleRole: String(node.role?.value), accessibleName: typeof node.name?.value === "string" ? node.name.value : "" };
+  } finally {
+    await session.detach();
+  }
 }

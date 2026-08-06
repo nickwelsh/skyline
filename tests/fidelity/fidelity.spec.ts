@@ -2,13 +2,15 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
+import allowedDifferences from "./allowed-differences.json" with { type: "json" };
 import matrix from "./matrix.json" with { type: "json" };
 import { captureAccessibilityTree } from "./support/accessibility";
 import { observeAction } from "./support/actions";
 import { captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
-import { measurePixels } from "./support/pixels";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
+import { observeDifferenceRegions, omitFrameworkExtensionAccessibility, type AllowedDifferences } from "./support/difference-regions";
+import { measurePixels } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -49,8 +51,9 @@ for (const capture of captures) {
     await Promise.all([applyLiveSystemChange(page, capture), applyLiveSystemChange(reference, capture)]);
     await Promise.all([settleCapture(page), settleCapture(reference)]);
     await Promise.all([assertFixedCanvas(page, capture), assertFixedCanvas(reference, capture)]);
+    const regions = await observeDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
 
-    const [triggerPng, skylinePng, triggerTree, skylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
+    const [triggerPng, skylinePng, triggerTree, rawSkylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
       reference.screenshot({ animations: "disabled", caret: "hide" }),
       page.screenshot({ animations: "disabled", caret: "hide" }),
       captureAccessibilityTree(reference),
@@ -60,7 +63,8 @@ for (const capture of captures) {
       observeAction(reference, "captured"),
       observeAction(page, "captured"),
     ]);
-    const comparison = measurePixels(triggerPng, skylinePng, []);
+    const skylineTree = omitFrameworkExtensionAccessibility(rawSkylineTree, capture, allowedDifferences as unknown as AllowedDifferences);
+    const comparison = measurePixels(triggerPng, skylinePng, regions);
     assertNoFidelityDifferences(collectFidelityDifferences({
       differingPixels: comparison.differingPixels,
       triggerTree,
@@ -74,7 +78,10 @@ for (const capture of captures) {
     proof(`${directory}/trigger.png`, triggerPng);
     proof(`${directory}/skyline.png`, skylinePng);
     proof(`${directory}/comparison.json`, json(comparison));
-    proof(`${directory}/accessibility.json`, json({ trigger: triggerTree, skyline: skylineTree, axe: { trigger: triggerAxe, skyline: skylineAxe } }));
+    const accessibilityProof = regions.length
+      ? { trigger: triggerTree, skyline: rawSkylineTree, comparedSkyline: skylineTree, allowedRegions: regions.map(({ id }) => id), axe: { trigger: triggerAxe, skyline: skylineAxe } }
+      : { trigger: triggerTree, skyline: rawSkylineTree, axe: { trigger: triggerAxe, skyline: skylineAxe } };
+    proof(`${directory}/accessibility.json`, json(accessibilityProof));
     proof(`${directory}/interactions.json`, json({ trigger: triggerInteraction, skyline: skylineInteraction }));
     if (capture.includes("-system-")) {
       const explicit = capture.replace(/-system-(light|dark)$/, "-$1");

@@ -53,6 +53,14 @@ describe("source-fidelity oracle", () => {
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, acceptance: "" }] })).toThrow(/incomplete/i);
   });
 
+  test("the runner applies allowed pixels and AX omissions instead of raw empty masks", () => {
+    const runner = readFileSync(join(root, "tests/fidelity/fidelity.spec.ts"), "utf8");
+    expect(runner).toContain("observeDifferenceRegions(reference, page, capture");
+    expect(runner).toContain("omitFrameworkExtensionAccessibility(rawSkylineTree, capture");
+    expect(runner).toContain("measurePixels(triggerPng, skylinePng, regions)");
+    expect(runner).not.toContain("measurePixels(triggerPng, skylinePng, [])");
+  });
+
   test("regeneration requires an accepted decision reference", () => {
     expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/requires --decision NW-/i);
   });
