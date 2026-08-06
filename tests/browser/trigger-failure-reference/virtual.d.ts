@@ -8,3 +8,9 @@ declare module "virtual:pinned-trigger-run-error" {
     };
   }): React.JSX.Element;
 }
+
+declare module "virtual:pinned-trigger-state-inspector" {
+  export function PinnedTriggerStateInspector({ scenario }: {
+    scenario: "sql-captured" | "transaction-committed" | "cache-long" | "redis-truncated";
+  }): React.JSX.Element;
+}

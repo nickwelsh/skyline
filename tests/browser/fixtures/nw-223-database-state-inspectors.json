@@ -3,11 +3,15 @@
   "viewport": { "width": 1024, "height": 768 },
   "cases": [
     { "key": "sql-captured", "heading": "SQL query", "preview": "Parameterized SQL", "visible": ["select * from invoices where customer_id = ?", "Result preview", "Truncated"], "absent": ["Bindings not captured", "Result not captured"] },
+    { "key": "sql-failed-long", "heading": "SQL query", "preview": "Parameterized SQL", "visible": ["update invoices", "Result preview", "Truncated", "QueryException", "Deadlock while updating invoices"], "absent": ["Bindings not captured", "Result not captured"] },
     { "key": "sql-unavailable", "heading": "SQL query", "preview": "Parameterized SQL", "visible": ["select 1", "Bindings not captured", "Result not captured"], "absent": ["With bindings"] },
+    { "key": "transaction-committed", "heading": "Database transaction", "preview": null, "visible": ["testing", "sqlite", "Depth", "2", "committed", "12.5 ms"], "absent": ["Operation failed", "rolled_back"] },
     { "key": "transaction-failed", "heading": "Database transaction", "preview": null, "visible": ["testing", "Depth", "2", "rolled_back", "Operation failed"], "absent": ["rollback reason"] },
     { "key": "cache-unavailable", "heading": "Cache operation", "preview": null, "visible": ["sha256:0123456789abcdef", "Key fingerprint", "Value not captured", "Not captured"], "absent": ["customer@example.test"] },
     { "key": "cache-long", "heading": "Cache operation", "preview": "Value", "visible": ["customer:42", "Key", "Truncated", "Not captured"], "absent": ["Value not captured"] },
+    { "key": "cache-failed", "heading": "Cache operation", "preview": null, "visible": ["LOCK FLUSH", "redis", "failed", "CacheException", "Lock flush failed", "Value not captured"], "absent": ["Key count1", "customer:42"] },
     { "key": "redis-failed", "heading": "Redis command", "preview": "Arguments", "visible": ["SET", "default", "failed", "Connection lost"], "absent": ["Arguments not captured"] },
+    { "key": "redis-truncated", "heading": "Redis command", "preview": "Arguments", "visible": ["MSET", "default", "completed", "Truncated", "redis-key"], "absent": ["Arguments not captured", "Connection lost"] },
     { "key": "redis-unavailable", "heading": "Redis command", "preview": null, "visible": ["GET", "Arguments not captured"], "absent": ["private-key"] }
   ]
 }

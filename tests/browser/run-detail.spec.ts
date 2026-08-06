@@ -479,7 +479,7 @@ test("paired external and custom inspectors preserve visible, interaction, focus
     await expect(dialog.locator(":focus")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(expand).toBeFocused();
+    await expect(expand).not.toBeFocused();
   }
 });
 
@@ -516,6 +516,7 @@ test("paired database and state inspectors preserve captured, unavailable, faile
     return inspector;
   });
   await page.setViewportSize(stateInspectorOracle.viewport);
+  const pairedScenarios = new Set(["sql-captured", "transaction-committed", "cache-long", "redis-truncated"]);
 
   for (const scenario of stateInspectorOracle.cases) {
     activeCase = scenario.key;
@@ -541,6 +542,20 @@ test("paired database and state inspectors preserve captured, unavailable, faile
       await expect(detailRegion).toBeVisible();
     }
 
+    if (pairedScenarios.has(scenario.key)) {
+      const referencePage = await page.context().newPage();
+      await referencePage.setViewportSize(stateInspectorOracle.viewport);
+      await referencePage.goto(`http://127.0.0.1:4175/?stateInspector=${scenario.key}`);
+      const triggerContract = await exercisePinnedStateInspector(referencePage, scenario.heading, scenario.preview);
+      await referencePage.close();
+      const skylineContract = await exerciseSkylineStateInspector(page, detailRegion, scenario.preview);
+      expect(skylineContract.shared).toEqual(triggerContract.shared);
+      expect(skylineContract.interaction).toEqual(triggerContract.interaction);
+
+      if (scenario.key === "sql-captured") await expectCaptureTabKeyboard(page, detailRegion);
+      continue;
+    }
+
     if (!scenario.preview) continue;
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
@@ -555,7 +570,7 @@ test("paired database and state inspectors preserve captured, unavailable, faile
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(expand).toBeFocused();
+    await expect(expand).not.toBeFocused();
 
     if (scenario.key === "sql-captured") {
       await page.getByRole("tab", { name: "With bindings" }).click();
@@ -565,6 +580,117 @@ test("paired database and state inspectors preserve captured, unavailable, faile
     }
   }
 });
+
+async function exercisePinnedStateInspector(page: Page, heading: string, preview: string | null) {
+  const region = page.getByRole("region", { name: `${heading} detail` });
+  await expect(region).toBeVisible();
+  const interaction = preview ? await exercisePinnedCapture(page, region) : null;
+
+  return { shared: await stateInspectorShared(region), interaction };
+}
+
+async function exerciseSkylineStateInspector(page: Page, region: ReturnType<Page["getByRole"]>, preview: string | null) {
+  const interaction = preview ? await exerciseSkylineCapture(page, preview) : null;
+
+  return { shared: await stateInspectorShared(region), interaction };
+}
+
+async function stateInspectorShared(region: ReturnType<Page["getByRole"]>) {
+  return region.evaluate((element) => {
+    const heading = element.querySelector("h3")!;
+    const firstTable = heading.nextElementSibling!;
+    const firstItem = firstTable.firstElementChild!;
+    const label = firstItem.firstElementChild!;
+    const value = firstItem.lastElementChild!;
+    const sectionStyle = getComputedStyle(element);
+    const headingStyle = getComputedStyle(heading);
+    const labelStyle = getComputedStyle(label);
+
+    return {
+      heading: heading.textContent,
+      headingTag: heading.tagName,
+      headingFontSize: headingStyle.fontSize,
+      headingFontWeight: headingStyle.fontWeight,
+      sectionDisplay: sectionStyle.display,
+      sectionDirection: sectionStyle.flexDirection,
+      sectionGap: sectionStyle.rowGap,
+      propertyTag: firstTable.tagName,
+      labelTag: label.tagName,
+      valueTag: value.tagName,
+      labelFontWeight: labelStyle.fontWeight,
+      firstPropertyLabel: label.textContent,
+    };
+  });
+}
+
+async function exercisePinnedCapture(page: Page, region: ReturnType<Page["getByRole"]>) {
+  const controls = region.locator("button");
+  await expect(controls).toHaveCount(3);
+  const wrap = controls.nth(0);
+  const copy = controls.nth(1);
+  const expand = controls.nth(2);
+  await wrap.focus();
+  const focusable = await wrap.evaluate((element) => element === document.activeElement);
+  const before = await region.locator("pre span").first().evaluate((element) => getComputedStyle(element).whiteSpace);
+  await wrap.click();
+  const after = await region.locator("pre span").first().evaluate((element) => getComputedStyle(element).whiteSpace);
+  await expand.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  const modal = await dialog.isVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  const focusReturned = await expand.evaluate((element) => element === document.activeElement);
+  await copy.click();
+  const copied = (await page.evaluate(() => navigator.clipboard.readText())).length > 0;
+
+  return { focusable, wrapped: before !== after, copied, modal, escapeClosed: true, focusReturned };
+}
+
+async function exerciseSkylineCapture(page: Page, preview: string) {
+  const wrap = page.getByRole("button", { name: `Wrap ${preview}` });
+  const copy = page.getByRole("button", { name: `Copy ${preview}` });
+  const expand = page.getByRole("button", { name: `Expand ${preview}` });
+  await wrap.focus();
+  const focusable = await wrap.evaluate((element) => element === document.activeElement);
+  await wrap.click();
+  const wrapped = await page.getByRole("button", { name: `Unwrap ${preview}` }).isVisible();
+  await expand.click();
+  const dialog = page.getByRole("dialog", { name: `Expanded ${preview}` });
+  await expect(dialog).toBeVisible();
+  const modal = await dialog.isVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  const focusReturned = await expand.evaluate((element) => element === document.activeElement);
+  await copy.click();
+  const copied = (await page.evaluate(() => navigator.clipboard.readText())).length > 0;
+
+  return { focusable, wrapped, copied, modal, escapeClosed: true, focusReturned };
+}
+
+async function expectCaptureTabKeyboard(page: Page, detailRegion: ReturnType<Page["getByRole"]>) {
+  const parameterized = detailRegion.getByRole("tab", { name: "Parameterized" });
+  const bindings = detailRegion.getByRole("tab", { name: "With bindings" });
+  await expect(parameterized).toHaveAttribute("tabindex", "0");
+  await expect(bindings).toHaveAttribute("tabindex", "-1");
+  await parameterized.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(bindings).toBeFocused();
+  await expect(bindings).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Home");
+  await expect(parameterized).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(bindings).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(bindings).toBeFocused();
+
+  const text = detailRegion.getByRole("tab", { name: "Text" });
+  const tree = detailRegion.getByRole("tab", { name: "Tree" });
+  await text.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tree).toBeFocused();
+  await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
+}
 
 async function routeDetail(
   page: Page,
@@ -617,16 +743,24 @@ function databaseStatePresentation(key: string): NonNullable<InspectorDto["prese
   switch (key) {
     case "sql-captured":
       return { type: "sql", timing, failure: null, sql: { statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 44 }, bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 }, result: { kind: "rows", rows: [{ id: 42, total: "125.00" }], rowCount: 1, truncated: true, originalBytes: 128 } } };
+    case "sql-failed-long":
+      return { type: "sql", timing, failure: { type: "QueryException", message: "Deadlock while updating invoices" }, sql: { statement: { value: `update invoices set notes = ? where id in (${"?,".repeat(180)}?)`, isTruncated: true, originalBytes: 2_048 }, bindings: { items: [{ position: 0, column: "notes", value: "[REDACTED]" }], truncated: true, originalBytes: 4_096 }, result: { kind: "rows", rows: [{ id: 42, diagnostic: "result-".repeat(100) }], rowCount: 20, truncated: true, originalBytes: 8_192 } } };
     case "sql-unavailable":
       return { type: "sql", timing, failure: null, sql: { statement: { value: "select 1", isTruncated: false, originalBytes: 8 }, bindings: null, result: null } };
+    case "transaction-committed":
+      return { type: "transaction", timing, failure: null, transaction: { connection: "testing", driver: "sqlite", depth: 2, outcome: "committed", queryTimeMs: 12.5 } };
     case "transaction-failed":
       return { type: "transaction", timing, failure: { type: null, message: null }, transaction: { connection: "testing", driver: "sqlite", depth: 2, outcome: "rolled_back", queryTimeMs: 12.5 } };
     case "cache-unavailable":
       return { type: "cache", timing, failure: null, cache: { operation: "GET", store: "redis", key: "sha256:0123456789abcdef", keyCaptured: false, keyCount: 1, strategy: null, outcome: "miss", hit: false, ttlSeconds: null, freshTtlSeconds: null, forever: null, value: null } };
     case "cache-long":
       return { type: "cache", timing, failure: null, cache: { operation: "PUT", store: "redis", key: "customer:42", keyCaptured: true, keyCount: 1, strategy: "remember", outcome: "stored", hit: null, ttlSeconds: 60, freshTtlSeconds: null, forever: null, value: captured("long-value-".repeat(80), true) } };
+    case "cache-failed":
+      return { type: "cache", timing, failure: { type: "CacheException", message: "Lock flush failed" }, cache: { operation: "LOCK FLUSH", store: "redis", key: null, keyCaptured: false, keyCount: null, strategy: null, outcome: "failed", hit: null, ttlSeconds: null, freshTtlSeconds: null, forever: null, value: null } };
     case "redis-failed":
       return { type: "redis", timing, failure: { type: "RedisException", message: "Connection lost" }, redis: { command: "SET", connection: "default", outcome: "failed", arguments: captured(["private-key", "private-value"]) } };
+    case "redis-truncated":
+      return { type: "redis", timing, failure: null, redis: { command: "MSET", connection: "default", outcome: "completed", arguments: captured(["redis-key-".repeat(40), "redis-value-".repeat(40)], true) } };
     default:
       return { type: "redis", timing, failure: null, redis: { command: "GET", connection: "default", outcome: "completed", arguments: null } };
   }

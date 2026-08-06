@@ -4,13 +4,14 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
+import { pinnedStateInspector } from "./pinnedStateInspectorPlugin";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const sourceRoot = resolve(directory, "../../../../trigger.dev");
 const appRoot = resolve(sourceRoot, "apps/webapp/app");
 
 export default defineConfig({
-  plugins: [pinnedRunError(), react(), tailwindcss()],
+  plugins: [pinnedRunError(), pinnedStateInspector(), react(), tailwindcss()],
   resolve: {
     alias: { "~": appRoot },
     dedupe: ["react", "react-dom"],
