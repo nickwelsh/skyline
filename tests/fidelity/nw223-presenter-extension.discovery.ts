@@ -319,7 +319,7 @@ async function exerciseVariantDialog(page: Page, dialog: Locator, scenario: Fide
     await expect(tabs.getByRole("tab", { name: "Tree" })).toHaveAttribute("aria-selected", "true");
   }
   if (scenario.state === "inspectors-sql-long") await expect(dialog.getByRole("button", { name: "Wrap Parameterized SQL" })).toBeVisible();
-  if (scenario.state === "inspectors-transaction-nesting") await expect(dialog.getByText("2", { exact: true })).toBeVisible();
+  if (scenario.state === "inspectors-transaction-nesting") await expect(dialog.getByLabel("Database transaction detail").getByText("2", { exact: true })).toBeVisible();
   if (scenario.state.endsWith("failure")) await expect(dialog.getByRole("alert")).toBeVisible();
   if (scenario.state === "inspectors-cache-long") await expect(dialog.getByRole("button", { name: "Wrap Value" })).toBeVisible();
   if (scenario.state === "inspectors-cache-unavailable") await expect(dialog.getByText("Value not captured", { exact: true })).toBeVisible();
