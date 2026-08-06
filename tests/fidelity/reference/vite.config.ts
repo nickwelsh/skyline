@@ -5,6 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -40,6 +41,7 @@ function capabilityAdapters(): Plugin {
   const queueListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx");
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
+  const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
   const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
   const sideMenuSectionSource = join(vendorRoot, "components/navigation/SideMenuSection.tsx");
@@ -52,7 +54,8 @@ function capabilityAdapters(): Plugin {
       if (source === queueMetricSource) return conditionQueueMetricResources(code, capabilityPolicy.queues);
       if (source === queueListSource) return conditionQueueListMetricResources(code, capabilityPolicy.queues);
       if (source === errorsListSource) return hideErrorsListMutations(code);
-      if (source === errorDetailSource) return hideErrorDetailMutations(code);
+      if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
+      if (source === taskRunsTableSource) return conditionErrorRunTableCapabilities(code, capabilityPolicy.errors);
       if (source === sideMenuSource) return conditionSideMenuShell(code);
       if (source === sideMenuItemSource) return conditionSideMenuItems(code);
       if (source === sideMenuSectionSource) return conditionSideMenuSections(code);
@@ -217,15 +220,6 @@ function hideErrorsListMutations(code: string) {
     throw new Error("Pinned Trigger Errors list mutations changed; capability adapter must be reviewed.");
   }
   return adapted;
-}
-
-function hideErrorDetailMutations(code: string) {
-  const start = code.indexOf("            {/* Status */}");
-  const end = code.indexOf("            {/* Error message */}", start);
-  if (start < 0 || end < 0) {
-    throw new Error("Pinned Trigger Error detail status changed; capability adapter must be reviewed.");
-  }
-  return code.slice(0, start) + code.slice(end);
 }
 
 function referenceAdapters(): Plugin {

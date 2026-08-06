@@ -3,7 +3,9 @@
   "fixtureVersion": "nw-227-v1",
   "description": "NW-216 capability conditioning applied around exact Trigger controls.",
   "errors": {
-    "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"]
+    "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"],
+    "detailVersions": false,
+    "detailBulkReplay": false
   },
   "queues": {
     "metricSource": "observed-fixture",

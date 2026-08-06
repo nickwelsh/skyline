@@ -1,7 +1,27 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities } from "../reference/capability-adapters";
 import { createReferenceFixture, referenceQueueMetricKey } from "./reference";
 
 describe("pinned Trigger Errors fixture", () => {
+  test("conditions unavailable detail versions and bulk replay without editing pinned source", () => {
+    const root = resolve(import.meta.dirname, "../reference/vendor");
+    const detail = conditionErrorDetailCapabilities(
+      readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx"), "utf8"),
+      { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailBulkReplay: false },
+    );
+    const table = conditionErrorRunTableCapabilities(
+      readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
+      { detailVersions: false },
+    );
+
+    expect(detail).toContain("errorCapabilityPolicy.detailVersions ? <LogsVersionFilter /> : null");
+    expect(detail).toContain("errorCapabilityPolicy.detailBulkReplay ? (");
+    expect(table).toContain("showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null");
+    expect(table).toContain("showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null");
+  });
+
   test("maps Skyline occurrences into the reached presenter seams", async () => {
     const fixture = await createReferenceFixture();
     const list = fixture.loaders.errors as any;
