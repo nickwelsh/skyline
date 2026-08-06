@@ -81,9 +81,11 @@ for (const capture of captures) {
 }
 
 async function reportAnchorPreflight(trigger: Page, skyline: Page, capture: string, step: PresenterObservationStep) {
-  const [triggerAnchor, skylineAnchor] = await Promise.all([
+  const [triggerAnchor, skylineAnchor, triggerAncestors, skylineAncestors] = await Promise.all([
     step("anchor-preflight:trigger", () => observeAnchorPreflight(trigger)),
     step("anchor-preflight:skyline", () => observeAnchorPreflight(skyline)),
+    step("ancestor-preflight:trigger", () => observeAncestorPreflight(trigger)),
+    step("ancestor-preflight:skyline", () => observeAncestorPreflight(skyline)),
   ]);
   expect(triggerAnchor.rect.height).toBe(32);
   expect(skylineAnchor.rect.height).toBe(32);
@@ -91,7 +93,7 @@ async function reportAnchorPreflight(trigger: Page, skyline: Page, capture: stri
   const styleDeltaIndex = Array.from({ length: Math.max(triggerAnchor.computedStyle.length, skylineAnchor.computedStyle.length) })
     .findIndex((_, index) => JSON.stringify(triggerAnchor.computedStyle[index]) !== JSON.stringify(skylineAnchor.computedStyle[index]));
   const firstStyleDelta = styleDeltaIndex === -1 ? null : { trigger: triggerAnchor.computedStyle[styleDeltaIndex], skyline: skylineAnchor.computedStyle[styleDeltaIndex] };
-  process.stdout.write(`\nNW223_ANCHOR_PREFLIGHT=${JSON.stringify({ capture, triggerRect: triggerAnchor.rect, skylineRect: skylineAnchor.rect, firstStyleDelta })}\n`);
+  process.stdout.write(`\nNW223_ANCHOR_PREFLIGHT=${JSON.stringify({ capture, triggerRect: triggerAnchor.rect, skylineRect: skylineAnchor.rect, firstStyleDelta, triggerAncestors, skylineAncestors })}\n`);
 }
 
 async function observeAnchorPreflight(page: Page) {
@@ -103,6 +105,37 @@ async function observeAnchorPreflight(page: Page) {
       .sort()
       .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as const);
     return { rect: { x: box.x, y: box.y, width: box.width, height: box.height }, computedStyle };
+  });
+}
+
+async function observeAncestorPreflight(page: Page) {
+  return page.locator(definition.triggerAnchorSelector).evaluate((anchor) => {
+    const tree = anchor.closest("[role='tree']");
+    const treePanel = anchor.closest("[data-splitter-type='panel'][data-splitter-id='tree']");
+    const treeSplitter = treePanel?.parentElement ?? null;
+    const runPanel = treeSplitter?.closest("[data-splitter-type='panel'][data-splitter-id='run']") ?? null;
+    const parentSplitter = runPanel?.parentElement ?? null;
+    const main = anchor.closest("main");
+    const app = anchor.closest(".isolate");
+    const entries = { anchor, tree, treePanel, treeSplitter, runPanel, parentSplitter, main, app };
+    return Object.fromEntries(Object.entries(entries).map(([name, element]) => {
+      if (!(element instanceof HTMLElement)) return [name, null];
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return [name, {
+        tagName: element.tagName.toLowerCase(),
+        id: element.id,
+        className: element.getAttribute("class") ?? "",
+        rect: { x: box.x, y: box.y, width: box.width, height: box.height },
+        style: {
+          display: style.display,
+          fontSize: style.fontSize,
+          gridTemplateColumns: style.gridTemplateColumns,
+          paddingLeft: style.paddingLeft,
+          width: style.width,
+        },
+      }];
+    }));
   });
 }
 
