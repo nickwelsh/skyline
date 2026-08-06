@@ -9,6 +9,22 @@ type DateTimeShortProps = {
   hour12?: boolean;
 };
 
+export const DateTime = ({ date, hour12 = true }: DateTimeShortProps) => {
+  const realDate = typeof date === "string" ? new Date(date) : date;
+  const formattedDateTime = new Intl.DateTimeFormat(browserLocales(), {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    timeZone: browserTimeZone(),
+    hour12,
+  }).format(realDate);
+
+  return <span suppressHydrationWarning>{formattedDateTime.replace(/\s/g, String.fromCharCode(32))}</span>;
+};
+
 export const DateTimeShort = ({ date, hour12 = true }: DateTimeShortProps) => {
   const realDate = typeof date === "string" ? new Date(date) : date;
   const formattedDateTime = formatDateTimeShort(

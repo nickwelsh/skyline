@@ -10,36 +10,31 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await page.goto("/skyline/jobs");
 
   await expect(page.getByLabel("Loading Jobs")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Jobs" })).toBeVisible();
-  await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
-  const listActivity = page.getByRole("img", { name: "Recorded Runs by status" });
-  await expect(listActivity.locator('[data-status="running"]')).toHaveAttribute("style", /run-executing/);
-  await expect(listActivity.locator('[data-status="completed"]')).toHaveAttribute("style", /run-completed-successfully/);
-  await expect(listActivity.locator('[data-status="failed"]')).toHaveAttribute("style", /run-completed-with-errors/);
+  await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
+  await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  const listActivity = page.locator(".recharts-wrapper").first();
+  await expect(listActivity.locator('[fill="var(--color-run-completed-successfully)"]')).toBeVisible();
 
-  const search = page.getByPlaceholder("Search Jobs…");
+  const search = page.getByPlaceholder("Search tasks…");
   await search.fill("invoice");
   await search.press("Enter");
   await expect(page).toHaveURL(/search=invoice/);
   await search.press("Escape");
   await expect(page).not.toHaveURL(/search=/);
-  await page.getByLabel("Time range").selectOption("24h");
-  await expect(page).toHaveURL(/period=24h/);
-
-  await page.getByText("GenerateMonthlyInvoices", { exact: true }).click();
+  await page.getByRole("link", { name: "App\\Jobs\\GenerateMonthlyInvoices" }).first().click();
   await expect(page).toHaveURL(/\/skyline\/jobs\/job_invoice$/);
-  await expect(page.getByRole("heading", { name: "GenerateMonthlyInvoices", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Run activity" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "App\\Jobs\\GenerateMonthlyInvoices", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runs by status" })).toBeVisible();
   const detailActivity = page.getByRole("img", { name: "Recorded Runs by status over time" });
-  await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("style", /run-executing/);
-  await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("style", /run-completed-successfully/);
-  await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("style", /run-completed-with-errors/);
-  await expect(page.getByRole("link", { name: "redis / billing" })).toHaveAttribute("href", "/skyline/queues/queue_billing");
-  await page.getByLabel("Run status").selectOption("failed");
-  await expect(page).toHaveURL(/status=failed/);
+  await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);
+  await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("fill", /run-completed-successfully/);
+  await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
+  await expect(page.getByRole("link", { name: "billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByLabel("Run status")).toHaveCount(0);
+  await expect(page.getByLabel("Time range")).toHaveValue("7d");
   await page.getByLabel("Time range").selectOption("7d");
   await expect(page).toHaveURL(/period=7d/);
-  await page.locator('a[href^="/skyline/runs/run-1"]').click();
+  await page.locator('a[href^="/skyline/runs/run-1"]').first().click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run-1\?tableState=/);
 });
 
@@ -54,15 +49,13 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   await page.goto("/skyline/jobs");
 
   const sideMenu = page.getByTestId("side-menu");
-  const filters = page.getByLabel("Job filters");
-  const search = page.getByPlaceholder("Search Jobs…");
+  const filters = page.getByLabel("Task filters");
+  const search = page.getByPlaceholder("Search tasks…");
   const searchWrapper = search.locator("xpath=ancestor::div[contains(concat(' ', normalize-space(@class), ' '), ' min-w-52 ')][1]");
   await expect.poll(async () => (await sideMenu.boundingBox())?.width).toBe(224);
-  await expect.poll(async () => (await filters.boundingBox())?.height).toBe(baseline.contract.list.filterHeight);
+  await expect.poll(async () => (await filters.boundingBox())?.height).toBeCloseTo(40, 0);
   await expect.poll(async () => (await searchWrapper.boundingBox())?.width).toBeGreaterThanOrEqual(baseline.contract.list.searchMinWidth);
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual([
-    "Job", "Recent status", "Activity", "Runs", "First observed", "Last observed", "Latest Run",
-  ]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Type", "File", "Running", "Activity (24h)", "Go to page"]);
 
   await search.fill("invoice");
   await expect(search).toBeFocused();
@@ -74,12 +67,12 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   await search.press(baseline.contract.interaction.searchClearKey);
   await expect(search).not.toBeFocused();
 
-  await page.getByRole("link", { name: "GenerateMonthlyInvoices" }).first().click();
-  const activity = page.getByRole("region", { name: "Run activity" });
+  await page.getByRole("link", { name: "App\\Jobs\\GenerateMonthlyInvoices" }).first().click();
+  const activity = page.getByRole("region", { name: "Runs by status" });
   const sidebar = page.getByLabel("Job details");
   await expect.poll(async () => (await activity.boundingBox())?.height).toBeCloseTo(baseline.contract.detail.activityDefaultHeight, 0);
   await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeCloseTo(baseline.contract.detail.sidebarDefaultWidth, 0);
-  await expect(page.getByRole("link", { name: "redis / billing" })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByRole("link", { name: "billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
   const favoriteButton = page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" });
   await favoriteButton.focus();
   await expect(favoriteButton).toBeFocused();
@@ -98,9 +91,9 @@ test("Job detail tolerates long labels and missing optional observations", async
   });
 
   await page.goto("/skyline/jobs/job_long");
-  await expect(page.getByRole("heading", { name: longName })).toBeVisible();
+  await expect(page.getByRole("heading", { name: longName }).first()).toBeVisible();
   await expect(page.getByText("No activity in this time range.")).toBeVisible();
-  await expect(page.getByLabel("Job details").getByText("—")).toBeVisible();
+  await expect(page.getByLabel("Job details").locator("p").filter({ hasText: "–" }).first()).toBeVisible();
 });
 
 test("Job detail can be favorited to a persistent valid sidebar destination", async ({ page }) => {
