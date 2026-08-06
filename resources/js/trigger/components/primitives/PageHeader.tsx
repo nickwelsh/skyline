@@ -69,7 +69,7 @@ export function PageTitle({ title, backButton, accessory }: PageTitleProps) {
           disableHoverableContent
         />
       ) : accessory}</span> : null}
-      {titleText ? <JobFavoriteButton id={`page:${favoritePath}`} label={titleText} path={favoritePath} /> : null}
+      {titleText ? <JobFavoriteButton id={`page:${favoritePath}`} label={titleText} path={favoritePath} className="-ml-1" /> : null}
     </div>
   );
 }

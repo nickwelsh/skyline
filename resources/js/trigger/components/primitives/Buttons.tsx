@@ -266,12 +266,12 @@ export function ButtonContent(props: ButtonContentPropsType) {
 
 type ButtonPropsType = Pick<
   JSX.IntrinsicElements["button"],
-  "type" | "disabled" | "onClick" | "name" | "value" | "form" | "autoFocus" | "aria-label" | "aria-controls" | "aria-expanded"
+  "type" | "disabled" | "onClick" | "name" | "value" | "form" | "autoFocus" | "aria-label" | "aria-controls" | "aria-expanded" | "aria-pressed"
 > &
   React.ComponentProps<typeof ButtonContent>;
 
 export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(
-  ({ type, disabled, autoFocus, onClick, "aria-label": ariaLabel, "aria-controls": ariaControls, "aria-expanded": ariaExpanded, ...props }, ref) => {
+  ({ type, disabled, autoFocus, onClick, "aria-label": ariaLabel, "aria-controls": ariaControls, "aria-expanded": ariaExpanded, "aria-pressed": ariaPressed, ...props }, ref) => {
     const innerRef = useRef<HTMLButtonElement>(null);
     useImperativeHandle(ref, () => innerRef.current as HTMLButtonElement);
 
@@ -303,6 +303,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(
         aria-label={ariaLabel}
         aria-controls={ariaControls}
         aria-expanded={ariaExpanded}
+        aria-pressed={ariaPressed}
       >
         <ButtonContent
           {...props}
