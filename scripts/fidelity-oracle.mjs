@@ -287,6 +287,7 @@ export function fidelityInputHashes(root = scriptRoot) {
     matrixSha256: "tests/fidelity/matrix.json",
     differencesSha256: "tests/fidelity/allowed-differences.json",
     actionsSha256: "tests/fidelity/actions.json",
+    nw223EvidenceLedgerSha256: "tests/fidelity/nw223-evidence-ledger.json",
     importManifestSha256: "resources/js/trigger/import-manifest.json",
     referenceManifestSha256: "tests/fidelity/reference-import-manifest.json",
     referenceCapabilitiesSha256: "tests/fidelity/reference-capabilities.json",

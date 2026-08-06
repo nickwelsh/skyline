@@ -225,6 +225,7 @@ describe("source-fidelity oracle", () => {
     expect(inputs.uiPreferencesPrepaintSha256).toBe(fileHash("resources/js/skyline/uiPreferencesPrepaint.js"));
     expect(inputs.referenceImportCheckerSha256).toBe(fileHash("scripts/import-fidelity-reference.mjs"));
     expect(inputs.triggerImportCheckerSha256).toBe(fileHash("scripts/import-trigger.mjs"));
+    expect(inputs.nw223EvidenceLedgerSha256).toBe(fileHash("tests/fidelity/nw223-evidence-ledger.json"));
   });
 
   function fileHash(path: string) {
