@@ -156,6 +156,25 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
+  it("reports unavailable exception evidence for a failed child Attempt", async () => {
+    const childAttemptId = "attempt_run_01J8R4H9S9J12V04CNH6F6JQ3M_1";
+    const adapter = new FixtureAdapter();
+    const { container, root } = await renderRoute({
+      initialEntry: `/runs/${runId}?node=${childAttemptId}`,
+      loadInspector: async (nodeId) => ({
+        ...await adapter.inspector(nodeId, runId),
+        status: "failed" as const,
+        isError: true,
+        exception: null,
+      }),
+    });
+
+    await vi.waitFor(() => expect(container.querySelector('[role="tabpanel"]')?.textContent).toContain("Exception evidence unavailable."));
+    expect(container.querySelector('[role="tabpanel"]')?.textContent).not.toContain("retained only the captured");
+
+    await act(async () => root.unmount());
+  });
+
   it("removes an expanded operation dialog when Escape closes the inspector", async () => {
     const queryId = "span_4f24adb545b26d31";
     const { container, root, router } = await renderRoute({

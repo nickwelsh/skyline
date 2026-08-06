@@ -661,6 +661,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
 }) {
   const isRouteRun = inspector.runId === data.run.id;
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
+  const missingAttemptException = inspector.kind === "attempt" && inspector.status === "failed" && !inspector.exception;
   if (attempt && inspector.exception) {
     const attemptRun = { ...data.run, startedAt: attempt.startedAt, finishedAt: attempt.finishedAt, durationUs: inspector.durationUs };
     return (
@@ -710,9 +711,9 @@ function InspectorOverview({ data, node, inspector, failure }: {
       </dl>
       {inspector.exception
         ? <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />
-        : failure && (
+        : (failure || missingAttemptException) && (
           <div role="status" className="rounded border border-grid-bright bg-background-bright p-3 text-sm text-text-dimmed">
-            Exception evidence unavailable. Skyline retained only the captured {failure.class} summary.
+            Exception evidence unavailable.{failure && <> Skyline retained only the captured {failure.class} summary.</>}
           </div>
         )}
     </div>
