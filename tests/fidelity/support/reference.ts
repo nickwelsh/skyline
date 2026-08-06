@@ -65,7 +65,10 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       node.id,
       nw222InspectorState(inspectors[node.id], node.id, state),
     ]));
-    return [state, triggerRunInspectorResources(detail, stateInspectors, baseRunResource)];
+    return [state, {
+      ...triggerRunInspectorResources(detail, stateInspectors, baseRunResource),
+      [runDetail.run.spanId]: structuredClone(baseRunResource),
+    }];
   }));
   const errorLayout = {
     alertData: { channels: [], emailEnabled: false, slackEnabled: false },

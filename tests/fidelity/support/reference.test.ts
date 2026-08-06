@@ -51,9 +51,11 @@ describe("pinned Trigger failed-Attempt fixture", () => {
     const fixture = await createReferenceFixture();
     const resources = fixture.resources as any;
     const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
+    const rootSpan = `span_${runId}`;
     const failedAttempt = `attempt_${runId}_1`;
     const retryAttempt = `attempt_${runId}_2`;
 
+    expect(resources.spans[rootSpan]).toMatchObject({ type: "run", run: { friendlyId: runId } });
     expect(resources.spans[failedAttempt]).toMatchObject({
       type: "run",
       run: { error: { type: "BUILT_IN_ERROR", name: "Illuminate\\Database\\DeadlockException" } },
