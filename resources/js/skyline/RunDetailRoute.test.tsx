@@ -42,6 +42,28 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
+  it("preserves the pinned Trace row structure and indentation", async () => {
+    const { container, root } = await renderRoute();
+    const treeItem = container.querySelector('[data-index="5"][role="treeitem"]')!;
+    const row = treeItem.firstElementChild!;
+    const indentation = row.children[0]!;
+    const content = row.children[1]!;
+
+    expect(row.tagName).toBe("DIV");
+    expect(row.className).toContain("bg-transparent");
+    expect(indentation.tagName).toBe("DIV");
+    expect(indentation.className).toBe("flex h-8 items-center");
+    expect(Array.from(indentation.children).map((child) => [child.tagName, child.className])).toEqual([
+      ["DIV", "h-8 w-2 border-r border-grid-bright"],
+      ["DIV", "h-8 w-2 border-r border-grid-bright"],
+      ["DIV", "flex h-8 w-4 items-center"],
+    ]);
+    expect(content.tagName).toBe("DIV");
+    expect(content.className).toBe("flex w-full items-center justify-between gap-2 pl-1");
+    expect(row.querySelector("button")).toBeNull();
+    await act(async () => root.unmount());
+  });
+
   it("closes the inspector through the source Button and ExitIcon seam", async () => {
     const { container, root, router } = await renderRoute();
     const inspector = container.querySelector('[aria-label="Run inspector"]');

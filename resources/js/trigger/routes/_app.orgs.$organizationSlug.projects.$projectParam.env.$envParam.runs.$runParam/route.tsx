@@ -407,25 +407,23 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
       data-node-kind={node.kind}
       className={cn(
         "group/spannode flex h-8 cursor-pointer items-center overflow-hidden rounded-l-sm pr-2",
-        selected ? "bg-grid-dimmed hover:bg-grid-bright" : "hover:bg-grid-dimmed",
+        selected ? "bg-grid-dimmed hover:bg-grid-bright" : "bg-transparent hover:bg-grid-dimmed",
       )}
       onClick={onSelect}
     >
-      <span className="flex h-8 shrink-0">
-        {Array.from({ length: node.level }).map((_, index) => <span key={index} className="h-8 w-2 border-r border-grid-bright" />)}
-      </span>
-      {node.hasChildren ? (
-        <button
-          type="button"
-          aria-label={`${expanded ? "Collapse" : "Expand"} ${node.label}`}
-          className="flex size-4 shrink-0 items-center hover:bg-surface-control"
+      <div className="flex h-8 items-center">
+        {Array.from({ length: node.level }).map((_, index) => <TaskLine key={index} />)}
+        <div
+          className={cn("flex h-8 w-4 items-center", node.hasChildren && "hover:bg-surface-control")}
           onClick={(event) => { event.stopPropagation(); onToggle(event.altKey); }}
         >
-          {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
-        </button>
-      ) : <span className="size-4 shrink-0" />}
-      <span className="ml-1 flex min-w-0 flex-1 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5">
+          {node.hasChildren
+            ? expanded ? <ChevronDownIcon className="h-4 w-4 text-text-dimmed" /> : <ChevronRightIcon className="h-4 w-4 text-text-dimmed" />
+            : <div className="h-8 w-4" />}
+        </div>
+      </div>
+      <div className="flex w-full items-center justify-between gap-2 pl-1">
+        <div className="flex items-center gap-1.5 overflow-x-hidden">
           <RunIcon kind={node.kind} className="size-5 min-h-5 min-w-5" />
           <Paragraph variant="small" className="truncate">
             <SpanTitle
@@ -438,11 +436,17 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
             />
           </Paragraph>
           {node.kind === "run" && node.level === 0 && <Badge variant="extra-small">Root</Badge>}
-        </span>
-        <TaskRunStatusIcon status={nodeStatus(node)} className="size-4 shrink-0" />
-      </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <TaskRunStatusIcon status={nodeStatus(node)} className="size-4" />
+        </div>
+      </div>
     </div>
   );
+}
+
+function TaskLine() {
+  return <div className="h-8 w-2 border-r border-grid-bright" />;
 }
 
 function spanLevel(value: string | undefined): SpanLevel {
