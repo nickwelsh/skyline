@@ -62,13 +62,22 @@ describe("ExceptionPreview", () => {
 
     flushSync(() => root.unmount());
   });
+
+  it("does not classify Run inspector evidence as the Error-group extension", () => {
+    const { container, root } = render(exception(), null);
+
+    expect(container.querySelector('[data-skyline-extension="error-exception-evidence"]')).toBeNull();
+    expect(container.querySelector('[role="region"][aria-label="Exception"]')).not.toBeNull();
+
+    flushSync(() => root.unmount());
+  });
 });
 
-function render(value: ExceptionPreviewData) {
+function render(value: ExceptionPreviewData, extensionId?: string | null) {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
-  flushSync(() => root.render(<ExceptionPreview exception={value} />));
+  flushSync(() => root.render(<ExceptionPreview exception={value} extensionId={extensionId} />));
   return { container, root };
 }
 

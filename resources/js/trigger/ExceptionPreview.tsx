@@ -44,13 +44,13 @@ export type ExceptionPreviewData = {
 
 type FrameEntry = { frame: ExceptionPreviewFrame; index: number };
 
-export function ExceptionPreview({ exception }: { exception: ExceptionPreviewData }) {
+export function ExceptionPreview({ exception, extensionId = "error-exception-evidence" }: { exception: ExceptionPreviewData; extensionId?: string | null }) {
   const [expanded, setExpanded] = useState(false);
   const groups = useMemo(() => groupFrames(exception.frames), [exception.frames]);
   const mainFrame = exception.frames.findIndex((frame) => !frame.isVendor);
 
   return (
-    <section data-skyline-extension="error-exception-evidence" role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
+    <section data-skyline-extension={extensionId ?? undefined} role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
       <div className="flex min-w-0 items-center gap-2">
         <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
         <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />

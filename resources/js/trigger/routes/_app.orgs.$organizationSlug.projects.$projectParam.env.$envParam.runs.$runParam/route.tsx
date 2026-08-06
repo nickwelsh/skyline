@@ -619,7 +619,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
           <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
         </div>
         <RunLifecycleTimeline run={data.run} />
-        {inspector.exception && <ExceptionPreview exception={inspector.exception} />}
+        {inspector.exception && <ExceptionPreview exception={inspector.exception} extensionId={null} />}
       </div>
     );
   }
@@ -646,7 +646,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
         <Property name="Duration" value={formatDuration(node ? node.durationUs : data.run.durationUs)} />
       </dl>
       {inspector.exception
-        ? <ExceptionPreview exception={inspector.exception} />
+        ? <ExceptionPreview exception={inspector.exception} extensionId={null} />
         : failure && (
           <div role="status" className="rounded border border-grid-bright bg-background-bright p-3 text-sm text-text-dimmed">
             Exception evidence unavailable. Skyline retained only the captured {failure.class} summary.
