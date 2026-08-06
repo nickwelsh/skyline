@@ -123,21 +123,7 @@ describe("Run detail source primitives", () => {
 
   it("uses the pinned header-only Span body for a selected query", async () => {
     const queryId = "span_4f24adb545b26d31";
-    const adapter = new FixtureAdapter();
-    const loadInspector = async (nodeId: string) => ({
-      ...await adapter.inspector(nodeId, runId),
-      label: "SQL query",
-      presentation: {
-        type: "sql" as const,
-        timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 },
-        failure: null,
-        sql: {
-          statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 49 },
-          bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 },
-          result: null,
-        },
-      },
-    });
+    const loadInspector = createSqlInspectorLoader();
     const { container, root } = await renderRoute({ initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`, loadInspector });
 
     await vi.waitFor(() => expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull());
@@ -151,7 +137,47 @@ describe("Run detail source primitives", () => {
 
     await act(async () => root.unmount());
   });
+
+  it("removes an expanded operation dialog when Escape closes the inspector", async () => {
+    const queryId = "span_4f24adb545b26d31";
+    const { container, root, router } = await renderRoute({
+      initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`,
+      loadInspector: createSqlInspectorLoader(),
+    });
+
+    await vi.waitFor(() => expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull());
+    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!;
+    await act(async () => expand.click());
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
+    const tab = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"]')!;
+    tab.focus();
+
+    await act(async () => tab.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+
+    expect(router.state.location.search).toBe("?tab=detail");
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).toBeNull());
+    await act(async () => root.unmount());
+  });
 });
+
+function createSqlInspectorLoader() {
+  const adapter = new FixtureAdapter();
+  return async (nodeId: string) => ({
+    ...await adapter.inspector(nodeId, runId),
+    label: "SQL query",
+    presentation: {
+      type: "sql" as const,
+      timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 },
+      failure: null,
+      sql: {
+        statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 49 },
+        bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 },
+        result: null,
+      },
+    },
+  });
+}
 
 async function renderRoute(options: { initialEntry?: string; loadInspector?: Parameters<typeof presentRunDetail>[1] } = {}) {
   const adapter = new FixtureAdapter();

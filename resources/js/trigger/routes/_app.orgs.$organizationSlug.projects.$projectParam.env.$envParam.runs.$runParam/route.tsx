@@ -575,7 +575,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
     setParams(next, { replace: true });
   }, [inspector, params, setParams, tab]);
 
-  if (!frozenId) return null;
+  if (!selectedId || !frozenId) return null;
 
   const setTab = (nextTab: string) => {
     const next = new URLSearchParams(params);
