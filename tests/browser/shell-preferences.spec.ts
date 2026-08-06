@@ -194,10 +194,12 @@ async function exerciseShell(page: Page) {
 
   const helpButton = page.getByRole("button", { name: "Help & Feedback" });
   await helpButton.focus();
-  await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "?", code: "Slash", shiftKey: true, bubbles: true })));
+  await page.keyboard.down("Shift");
+  await page.keyboard.press("Slash");
+  await page.keyboard.up("Shift");
   await expect(page.getByText("Keyboard shortcuts", { exact: true })).toBeVisible();
   for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
-  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByText("Keyboard shortcuts", { exact: true })).not.toBeVisible();
 
   await helpButton.click();
@@ -208,10 +210,9 @@ async function exerciseShell(page: Page) {
   for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByText("Keyboard shortcuts", { exact: true })).not.toBeVisible();
-  await expect.poll(() => page.evaluate(() => {
-    const label = document.activeElement?.textContent ?? "";
-    return label.includes("Shortcuts") || label.includes("Help & Feedback");
-  })).toBe(true);
+  const focusedButton = page.locator("button:focus");
+  await expect(focusedButton).toHaveCount(1);
+  await expect(focusedButton).toHaveAccessibleName("Shortcuts ⇧ ?");
 
   const observability = page.getByRole("button", { name: "Observability", exact: true });
   await observability.hover();

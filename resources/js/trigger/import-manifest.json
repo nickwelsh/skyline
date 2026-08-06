@@ -4,9 +4,9 @@
   "license": "Apache-2.0",
   "adaptedTargets": {
     "resources/js/trigger/root.tsx": "1dd4068c63cf5b360c21faac84323af82fd076b9bba79b2e9ff57c0e3fc35dd6",
-    "resources/js/trigger/components/navigation/SideMenu.tsx": "059eda8ba550e233c514d8e53b8a576ed23256422aeef05c5c1a23739b149e75",
+    "resources/js/trigger/components/navigation/SideMenu.tsx": "98366389ebd4f752263b0177a4a1e11b47dc34f4bcb1a512e01575a6e7db31a4",
     "resources/js/trigger/components/navigation/AppearanceMenu.tsx": "490e2a23c9089923ecac85f31cd9fd7842450c45034a6b94c6ad7fb135b9e1a8",
-    "resources/js/trigger/components/navigation/HelpMenu.tsx": "b3d48e6805c6355dd3138cd9a124434cf0b2d411b0938f62b40c586505fd50aa",
+    "resources/js/trigger/components/navigation/HelpMenu.tsx": "b380b4f1165bf769f1b0b9e15d7c6c7f8bd8dc04036da13651d2314028fb698c",
     "resources/js/trigger/components/navigation/ShortcutsDialog.tsx": "0eac02fd4a23a43a2397d4670df813dc236f01062873a0871846107da0f8e74d",
     "resources/js/trigger/components/logs/LogLevel.tsx": "3d7ea9e9d9ff3962970562aaa72a514eac05f905e965f7069cf0ac34d0d097d4",
     "resources/js/trigger/components/runs/v3/PacketDisplay.tsx": "84f18d3fe9db4fde5ace4d1022df17ba3ca95865426fcf9e672e0c09142da7fe",

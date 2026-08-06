@@ -243,7 +243,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex gap-1", collapsed ? "flex-col" : "items-center")}>
           <DormantShellActions capabilities={capabilities.shell} />
-          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
+          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
           <button type="button" aria-label={collapsed ? "Expand side menu" : "Collapse side menu"} onClick={toggleCollapsed} className="flex size-8 shrink-0 items-center justify-center rounded text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom">
             {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
