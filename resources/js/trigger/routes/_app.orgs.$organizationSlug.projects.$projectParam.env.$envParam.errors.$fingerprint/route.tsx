@@ -272,7 +272,6 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
                   showOpenInModal={false}
                   language="typescript"
                   wrap
-                  label="Error"
                 />
               </Property.Value>
             </Property.Item>

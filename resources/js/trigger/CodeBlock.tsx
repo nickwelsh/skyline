@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/primitives/Tooltip";
+import { cn } from "./utils/cn";
 
 type CodeBlockProps = {
   code: string;
@@ -114,13 +115,13 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
         aria-label={regionLabel ?? label}
         data-skyline-extension={extensionId}
         role={extensionId ? "region" : undefined}
-        className={`relative flex flex-col overflow-hidden rounded-md border border-grid-bright ${className ?? ""}`}
+        className={cn("relative flex flex-col overflow-hidden rounded-md border border-grid-bright", className)}
         style={{ backgroundColor: theme.plain.backgroundColor }}
         translate="no"
       >
         {showChrome && <Chrome title={fileName} />}
         {rowTitle && <TitleRow title={rowTitle} />}
-        <div className={`absolute z-50 flex gap-3 ${showChrome ? "right-1.5 top-1.5" : "right-3 top-2.5"}`}>
+        <div className={cn("absolute right-3 top-2.5 z-50 flex gap-3", showChrome ? "right-1.5 top-1.5" : "top-2.5")}>
           {showTextWrapping && (
             <TooltipProvider>
               <Tooltip disableHoverableContent>
@@ -172,7 +173,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               highlightLines={highlightLines}
               maxLineWidth={maxLineWidth}
               className="px-2 py-3"
-              preClassName={preClassName ?? "text-xs leading-relaxed"}
+              preClassName={preClassName ?? "text-xs"}
               isWrapped={isWrapped}
             />
           : <PlainCode code={code} maxHeight={maxHeight} isWrapped={isWrapped} />}
@@ -261,16 +262,16 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
   return (
     <Highlight theme={theme} code={code} language={language}>
       {({ className: inheritedClassName, style, tokens, getLineProps, getTokenProps }) => (
-        <div dir="ltr" className={`min-h-0 flex-1 overflow-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control ${className ?? ""}`} style={{ maxHeight }}>
-          <pre className={`relative mr-2 font-mono ${preClassName ?? ""} ${isWrapped ? "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word" : ""} ${inheritedClassName}`} style={style} dir="ltr">
+        <div dir="ltr" className={cn("min-h-0 flex-1 overflow-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control", className)} style={{ maxHeight }}>
+          <pre className={cn("relative mr-2 font-mono leading-relaxed", preClassName, isWrapped && "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word", inheritedClassName)} style={style} dir="ltr">
             {tokens.map((line, index) => {
               if (index === tokens.length - 1 && line.length === 1 && line[0].content === "\n") return null;
               const lineNumber = index + 1;
               const lineProps = getLineProps({ line });
               const shouldDim = Boolean(highlightLines?.length) && !highlightLines?.includes(lineNumber);
               return (
-                <div key={lineNumber} {...lineProps} className={`flex w-full justify-start transition-opacity duration-500 ${isWrapped ? "flex-wrap" : ""} ${lineProps.className ?? ""}`} style={{ opacity: shouldDim ? dimAmount : undefined, ...lineProps.style }}>
-                  {showLineNumbers && <div className={`mr-2 flex-none select-none text-right text-text-faint transition-opacity duration-500 ${isWrapped ? "sticky left-0" : ""}`} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{lineNumber}</div>}
+                <div key={lineNumber} {...lineProps} className={cn("flex w-full justify-start transition-opacity duration-500", lineProps.className, isWrapped && "flex-wrap")} style={{ opacity: shouldDim ? dimAmount : undefined, ...lineProps.style }}>
+                  {showLineNumbers && <div className={cn("mr-2 flex-none select-none text-right text-text-faint transition-opacity duration-500", isWrapped && "sticky left-0")} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{lineNumber}</div>}
                   <div className="flex-1">{line.map((token, key) => <span key={key} {...getTokenProps({ token })} />)}</div>
                   <div className="w-4 flex-none" />
                 </div>

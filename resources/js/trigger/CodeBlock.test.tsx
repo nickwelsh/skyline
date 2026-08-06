@@ -25,12 +25,15 @@ describe("CodeBlock", () => {
     expect(viewer.textContent).not.toContain("Context");
     expect([wrap, copy, expand].every(Boolean)).toBe(true);
     expect([wrap, copy, expand].every((button) => !button.className.includes("hover:bg-"))).toBe(true);
+    const codeViewport = viewer.querySelector<HTMLElement>('div[dir="ltr"]')!;
+    expect(codeViewport.className).toContain("px-2");
+    expect(codeViewport.className).not.toContain("px-3");
 
     flushSync(() => wrap.click());
     expect(viewer.querySelector('button[aria-label="Unwrap Context"]')).not.toBeNull();
 
     flushSync(() => expand.click());
-    expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Context");
+    expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain("Context");
 
     flushSync(() => root.unmount());
   });

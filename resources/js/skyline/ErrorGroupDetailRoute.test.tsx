@@ -60,6 +60,8 @@ describe("Error-group detail source chrome", () => {
     expect(sidebar.querySelector(`a[href="${data.errorGroup.jobPath}"]`)).toBeNull();
     expect(sidebar.querySelector(".tabular-nums")?.textContent).toBe("2");
     expect(sidebar.textContent).toContain("About 16 hours ago");
+    expect(sidebar.querySelector('[aria-label="Code"]')).not.toBeNull();
+    expect(sidebar.querySelector('[aria-label="Error"]')).toBeNull();
 
     await act(async () => root.unmount());
   });

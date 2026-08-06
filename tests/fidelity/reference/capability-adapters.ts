@@ -36,8 +36,23 @@ export function conditionErrorRunTableCapabilities(code: string, policy: Pick<Er
     throw new Error("Pinned Trigger Error Runs Version column changed; capability adapter must be reviewed.");
   }
   const adapted = code
-    .replace(params, `${params}\n  const showErrorVersions = !additionalTableState?.errorId || errorRunTableCapabilityPolicy.detailVersions;`)
+    .replace(params, `${params}\n  const showErrorVersions = !additionalTableState?.errorId || errorRunTableCapabilityPolicy.detailVersions;\n  const showErrorTaskKind = !additionalTableState?.errorId;`)
     .replace(header, "          {showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null}")
-    .replace(cell, "                {showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null}");
+    .replace(cell, "                {showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null}")
+    .replace(
+      `                    <TaskTriggerSourceIcon
+                      source={run.taskKind as TaskTriggerSource}
+                      className="size-3.5 flex-none"
+                    />`,
+      `                    {showErrorTaskKind ? (
+                      <TaskTriggerSourceIcon
+                        source={run.taskKind as TaskTriggerSource}
+                        className="size-3.5 flex-none"
+                      />
+                    ) : null}`,
+    );
+  if (!adapted.includes("showErrorTaskKind ? (")) {
+    throw new Error("Pinned Trigger Error Runs task-kind icon changed; capability adapter must be reviewed.");
+  }
   return `${adapted}\nconst errorRunTableCapabilityPolicy = ${JSON.stringify(policy)};\n`;
 }

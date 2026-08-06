@@ -20,6 +20,7 @@ describe("pinned Trigger Errors fixture", () => {
     expect(detail).toContain("errorCapabilityPolicy.detailBulkReplay ? (");
     expect(table).toContain("showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null");
     expect(table).toContain("showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null");
+    expect(table).toContain("showErrorTaskKind ? (");
   });
 
   test("maps Skyline occurrences into the reached presenter seams", async () => {
