@@ -315,7 +315,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </div>
         </div>
         </div>
-        <div data-skyline-anchor="shell-navigation" className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
+        <div className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
           <nav aria-label="Application" className="mb-6 flex w-full flex-col gap-4 overflow-hidden" style={{ paddingLeft: sideMenuPadding, paddingRight: "0px" }}>
           <div className="w-full space-y-0">
           {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
@@ -336,7 +336,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         <div>
           <div className={cn("flex flex-col gap-1 border-t border-grid-bright p-1", collapsed && "items-center")}>
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
-        <div data-skyline-anchor="shell-footer-controls" className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
+        <div className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
           <DormantShellActions capabilities={capabilities.shell} />
           {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}

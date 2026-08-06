@@ -50,8 +50,7 @@ describe("pinned shell capability adapters", () => {
     expect(conditionSideMenuSections(section)).toContain("shellCapabilityPolicy.supportedSections");
     const conditionedShell = conditionSideMenuShell(shell);
     expect(conditionedShell).toContain("shellCapabilityPolicy.account");
-    expect(conditionedShell.match(/data-trigger-anchor="shell-navigation"/g)).toHaveLength(1);
-    expect(conditionedShell.match(/data-trigger-anchor="shell-footer-controls"/g)).toHaveLength(1);
+    expect(conditionedShell).not.toContain("data-trigger-anchor");
     expect(() => conditionSideMenuItems(item.replace("export function SideMenuItem({", "export function Changed({"))).toThrow(/must be reviewed/i);
     expect(() => conditionSideMenuSections(section.replace("export function SideMenuSection({", "export function Changed({"))).toThrow(/must be reviewed/i);
     expect(() => conditionSideMenuShell(shell.replace("<AccountMenu isAdmin={isAdmin} isImpersonating={user.isImpersonating} />", "<AccountMenu />"))).toThrow(/must be reviewed/i);

@@ -191,13 +191,6 @@ export function SideMenuSection(props: Parameters<typeof SourceSideMenuSection>[
 }
 
 export function conditionSideMenuShell(code: string) {
-  const navigationAnchor = `        <div
-          className={cn(
-            "min-h-0 overflow-y-auto pt-2.5",`;
-  const footerAnchor = `    <LayoutGroup>
-      <div
-        className={cn(
-          "flex w-full",`;
   const account = "            <AccountMenu isAdmin={isAdmin} isImpersonating={user.isImpersonating} />";
   const notification = `          <NotificationPanel
             isCollapsed={isCollapsed}
@@ -223,10 +216,6 @@ export function conditionSideMenuShell(code: string) {
     if (!adapted.includes(source)) throw new Error("Pinned Trigger SideMenu shell region changed; capability adapter must be reviewed.");
     adapted = adapted.replace(source, replacement);
   }
-  if (!adapted.includes(navigationAnchor) || !adapted.includes(footerAnchor)) throw new Error("Pinned Trigger SideMenu anchors changed; capability adapter must be reviewed.");
-  adapted = adapted
-    .replace(navigationAnchor, navigationAnchor.replace("<div\n", '<div\n          data-trigger-anchor="shell-navigation"\n'))
-    .replace(footerAnchor, footerAnchor.replace("<div\n", '<div\n        data-trigger-anchor="shell-footer-controls"\n'));
   return `${adapted}
 const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
 `;
