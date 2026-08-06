@@ -58,6 +58,48 @@ const markdown = [
   ...frames.map((frame, index) => `${index} - ${frame.file}:${frame.line ?? 0}`),
   "",
 ].join("\n");
+const retryClassName = "LogicException";
+const retryMessage = "Retry failed differently.";
+const retryFrames = [
+  {
+    file: "app/Jobs/FinalizeInvoices.php",
+    line: 73,
+    class: "App\\Jobs\\FinalizeInvoices",
+    type: "->",
+    function: "handle",
+    isVendor: false,
+    href: "https://example.test/source/app/Jobs/FinalizeInvoices.php#L73",
+    snippet: {
+      code: "public function handle(): void\n{\n    throw new LogicException('Retry failed differently.');\n}",
+      startingLine: 71,
+      highlightedLine: 73,
+    },
+  },
+  {
+    file: "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php",
+    line: 124,
+    class: "Illuminate\\Queue\\CallQueuedHandler",
+    type: "->",
+    function: "call",
+    isVendor: true,
+    href: null,
+    snippet: null,
+  },
+];
+const retryMarkdown = [
+  `# ${retryClassName} - Job failed`,
+  "",
+  retryMessage,
+  "",
+  "Job App\\Jobs\\GenerateMonthlyInvoices",
+  `Run ${runId}`,
+  "Attempt 2",
+  "",
+  "## Stack Trace",
+  "",
+  ...retryFrames.map((frame, index) => `${index} - ${frame.file}:${frame.line ?? 0}`),
+  "",
+].join("\n");
 
 const rendered = `${JSON.stringify({
   generatedBy: "node scripts/create-nw222-failure-scenario.mjs",
@@ -78,6 +120,23 @@ const rendered = `${JSON.stringify({
     frames,
     framesTruncated: false,
     markdown,
+  },
+  retryTriggerError: {
+    type: "BUILT_IN_ERROR",
+    name: retryClassName,
+    message: retryMessage,
+    stackTrace: retryFrames.map((frame) => `${frame.file}:${frame.line ?? 0} ${frame.class ?? ""}${frame.type ?? ""}${frame.function}`).join("\n"),
+  },
+  retrySkylineException: {
+    class: retryClassName,
+    message: retryMessage,
+    messageTruncated: false,
+    messageOriginalBytes: Buffer.byteLength(retryMessage),
+    code: null,
+    location: { file: retryFrames[0].file, line: retryFrames[0].line, href: retryFrames[0].href },
+    frames: retryFrames,
+    framesTruncated: false,
+    markdown: retryMarkdown,
   },
 }, null, 2)}\n`;
 

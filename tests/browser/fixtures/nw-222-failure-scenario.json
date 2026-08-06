@@ -349,5 +349,51 @@
     ],
     "framesTruncated": false,
     "markdown": "# Illuminate\\Database\\DeadlockException - Job failed\n\nDeadlock found when trying to get lock; retry transaction\n\nJob App\\Jobs\\GenerateMonthlyInvoices\nRun run_01J8R4NQX6K3PV4W0A1H2Z7M9C\nAttempt 1\nCode 1213\n\n## Stack Trace\n\n0 - app/Jobs/GenerateMonthlyInvoices.php:58\n1 - vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php:124\n2 - app/Jobs/Step1.php:1\n3 - app/Jobs/Step2.php:2\n4 - app/Jobs/Step3.php:3\n5 - app/Jobs/Step4.php:4\n6 - app/Jobs/Step5.php:5\n7 - app/Jobs/Step6.php:6\n8 - app/Jobs/Step7.php:7\n9 - app/Jobs/Step8.php:8\n10 - app/Jobs/Step9.php:9\n11 - app/Jobs/Step10.php:10\n12 - app/Jobs/Step11.php:11\n13 - app/Jobs/Step12.php:12\n14 - app/Jobs/Step13.php:13\n15 - app/Jobs/Step14.php:14\n16 - app/Jobs/Step15.php:15\n17 - app/Jobs/Step16.php:16\n18 - app/Jobs/Step17.php:17\n19 - app/Jobs/Step18.php:18\n20 - app/Jobs/Step19.php:19\n21 - app/Jobs/Step20.php:20\n22 - app/Jobs/Step21.php:21\n23 - app/Jobs/Step22.php:22\n24 - app/Jobs/Step23.php:23\n25 - app/Jobs/Step24.php:24\n26 - app/Jobs/Step25.php:25\n27 - app/Jobs/Step26.php:26\n28 - app/Jobs/Step27.php:27\n29 - app/Jobs/Step28.php:28\n30 - app/Jobs/Step29.php:29\n31 - app/Jobs/Step30.php:30\n"
+  },
+  "retryTriggerError": {
+    "type": "BUILT_IN_ERROR",
+    "name": "LogicException",
+    "message": "Retry failed differently.",
+    "stackTrace": "app/Jobs/FinalizeInvoices.php:73 App\\Jobs\\FinalizeInvoices->handle\nvendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php:124 Illuminate\\Queue\\CallQueuedHandler->call"
+  },
+  "retrySkylineException": {
+    "class": "LogicException",
+    "message": "Retry failed differently.",
+    "messageTruncated": false,
+    "messageOriginalBytes": 25,
+    "code": null,
+    "location": {
+      "file": "app/Jobs/FinalizeInvoices.php",
+      "line": 73,
+      "href": "https://example.test/source/app/Jobs/FinalizeInvoices.php#L73"
+    },
+    "frames": [
+      {
+        "file": "app/Jobs/FinalizeInvoices.php",
+        "line": 73,
+        "class": "App\\Jobs\\FinalizeInvoices",
+        "type": "->",
+        "function": "handle",
+        "isVendor": false,
+        "href": "https://example.test/source/app/Jobs/FinalizeInvoices.php#L73",
+        "snippet": {
+          "code": "public function handle(): void\n{\n    throw new LogicException('Retry failed differently.');\n}",
+          "startingLine": 71,
+          "highlightedLine": 73
+        }
+      },
+      {
+        "file": "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php",
+        "line": 124,
+        "class": "Illuminate\\Queue\\CallQueuedHandler",
+        "type": "->",
+        "function": "call",
+        "isVendor": true,
+        "href": null,
+        "snippet": null
+      }
+    ],
+    "framesTruncated": false,
+    "markdown": "# LogicException - Job failed\n\nRetry failed differently.\n\nJob App\\Jobs\\GenerateMonthlyInvoices\nRun run_01J8R4NQX6K3PV4W0A1H2Z7M9C\nAttempt 2\n\n## Stack Trace\n\n0 - app/Jobs/FinalizeInvoices.php:73\n1 - vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php:124\n"
   }
 }

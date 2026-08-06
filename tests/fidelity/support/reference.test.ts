@@ -64,8 +64,9 @@ describe("pinned Trigger failed-Attempt fixture", () => {
     expect(resources.spanStates["exception-long"][failedAttempt].run.error.stackTrace.split("\n").length).toBeGreaterThan(20);
     expect(resources.spanStates["exception-retry"][retryAttempt]).toMatchObject({
       type: "run",
-      run: { error: { name: "LogicException", message: "Retry failed differently." } },
+      run: { error: { name: "LogicException", message: "Retry failed differently.", stackTrace: expect.stringContaining("app/Jobs/FinalizeInvoices.php:73") } },
     });
+    expect(resources.spanStates["exception-retry"][retryAttempt].run.error.stackTrace).toContain("vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php:124");
     expect(resources.spanStates["exception-unavailable"][failedAttempt]).toMatchObject({ type: "span" });
   });
 });

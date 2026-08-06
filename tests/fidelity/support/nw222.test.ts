@@ -40,6 +40,16 @@ describe("NW-222 fidelity states", () => {
 
     expect(detail.attempts.map(({ status }) => status)).toEqual(["failed", "failed"]);
     expect(detail.attempts[1].failure).toMatchObject({ class: "LogicException", message: "Retry failed differently." });
-    expect(retry.exception).toMatchObject({ class: "LogicException", message: "Retry failed differently.", location: null, frames: [] });
+    expect(retry.exception).toMatchObject({
+      class: "LogicException",
+      message: "Retry failed differently.",
+      location: { file: "app/Jobs/FinalizeInvoices.php", line: 73, href: "https://example.test/source/app/Jobs/FinalizeInvoices.php#L73" },
+      frames: [
+        expect.objectContaining({ file: "app/Jobs/FinalizeInvoices.php", isVendor: false }),
+        expect.objectContaining({ file: "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php", isVendor: true }),
+      ],
+      markdown: expect.stringContaining("Attempt 2"),
+    });
+    expect(JSON.stringify(retry.exception)).not.toMatch(/\/workspace|\/Users\//);
   });
 });

@@ -53,17 +53,7 @@ export function nw222InspectorState(value: InspectorDto, nodeId: string, state: 
   if (state === "exception-retry" && nodeId.endsWith("_2")) {
     inspector.status = "failed";
     inspector.isError = true;
-    inspector.exception = {
-      class: "LogicException",
-      message: "Retry failed differently.",
-      messageTruncated: false,
-      messageOriginalBytes: 25,
-      code: null,
-      location: null,
-      frames: [],
-      framesTruncated: false,
-      markdown: "# LogicException - Job failed\n\nRetry failed differently.\n",
-    };
+    inspector.exception = structuredClone(failureScenario.retrySkylineException) as ExceptionDetails;
     return inspector;
   }
 

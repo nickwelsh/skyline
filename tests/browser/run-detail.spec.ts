@@ -145,17 +145,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
     await new Promise((resolve) => setTimeout(resolve, 120));
     const inspector = await adapter.inspector(nodeId, runId);
     if (nodeId === retryId) {
-      inspector.exception = {
-        class: "LogicException",
-        message: "Retry failed differently.",
-        messageTruncated: false,
-        messageOriginalBytes: 25,
-        code: null,
-        location: null,
-        frames: [],
-        framesTruncated: false,
-        markdown: "# LogicException - Job failed\n\nRetry failed differently.\n",
-      };
+      inspector.exception = structuredClone(failureScenario.retrySkylineException) as InspectorDto["exception"];
     } else if (inspector.exception) {
       inspector.exception = structuredClone(failureScenario.skylineException) as InspectorDto["exception"];
     }
@@ -184,8 +174,10 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   await expect(page.getByLabel("Loading inspector")).toBeVisible();
   const exception = page.getByRole("region", { name: "Exception" });
   await expect(exception).toContainText("Retry failed differently.");
-  await expect(exception).toContainText("Source location not captured");
-  await expect(exception).toContainText("Stack trace not captured");
+  await expect(exception).toContainText("app/Jobs/FinalizeInvoices.php:73");
+  await expect(exception).toContainText("Show 2 frames");
+  await expect(exception).not.toContainText("Source location not captured");
+  await expect(exception).not.toContainText("Stack trace not captured");
   await expect(exception).not.toContainText("DeadlockException");
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
