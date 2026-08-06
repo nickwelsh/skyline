@@ -5,8 +5,10 @@
   "chromiumRevision": "1208",
   "chromiumVersion": "145.0.7632.6",
   "linuxImage": "mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d",
+  "nodeImage": "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d",
   "nodeVersion": "24.18.0",
   "pnpmVersion": "10.33.2",
+  "architecture": "x64",
   "fonts": {
     "GeistVariableVF.woff2": "60e11d985314d4843c7a741d67bc7744c4bf519e50ce08e1d5e74e43414aaff0",
     "GeistMonoVariableVF.woff2": "35b975ebbcd7e79e2cc7b2008fabe8343372a86610c959c1f58b510e2a281aed"

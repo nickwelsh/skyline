@@ -131,3 +131,24 @@ jobs:
       - run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:browser
       - run: corepack pnpm trigger:check
+
+  fidelity-oracle:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d
+    env:
+      SKYLINE_ORACLE_IMAGE: mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: pnpm
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm build
+      - run: corepack pnpm oracle:reference:check
+      - run: corepack pnpm oracle:check
+      - run: corepack pnpm oracle:test

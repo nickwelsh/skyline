@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
+  globalSetup: "./tests/fidelity/global-setup.ts",
   testDir: "tests/fidelity",
   testMatch: "**/*.spec.ts",
   fullyParallel: false,
@@ -15,7 +16,6 @@ export default defineConfig({
     colorScheme: "light",
     deviceScaleFactor: 1,
     locale: "en-US",
-    reducedMotion: "reduce",
     screenshot: "only-on-failure",
     timezoneId: "UTC",
     trace: "retain-on-failure",

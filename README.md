@@ -148,6 +148,21 @@ corepack pnpm test:browser
 
 Trigger.dev-derived source is pinned and mapped in `resources/js/trigger/import-manifest.json`. Verify it with `corepack pnpm trigger:check`; refresh exact mapped files with `corepack pnpm trigger:import -- --source /path/to/trigger.dev`.
 
+The fidelity oracle compares the packaged Skyline UI with its exact pinned Trigger reference. Verify committed proofs with `corepack pnpm oracle:check`. Run the paired browser suite only in its pinned Linux toolchain:
+
+```sh
+docker build --platform linux/amd64 -f tests/fidelity/Dockerfile -t skyline-fidelity-oracle .
+docker run --rm --platform linux/amd64 --ipc=host \
+  -e CI=1 \
+  -e SKYLINE_ORACLE_IMAGE='mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d' \
+  -v "$PWD:/work" \
+  -v skyline-fidelity-node-modules:/work/node_modules \
+  skyline-fidelity-oracle \
+  bash -lc 'pnpm install --frozen-lockfile && pnpm build && pnpm oracle:reference:check && pnpm oracle:test'
+```
+
+Oracle regeneration is a review decision, not an automatic screenshot update. Change the pinned upstream/environment or `allowed-differences.json`, run the same container with `SKYLINE_ORACLE_RECORD=1`, then run `pnpm oracle:record -- --decision NW-<issue>` inside it. Commit the changed inputs, every proof artifact, and `bundle.json` together.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
