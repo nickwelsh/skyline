@@ -86,6 +86,41 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       sectionItemOrder: { ...defaultSideMenu.sectionItemOrder, ...(storedSidebar.sectionItemOrder ?? {}) },
       favorites: storedPreferences.favorites ?? [],
     };
+    function setTriggerRunState(value: any, state: string) {
+      const status = ({ successful: "COMPLETED_SUCCESSFULLY", active: "EXECUTING", failed: "COMPLETED_WITH_ERRORS" } as Record<string, string>)[state];
+      if (status) {
+        value.run.status = status;
+        value.run.hasFinished = state !== "active";
+        value.run.isFinished = state !== "active";
+        value.trace.rootSpanStatus = state === "active" ? "executing" : state === "failed" ? "failed" : "completed";
+        const root = value.trace.events[0]?.data;
+        if (root) { root.isPartial = state === "active"; root.isError = state === "failed"; }
+      }
+      if (state === "retried" && value.trace.events.filter((event: any) => event.data.attemptNumber).length < 2) {
+        const root = value.trace.events[0];
+        if (root) value.trace.events.push({ ...structuredClone(root), id: `${root.id}_retry`, parentId: root.id, data: { ...structuredClone(root.data), message: "Attempt 2", attemptNumber: 2, isRoot: false, offset: Math.max(1_000_000, root.data.duration ?? 1_000_000) } });
+      }
+    }
+    function stateFixture(value: any, surface: string, state: string) {
+      if (state === "mixed-pagination" && value.data?.pagination) value.data.pagination.next = "fixture-next";
+      if (state === "pagination" && value.data?.pagination) value.data.pagination.next = "fixture-next";
+      if (state === "paginated-runs" && value.pagination) value.pagination.next = "fixture-next";
+      if (surface === "run") setTriggerRunState(value, state);
+      if (surface === "queue" && (state === "idle" || state === "busy")) Object.assign(value.queue, state === "idle" ? { running: 0, queued: 0 } : { running: 3, queued: 2 });
+      if (surface === "logs" && state === "capture-disabled") value.capture = { ...(value.capture ?? {}), enabled: false };
+      if ((surface === "logs" || surface === "log") && state === "long-content") {
+        const log = value.selectedLog ?? value.data?.logs?.[0];
+        if (log) log.message = `${log.message ?? "Fixture log"} ${"long-value ".repeat(80)}`;
+      }
+      if (state !== "initial-empty" && state !== "filtered-empty") return value;
+      const filtered = state === "filtered-empty";
+      if (surface === "jobs") value.items = [];
+      if (surface === "runs" || surface === "shell") { value.data.runs = []; value.data.hasAnyRuns = filtered; value.data.hasFilters = filtered; }
+      if (surface === "errors") { value.data.errorGroups = []; value.data.filters.hasFilters = filtered; }
+      if (surface === "logs") { value.data.logs = []; value.data.hasAnyLogs = filtered; value.data.hasFilters = filtered; }
+      if (surface === "queues") { value.queues = []; value.totalQueues = 0; value.hasFilters = filtered; }
+      return value;
+    }
     const environment = { id: "environment", slug: "prod", type: "PRODUCTION", userName: "Production", shortcode: "prod" };
     const project = { id: "project", organizationId: "organization", name: "Fixture Project", slug: "fixture", version: "V3", engine: "V1", environments: [environment], createdAt: "2026-01-01T00:00:00.000Z" };
     const organization = { id: "organization", slug: "fixture", title: "Fixture Organization", avatar: { type: "letters", hex: "#4f46e5" }, projects: [project] };
@@ -250,44 +285,4 @@ function triggerQueue(detail: any) {
 
 function triggerStatus(status: string) {
   return ({ completed: "COMPLETED_SUCCESSFULLY", failed: "COMPLETED_WITH_ERRORS", running: "EXECUTING", queued: "PENDING", retrying: "RETRYING_AFTER_FAILURE" } as Record<string, string>)[status] ?? status;
-}
-
-function stateFixture(value: any, surface: string, state: string) {
-  if (state === "mixed-pagination" && value.data?.pagination) value.data.pagination.next = "fixture-next";
-  if (state === "pagination" && value.data?.pagination) value.data.pagination.next = "fixture-next";
-  if (state === "paginated-runs" && value.pagination) value.pagination.next = "fixture-next";
-  if (surface === "run") setTriggerRunState(value, state);
-  if (surface === "queue" && (state === "idle" || state === "busy")) {
-    const counts = state === "idle" ? { running: 0, queued: 0 } : { running: 3, queued: 2 };
-    Object.assign(value.queue, counts);
-  }
-  if (surface === "logs" && state === "capture-disabled") value.capture = { ...(value.capture ?? {}), enabled: false };
-  if ((surface === "logs" || surface === "log") && state === "long-content") {
-    const log = value.selectedLog ?? value.data?.logs?.[0];
-    if (log) log.message = `${log.message ?? "Fixture log"} ${"long-value ".repeat(80)}`;
-  }
-  if (state !== "initial-empty" && state !== "filtered-empty") return value;
-  const filtered = state === "filtered-empty";
-  if (surface === "jobs") value.items = [];
-  if (surface === "runs" || surface === "shell") { value.data.runs = []; value.data.hasAnyRuns = filtered; value.data.hasFilters = filtered; }
-  if (surface === "errors") { value.data.errorGroups = []; value.data.filters.hasFilters = filtered; }
-  if (surface === "logs") { value.data.logs = []; value.data.hasAnyLogs = filtered; value.data.hasFilters = filtered; }
-  if (surface === "queues") { value.queues = []; value.totalQueues = 0; value.hasFilters = filtered; }
-  return value;
-}
-
-function setTriggerRunState(value: any, state: string) {
-  const status = ({ successful: "COMPLETED_SUCCESSFULLY", active: "EXECUTING", failed: "COMPLETED_WITH_ERRORS" } as Record<string, string>)[state];
-  if (status) {
-    value.run.status = status;
-    value.run.hasFinished = state !== "active";
-    value.run.isFinished = state !== "active";
-    value.trace.rootSpanStatus = state === "active" ? "executing" : state === "failed" ? "failed" : "completed";
-    const root = value.trace.events[0]?.data;
-    if (root) { root.isPartial = state === "active"; root.isError = state === "failed"; }
-  }
-  if (state === "retried" && value.trace.events.filter((event: any) => event.data.attemptNumber).length < 2) {
-    const root = value.trace.events[0];
-    if (root) value.trace.events.push({ ...structuredClone(root), id: `${root.id}_retry`, parentId: root.id, data: { ...structuredClone(root.data), message: "Attempt 2", attemptNumber: 2, isRoot: false, offset: Math.max(1_000_000, root.data.duration ?? 1_000_000) } });
-  }
 }
