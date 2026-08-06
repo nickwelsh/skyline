@@ -4,7 +4,7 @@ import matrix from "./matrix.json" with { type: "json" };
 import { capturePartitionedAxe, normalizedPartitionLedger, pairedPresenterAxeDifferences } from "./support/axe";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
-import { expandedDialogCounts } from "./support/dialog-lifecycle";
+import { expandedDialogCounts, expectedExpandedDialogTranscript } from "./support/dialog-lifecycle";
 import { isNw223State, nw223InteractionStates, nw223Presentation, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
@@ -208,6 +208,8 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
     if (process.env.SKYLINE_NW223_AXE_ONLY === "1") return;
     const triggerInteraction = await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false, scenario);
     const skylineInteraction = await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true, scenario);
+    expect(triggerInteraction).toEqual(expectedExpandedDialogTranscript("trigger"));
+    expect(skylineInteraction).toEqual(expectedExpandedDialogTranscript("skyline"));
     process.stdout.write(`\nNW223_ESCAPE_PREFLIGHT=${JSON.stringify({ capture, trigger: triggerInteraction, skyline: skylineInteraction })}\n`);
   } finally {
     await context.close();
