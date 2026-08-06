@@ -22,7 +22,7 @@ test("pinned fixture keeps the Telemetry-event stream visible beside selected de
     page: expect.objectContaining({ telemetryEvents: expect.arrayContaining([expect.objectContaining({ id: "event_fixture_operation" }), expect.objectContaining({ id: "event_fixture_log" })]) }),
   }));
   await expect(page.locator("tbody tr")).toHaveCount(2);
-  await expect(page.getByRole("region", { name: "Telemetry-event detail" })).toContainText("Invoice import delayed");
+  await expect(page.getByTestId("telemetry-event-detail")).toContainText("Invoice import delayed");
 });
 
 test("paired pinned Trigger Logs preserve list/detail geometry, selection, links, and a11y", async ({ page }) => {
@@ -92,7 +92,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(detail).toContainText("trace_invoice");
   await expect(detail).toContainText("parent_job");
   await expect(detail.getByRole("link", { name: "View full run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
-  expect(await detailVisuals(detail)).toEqual(referenceDetail);
+  await expect.poll(() => detailVisuals(detail)).toEqual(referenceDetail);
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/event=/);
   await expect(detail).toHaveCount(0);
@@ -299,11 +299,11 @@ async function visuals(page: Page) {
 
 async function detailVisuals(detail: Locator) {
   return detail.evaluate((detail) => {
-    let panel = detail.parentElement!;
-    while (panel.previousElementSibling?.getAttribute("role") !== "separator" && panel.parentElement) panel = panel.parentElement;
-    const handle = panel.previousElementSibling!;
+    const handle = detail.ownerDocument.querySelector<HTMLElement>('[role="separator"]')!;
+    const panel = handle.nextElementSibling as HTMLElement;
+    const layout = getComputedStyle(detail).display === "grid" ? detail : detail.firstElementChild!;
     const title = detail.querySelector("h2")!; const style = getComputedStyle(title);
-    return { width: Math.round(panel.getBoundingClientRect().width), handleWidth: getComputedStyle(handle).width, titleFontSize: style.fontSize, titleFontWeight: style.fontWeight, rows: getComputedStyle(detail).gridTemplateRows.split(" ").length };
+    return { width: Math.round(panel.getBoundingClientRect().width), handleWidth: getComputedStyle(handle).width, titleFontSize: style.fontSize, titleFontWeight: style.fontWeight, rows: getComputedStyle(layout).gridTemplateRows.split(" ").length };
   });
 }
 

@@ -1,28 +1,20 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/hooks/useSearchParam.ts
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: browser history and popstate replace Remix navigation and location.
+ * Skyline adaptation: React Router navigation replaces Remix navigation and location.
  */
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams as useRouterSearchParams } from "react-router-dom";
 
 type Values = Record<string, string | string[] | undefined>;
 
 export function useSearchParams() {
-  const [searchString, setSearchString] = useState(() => currentSearch());
-
-  useEffect(() => {
-    const updateSearch = () => setSearchString(currentSearch());
-    window.addEventListener("popstate", updateSearch);
-
-    return () => window.removeEventListener("popstate", updateSearch);
-  }, []);
+  const [searchParams, setSearchParams] = useRouterSearchParams();
+  const searchString = searchParams.toString();
 
   const navigate = useCallback((search: URLSearchParams) => {
-    const nextSearch = search.toString();
-    const url = `${window.location.pathname}?${nextSearch}${window.location.hash}`;
-    window.history.replaceState(window.history.state, "", url);
-    setSearchString(window.location.search);
-  }, []);
+    setSearchParams(search, { replace: true });
+  }, [setSearchParams]);
 
   const replace = useCallback(
     (values: Values) => {
@@ -77,10 +69,6 @@ export function useSearchParams() {
     del,
     has,
   };
-}
-
-function currentSearch() {
-  return typeof window === "undefined" ? "" : window.location.search;
 }
 
 function set(searchParams: URLSearchParams, values: Values) {

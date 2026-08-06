@@ -33,7 +33,7 @@ export type LogsRouteData = {
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
-  selectedSummary: { variant: "operation"; name: string } | { variant: "log"; message: string } | null;
+  selectedSummary: ({ variant: "operation"; name: string } | { variant: "log"; message: string }) & { render?: (onClose: () => void) => React.ReactNode } | null;
   renderTable: (props: { selectedId?: string; onSelect: (id: string) => void; loading: boolean }) => React.ReactNode;
   loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { render: (onClose: () => void) => React.ReactNode } } | { state: "not-found" | "error"; message: string }>;
 };
@@ -107,6 +107,8 @@ export default function Page() {
                   ? <div data-testid="telemetry-event-detail" className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
                   : detail?.state === "not-found" || detail?.state === "error"
                     ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
+                    : data.selectedSummary?.render
+                      ? <div data-testid="telemetry-event-detail" className="relative h-full">{data.selectedSummary.render(() => setSelected())}<div aria-label="Loading Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div></div>
                     : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />)}
               </div>
             </ResizablePanel>

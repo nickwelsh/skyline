@@ -6,7 +6,7 @@ import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAd
 import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargetsQuery } from "./QueueTargetAdapter";
 import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
 import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
-import { TelemetryEventDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
+import { TelemetryEventDetailView, TelemetryEventSummaryDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
 import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { SkylineShell } from "./SkylineShell";
@@ -71,9 +71,15 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
   const logsLoader = async ({ request }: LoaderFunctionArgs): Promise<LogsRouteData> => {
     const list = presentTelemetryEvents(await adapter.telemetryEvents(telemetryEventsQuery(request)));
     const eventId = new URL(request.url).searchParams.get("event");
+    const selectedEvent = eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null;
     return {
       ...list,
-      selectedSummary: eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null,
+      selectedSummary: selectedEvent ? {
+        ...selectedEvent,
+        render: selectedEvent.variant === "log"
+          ? (onClose: () => void) => <TelemetryEventSummaryDetailView event={selectedEvent} onClose={onClose} />
+          : undefined,
+      } : null,
       renderTable: (props) => <TelemetryEventsTable events={list.telemetryEvents} {...props} hasAnyEvents={list.hasAnyTelemetryEvents} hasFilters={list.hasFilters} hasMore={Boolean(list.pagination.next || list.pagination.previous)} />,
       loadDetail: async (id, signal) => {
         try {

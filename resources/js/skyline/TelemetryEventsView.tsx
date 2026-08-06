@@ -42,6 +42,12 @@ export function TelemetryEventDetailView({ event, onClose }: { event: PresentedT
   return <div className="grid h-full grid-rows-[minmax(0,1fr)_auto] overflow-hidden"><div className="min-h-0">{detail}</div><Callout variant="warning" className="m-3">Captured log detail was truncated at the recorded presentation boundary.</Callout></div>;
 }
 
+export function TelemetryEventSummaryDetailView({ event, onClose }: { event: PresentedTelemetryEvent; onClose: () => void }) {
+  if (event.variant !== "log") return null;
+
+  return <LogDetailView logId={event.id} initialLog={toTriggerLog(event)} onClose={onClose} />;
+}
+
 export function toTriggerLog(event: PresentedTelemetryEvent | PresentedTelemetryEventDetail): LogEntry {
   const attributes = event.variant === "log" && "attributes" in event
     ? {
