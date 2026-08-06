@@ -89,6 +89,9 @@ describe("Run detail source primitives", () => {
     ]);
     expect(content.tagName).toBe("DIV");
     expect(content.className).toBe("flex w-full items-center justify-between gap-2 pl-1");
+    expect(treeItem.hasAttribute("aria-level")).toBe(false);
+    expect(content.firstElementChild?.firstElementChild?.tagName).toBe("svg");
+    expect(content.firstElementChild?.firstElementChild?.getAttribute("aria-hidden")).toBeNull();
     expect(row.querySelector("button")).toBeNull();
     await act(async () => root.unmount());
   });

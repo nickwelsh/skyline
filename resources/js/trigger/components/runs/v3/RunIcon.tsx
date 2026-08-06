@@ -1,7 +1,7 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/components/runs/v3/RunIcon.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Narrowed to Skyline NodeKind values and package-local icon assets.
+ * Narrowed to Skyline NodeKind values and package-local icons while retaining source SVG accessibility.
  */
 import {
   ArchiveBoxIcon,
@@ -37,28 +37,28 @@ export function RunIcon({ kind, className }: RunIconProps) {
     case "attempt":
       return <AttemptIcon className={cn(className, dimmedClassName)} />;
     case "query":
-      return <TableCellsIcon className={cn(className, "text-query")} />;
+      return <TableCellsIcon aria-hidden={undefined} className={cn(className, "text-query")} />;
     case "request":
-      return <GlobeAltIcon className={cn(className, dimmedClassName)} />;
+      return <GlobeAltIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "cache":
-      return <ArchiveBoxIcon className={cn(className, dimmedClassName)} />;
+      return <ArchiveBoxIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "redis":
-      return <CircleStackIcon className={cn(className, "text-queues")} />;
+      return <CircleStackIcon aria-hidden={undefined} className={cn(className, "text-queues")} />;
     case "transaction":
-      return <ArrowsRightLeftIcon className={cn(className, dimmedClassName)} />;
+      return <ArrowsRightLeftIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "mail":
-      return <EnvelopeIcon className={cn(className, dimmedClassName)} />;
+      return <EnvelopeIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "notification":
-      return <BellIcon className={cn(className, dimmedClassName)} />;
+      return <BellIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "storage":
-      return <RectangleStackIcon className={cn(className, dimmedClassName)} />;
+      return <RectangleStackIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "process":
-      return <CommandLineIcon className={cn(className, dimmedClassName)} />;
+      return <CommandLineIcon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     case "breadcrumb":
       return <InfoIcon className={cn(className, dimmedClassName)} />;
     case "custom":
     case "span":
-      return <Squares2X2Icon className={cn(className, dimmedClassName)} />;
+      return <Squares2X2Icon aria-hidden={undefined} className={cn(className, dimmedClassName)} />;
     default:
       assertNever(kind);
   }
