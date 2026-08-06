@@ -4,6 +4,7 @@ import { presentRuns, runsQuery } from "./RunListAdapter";
 import { presentRunDetail } from "./RunDetailAdapter";
 import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAdapter";
 import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargetsQuery } from "./QueueTargetAdapter";
+import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { BrandMark } from "./BrandMark";
 import { TriggerShell } from "../trigger/root";
@@ -13,6 +14,8 @@ import JobsRoute, { JobsErrorBoundary } from "../trigger/routes/_app.orgs.$organ
 import JobDetailRoute, { JobDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route";
 import QueuesRoute, { QueuesErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
 import QueueDetailRoute, { QueueDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
+import ErrorsRoute, { ErrorsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route";
+import ErrorDetailRoute, { ErrorDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
 
 export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath)) {
   const runsLoader = async ({ request }: LoaderFunctionArgs) => presentRuns(await adapter.runs(runsQuery(request)));
@@ -35,6 +38,11 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
       (nodeId, signal) => adapter.inspector(nodeId, runId, signal),
     );
   };
+  const errorsLoader = async ({ request }: LoaderFunctionArgs) => presentErrorGroups(await adapter.errorGroups(errorGroupsQuery(request)));
+  const errorLoader = async ({ params, request }: LoaderFunctionArgs) => {
+    if (!params.errorId) throw new Response("The Error group was not found.", { status: 404 });
+    return presentErrorGroupDetail(await adapter.errorGroup(params.errorId, errorOccurrencesQuery(request)));
+  };
 
   return createBrowserRouter([
     {
@@ -48,6 +56,8 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
         { path: "runs/:runId", loader: runDetailLoader, element: <RunDetailRoute />, errorElement: <RunDetailErrorBoundary /> },
         { path: "queues", loader: queuesLoader, element: <QueuesRoute />, errorElement: <QueuesErrorBoundary /> },
         { path: "queues/:queueId", loader: queueLoader, element: <QueueDetailRoute />, errorElement: <QueueDetailErrorBoundary /> },
+        { path: "errors", loader: errorsLoader, element: <ErrorsRoute />, errorElement: <ErrorsErrorBoundary /> },
+        { path: "errors/:errorId", loader: errorLoader, element: <ErrorDetailRoute />, errorElement: <ErrorDetailErrorBoundary /> },
       ],
     },
   ], { basename: bootstrap.basePath });

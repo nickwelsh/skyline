@@ -1,0 +1,72 @@
+{
+  "generatedBy": "node scripts/extract-trigger-errors-baseline.mjs",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "listRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx",
+      "sha256": "cae6ee5c93c8e3c45dcfe1aaa340871eb3f2f653c4c5ae119a2832374923fc18"
+    },
+    "detailRoute": {
+      "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx",
+      "sha256": "8c399e0c4700d5f9b170bb2a02cb9cac75480709a225ecb75bf6fd68272fd61a"
+    },
+    "bugIcon": {
+      "path": "apps/webapp/app/assets/icons/BugIcon.tsx",
+      "sha256": "158d0c055a70a1d2138cc53ae35b290b54f1d554a33956f9379e810428497b35"
+    },
+    "listPagination": {
+      "path": "apps/webapp/app/components/ListPagination.tsx",
+      "sha256": "8188a2e2ff4c79d4567bc7512b46fd7683c1082a72c4f2848dea4332656e7071"
+    },
+    "table": {
+      "path": "apps/webapp/app/components/primitives/Table.tsx",
+      "sha256": "98c22b2102bbc395268dd16d2894b24df9ddc6759cb15fc5bfa9510013f1504c"
+    },
+    "resizable": {
+      "path": "apps/webapp/app/components/primitives/Resizable.tsx",
+      "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837"
+    }
+  },
+  "contract": {
+    "list": {
+      "filters": true,
+      "table": true,
+      "pagination": true,
+      "loading": true,
+      "empty": true,
+      "error": true
+    },
+    "detail": {
+      "activity": true,
+      "failedAttempts": true,
+      "pagination": true,
+      "resizableSidebar": true,
+      "exceptionEvidence": true
+    },
+    "navigation": {
+      "errorGroup": true,
+      "jobType": true,
+      "run": true,
+      "attempt": true
+    },
+    "url": {
+      "jobType": true,
+      "exceptionClass": true,
+      "period": true,
+      "cursor": true
+    },
+    "actions": {
+      "upstreamMutationControls": true,
+      "skylineMutationControls": false
+    },
+    "accessibility": {
+      "semanticTable": true,
+      "tabbableDetailLink": true
+    },
+    "geometry": {
+      "listFilterHeight": 40,
+      "detailActivityHeight": 192,
+      "detailSidebarWidth": 380
+    }
+  }
+}

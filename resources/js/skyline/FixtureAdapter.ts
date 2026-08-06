@@ -35,8 +35,9 @@ const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
 const pageSize = 25;
 
 const capabilities = {
-  navigation: { jobs: true, runs: true, queues: true },
+  navigation: { jobs: true, runs: true, queues: true, errors: true },
   jobs: { view: true, testJob: false },
+  errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
   runs: { view: true, cancel: false, replay: false },
   shell: { favorites: true, shortcuts: true },
 };

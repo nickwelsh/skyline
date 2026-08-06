@@ -18,7 +18,7 @@ export function TriggerShell({ applicationName, brandMark, environmentLabel, cap
   return (
     <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
       <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
-        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} jobsPath="/jobs" runsPath="/runs" queuesPath="/queues" />
+        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} jobsPath="/jobs" runsPath="/runs" queuesPath="/queues" errorsPath="/errors" />
         <main className="min-w-0 overflow-hidden"><Outlet /></main>
       </div>
     </AppContainer>

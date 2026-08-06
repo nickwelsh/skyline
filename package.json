@@ -17,7 +17,9 @@
     "trigger:inspector-baseline": "node scripts/extract-trigger-inspector-baseline.mjs",
     "trigger:inspector-baseline:check": "node scripts/extract-trigger-inspector-baseline.mjs --check",
     "trigger:queues-baseline": "node scripts/extract-trigger-queues-baseline.mjs",
-    "trigger:queues-baseline:check": "node scripts/extract-trigger-queues-baseline.mjs --check"
+    "trigger:queues-baseline:check": "node scripts/extract-trigger-queues-baseline.mjs --check",
+    "trigger:errors-baseline": "node scripts/extract-trigger-errors-baseline.mjs",
+    "trigger:errors-baseline:check": "node scripts/extract-trigger-errors-baseline.mjs --check"
   },
   "dependencies": {
     "@heroicons/react": "2.0.13",
