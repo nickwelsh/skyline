@@ -3,7 +3,7 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Skyline adaptation: observed connection/status options and React Router URL state.
  */
-import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import { CalendarDaysIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { SearchInput } from "~/components/primitives/SearchInput";
@@ -28,6 +28,8 @@ export function QueuePeriodFilter({
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
+  const selected = timeRangeValue(params, timeRanges);
+  const selectedLabel = periodLabel(timeRanges.find((option) => option.value === selected) ?? { value: selected, label: "Custom", durationSeconds: null });
   const update = (values: Record<string, string | undefined>) => {
     const next = new URLSearchParams(location.search);
     for (const [key, value] of Object.entries(values)) value ? next.set(key, value) : next.delete(key);
@@ -37,13 +39,13 @@ export function QueuePeriodFilter({
   };
 
   return (
-    <label className="flex items-center gap-1 text-xs text-text-dimmed">
-      <span>Period</span>
+    <label className="relative block h-6 rounded text-xs text-text-dimmed focus-within:outline focus-within:-outline-offset-1 focus-within:outline-text-link">
+      <span aria-hidden="true" className="flex h-6 items-center gap-1 rounded border border-border-bright/50 bg-surface-control px-2 text-text-bright"><CalendarDaysIcon className="size-3.5 text-text-dimmed" />Period: {selectedLabel}</span>
       <select
         aria-label="Period"
-        value={timeRangeValue(params, timeRanges)}
+        value={selected}
         onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt, timeRanges))}
-        className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
+        className="absolute inset-0 h-6 w-full cursor-pointer opacity-0 focus-custom"
       >
         {timeRanges.map((option) => <option key={option.value} value={option.value}>{periodLabel(option)}</option>)}
         {params.has("from") && <option value="custom">Custom</option>}
