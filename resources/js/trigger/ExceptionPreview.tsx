@@ -45,51 +45,66 @@ export type ExceptionPreviewData = {
 type FrameEntry = { frame: ExceptionPreviewFrame; index: number };
 
 export function ExceptionPreview({ exception, extensionId = "error-exception-evidence" }: { exception: ExceptionPreviewData; extensionId?: string | null }) {
-  const [expanded, setExpanded] = useState(false);
+  const exceptionKey = `${exception.class}\n${exception.message}\n${exception.markdown}`;
+  const [disclosure, setDisclosure] = useState({ key: exceptionKey, expanded: false });
+  const expanded = disclosure.key === exceptionKey && disclosure.expanded;
+  const attemptPresenter = extensionId === "attempt-exception-evidence";
   const groups = useMemo(() => groupFrames(exception.frames), [exception.frames]);
   const mainFrame = exception.frames.findIndex((frame) => !frame.isVendor);
 
-  return (
-    <section data-skyline-extension={extensionId ?? undefined} role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
-        <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
+  const metadata = (
+    <>
+      {exception.messageTruncated && <div className="text-xs text-warning">Exception message truncated</div>}
+      <div className="flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs text-text-faint">
+        {exception.location
+          ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} outOfTabOrder={attemptPresenter} />
+          : <span>Source location not captured</span>}
+        {exception.code && <span>Code {exception.code}</span>}
+        {attemptPresenter && <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" tabIndex={-1} />}
       </div>
+    </>
+  );
+
+  const trace = exception.frames.length > 0 ? (
+    <>
+      <button
+        type="button"
+        aria-expanded={expanded}
+        aria-controls="exception-trace"
+        onClick={() => setDisclosure({ key: exceptionKey, expanded: !expanded })}
+        className="relative flex min-h-9 w-full items-center gap-2 border-t border-grid-bright pt-2 text-left text-xs text-text-dimmed hover:text-text-bright focus-custom"
+      >
+        <IconCode className="size-4 shrink-0" />
+        <span>{expanded ? "Hide trace" : `Show ${exception.frames.length.toLocaleString()} ${exception.frames.length === 1 ? "frame" : "frames"}`}</span>
+        {exception.framesTruncated && <span>· Truncated</span>}
+        {expanded ? <IconChevronUp className="ml-auto size-4 shrink-0" /> : <IconChevronDown className="ml-auto size-4 shrink-0" />}
+      </button>
+      {expanded && (
+        <div id="exception-trace" className="flex max-h-[40rem] flex-col gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+          {groups.map((group) => group.vendor
+            ? <VendorFrames key={`vendor-${group.entries[0].index}`} entries={group.entries} />
+            : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} />))}
+        </div>
+      )}
+    </>
+  ) : <div className="border-t border-grid-bright pt-2 text-xs text-text-faint">Stack trace not captured</div>;
+
+  return (
+    <section data-skyline-extension={attemptPresenter ? undefined : extensionId ?? undefined} role={attemptPresenter ? undefined : "region"} aria-label={attemptPresenter ? undefined : "Exception"} className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
+      {attemptPresenter
+        ? <Header3 className="text-rose-500">{exception.class}</Header3>
+        : <div className="flex min-w-0 items-center gap-2">
+          <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
+          <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
+        </div>}
       <Callout variant="error">
         <pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">
           {exception.message}
         </pre>
       </Callout>
-      {exception.messageTruncated && <div className="text-xs text-warning">Exception message truncated</div>}
-      <div className="flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs text-text-faint">
-        {exception.location
-          ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
-          : <span>Source location not captured</span>}
-        {exception.code && <span>Code {exception.code}</span>}
-      </div>
-      {exception.frames.length > 0 ? (
-        <>
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls="exception-trace"
-            onClick={() => setExpanded((value) => !value)}
-            className="relative flex min-h-9 w-full items-center gap-2 border-t border-grid-bright pt-2 text-left text-xs text-text-dimmed hover:text-text-bright focus-custom"
-          >
-            <IconCode className="size-4 shrink-0" />
-            <span>{expanded ? "Hide trace" : `Show ${exception.frames.length.toLocaleString()} ${exception.frames.length === 1 ? "frame" : "frames"}`}</span>
-            {exception.framesTruncated && <span>· Truncated</span>}
-            {expanded ? <IconChevronUp className="ml-auto size-4 shrink-0" /> : <IconChevronDown className="ml-auto size-4 shrink-0" />}
-          </button>
-          {expanded && (
-            <div id="exception-trace" className="flex max-h-[40rem] flex-col gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-              {groups.map((group) => group.vendor
-                ? <VendorFrames key={`vendor-${group.entries[0].index}`} entries={group.entries} />
-                : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} />))}
-            </div>
-          )}
-        </>
-      ) : <div className="border-t border-grid-bright pt-2 text-xs text-text-faint">Stack trace not captured</div>}
+      {attemptPresenter
+        ? <div data-skyline-extension="attempt-exception-evidence" role="region" aria-label="Exception" className="flex h-[3.625rem] flex-col overflow-y-auto rounded-md border border-grid-bright px-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">{metadata}{trace}</div>
+        : <>{metadata}{trace}</>}
     </section>
   );
 }
@@ -165,12 +180,12 @@ function VendorFrames({ entries }: { entries: FrameEntry[] }) {
   );
 }
 
-function SourceLink({ file, line, href, compact = false }: { file: string; line: number | null; href: string | null; compact?: boolean }) {
+function SourceLink({ file, line, href, compact = false, outOfTabOrder = false }: { file: string; line: number | null; href: string | null; compact?: boolean; outOfTabOrder?: boolean }) {
   const location = `${file}:${line ?? "?"}`;
   const content = <><span className={compact ? "truncate" : "min-w-0 truncate"}>{location}</span>{href && <IconExternalLink className="size-4 shrink-0" />}</>;
 
   return href
-    ? <a href={href} title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
+    ? <a href={href} target="_blank" rel="noreferrer" tabIndex={outOfTabOrder ? -1 : undefined} title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
     : <span className="flex min-w-0 items-center gap-1">{content}</span>;
 }
 

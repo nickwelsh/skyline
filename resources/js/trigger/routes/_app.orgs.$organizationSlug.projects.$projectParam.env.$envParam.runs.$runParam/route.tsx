@@ -612,6 +612,20 @@ function InspectorOverview({ data, node, inspector, failure }: {
 }) {
   const isRouteRun = inspector.runId === data.run.id;
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
+  if (attempt && inspector.exception) {
+    const attemptRun = { ...data.run, startedAt: attempt.startedAt, finishedAt: attempt.finishedAt, durationUs: inspector.durationUs };
+    return (
+      <div className="flex flex-col gap-4 pt-3">
+        <div className="border-b border-grid-bright pb-3">
+          <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
+        </div>
+        <RunLifecycleTimeline run={attemptRun} />
+        <div className="-mt-[1.1875rem]">
+          <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />
+        </div>
+      </div>
+    );
+  }
   if (node?.kind === "run" && isRouteRun) {
     return (
       <div className="flex flex-col gap-4 pt-3">
@@ -619,7 +633,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
           <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
         </div>
         <RunLifecycleTimeline run={data.run} />
-        {inspector.exception && <ExceptionPreview exception={inspector.exception} extensionId={null} />}
+        {inspector.exception && <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />}
       </div>
     );
   }
@@ -646,7 +660,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
         <Property name="Duration" value={formatDuration(node ? node.durationUs : data.run.durationUs)} />
       </dl>
       {inspector.exception
-        ? <ExceptionPreview exception={inspector.exception} extensionId={null} />
+        ? <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />
         : failure && (
           <div role="status" className="rounded border border-grid-bright bg-background-bright p-3 text-sm text-text-dimmed">
             Exception evidence unavailable. Skyline retained only the captured {failure.class} summary.

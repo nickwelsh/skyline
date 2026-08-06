@@ -274,11 +274,12 @@ function ModeSwitch<T extends string>({ label, value, options, onChange }: {
   );
 }
 
-export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copied" }: {
+export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copied", tabIndex }: {
   value: string;
   label: string;
   idleText?: string;
   copiedText?: string;
+  tabIndex?: number;
 }) {
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
   const timeout = useRef<number>();
@@ -309,6 +310,7 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
     <button
       type="button"
       aria-label={`Copy ${label}`}
+      tabIndex={tabIndex}
       title={presentation.title}
       onClick={() => void copy()}
       className={`relative grid size-8 place-items-center rounded-sm hover:bg-background-hover focus-visible:outline-2 focus-visible:outline-indigo-500 ${presentation.color}`}

@@ -71,6 +71,26 @@ describe("ExceptionPreview", () => {
 
     flushSync(() => root.unmount());
   });
+
+  it("marks only the Attempt presenter replacement and resets disclosure per Attempt", () => {
+    const { container, root } = render(exception(), "attempt-exception-evidence");
+    const panel = container.querySelector<HTMLElement>(".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50")!;
+    const presenter = panel.querySelector<HTMLElement>(":scope > [data-skyline-extension='attempt-exception-evidence'][role='region'][aria-label='Exception']")!;
+
+    expect(presenter).not.toBeNull();
+    expect(panel.getAttribute("role")).toBeNull();
+    expect(presenter.querySelector<HTMLAnchorElement>("a")?.target).toBe("_blank");
+    expect(presenter.querySelector<HTMLAnchorElement>("a")?.tabIndex).toBe(-1);
+    expect(presenter.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')?.tabIndex).toBe(-1);
+
+    const trace = presenter.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
+    flushSync(() => trace.click());
+    expect(trace.getAttribute("aria-expanded")).toBe("true");
+    flushSync(() => root.render(<ExceptionPreview exception={{ ...exception(), class: "LogicException" }} extensionId="attempt-exception-evidence" />));
+    expect(container.querySelector('[aria-controls="exception-trace"]')?.getAttribute("aria-expanded")).toBe("false");
+
+    flushSync(() => root.unmount());
+  });
 });
 
 function render(value: ExceptionPreviewData, extensionId?: string | null) {
