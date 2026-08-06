@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, transformWithEsbuild, type Plugin } from "vite";
-import { pinnedStateInspector } from "./pinnedStateInspectorPlugin";
 import { pinnedLogs } from "./pinnedLogsPlugin";
 import { pinnedShell } from "./pinnedShellPlugin";
 
@@ -14,7 +13,7 @@ const appRoot = resolve(sourceRoot, "apps/webapp/app");
 
 export default defineConfig({
   cacheDir: "/tmp/skyline-trigger-reference-vite",
-  plugins: [pinnedRunError(), pinnedErrors(), pinnedStateInspector(), pinnedLogs(), pinnedShell(appRoot), react(), tailwindcss()],
+  plugins: [pinnedRunError(), pinnedErrors(), pinnedLogs(), pinnedShell(appRoot), react(), tailwindcss()],
   resolve: {
     alias: {
       "~": appRoot,

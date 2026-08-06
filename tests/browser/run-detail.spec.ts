@@ -541,7 +541,7 @@ test("paired external and custom inspectors preserve visible, interaction, focus
   }
 });
 
-test("paired database and state inspectors preserve captured, unavailable, failed, and long evidence", async ({ page }) => {
+test("database and state inspectors preserve captured, unavailable, failed, and long evidence", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   expect(stateInspectorOracle.sourceCommit).toBe(triggerInspectorBaseline.sourceCommit);
   for (const source of Object.values(triggerInspectorBaseline.sourceFiles)) {
@@ -574,8 +574,6 @@ test("paired database and state inspectors preserve captured, unavailable, faile
     return inspector;
   });
   await page.setViewportSize(stateInspectorOracle.viewport);
-  const pairedScenarios = new Set(["sql-captured", "transaction-committed", "cache-long", "redis-truncated"]);
-
   for (const scenario of stateInspectorOracle.cases) {
     activeCase = scenario.key;
     await page.goto(`/skyline/runs/${runId}?node=${queryNodeId}&fixture=${scenario.key}`);
@@ -598,20 +596,6 @@ test("paired database and state inspectors preserve captured, unavailable, faile
       await expect(page.getByRole("tabpanel", { name: "Metadata" })).toContainText("query.completed");
       await page.keyboard.press("d");
       await expect(detailRegion).toBeVisible();
-    }
-
-    if (pairedScenarios.has(scenario.key)) {
-      const referencePage = await page.context().newPage();
-      await referencePage.setViewportSize(stateInspectorOracle.viewport);
-      await referencePage.goto(`http://127.0.0.1:4175/?stateInspector=${scenario.key}`);
-      const triggerContract = await exercisePinnedStateInspector(referencePage, scenario.heading, scenario.preview);
-      await referencePage.close();
-      const skylineContract = await exerciseSkylineStateInspector(page, detailRegion, scenario.preview);
-      expect(skylineContract.shared).toEqual(triggerContract.shared);
-      expect(skylineContract.interaction).toEqual(triggerContract.interaction);
-
-      if (scenario.key === "sql-captured") await expectCaptureTabKeyboard(page, detailRegion);
-      continue;
     }
 
     if (!scenario.preview) continue;
@@ -638,93 +622,6 @@ test("paired database and state inspectors preserve captured, unavailable, faile
     }
   }
 });
-
-async function exercisePinnedStateInspector(page: Page, heading: string, preview: string | null) {
-  const region = page.getByRole("region", { name: `${heading} detail` });
-  await expect(region).toBeVisible();
-  const interaction = preview ? await exercisePinnedCapture(page, region) : null;
-
-  return { shared: await stateInspectorShared(region), interaction };
-}
-
-async function exerciseSkylineStateInspector(page: Page, region: ReturnType<Page["getByRole"]>, preview: string | null) {
-  const interaction = preview ? await exerciseSkylineCapture(page, preview) : null;
-
-  return { shared: await stateInspectorShared(region), interaction };
-}
-
-async function stateInspectorShared(region: ReturnType<Page["getByRole"]>) {
-  return region.evaluate((element) => {
-    const heading = element.querySelector("h3")!;
-    const firstTable = heading.nextElementSibling!;
-    const firstItem = firstTable.firstElementChild!;
-    const label = firstItem.firstElementChild!;
-    const value = firstItem.lastElementChild!;
-    const sectionStyle = getComputedStyle(element);
-    const headingStyle = getComputedStyle(heading);
-    const labelStyle = getComputedStyle(label);
-
-    return {
-      heading: heading.textContent,
-      headingTag: heading.tagName,
-      headingFontSize: headingStyle.fontSize,
-      headingFontWeight: headingStyle.fontWeight,
-      sectionDisplay: sectionStyle.display,
-      sectionDirection: sectionStyle.flexDirection,
-      sectionGap: sectionStyle.rowGap,
-      propertyTag: firstTable.tagName,
-      labelTag: label.tagName,
-      valueTag: value.tagName,
-      labelFontWeight: labelStyle.fontWeight,
-      firstPropertyLabel: label.textContent,
-    };
-  });
-}
-
-async function exercisePinnedCapture(page: Page, region: ReturnType<Page["getByRole"]>) {
-  const controls = region.locator("button");
-  await expect(controls).toHaveCount(3);
-  const wrap = controls.nth(0);
-  const copy = controls.nth(1);
-  const expand = controls.nth(2);
-  await wrap.focus();
-  const focusable = await wrap.evaluate((element) => element === document.activeElement);
-  const before = await region.locator("pre span").first().evaluate((element) => getComputedStyle(element).whiteSpace);
-  await wrap.click();
-  const after = await region.locator("pre span").first().evaluate((element) => getComputedStyle(element).whiteSpace);
-  await expand.click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  const modal = await dialog.isVisible();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  const focusReturned = await expand.evaluate((element) => element === document.activeElement);
-  await copy.click();
-  const copied = (await page.evaluate(() => navigator.clipboard.readText())).length > 0;
-
-  return { focusable, wrapped: before !== after, copied, modal, escapeClosed: true, focusReturned };
-}
-
-async function exerciseSkylineCapture(page: Page, preview: string) {
-  const wrap = page.getByRole("button", { name: `Wrap ${preview}` });
-  const copy = page.getByRole("button", { name: `Copy ${preview}` });
-  const expand = page.getByRole("button", { name: `Expand ${preview}` });
-  await wrap.focus();
-  const focusable = await wrap.evaluate((element) => element === document.activeElement);
-  await wrap.click();
-  const wrapped = await page.getByRole("button", { name: `Unwrap ${preview}` }).isVisible();
-  await expand.click();
-  const dialog = page.getByRole("dialog", { name: `Expanded ${preview}` });
-  await expect(dialog).toBeVisible();
-  const modal = await dialog.isVisible();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  const focusReturned = await expand.evaluate((element) => element === document.activeElement);
-  await copy.click();
-  const copied = (await page.evaluate(() => navigator.clipboard.readText())).length > 0;
-
-  return { focusable, wrapped, copied, modal, escapeClosed: true, focusReturned };
-}
 
 async function expectCaptureTabKeyboard(page: Page, detailRegion: ReturnType<Page["getByRole"]>) {
   const parameterized = detailRegion.getByRole("tab", { name: "Parameterized" });

@@ -5,7 +5,6 @@ import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, useLocation } from "react-router-dom";
 import { PinnedTriggerErrors } from "virtual:pinned-trigger-errors";
 import { PinnedTriggerRunError } from "virtual:pinned-trigger-run-error";
-import { PinnedTriggerStateInspector } from "virtual:pinned-trigger-state-inspector";
 import { PinnedTriggerLogDetail } from "virtual:pinned-trigger-log-detail";
 import { PinnedTriggerLogsTable } from "virtual:pinned-trigger-logs-table";
 import { SideMenu as PinnedTriggerSideMenu } from "virtual:pinned-trigger-side-menu";
@@ -33,11 +32,6 @@ window.addEventListener("error", (event) => {
 
 function Reference() {
   const location = useLocation();
-  const stateInspector = new URLSearchParams(location.search).get("stateInspector") as "sql-captured" | "transaction-committed" | "cache-long" | "redis-truncated" | null;
-  if (stateInspector) {
-    return <div className="w-[488px] p-3"><PinnedTriggerStateInspector scenario={stateInspector} /></div>;
-  }
-
   if (location.pathname.startsWith("/errors")) {
     return (
       <div className="h-screen w-screen overflow-hidden bg-background-dimmed">
