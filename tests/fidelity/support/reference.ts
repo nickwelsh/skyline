@@ -89,7 +89,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       collapsedSections: { ...defaultSideMenu.collapsedSections, ...(storedSidebar.collapsedSections ?? {}) },
       hiddenItems: { ...defaultSideMenu.hiddenItems, ...(storedSidebar.hiddenItems ?? {}) },
       sectionItemOrder: { ...defaultSideMenu.sectionItemOrder, ...(storedSidebar.sectionItemOrder ?? {}) },
-      favorites: storedPreferences.favorites ?? [],
+      favorites: (storedPreferences.favorites ?? []).filter((favorite: { url?: string }) => /^\/(?:jobs|runs)(?:\/|$)/.test(favorite.url ?? "")),
     };
     function setTriggerRunState(value: any, state: string) {
       const status = ({ successful: "COMPLETED_SUCCESSFULLY", active: "EXECUTING", failed: "COMPLETED_WITH_ERRORS" } as Record<string, string>)[state];
@@ -127,8 +127,8 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       return value;
     }
     const environment = { id: "environment", slug: "prod", type: "PRODUCTION", userName: "Production", shortcode: "prod" };
-    const project = { id: "project", organizationId: "organization", name: "Fixture Project", slug: "fixture", version: "V3", engine: "V1", environments: [environment], createdAt: "2026-01-01T00:00:00.000Z" };
-    const organization = { id: "organization", slug: "fixture", title: "Fixture Organization", avatar: { type: "letters", hex: "#4f46e5" }, projects: [project] };
+    const project = { id: "project", organizationId: "organization", name: "Fixture Laravel", slug: "fixture", version: "V3", engine: "V1", environments: [environment], createdAt: "2026-01-01T00:00:00.000Z" };
+    const organization = { id: "organization", slug: "fixture", title: "Fixture Laravel", avatar: { type: "letters", hex: "#fbbf24" }, projects: [project] };
     const root = {
       user: { id: "user", email: "fixture@trigger.dev", admin: false, isImpersonating: false, dashboardPreferences: { sideMenu } },
       isViewingAsUser: false,

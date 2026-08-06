@@ -5,6 +5,14 @@
   "errors": {
     "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"]
   },
+  "shell": {
+    "supportedActions": ["tasks", "runs", "logs", "errors", "queues", "favorite"],
+    "supportedSections": ["Favorites", "Observability"],
+    "account": false,
+    "notifications": false,
+    "incidentStatus": false,
+    "deprecation": false
+  },
   "buttons": {
     "blockedVariantPrefixes": ["docs/"],
     "blockedLinkPathFragments": [

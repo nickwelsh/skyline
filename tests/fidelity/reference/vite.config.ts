@@ -37,6 +37,9 @@ function capabilityAdapters(): Plugin {
   const buttonsSource = join(vendorRoot, "components/primitives/Buttons.tsx");
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
+  const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
+  const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
+  const sideMenuSectionSource = join(vendorRoot, "components/navigation/SideMenuSection.tsx");
   return {
     name: "skyline-fidelity-reference-capabilities",
     enforce: "pre",
@@ -44,6 +47,9 @@ function capabilityAdapters(): Plugin {
       const source = moduleId.split("?")[0];
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return hideErrorDetailMutations(code);
+      if (source === sideMenuSource) return conditionSideMenuShell(code);
+      if (source === sideMenuItemSource) return conditionSideMenuItems(code);
+      if (source === sideMenuSectionSource) return conditionSideMenuSections(code);
       if (source !== buttonsSource) return undefined;
       const adapted = code
         .replace("export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(", "const SourceButton = forwardRef<HTMLButtonElement, ButtonPropsType>(")
@@ -63,6 +69,7 @@ function blocked(props, link) {
   const target = typeof props.to === "string" ? props.to : "";
   return link && policy.blockedLinkPathFragments.some((fragment) => target.includes(fragment));
 }
+
 export const Button = React.forwardRef(function CapabilityButton(props, ref) {
   return blocked(props, false) ? null : <SourceButton {...props} ref={ref} />;
 });
@@ -70,6 +77,66 @@ export const LinkButton = (props) => blocked(props, true) ? null : <SourceLinkBu
 `;
     },
   };
+}
+
+export function conditionSideMenuItems(code: string) {
+  const declaration = "export function SideMenuItem({";
+  const adapted = code.replace(declaration, "function SourceSideMenuItem({");
+  if (adapted === code) throw new Error("Pinned Trigger SideMenuItem declaration changed; capability adapter must be reviewed.");
+  return `${adapted}
+const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
+export function SideMenuItem(props: Parameters<typeof SourceSideMenuItem>[0]) {
+  const action = props["data-action"];
+  return action && !shellCapabilityPolicy.supportedActions.includes(action)
+    ? null
+    : <SourceSideMenuItem {...props} />;
+}
+`;
+}
+
+export function conditionSideMenuSections(code: string) {
+  const declaration = "export function SideMenuSection({";
+  const adapted = code.replace(declaration, "function SourceSideMenuSection({");
+  if (adapted === code) throw new Error("Pinned Trigger SideMenuSection declaration changed; capability adapter must be reviewed.");
+  return `${adapted}
+const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
+export function SideMenuSection(props: Parameters<typeof SourceSideMenuSection>[0]) {
+  return shellCapabilityPolicy.supportedSections.includes(props.title)
+    ? <SourceSideMenuSection {...props} />
+    : null;
+}
+`;
+}
+
+export function conditionSideMenuShell(code: string) {
+  const account = "            <AccountMenu isAdmin={isAdmin} isImpersonating={user.isImpersonating} />";
+  const notification = `          <NotificationPanel
+            isCollapsed={isCollapsed}
+            hasIncident={incidentStatus.hasIncident}
+            organizationId={organization.id}
+            projectId={project.id}
+          />`;
+  const incident = `          <IncidentStatusPanel
+            isCollapsed={isCollapsed}
+            title={incidentStatus.title}
+            hasIncident={incidentStatus.hasIncident}
+            isManagedCloud={incidentStatus.isManagedCloud}
+          />`;
+  const deprecation = `          <V3DeprecationPanel
+            isCollapsed={isCollapsed}
+            isV3={isV3Project}
+            projectCreatedAt={project.createdAt}
+            hasIncident={incidentStatus.hasIncident}
+            isManagedCloud={incidentStatus.isManagedCloud}
+          />`;
+  let adapted = code;
+  for (const [source, replacement] of [[account, "            {shellCapabilityPolicy.account ? <AccountMenu isAdmin={isAdmin} isImpersonating={user.isImpersonating} /> : null}"], [notification, "          {shellCapabilityPolicy.notifications ? " + notification.trim() + " : null}"], [incident, "          {shellCapabilityPolicy.incidentStatus ? " + incident.trim() + " : null}"], [deprecation, "          {shellCapabilityPolicy.deprecation ? " + deprecation.trim() + " : null}"]] as const) {
+    if (!adapted.includes(source)) throw new Error("Pinned Trigger SideMenu shell region changed; capability adapter must be reviewed.");
+    adapted = adapted.replace(source, replacement);
+  }
+  return `${adapted}
+const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
+`;
 }
 
 function hideErrorsListMutations(code: string) {
