@@ -4,6 +4,7 @@ import type { SkylineCapabilities, TelemetryEventDetailDto, TelemetryEventsPageD
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-225-trigger-logs-baseline.json" with { type: "json" };
 import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
+import { additionalAxeViolations, captureAxe } from "../fidelity/support/axe";
 import { installSkylineFixture, parseScenario, scenarioPath } from "../fidelity/support/skyline";
 
 const operationId = "event_operation";
@@ -35,6 +36,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await reference.goto("http://127.0.0.1:4175/logs");
   await expect(reference.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   const referenceList = await visuals(reference);
+  const referenceAxe = await captureAxe(reference);
   await expect(reference.locator("table")).toMatchAriaSnapshot(`
     - table:
       - rowgroup:
@@ -67,6 +69,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
+  expect(additionalAxeViolations(referenceAxe, await captureAxe(page))).toEqual([]);
   await expect(page.locator("table")).toMatchAriaSnapshot(`
     - table:
       - rowgroup:
