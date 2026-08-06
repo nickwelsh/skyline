@@ -4,6 +4,8 @@
  * Modified for Skyline's client-only browser detection and package-local cn import.
  */
 import { Panel, PanelGroup, PanelResizer } from "@window-splitter/react";
+import { groupMachine, initializePanel, initializePanelHandleData } from "@window-splitter/state";
+import type { Item } from "@window-splitter/state";
 import React, { createContext, useContext, useMemo, useRef } from "react";
 
 import { cn } from "../../utils/cn";
@@ -20,7 +22,7 @@ export function PanelPersistenceProvider({ port, children }: { port: PanelSnapsh
   return <PanelPersistenceContext.Provider value={port}>{children}</PanelPersistenceContext.Provider>;
 }
 
-const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "horizontal", ...props }: React.ComponentProps<typeof PanelGroup>) => {
+const ResizablePanelGroup = ({ className, autosaveId, autosaveStrategy, snapshot: snapshotProp, children, orientation = "horizontal", ...props }: React.ComponentProps<typeof PanelGroup>) => {
   const persistence = useContext(PanelPersistenceContext);
   const itemIds = React.Children.toArray(children).flatMap((child) =>
     React.isValidElement(child) && child.type === ResizablePanel && typeof child.props.id === "string" ? [child.props.id] : []
@@ -46,6 +48,10 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
       },
     });
   }), [autosaveId, children, compatible, itemIds.join("\u0000"), orientation, persistence, saved]);
+  const snapshot = useMemo(
+    () => autosaveId ? createPanelGroupSnapshot(persistentChildren, autosaveId, orientation) : snapshotProp,
+    [autosaveId, orientation, persistentChildren, snapshotProp],
+  );
 
   return (
     <PanelResizeIntentContext.Provider value={userResize}>
@@ -55,11 +61,45 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
           className
         )}
         orientation={orientation}
+        autosaveStrategy={autosaveId ? undefined : autosaveStrategy}
+        snapshot={snapshot}
         {...props}
       >{persistentChildren}</PanelGroup>
     </PanelResizeIntentContext.Provider>
   );
 };
+
+function createPanelGroupSnapshot(children: React.ReactNode, groupId: string, orientation: "horizontal" | "vertical") {
+  const items = React.Children.toArray(children).reduce<Item[]>((items, child) => {
+    if (!React.isValidElement<{ id?: string }>(child) || typeof child.props.id !== "string") return items;
+    const id = child.props.id;
+
+    if (child.type === ResizablePanel) {
+      const panel = child.props as React.ComponentProps<typeof Panel>;
+      items.push(initializePanel({
+        id,
+        min: panel.min,
+        max: panel.max,
+        default: panel.default,
+        collapsedSize: panel.collapsedSize,
+        collapsible: panel.collapsible,
+        collapsed: panel.collapsed,
+        defaultCollapsed: panel.defaultCollapsed,
+        collapseAnimation: panel.collapseAnimation,
+        isStaticAtRest: panel.isStaticAtRest,
+      }));
+    }
+
+    if (child.type === ResizableHandle) {
+      const handle = child.props as React.ComponentProps<typeof PanelResizer>;
+      items.push(initializePanelHandleData({ id, size: handle.size ?? "3px" }));
+    }
+
+    return items;
+  }, []);
+
+  return groupMachine({ groupId, orientation, items })[0];
+}
 
 // react-window-splitter drives the collapse animation through @react-spring/rafz,
 // which has timing/interaction issues with Firefox that produce visual glitches
