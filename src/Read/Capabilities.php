@@ -11,7 +11,7 @@ final class Capabilities
             'navigation' => [
                 'jobs' => true,
                 'runs' => true,
-                'errors' => false,
+                'errors' => true,
                 'logs' => false,
                 'queues' => true,
                 'query' => false,
@@ -29,6 +29,17 @@ final class Capabilities
                 'testJob' => false,
                 'configure' => false,
                 'schedule' => false,
+            ],
+            'errors' => [
+                'view' => true,
+                'assign' => false,
+                'ignore' => false,
+                'resolve' => false,
+                'alerts' => false,
+                'replay' => false,
+                'cancel' => false,
+                'versions' => false,
+                'bulkActions' => false,
             ],
             'shell' => [
                 'appearance' => false,

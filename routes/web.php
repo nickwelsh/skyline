@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use NickWelsh\Skyline\Http\Controllers\AssetController;
 use NickWelsh\Skyline\Http\Controllers\DashboardController;
+use NickWelsh\Skyline\Http\Controllers\ErrorGroupsController;
 use NickWelsh\Skyline\Http\Controllers\JobsController;
 use NickWelsh\Skyline\Http\Controllers\NodeController;
 use NickWelsh\Skyline\Http\Controllers\QueueTargetsController;
@@ -26,6 +27,8 @@ Route::prefix($path)
         Route::get('api/runs/{run}/nodes/{node}', NodeController::class)->name('skyline.api.nodes.show');
         Route::get('api/jobs', [JobsController::class, 'index'])->name('skyline.api.jobs.index');
         Route::get('api/jobs/{job}', [JobsController::class, 'show'])->name('skyline.api.jobs.show');
+        Route::get('api/errors', [ErrorGroupsController::class, 'index'])->name('skyline.api.errors.index');
+        Route::get('api/errors/{error}', [ErrorGroupsController::class, 'show'])->name('skyline.api.errors.show');
         Route::get('api/queues', [QueueTargetsController::class, 'index'])->name('skyline.api.queues.index');
         Route::get('api/queues/{queue}', [QueueTargetsController::class, 'show'])->name('skyline.api.queues.show');
 
