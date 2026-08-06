@@ -116,6 +116,7 @@ export function validateAllowedDifferences(differences) {
   const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
+  const frameworkExtensions = [];
   for (const region of differences.regions ?? []) {
     if (!accepted.has(region.category)) fail(`Unclassified allowed-difference region: ${region.id}`);
     if (region.category === "framework-extension") {
@@ -134,9 +135,23 @@ export function validateAllowedDifferences(differences) {
           && [measurement.relativeRect, measurement.anchorRect].every((rect) => ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])));
         if (!valid) fail(`Invalid framework-extension measurement: ${region.id}`);
       }
+      frameworkExtensions.push(region);
     } else if (!region.triggerSelector || !region.skylineSelector || !region.accessibleName || !region.decision) fail(`Incomplete allowed-difference region: ${region.id}`);
   }
-  if ((differences.regions ?? []).filter((region) => region.category === "framework-extension").length > 1) fail("Only one framework-extension region is allowed.");
+  const captureOwners = new Map();
+  const selectorOwners = new Map();
+  for (const region of frameworkExtensions) {
+    for (const capture of region.captures) {
+      const owner = captureOwners.get(capture);
+      if (owner) fail(`Framework-extension regions ${owner} and ${region.id} overlap capture ${capture}.`);
+      captureOwners.set(capture, region.id);
+    }
+    for (const selector of new Set([region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector])) {
+      const owner = selectorOwners.get(selector);
+      if (owner) fail(`Framework-extension regions ${owner} and ${region.id} collide on selector ${selector}.`);
+      selectorOwners.set(selector, region.id);
+    }
+  }
 }
 
 function enforceMatrix(matrix, bundle) {

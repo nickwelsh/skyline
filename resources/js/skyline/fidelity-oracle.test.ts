@@ -48,7 +48,25 @@ describe("source-fidelity oracle", () => {
         },
       },
     };
+    const queueRegion = {
+      ...region,
+      id: "queue-recorded-runs",
+      decision: "NW-221",
+      acceptance: "Detail adds queue-time/activity series and cursor-paginated filtered Runs.",
+      captures: ["queue-found@1440x960-classic"],
+      skylineSelector: "[data-skyline-extension='queue-recorded-runs']",
+      triggerAnchorSelector: ".queue-heading",
+      skylineAnchorSelector: ".queue-heading",
+      accessibleName: "Recorded runs",
+      anchorAccessibleName: "default",
+      measurements: {
+        "queue-found@1440x960-classic": region.measurements["error-found@1440x960-classic"],
+      },
+    };
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region, queueRegion] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region, { ...queueRegion, captures: region.captures, measurements: region.measurements }] })).toThrow(/overlap/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region, { ...queueRegion, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, captures: ["error-found@1440x960-dark"] }] })).toThrow(/measurement/i);
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, acceptance: "" }] })).toThrow(/incomplete/i);
   });

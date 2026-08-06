@@ -57,6 +57,7 @@ describe("framework-extension fidelity regions", () => {
     expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
     expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, captures: region.captures }] })).toThrow(/overlap|multiple/i);
     expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, skylineSelector: region.skylineSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
   });
 
   test("omits exactly the named extension AX subtree", () => {

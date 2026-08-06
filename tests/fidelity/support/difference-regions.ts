@@ -133,11 +133,10 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
       captureOwners.set(capture, definition.id);
     }
-    for (const key of ["skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector"] as const) {
-      const identity = `${key}:${definition[key]}`;
-      const owner = selectorOwners.get(identity);
-      if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on ${key} selector ${definition[key]}.`);
-      selectorOwners.set(identity, definition.id);
+    for (const selector of new Set([definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector])) {
+      const owner = selectorOwners.get(selector);
+      if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on selector ${selector}.`);
+      selectorOwners.set(selector, definition.id);
     }
   }
 }
