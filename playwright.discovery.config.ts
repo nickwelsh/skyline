@@ -1,0 +1,9 @@
+import { defineConfig } from "@playwright/test";
+import oracle from "./playwright.oracle.config";
+
+export default defineConfig({
+  ...oracle,
+  testMatch: "**/framework-extension.discovery.ts",
+  reporter: "line",
+  timeout: 10 * 60_000,
+});

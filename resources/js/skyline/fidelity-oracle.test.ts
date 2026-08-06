@@ -30,7 +30,7 @@ describe("source-fidelity oracle", () => {
       id: "php-exception-evidence",
       category: "framework-extension",
       decision: "NW-224",
-      acceptance: "Captured PHP exception frames remain inspectable.",
+      acceptance: "Detail adds representative application/vendor frames, occurrence activity, and cursor-paginated failed Attempts.",
       captures: ["error-found@1440x960-classic"],
       skylineSelector: "[data-skyline-extension='error-exception-evidence']",
       triggerAnchorSelector: ".error-details-heading",
@@ -59,6 +59,13 @@ describe("source-fidelity oracle", () => {
     expect(runner).toContain("omitFrameworkExtensionAccessibility(rawSkylineTree, capture");
     expect(runner).toContain("measurePixels(triggerPng, skylinePng, regions)");
     expect(runner).not.toContain("measurePixels(triggerPng, skylinePng, [])");
+  });
+
+  test("measurement discovery is read-only and uses the strict paired observer", () => {
+    const discovery = readFileSync(join(root, "tests/fidelity/framework-extension.discovery.ts"), "utf8");
+    expect(discovery).toContain("discoverFrameworkExtensionObservation(trigger, skyline, definition)");
+    expect(discovery).toContain("expect(captures).toHaveLength(28)");
+    expect(discovery).not.toContain("writeFile");
   });
 
   test("regeneration requires an accepted decision reference", () => {

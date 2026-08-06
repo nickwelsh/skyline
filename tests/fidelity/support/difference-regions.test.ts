@@ -60,7 +60,7 @@ function definition(): FrameworkExtensionDefinition {
     id: "php-exception-evidence",
     category: "framework-extension",
     decision: "NW-224",
-    acceptance: "Captured PHP exception frames remain inspectable.",
+    acceptance: "Detail adds representative application/vendor frames, occurrence activity, and cursor-paginated failed Attempts.",
     captures: ["error-found@1440x960-classic"],
     skylineSelector: "[data-skyline-extension='error-exception-evidence']",
     triggerAnchorSelector: ".error-details-heading",
