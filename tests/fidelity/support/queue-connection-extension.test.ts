@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
 import matrix from "../matrix.json" with { type: "json" };
@@ -41,9 +43,8 @@ describe("NW-221 Queue Connection framework extension", () => {
     expect(discovery).toContain('{ value: "", text: "All" }');
     expect(discovery).toContain('connection.selectOption("database")');
     expect(discovery).toContain('search.press("Enter"');
+    expect(discovery).toContain('toHaveCSS("width", "384px"');
     expect(discovery).toContain('expect(await connection.inputValue()).toBe("database")');
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
   });
 });
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";

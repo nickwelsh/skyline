@@ -80,4 +80,6 @@ async function exposeFilteringState(page: Page, application: "skyline" | "trigge
   await step(`filter:${application}:submit`, () => search.press("Enter", { timeout: 1_500 }));
   const parameter = application === "trigger" ? "query" : "search";
   await step(`filter:${application}:navigation`, () => page.waitForURL((url) => url.searchParams.get(parameter) === "reports", { timeout: 1_500 }));
+  const anchor = page.locator(`[data-${application === "trigger" ? "trigger" : "skyline"}-anchor="queue-filter-controls"]`);
+  await step(`filter:${application}:expanded`, () => expect(anchor).toHaveCSS("width", "384px", { timeout: 1_500 }));
 }

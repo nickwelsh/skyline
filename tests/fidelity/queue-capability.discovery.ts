@@ -1,4 +1,4 @@
-import { test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
@@ -88,6 +88,8 @@ async function exposeQueueFilteringState(page: Page, application: "skyline" | "t
   await step(`filter:${application}:submit`, () => filter.press("Enter", { timeout: 1_500 }));
   const parameter = application === "trigger" ? "query" : "search";
   await step(`filter:${application}:navigation`, () => page.waitForURL((url) => url.searchParams.get(parameter) === "reports", { timeout: 1_500 }));
+  const anchor = page.locator(`[data-${application === "trigger" ? "trigger" : "skyline"}-anchor="queue-filter-controls"]`);
+  await step(`filter:${application}:expanded`, () => expect(anchor).toHaveCSS("width", "384px", { timeout: 1_500 }));
   const marker = `[data-${application === "trigger" ? "trigger" : "skyline"}-capability="queue-target-queue_3ac9ae5d-limit"]`;
   await step(`filter:${application}:ready`, () => page.locator(marker).waitFor());
 }

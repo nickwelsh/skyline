@@ -73,7 +73,8 @@ describe("NW-221 Queue capability discovery definitions", () => {
 
   test("allows the source and Skyline filtering navigations to settle", () => {
     const discovery = readFileSync(resolve(import.meta.dirname, "../queue-capability.discovery.ts"), "utf8");
-    for (const phase of ["count", "visible", "fill", "value", "submit", "navigation", "ready"]) expect(discovery).toContain(`filter:\${application}:${phase}`);
+    for (const phase of ["count", "visible", "fill", "value", "submit", "navigation", "expanded", "ready"]) expect(discovery).toContain(`filter:\${application}:${phase}`);
+    expect(discovery).toContain('toHaveCSS("width", "384px"');
     expect(discovery).toContain('getByPlaceholder("Search queues…")');
     expect(discovery).toContain('application === "trigger" ? "query" : "search"');
     expect(discovery).toContain('getByLabel("Connection", { exact: true })');
