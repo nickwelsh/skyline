@@ -194,20 +194,22 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2.5 scrollbar-thumb-on-hover">
-        <nav aria-label="Application" className="mb-4">
+        <nav aria-label="Application">
+          <div className="mb-4">
           {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
-        </nav>
-        <div className="space-y-4">
+          </div>
+          <div className="space-y-4">
           {sections.map((section) => section.id === "favorites" ? (
             <SideMenuSection key={section.id} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.favorites} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, favorites: value } })}>
-              {favorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}
+              <div role="navigation" aria-label="Favorites">{favorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
             <SideMenuSection key={section.id} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.metrics} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, metrics: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <button type="button" aria-label="Customize sidebar" onClick={() => setCustomizeOpen(true)} className="rounded p-1 text-text-dimmed hover:bg-background-hover hover:text-text-bright"><AdjustmentsHorizontalIcon className="size-4" /></button> : undefined}>
               {visibleObservability.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}
-        </div>
+          </div>
+        </nav>
       </div>
       <div className="border-t border-grid-bright p-1">
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}

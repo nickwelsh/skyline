@@ -4,7 +4,7 @@
   "license": "Apache-2.0",
   "adaptedTargets": {
     "resources/js/trigger/root.tsx": "84c38cef80e3aaff33be252b79e317e47b831d9e002693acee8477a9275714aa",
-    "resources/js/trigger/components/navigation/SideMenu.tsx": "33c85fe6034f16c9bd87c7c3a15ea01027f152afa03f3a61a82bbefdee8ab628",
+    "resources/js/trigger/components/navigation/SideMenu.tsx": "85f3e636aa039d3e4ad4f283b2368da099b6ad7cca251b5feffdda518269e436",
     "resources/js/trigger/components/logs/LogLevel.tsx": "3d7ea9e9d9ff3962970562aaa72a514eac05f905e965f7069cf0ac34d0d097d4",
     "resources/js/trigger/components/runs/v3/PacketDisplay.tsx": "84f18d3fe9db4fde5ace4d1022df17ba3ca95865426fcf9e672e0c09142da7fe",
     "resources/js/trigger/assets/icons/ExitIcon.tsx": "cc9435d4ac532b1c73da1cd700d652f2c69ffe95f3c66397e307655a1a11f435",
