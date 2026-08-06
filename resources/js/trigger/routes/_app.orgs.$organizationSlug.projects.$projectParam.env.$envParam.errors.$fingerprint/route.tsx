@@ -6,18 +6,21 @@
  * Server, tenant, status, assignment, ignore, resolve, alerts, versions,
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
+import { CalendarIcon } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
+import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import * as Property from "~/components/primitives/PropertyTable";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/primitives/Popover";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -29,6 +32,7 @@ import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsT
 type ErrorGroupSummary = {
   id: string;
   fingerprint: string;
+  friendlyId: string;
   jobType: string;
   jobPath: string;
   exceptionClass: string;
@@ -47,6 +51,9 @@ type ErrorGroupDetailData = {
   filters: { period: string };
   filterOptions: { timeRanges: Array<{ value: string; label: string }> };
   hasAnyOccurrences: boolean;
+  canViewVersions: false;
+  affectedVersions: [];
+  viewAllRunsPath: string;
 };
 
 export default function Page() {
@@ -57,7 +64,7 @@ export default function Page() {
       <NavBar>
         <PageTitle
           backButton={{ to: "/errors", text: "Errors" }}
-          title={<span className="font-mono text-xs">{data.errorGroup.fingerprint.slice(-8)}</span>}
+          title={<span className="font-mono text-xs">{data.errorGroup.friendlyId}</span>}
         />
       </NavBar>
       <PageBody scrollable={false}>
@@ -84,17 +91,12 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
         <div className="grid h-full grid-rows-[12rem_1fr] overflow-hidden">
           <div className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-text-dimmed">Occurred</span>
-              <select
-                aria-label="Time range"
-                className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
-                value={data.filters.period}
-                onChange={(event) => updatePeriod(event.currentTarget.value)}
-              >
-                {data.filterOptions.timeRanges.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+              <ErrorTimeFilter
+                period={data.filters.period}
+                options={data.filterOptions.timeRanges}
+                onChange={updatePeriod}
+              />
+              {data.canViewVersions ? <AppliedFilter label="Versions" value={data.affectedVersions.join(", ")} removable={false} /> : null}
             </div>
             <ActivityChart activity={data.activity} />
           </div>
@@ -174,11 +176,58 @@ function ActivityChart({ activity }: { activity: ErrorGroupDetailData["activity"
           tick={{ fontSize: 11, fill: "var(--color-text-dimmed)" }}
           domain={["auto", (maximum: number) => maximum * 1.15]}
         />
-        <Tooltip animationDuration={0} content={() => null} />
-        <Bar dataKey="occurrences" fill="#6c5ce7" strokeWidth={0} isAnimationActive={false} />
+        <Tooltip
+          cursor={{ fill: "rgba(255, 255, 255, 0.06)" }}
+          content={() => null}
+          allowEscapeViewBox={{ x: true, y: true }}
+          wrapperStyle={{ zIndex: 1000 }}
+          animationDuration={0}
+        />
+        <Bar dataKey="occurrences" stackId="versions" fill="#6c5ce7" strokeWidth={0} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );
+}
+
+function ErrorTimeFilter({ period, options, onChange }: {
+  period: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (period: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label="Occurred range" className="group cursor-pointer focus-custom">
+          <AppliedFilter
+            icon={<CalendarIcon className="size-4" />}
+            label="Occurred"
+            value={periodLabel(period)}
+            removable={false}
+          />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="min-w-40 p-1">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            className="flex h-8 w-full items-center rounded px-2 text-left text-sm text-text-bright hover:bg-background-hover focus-custom"
+            onClick={() => {
+              onChange(option.value);
+              setOpen(false);
+            }}
+          >
+            {periodLabel(option.value)}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function periodLabel(period: string) {
+  return ({ "1h": "1 hr", "24h": "1 day", "7d": "7 days", "30d": "30 days", all: "All time" } as Record<string, string>)[period] ?? period;
 }
 
 function ActivityChartBlankState() {
