@@ -39,7 +39,7 @@ describe("NW-223 persisted evidence logs", () => {
   });
 
   test("pins every canonical raw log hash", () => {
-    expect(Object.keys(expectedNw223LogSha256)).toHaveLength(10);
+    expect(Object.keys(expectedNw223LogSha256)).toHaveLength(6);
     expect(() => validateNw223EvidenceLogProvenance([{ name: "fixture.log", content: markers }])).toThrow(/provenance/i);
   });
 

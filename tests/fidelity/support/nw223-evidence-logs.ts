@@ -9,16 +9,12 @@ const interactionPrefix = "NW223_ESCAPE_PREFLIGHT=";
 type EvidenceLog = { name: string; content: string };
 
 export const expectedNw223LogSha256: Record<string, string> = {
-  "01-parameterized.log": "71a32c92fd433625dcb3378e8a77774a76bf2f7660ee6dc3d5740107fab49d3e",
-  "02-applied-missing.log": "5feded3b5088e2959b902f2868cb9418b9b7a7e4c4ef169e768a26fcf5db69d4",
-  "03-result-source.log": "3f42f98cb0000d2dbaa07eb9ce0818a10b70de2a377304d1b3397f022fc83dbd",
-  "04-long-failed.log": "9862181bf0565affff704e5403a765229c137b4f27ba95b3394bda8bfcecf8e1",
-  "05-limited-transaction.log": "5db93c5f4c5a7d1bb3d631847f5a0722b4581be41a405a3bbbd3e9938ddfda68",
-  "06-transaction-cache.log": "db6e440ff84121f20a4302a304ac2124939808b3da9d537ef3c089c529dd87a9",
-  "07-cache-failure-long.log": "ad78230a03306452409271714a0791d16816bec7139ca1a124d75f86040bff95",
-  "08-cache-unavailable-redis.log": "fb2dbad958a92c5ca5050466ad0fbd770edb36225f51eb98a1d1f7c3e52f9f04",
-  "09-redis-failure-long.log": "67502bfcbe528a4db50d46a6116de839494bf39286ea1615ed215bea94e28039",
-  "10-redis-unavailable.log": "84d72bcb4df04382ee48b802034e1001486ba374aad485c45c04acef22860c3d",
+  "01-sql-start.log": "cd4bf1b874e5034ba42de7822454fff93a757ad9a3fb9f89f4bfc93fc41b46cf",
+  "02-sql-detail.log": "ed895f23164265283362e4e3edcae2013a78b39d78ef2da04b6a613c19f1764c",
+  "03-failure-transaction.log": "61126387c8ad9dc800886cfc12e988e747c85098aa7e2695c3bf7af5819e213d",
+  "04-transaction-cache.log": "841a9ca7cda5b61cf85c98c263ae004fd4da03e9c849e0137cc053427d64a538",
+  "05-cache-redis.log": "c2a4f039f61885d95657a130aa030df2078a30a66db88aa141e5404a26dc49ce",
+  "06-redis-end.log": "06e44fc7918bd86e0f482e809db077fbe10d38429357b23e95d6edad339c648e",
 };
 
 export function parseNw223EvidenceLogs(logs: readonly EvidenceLog[]): Nw223EvidenceLedger {

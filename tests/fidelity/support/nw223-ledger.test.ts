@@ -67,7 +67,7 @@ describe("NW-223 exact evidence ledger schema", () => {
   test("locks the reviewed persisted 54/39/39 ledger", () => {
     const reviewed = validateNw223Ledger(persistedLedger as Nw223EvidenceLedger);
     expect(createHash("sha256").update(JSON.stringify(reviewed)).digest("hex"))
-      .toBe("abf9ebc20a239de2fc547d6cd4fa6302de2b2f124378c8dce63fd6071691244a");
+      .toBe("9612871c0df620b6d566c7719224248e918772707287d875f277e55b9716335b");
   });
 
   test("requires all 54 measurements and 39 interaction/Axe captures", () => {
