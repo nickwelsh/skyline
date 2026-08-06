@@ -4,6 +4,19 @@ import { HttpAdapter, SkylineApiError } from "./HttpAdapter";
 afterEach(() => vi.restoreAllMocks());
 
 describe("HttpAdapter", () => {
+  it("encodes Error-group list and occurrence URL state", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(jsonResponse({ errorGroups: [] }))
+      .mockResolvedValueOnce(jsonResponse({ errorGroup: {}, failedAttempts: [] }));
+    const adapter = new HttpAdapter("/monitoring");
+
+    await adapter.errorGroups({ jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
+    await adapter.errorGroup("error/opaque", { period: "24h", cursor: "older" });
+
+    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/errors?jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next");
+    expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/errors/error%2Fopaque?period=24h&cursor=older");
+  });
+
   it("encodes Queue-target list and detail URL state", async () => {
     const fetch = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(jsonResponse({ queueTargets: [] }))

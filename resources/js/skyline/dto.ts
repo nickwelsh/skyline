@@ -233,9 +233,75 @@ export type QueueTargetDetailDto = {
   hasAnyRuns: boolean;
 };
 
+export type ErrorGroupsQuery = {
+  jobType?: string;
+  exceptionClass?: string;
+  period?: JobsQuery["period"];
+  cursor?: string;
+};
+export type ErrorOccurrencesQuery = Pick<ErrorGroupsQuery, "period" | "cursor">;
+export type ErrorGroupSummary = {
+  id: string;
+  fingerprint: string;
+  href: string;
+  jobType: string;
+  jobId: string;
+  jobHref: string;
+  exceptionClass: string;
+  representativeMessage: string;
+  firstObservedAt: string;
+  lastObservedAt: string;
+  occurrenceCount: number;
+  latest: {
+    runId: string;
+    attemptNumber: number;
+    observedAt: string;
+    runHref: string;
+    attemptHref: string;
+  };
+};
+export type ErrorGroupsPageDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  errorGroups: ErrorGroupSummary[];
+  pagination: { next: string | null; previous: string | null };
+  filters: { jobType: string | null; exceptionClass: string | null; period: NonNullable<JobsQuery["period"]> };
+  options: { jobTypes: string[]; exceptionClasses: string[]; timeRanges: TimeRangeOption[] };
+  hasAnyErrorGroups: boolean;
+};
+export type ErrorGroupOccurrence = {
+  id: string;
+  runId: string;
+  attemptNumber: number;
+  jobType: string;
+  startedAt: string;
+  finishedAt: string | null;
+  observedAt: string;
+  runHref: string;
+  attemptHref: string;
+  exception: ExceptionDetails;
+};
+export type ErrorGroupDetailDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  errorGroup: ErrorGroupSummary;
+  representative: ExceptionDetails;
+  activity: Array<{ timestamp: string; occurrences: number }>;
+  failedAttempts: ErrorGroupOccurrence[];
+  pagination: { next: string | null; previous: string | null };
+  filters: { period: NonNullable<JobsQuery["period"]> };
+  options: { timeRanges: TimeRangeOption[] };
+  hasAnyOccurrences: boolean;
+};
+
 export type SkylineCapabilities = {
   navigation: Record<string, boolean> & { runs: boolean };
   jobs?: Record<string, boolean> & { view: boolean; testJob: boolean };
+  errors?: Record<string, boolean> & { view: boolean; assign: boolean; ignore: boolean; resolve: boolean; alerts: boolean; replay: boolean; cancel: boolean; versions: boolean; bulkActions: boolean };
   runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean };
   shell: Record<string, boolean> & { shortcuts: boolean };
 };
@@ -487,6 +553,8 @@ export type Scenario = {
 };
 
 export interface SkylineDtoAdapter {
+  errorGroups(query?: ErrorGroupsQuery, signal?: AbortSignal): Promise<ErrorGroupsPageDto>;
+  errorGroup(errorId: string, query?: ErrorOccurrencesQuery, signal?: AbortSignal): Promise<ErrorGroupDetailDto>;
   queueTargets(query?: QueueTargetsQuery, signal?: AbortSignal): Promise<QueueTargetsPageDto>;
   queueTarget(queueId: string, query?: QueueTargetRunsQuery, signal?: AbortSignal): Promise<QueueTargetDetailDto>;
   jobs(query?: JobsQuery, signal?: AbortSignal): Promise<JobsPageDto>;

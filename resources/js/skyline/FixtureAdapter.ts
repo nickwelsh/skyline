@@ -1,5 +1,10 @@
 import { scenarios } from "./fixtures";
 import type {
+  ErrorGroupDetailDto,
+  ErrorGroupOccurrence,
+  ErrorGroupsPageDto,
+  ErrorGroupsQuery,
+  ErrorOccurrencesQuery,
   InspectorDto,
   JobDetailDto,
   JobRunsQuery,
@@ -24,6 +29,7 @@ const triggeredAtByRun = new Map([
   ["run_01J8R47YYNA4GFVDMTQ9P59BJW", "2026-08-04T20:00:58.000000000Z"],
   ["run_01J8R3XK1YV76N3Q51RPXQ0VC2", "2026-08-04T19:59:42.000000000Z"],
   ["run_01J8R3RXZ6A7J19G4Y53CXF7F4", "2026-08-04T19:58:11.000000000Z"],
+  ["run_fixture_repeated_deadlock", "2026-08-04T19:55:00.000000000Z"],
 ]);
 const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
 const pageSize = 25;
@@ -36,6 +42,65 @@ const capabilities = {
 };
 
 export class FixtureAdapter implements SkylineDtoAdapter {
+  async errorGroups(query: ErrorGroupsQuery = {}): Promise<ErrorGroupsPageDto> {
+    const source = fixtureErrorOccurrences();
+    const groups = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
+      .filter((occurrences) => (!query.jobType || occurrences[0].jobType === query.jobType)
+        && (!query.exceptionClass || occurrences[0].exception.class === query.exceptionClass)
+        && occurrences.some((occurrence) => withinErrorPeriod(occurrence, query.period)))
+      .map(fixtureErrorSummary)
+      .sort((left, right) => right.lastObservedAt.localeCompare(left.lastObservedAt));
+    const offset = fixtureOffset(query.cursor);
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: fixtureGeneratedAt,
+      capabilities,
+      errorGroups: groups.slice(offset, offset + pageSize),
+      pagination: {
+        next: offset + pageSize < groups.length ? String(offset + pageSize) : null,
+        previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
+      },
+      filters: { jobType: query.jobType ?? null, exceptionClass: query.exceptionClass ?? null, period: query.period ?? "all" },
+      options: {
+        jobTypes: [...new Set(source.map((occurrence) => occurrence.jobType))].sort(),
+        exceptionClasses: [...new Set(source.map((occurrence) => occurrence.exception.class))].sort(),
+        timeRanges: fixtureTimeRanges,
+      },
+      hasAnyErrorGroups: source.length > 0,
+    };
+  }
+
+  async errorGroup(errorId: string, query: ErrorOccurrencesQuery = {}): Promise<ErrorGroupDetailDto> {
+    const source = fixtureErrorOccurrences();
+    const group = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
+      .find((occurrences) => fixtureErrorId(occurrences[0]) === errorId);
+    if (!group) throw new Error(`Unknown fixture Error group: ${errorId}`);
+    const filtered = group.filter((occurrence) => withinErrorPeriod(occurrence, query.period));
+    const offset = fixtureOffset(query.cursor);
+    const failedAttempts = filtered.slice(offset, offset + pageSize);
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: fixtureGeneratedAt,
+      capabilities,
+      errorGroup: fixtureErrorSummary(group),
+      representative: group[0].exception,
+      activity: [...Map.groupBy(filtered, (occurrence) => occurrence.observedAt.slice(0, 10)).entries()]
+        .map(([date, occurrences]) => ({ timestamp: `${date}T00:00:00Z`, occurrences: occurrences.length })),
+      failedAttempts,
+      pagination: {
+        next: offset + pageSize < filtered.length ? String(offset + pageSize) : null,
+        previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
+      },
+      filters: { period: query.period ?? "all" },
+      options: { timeRanges: fixtureTimeRanges },
+      hasAnyOccurrences: group.length > 0,
+    };
+  }
+
   async queueTargets(query: QueueTargetsQuery = {}): Promise<QueueTargetsPageDto> {
     const grouped = Map.groupBy(scenarios[0].runs, (run) => `${run.connection}\0${run.queue}`);
     const search = query.search?.toLowerCase();
@@ -392,6 +457,9 @@ export class FixtureAdapter implements SkylineDtoAdapter {
   }
 
   private fixtureForRun(runId: string): { run: Scenario["runs"][number]; nodes: Scenario["nodes"]; rootRunId: string; parentRunId?: string } {
+    if (runId === repeatedDeadlockRun.id) {
+      return { run: repeatedDeadlockRun, nodes: repeatedDeadlockNodes, rootRunId: repeatedDeadlockRun.id };
+    }
     const source = scenarios[0].runs;
     const run = source.find((candidate) => candidate.id === runId);
     if (!run) throw new Error(`Unknown fixture Run: ${runId}`);
@@ -417,6 +485,169 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       }],
     };
   }
+}
+
+const repeatedDeadlockRun = {
+  id: "run_fixture_repeated_deadlock",
+  name: "App\\Jobs\\GenerateMonthlyInvoices",
+  status: "failed" as const,
+  connection: "redis",
+  queue: "billing",
+  attemptCount: 1,
+  triggeredAt: "3:55:00 PM",
+  queueDuration: "204ms",
+  duration: "2.1s",
+};
+
+const repeatedDeadlockNodes: Scenario["nodes"] = [
+  {
+    id: repeatedDeadlockRun.id,
+    runId: repeatedDeadlockRun.id,
+    kind: "run",
+    label: "GenerateMonthlyInvoices",
+    level: 0,
+    offsetMs: 0,
+    durationMs: 2_100,
+    status: "failed",
+    isError: true,
+    metadata: { traceId: "fixture-repeated-deadlock", connection: "redis", queue: "billing" },
+  },
+  {
+    id: "attempt_run_fixture_repeated_deadlock_1",
+    parentId: repeatedDeadlockRun.id,
+    runId: repeatedDeadlockRun.id,
+    kind: "attempt",
+    label: "Attempt 1",
+    level: 1,
+    offsetMs: 204,
+    durationMs: 1_896,
+    status: "failed",
+    isError: true,
+    exception: {
+      class: "Illuminate\\Database\\DeadlockException",
+      message: "Deadlock victim selected for invoice batch 42",
+      frames: [
+        { file: "app/Jobs/GenerateMonthlyInvoices.php", line: 61, call: "GenerateMonthlyInvoices->handle()" },
+        { file: "vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php", line: 124, call: "CallQueuedHandler->call()" },
+      ],
+    },
+    metadata: { attempt: 1, spanId: "fixturedeadlock01" },
+  },
+];
+
+function fixtureErrorOccurrences(): ErrorGroupOccurrence[] {
+  const deadlock = fixtureException(
+    "Illuminate\\Database\\DeadlockException",
+    "Deadlock found when trying to get lock; retry transaction",
+    [
+      ["app/Jobs/GenerateMonthlyInvoices.php", 58, "GenerateMonthlyInvoices->handle()"],
+      ["vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php", 124, "CallQueuedHandler->call()"],
+    ],
+  );
+  const repeated = fixtureException(
+    "Illuminate\\Database\\DeadlockException",
+    "Deadlock victim selected for invoice batch 42",
+    [
+      ["app/Jobs/GenerateMonthlyInvoices.php", 61, "GenerateMonthlyInvoices->handle()"],
+      ["vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php", 124, "CallQueuedHandler->call()"],
+    ],
+  );
+  const importFailure = fixtureException(
+    "UnexpectedValueException",
+    "Order currency GBP does not match the import account currency USD",
+    [
+      ["app/Jobs/ImportLegacyOrders.php", 91, "ImportLegacyOrders->mapOrder()"],
+      ["app/Jobs/ImportLegacyOrders.php", 47, "ImportLegacyOrders->handle()"],
+    ],
+  );
+
+  return [
+    fixtureOccurrence("run_01J8R4NQX6K3PV4W0A1H2Z7M9C", 1, "App\\Jobs\\GenerateMonthlyInvoices", "2026-08-04T20:01:23.000000000Z", deadlock),
+    fixtureOccurrence(repeatedDeadlockRun.id, 1, repeatedDeadlockRun.name, "2026-08-04T19:55:02.000000000Z", repeated),
+    fixtureOccurrence("run_01J8R3XK1YV76N3Q51RPXQ0VC2", 3, "App\\Jobs\\ImportLegacyOrders", "2026-08-04T20:00:23.000000000Z", importFailure),
+  ];
+}
+
+function fixtureOccurrence(runId: string, attemptNumber: number, jobType: string, observedAt: string, exception: ErrorGroupOccurrence["exception"]): ErrorGroupOccurrence {
+  const id = `attempt_${runId}_${attemptNumber}`;
+  return {
+    id,
+    runId,
+    attemptNumber,
+    jobType,
+    startedAt: observedAt,
+    finishedAt: observedAt,
+    observedAt,
+    runHref: `/skyline/runs/${runId}`,
+    attemptHref: `/skyline/runs/${runId}?node=${id}`,
+    exception,
+  };
+}
+
+function fixtureException(className: string, message: string, frames: Array<[string, number, string]>): ErrorGroupOccurrence["exception"] {
+  return {
+    class: className,
+    message,
+    messageTruncated: false,
+    messageOriginalBytes: message.length,
+    code: null,
+    location: { file: frames[0][0], line: frames[0][1], href: null },
+    frames: frames.map(([file, line, callable]) => ({
+      file,
+      line,
+      class: null,
+      type: null,
+      function: callable,
+      isVendor: file.startsWith("vendor/"),
+      href: null,
+      snippet: file.startsWith("vendor/") ? null : {
+        code: "public function handle(): void\n{\n    throw new RuntimeException('Job failed');\n}\n",
+        startingLine: Math.max(1, line - 2),
+        highlightedLine: line,
+      },
+    })),
+    framesTruncated: false,
+    markdown: `# ${className} - Job failed\n\n${message}\n\n## Stack Trace\n`,
+  };
+}
+
+function fixtureErrorSummary(occurrences: ErrorGroupOccurrence[]) {
+  const latest = occurrences[0];
+  const id = fixtureErrorId(latest);
+  const jobId = fixtureJobId(latest.jobType);
+  return {
+    id,
+    fingerprint: id.slice("error_".length),
+    href: `/skyline/errors/${id}`,
+    jobType: latest.jobType,
+    jobId,
+    jobHref: `/skyline/jobs/${jobId}`,
+    exceptionClass: latest.exception.class,
+    representativeMessage: latest.exception.message,
+    firstObservedAt: occurrences.at(-1)?.observedAt ?? latest.observedAt,
+    lastObservedAt: latest.observedAt,
+    occurrenceCount: occurrences.length,
+    latest: {
+      runId: latest.runId,
+      attemptNumber: latest.attemptNumber,
+      observedAt: latest.observedAt,
+      runHref: latest.runHref,
+      attemptHref: latest.attemptHref,
+    },
+  };
+}
+
+function fixtureErrorId(occurrence: ErrorGroupOccurrence) {
+  const frame = occurrence.exception.frames.find((candidate) => !candidate.isVendor);
+  const material = [occurrence.jobType, occurrence.exception.class, frame?.file ?? occurrence.exception.location?.file ?? "", frame?.function ?? ""].join("\0");
+  return `error_${fixtureHash(material).repeat(8)}`;
+}
+
+function withinErrorPeriod(occurrence: ErrorGroupOccurrence, period: ErrorGroupsQuery["period"]): boolean {
+  if (!period) return true;
+  const durationMs = fixtureJobPeriods[period].durationMs;
+  if (durationMs === null) return true;
+  return new Date(occurrence.observedAt).getTime() >= new Date(fixtureGeneratedAt).getTime() - durationMs;
 }
 
 function normalizeNodes(source: Scenario["nodes"], selectedRunId: string): TraceNode[] {

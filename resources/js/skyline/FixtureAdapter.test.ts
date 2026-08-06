@@ -2,6 +2,27 @@ import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "./FixtureAdapter";
 
 describe("FixtureAdapter", () => {
+  it("adapts grouped failure fixtures without erasing occurrence evidence", async () => {
+    const adapter = new FixtureAdapter();
+    const page = await adapter.errorGroups({ exceptionClass: "Illuminate\\Database\\DeadlockException" });
+
+    expect(page.errorGroups).toHaveLength(1);
+    expect(page.errorGroups[0]).toMatchObject({
+      occurrenceCount: 2,
+      jobType: "App\\Jobs\\GenerateMonthlyInvoices",
+      exceptionClass: "Illuminate\\Database\\DeadlockException",
+    });
+    expect(page.options.exceptionClasses).toEqual(["Illuminate\\Database\\DeadlockException", "UnexpectedValueException"]);
+
+    const detail = await adapter.errorGroup(page.errorGroups[0].id);
+    expect(detail.failedAttempts.map((attempt) => attempt.exception.message)).toEqual([
+      "Deadlock found when trying to get lock; retry transaction",
+      "Deadlock victim selected for invoice batch 42",
+    ]);
+    expect(detail.representative.frames.map((frame) => frame.isVendor)).toEqual([false, true]);
+    expect(detail.activity.reduce((total, point) => total + point.occurrences, 0)).toBe(2);
+  });
+
   it("adapts representative Runs into the pinned 25-row cursor contract", async () => {
     const page = await new FixtureAdapter().runs({ status: ["completed", "failed"] });
 

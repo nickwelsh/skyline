@@ -1,4 +1,8 @@
 import type {
+  ErrorGroupDetailDto,
+  ErrorGroupsPageDto,
+  ErrorGroupsQuery,
+  ErrorOccurrencesQuery,
   InspectorDto,
   JobDetailDto,
   JobRunsQuery,
@@ -32,6 +36,14 @@ export class HttpAdapter implements SkylineDtoAdapter {
   private readonly cache = new Map<string, { etag: string; value: unknown }>();
 
   constructor(private readonly basePath: string) {}
+
+  errorGroups(query: ErrorGroupsQuery = {}, signal?: AbortSignal): Promise<ErrorGroupsPageDto> {
+    return this.get<ErrorGroupsPageDto>("api/errors", this.errorGroupsQuery(query), signal);
+  }
+
+  errorGroup(errorId: string, query: ErrorOccurrencesQuery = {}, signal?: AbortSignal): Promise<ErrorGroupDetailDto> {
+    return this.get<ErrorGroupDetailDto>(`api/errors/${encodeURIComponent(errorId)}`, this.errorOccurrencesQuery(query), signal);
+  }
 
   queueTargets(query: QueueTargetsQuery = {}, signal?: AbortSignal): Promise<QueueTargetsPageDto> {
     return this.get<QueueTargetsPageDto>("api/queues", this.queueTargetsQuery(query), signal);
@@ -95,6 +107,22 @@ export class HttpAdapter implements SkylineDtoAdapter {
     const params = new URLSearchParams();
     if (query.search) params.set("search", query.search);
     if (query.period) params.set("period", query.period);
+    return params;
+  }
+
+  private errorGroupsQuery(query: ErrorGroupsQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.jobType) params.set("jobType", query.jobType);
+    if (query.exceptionClass) params.set("exceptionClass", query.exceptionClass);
+    if (query.period) params.set("period", query.period);
+    if (query.cursor) params.set("cursor", query.cursor);
+    return params;
+  }
+
+  private errorOccurrencesQuery(query: ErrorOccurrencesQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    if (query.period) params.set("period", query.period);
+    if (query.cursor) params.set("cursor", query.cursor);
     return params;
   }
 
