@@ -22,7 +22,7 @@
     },
     {
       "id": "filters-pagination",
-      "start": "runs-populated",
+      "start": "runs-mixed-pagination",
       "steps": [
         { "action": "fill", "target": { "label": "Search Runs" }, "value": "invoice" },
         { "action": "select", "target": { "label": "Status" }, "value": "failed" },
@@ -32,9 +32,9 @@
     },
     {
       "id": "selection-inspector-timeline-copy",
-      "start": "run-found",
+      "start": "runs-inspectors",
       "steps": [
-        { "action": "click", "target": { "selector": "[data-node-id]:nth-of-type(2)" } },
+        { "action": "click", "target": { "selector": "[data-node-id='span_4f24adb545b26d31']" } },
         { "action": "click", "target": { "role": "tab", "name": "Detail" } },
         { "action": "click", "target": { "role": "switch", "name": "Queue time" } },
         { "action": "click", "target": { "selector": "button[aria-label^='Copy']" } }

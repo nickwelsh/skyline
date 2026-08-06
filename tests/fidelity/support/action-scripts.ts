@@ -3,8 +3,8 @@ import { normalizeActionTranscript, observeAction, type ActionObservation } from
 
 type Target = { role?: string; name?: string; label?: string; selector?: string };
 type Step = { action: "click" | "fill" | "select" | "press" | "history" | "reload" | "fixture"; target?: Target; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
-type Script = { id: string; start: string; steps: Step[] };
-type ActionFile = { schemaVersion: number; scripts: Script[] };
+export type ActionScript = { id: string; start: string; steps: Step[] };
+type ActionFile = { schemaVersion: number; scripts: ActionScript[] };
 
 const required = ["navigation-history", "dialogs-menus", "filters-pagination", "selection-inspector-timeline-copy", "preferences", "live-error-recovery", "keyboard-focus-shortcuts"];
 const actions = new Set(["click", "fill", "select", "press", "history", "reload", "fixture"]);
@@ -20,7 +20,7 @@ export function validateActionScripts(value: ActionFile) {
   return ids;
 }
 
-export async function runActionScript(page: Page, script: Script, options: { basePath: string; fixtureState(state: string): Promise<void> }) {
+export async function runActionScript(page: Page, script: ActionScript, options: { basePath: string; fixtureState(state: string): Promise<void> }) {
   const transcript: ActionObservation[] = [await observeAction(page, "initial")];
   for (const [index, step] of script.steps.entries()) {
     await perform(page, step, options.fixtureState);
