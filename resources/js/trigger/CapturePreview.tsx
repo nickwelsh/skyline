@@ -6,7 +6,7 @@
  */
 import { IconArrowsMaximize, IconCheck, IconChevronRight, IconCopy, IconTextWrap, IconTextWrapDisabled, IconX } from "@tabler/icons-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { interpolateSql, type SqlBinding } from "./capture-formatting";
 
@@ -158,12 +158,10 @@ function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapp
 }) {
   const [wrapped, setWrapped] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const expandButton = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDivElement>(null);
 
   const closeExpanded = () => {
     setExpanded(false);
-    expandButton.current?.focus();
   };
 
   useEffect(() => {
@@ -198,7 +196,7 @@ function CapturePanel({ label, summary, truncated, copyValue, actions, textWrapp
           {fullscreen ? (
             <ControlButton label={`Close expanded ${label}`} onClick={closeExpanded}><IconX className="size-4 shrink-0" /></ControlButton>
           ) : (
-            <ControlButton buttonRef={expandButton} label={`Expand ${label}`} onClick={() => setExpanded(true)}><IconArrowsMaximize className="size-4 shrink-0" /></ControlButton>
+            <ControlButton label={`Expand ${label}`} onClick={() => setExpanded(true)}><IconArrowsMaximize className="size-4 shrink-0" /></ControlButton>
           )}
         </div>
       </div>
@@ -241,16 +239,31 @@ function ModeSwitch<T extends string>({ label, value, options, onChange }: {
   options: Array<{ value: T; label: string; title?: string }>;
   onChange: (value: T) => void;
 }) {
+  const select = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+    const key = event.key;
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(key)) return;
+    event.preventDefault();
+    const next = key === "Home"
+      ? 0
+      : key === "End"
+        ? options.length - 1
+        : (index + (key === "ArrowRight" ? 1 : -1) + options.length) % options.length;
+    onChange(options[next].value);
+    event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+  };
+
   return (
-    <div role="tablist" aria-label={label} className="flex h-10 items-end gap-3">
-      {options.map((option) => (
+    <div role="tablist" aria-label={label} aria-orientation="horizontal" className="flex h-10 items-end gap-3">
+      {options.map((option, index) => (
         <button
           key={option.value}
           type="button"
           title={option.title}
           role="tab"
           aria-selected={value === option.value}
+          tabIndex={value === option.value ? 0 : -1}
           onClick={() => onChange(option.value)}
+          onKeyDown={(event) => select(event, index)}
           className={`relative h-8 border-b-2 px-0.5 ${value === option.value ? "border-indigo-500 text-text-bright" : "border-transparent text-text-faint hover:text-text-bright"}`}
         >
           {option.label}
@@ -307,9 +320,9 @@ export function CopyButton({ value, label, idleText = "Copy", copiedText = "Copi
   );
 }
 
-function ControlButton({ label, onClick, children, buttonRef }: { label: string; onClick: () => void; children: ReactNode; buttonRef?: Ref<HTMLButtonElement> }) {
+function ControlButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
-    <button ref={buttonRef} type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
+    <button type="button" aria-label={label} title={label} onClick={onClick} className="relative grid size-8 place-items-center rounded-sm hover:bg-background-hover hover:text-text-bright focus-visible:outline-2 focus-visible:outline-indigo-500">
       {children}
       <span className="pointer-events-none absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden" aria-hidden="true" />
     </button>

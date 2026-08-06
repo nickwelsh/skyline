@@ -72,6 +72,38 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
+  it("uses roving focus and keyboard navigation for capture display tabs", () => {
+    const { container, root } = renderInspector({
+      type: "sql",
+      timing: timing(),
+      failure: null,
+      sql: {
+        statement: { value: "select ?", isTruncated: false, originalBytes: 8 },
+        bindings: { items: [{ position: 0, column: "id", value: 42 }], truncated: false, originalBytes: 64 },
+        result: null,
+      },
+    });
+    const tablist = container.querySelector<HTMLElement>('[role="tablist"][aria-label="SQL display"]')!;
+    const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+
+    expect(tablist.getAttribute("aria-orientation")).toBe("horizontal");
+    expect(tabs.map((tab) => tab.tabIndex)).toEqual([0, -1]);
+    tabs[0].focus();
+    flushSync(() => tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+    expect(tabs.map((tab) => tab.getAttribute("aria-selected"))).toEqual(["false", "true"]);
+    expect(tabs.map((tab) => tab.tabIndex)).toEqual([-1, 0]);
+    expect(document.activeElement).toBe(tabs[1]);
+
+    flushSync(() => tabs[1].dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })));
+    expect(document.activeElement).toBe(tabs[0]);
+    flushSync(() => tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })));
+    expect(document.activeElement).toBe(tabs[1]);
+    flushSync(() => tabs[1].dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
+    expect(document.activeElement).toBe(tabs[1]);
+
+    flushSync(() => root.unmount());
+  });
+
   it("keeps uncaptured SQL bindings and results unavailable", () => {
     const { container, root } = renderInspector({
       type: "sql",

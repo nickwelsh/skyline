@@ -416,7 +416,7 @@ export type InspectorDto = TraceNode & {
     store: string | null;
     key: string | null;
     keyCaptured: boolean;
-    keyCount: number;
+    keyCount: number | null;
     strategy: string | null;
     outcome: string | null;
     hit: boolean | null;
