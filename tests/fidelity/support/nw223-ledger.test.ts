@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
 import { describe, expect, test } from "vitest";
+import manifest from "../allowed-differences.json" with { type: "json" };
+import persistedLedger from "../nw223-evidence-ledger.json" with { type: "json" };
 import type { PairedPresenterAxeLedger } from "./axe";
 import { expectedNw223AxeCaptureIds, expectedNw223CaptureIds, validateNw223Ledger, type Nw223EvidenceLedger } from "./nw223-ledger";
 
@@ -43,6 +46,30 @@ function ledger(): Nw223EvidenceLedger {
 }
 
 describe("NW-223 exact evidence ledger schema", () => {
+  test("owns the exact manifest measurements and selectors", () => {
+    const region = manifest.regions.find(({ id }) => id === "database-state-operation-inspector");
+    expect(region).toMatchObject({
+      category: "presenter-extension",
+      decision: "NW-223",
+      captures: expectedNw223CaptureIds,
+      triggerSelector: "div[translate='no']",
+      skylineSelector: "[data-skyline-extension='database-state-operation-inspector']",
+      triggerAnchorSelector: "#tree [role='treeitem'][data-index='5']:has(p)",
+      skylineAnchorSelector: "#tree [role='treeitem'][data-index='5']:has(p)",
+      skylineAccessibleRole: "region",
+      skylineAccessibleName: "Database and state operation inspector",
+      anchorAccessibleRole: "treeitem",
+      anchorAccessibleName: "",
+      measurements: persistedLedger.measurements,
+    });
+  });
+
+  test("locks the reviewed persisted 54/39/39 ledger", () => {
+    const reviewed = validateNw223Ledger(persistedLedger as Nw223EvidenceLedger);
+    expect(createHash("sha256").update(JSON.stringify(reviewed)).digest("hex"))
+      .toBe("abf9ebc20a239de2fc547d6cd4fa6302de2b2f124378c8dce63fd6071691244a");
+  });
+
   test("requires all 54 measurements and 39 interaction/Axe captures", () => {
     expect(expectedNw223CaptureIds).toHaveLength(54);
     expect(expectedNw223AxeCaptureIds).toHaveLength(39);
