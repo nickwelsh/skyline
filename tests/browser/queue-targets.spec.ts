@@ -65,6 +65,8 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await recordedRunsButton.press("Enter");
   await expect(recordedRuns.getByRole("table")).toBeVisible();
   await expect(recordedRuns).toHaveCSS("height", "208px");
+  await expect(recordedRuns.getByRole("button", { name: "Recorded runs" })).toHaveAttribute("aria-expanded", "true");
+  await expect(recordedRuns.getByRole("button", { name: "Recorded runs" })).toHaveAttribute("aria-controls", "queue-recorded-runs-content");
   expect(await charts.boundingBox()).toEqual(chartBounds);
   await recordedRuns.getByRole("button", { name: "Close recorded runs" }).click();
   await expect(page.getByRole("img", { name: "Queue time chart" })).toBeVisible();

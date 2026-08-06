@@ -44,8 +44,6 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
 
   useEffect(() => {
     if (showRecordedRuns) return;
-    recordedRunsControl.current?.setAttribute("aria-expanded", "false");
-    recordedRunsControl.current?.setAttribute("aria-controls", "queue-recorded-runs-panel");
     if (!restoreRecordedRunsFocus.current) return;
     restoreRecordedRunsFocus.current = false;
     recordedRunsControl.current?.focus();
@@ -62,7 +60,15 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         <QueueTargetFilters statuses={data.statusOptions} generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
         {!showRecordedRuns && (
           <section data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs">
-            <Button ref={recordedRunsControl} variant="secondary/small" onClick={() => setShowRecordedRuns(true)}>Recorded runs</Button>
+            <Button
+              ref={recordedRunsControl}
+              variant="secondary/small"
+              aria-controls="queue-recorded-runs-content"
+              aria-expanded={false}
+              onClick={() => setShowRecordedRuns(true)}
+            >
+              Recorded runs
+            </Button>
           </section>
         )}
       </MetricsLayout.Filters>
@@ -116,13 +122,20 @@ function RecordedRunsCard({
     >
       <Card className="h-full overflow-hidden">
         <CardHeader>
-          <span>Recorded Runs</span>
+          <Button
+            variant="secondary/small"
+            aria-controls="queue-recorded-runs-content"
+            aria-expanded={true}
+            onClick={onClose}
+          >
+            Recorded runs
+          </Button>
           <span className="flex items-center gap-1">
             <ListPagination list={data} />
             <Button variant="secondary/small" aria-label="Close recorded runs" onClick={onClose}>Close</Button>
           </span>
         </CardHeader>
-        <div className="relative min-h-0 flex-1 overflow-auto">
+        <div id="queue-recorded-runs-content" className="relative min-h-0 flex-1 overflow-auto">
           {data.runs.length > 0
             ? <TaskRunsTable runs={data.runs} isLoading={loading} />
             : <RunsEmpty filtered={data.hasAnyRuns && data.hasFilters} />}
