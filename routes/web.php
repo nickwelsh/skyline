@@ -8,6 +8,7 @@ use NickWelsh\Skyline\Http\Controllers\JobsController;
 use NickWelsh\Skyline\Http\Controllers\NodeController;
 use NickWelsh\Skyline\Http\Controllers\QueueTargetsController;
 use NickWelsh\Skyline\Http\Controllers\RunsController;
+use NickWelsh\Skyline\Http\Controllers\TelemetryEventsController;
 use NickWelsh\Skyline\Http\Controllers\TraceController;
 use NickWelsh\Skyline\Http\Middleware\Authorize;
 
@@ -29,6 +30,8 @@ Route::prefix($path)
         Route::get('api/jobs/{job}', [JobsController::class, 'show'])->name('skyline.api.jobs.show');
         Route::get('api/errors', [ErrorGroupsController::class, 'index'])->name('skyline.api.errors.index');
         Route::get('api/errors/{error}', [ErrorGroupsController::class, 'show'])->name('skyline.api.errors.show');
+        Route::get('api/logs', [TelemetryEventsController::class, 'index'])->name('skyline.api.logs.index');
+        Route::get('api/logs/{event}', [TelemetryEventsController::class, 'show'])->name('skyline.api.logs.show');
         Route::get('api/queues', [QueueTargetsController::class, 'index'])->name('skyline.api.queues.index');
         Route::get('api/queues/{queue}', [QueueTargetsController::class, 'show'])->name('skyline.api.queues.show');
 

@@ -13,4 +13,9 @@ final class ObservedIds
     {
         return 'queue_'.hash('sha256', $connection."\0".$queue);
     }
+
+    public static function telemetryEvent(string $traceId, string $spanId, string $variant, int $index = 0): string
+    {
+        return 'event_'.hash('sha256', implode("\0", [$traceId, $spanId, $variant, (string) $index]));
+    }
 }
