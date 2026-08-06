@@ -5,11 +5,13 @@ import { extname, join, resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const dist = process.env.SKYLINE_DIST ? resolve(process.env.SKYLINE_DIST) : join(root, "dist");
 const manifest = JSON.parse(readFileSync(join(dist, "manifest.json"), "utf8"));
+const prepaintSource = readFileSync(join(root, "resources/js/skyline/uiPreferencesPrepaint.js"), "utf8");
 const entry = manifest["resources/js/app.tsx"];
 const assets = new Set(Object.values(manifest).flatMap((item) => [item.file, ...(item.css ?? []), ...(item.assets ?? [])]));
 const contentTypes = { ".css": "text/css", ".js": "text/javascript", ".woff2": "font/woff2" };
 
 const bootstrap = JSON.stringify({
+  schemaVersion: 1,
   basePath: "/skyline",
   applicationName: "Fixture Laravel",
   environmentLabel: "testing",
@@ -23,7 +25,7 @@ const bootstrap = JSON.stringify({
   },
 }).replaceAll("<", "\\u003c");
 
-const prepaint = `<script data-skyline-prepaint>(()=>{const f={theme:"classic",contrast:50};try{const p=JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline")||"null")||f;const t=["classic","system","dark","light"].includes(p.theme)?p.theme:f.theme;document.documentElement.dataset.theme=t==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;const c=Number.isInteger(p.contrast)&&p.contrast>=0&&p.contrast<=100?p.contrast:f.contrast;document.documentElement.style.setProperty("--theme-contrast",String(c/100))}catch{document.documentElement.dataset.theme=f.theme}})()</script>`;
+const prepaint = `<script data-skyline-prepaint>${prepaintSource};window.__skylineUiPreferences.prepaint("/skyline")</script>`;
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skyline</title>${prepaint}${entry.css.map((file) => `<link rel="stylesheet" href="/skyline/assets/${file}">`).join("")}</head><body><div id="skyline"></div><script id="skyline-bootstrap" type="application/json">${bootstrap}</script><script type="module" src="/skyline/assets/${entry.file}"></script></body></html>`;
 
 createServer((request, response) => {

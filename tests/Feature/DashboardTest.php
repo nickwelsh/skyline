@@ -24,7 +24,7 @@ it('serves the skyline shell and precompiled assets locally', function (): void 
 it('prepaints stored appearance before styles load', function (): void {
     $html = $this->get('/skyline')->assertOk()->getContent();
 
-    expect($html)->toContain('skyline.ui-preferences.v1:\/skyline')
+    expect($html)->toContain('window.__skylineUiPreferences.prepaint("\/skyline")')
         ->and(strpos($html, 'data-skyline-prepaint'))
         ->toBeLessThan(strpos($html, 'rel="stylesheet"'));
 });

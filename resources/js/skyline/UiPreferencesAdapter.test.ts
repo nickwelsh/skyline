@@ -3,10 +3,23 @@ import { createUiPreferencesAdapter, visibleFavorites } from "./UiPreferencesAda
 
 afterEach(() => {
   localStorage.clear();
+  document.documentElement.removeAttribute("data-theme");
+  document.documentElement.style.removeProperty("--theme-contrast");
   vi.restoreAllMocks();
 });
 
 describe("UiPreferencesAdapter", () => {
+  it("shares versioning and appearance parsing with prepaint", () => {
+    Object.defineProperty(window, "matchMedia", { configurable: true, value: vi.fn(() => ({ matches: true })) });
+    localStorage.setItem("skyline.ui-preferences.v1:/monitoring", JSON.stringify({ theme: "system", contrast: 75 }));
+
+    window.__skylineUiPreferences.prepaint("/monitoring/");
+
+    expect(window.__skylineUiPreferences.storageKey("/monitoring/")).toBe("skyline.ui-preferences.v1:/monitoring");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.style.getPropertyValue("--theme-contrast")).toBe("0.75");
+  });
+
   it("uses versioned base-path storage and source defaults", () => {
     const preferences = createUiPreferencesAdapter({ basePath: "/monitoring/" });
 

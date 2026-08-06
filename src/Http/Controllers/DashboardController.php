@@ -26,6 +26,7 @@ final readonly class DashboardController
                 'capabilities' => $this->capabilities->all(),
             ],
             'script' => route('skyline.asset', ['asset' => $entry['file']]),
+            'prepaint' => file_get_contents(__DIR__.'/../../../resources/js/skyline/uiPreferencesPrepaint.js'),
             'styles' => array_map(
                 fn (string $asset): string => route('skyline.asset', ['asset' => $asset]),
                 $entry['css'] ?? [],

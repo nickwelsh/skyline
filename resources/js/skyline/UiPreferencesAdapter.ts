@@ -43,7 +43,6 @@ export type UiPreferencesAdapter = {
 
 type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
-const themes: ThemePreference[] = ["classic", "system", "dark", "light"];
 const sectionIds = ["favorites", "ai", "metrics", "deployments", "manage"] as const;
 const itemIds = ["jobs", "runs", "logs", "errors", "query", "queues", "dashboards", "deployments", "environment-variables", "preview-branches", "regions", "waitpoint-tokens", "batches", "bulk-actions", "api-keys", "alerts", "concurrency", "limits", "integrations"] as const;
 const routeRoots = ["jobs", "runs", "errors", "logs", "queues", "query", "dashboards", "deployments", "schedules", "waitpoints", "alerts", "settings"] as const;
@@ -70,8 +69,7 @@ export function createUiPreferencesAdapter({
   storage?: PreferenceStorage;
   onWarning?: (message: string) => void;
 }): UiPreferencesAdapter {
-  const normalizedBasePath = `/${basePath.split("/").filter(Boolean).join("/")}`;
-  const storageKey = `skyline.ui-preferences.v1:${normalizedBasePath}`;
+  const storageKey = window.__skylineUiPreferences.storageKey(basePath);
   let memory = defaults();
   let initialized = false;
   let warned = false;
@@ -186,11 +184,12 @@ function parsePreferences(value: unknown): UiPreferences {
   const input = record(value);
   const sidebar = record(input.sidebar);
   const runs = record(input.runs);
+  const appearance = window.__skylineUiPreferences.parseAppearance(input);
 
   return {
     version: 1,
-    theme: themes.includes(input.theme as ThemePreference) ? input.theme as ThemePreference : fallback.theme,
-    contrast: integer(input.contrast, 0, 100) ?? fallback.contrast,
+    theme: appearance.theme,
+    contrast: appearance.contrast,
     sidebar: {
       isCollapsed: boolean(sidebar.isCollapsed) ?? fallback.sidebar.isCollapsed,
       width: integer(sidebar.width, 134, 400) ?? fallback.sidebar.width,
@@ -301,3 +300,4 @@ function defaults(): UiPreferences {
     panels: {},
   };
 }
+import "./uiPreferencesPrepaint.js";
