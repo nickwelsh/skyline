@@ -6,7 +6,7 @@ import allowedDifferences from "./allowed-differences.json" with { type: "json" 
 import matrix from "./matrix.json" with { type: "json" };
 import { captureAccessibilityTree, captureAccessibilityTreeOmitting } from "./support/accessibility";
 import { observeAction } from "./support/actions";
-import { captureAxe } from "./support/axe";
+import { additionalAxeViolations, captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
 import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences, waitForDifferenceRegions } from "./support/difference-regions";
@@ -94,11 +94,6 @@ for (const capture of captures) {
     }
     await reference.close();
   });
-}
-
-function additionalAxeViolations(trigger: Awaited<ReturnType<typeof captureAxe>>, skyline: Awaited<ReturnType<typeof captureAxe>>) {
-  const upstream = new Set(trigger.map((violation) => JSON.stringify(violation)));
-  return skyline.filter((violation) => !upstream.has(JSON.stringify(violation)));
 }
 
 function proof(path: string, value: Buffer | string) {

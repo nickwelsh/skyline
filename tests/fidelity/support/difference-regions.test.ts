@@ -102,7 +102,18 @@ describe("framework-extension fidelity regions", () => {
 
   test("allows one presenter extension and identifies both AX omission selectors", () => {
     const region = presenterDefinition();
+    const expanded = {
+      ...presenterDefinition(),
+      id: "attempt-exception-dialog",
+      captures: ["runs-exception-expanded@1440x960-classic"],
+      triggerSelector: "[role='dialog']",
+      skylineSelector: "[role='dialog']",
+      triggerAnchorSelector: "[role='dialog'] > button:last-child",
+      skylineAnchorSelector: "[role='dialog'] > button:last-child",
+      measurements: { "runs-exception-expanded@1440x960-classic": presenterDefinition().measurements[region.captures[0]] },
+    };
     expect(applicablePresenterExtensions(region.captures[0], { regions: [region] })).toEqual([region]);
+    expect(applicablePresenterExtensions(expanded.captures[0], { regions: [region, expanded] })).toEqual([expanded]);
     const observed = { kind: "presenter-extension", id: region.id, presenter: {} as never, expected: { triggerSelector: region.triggerSelector, skylineSelector: region.skylineSelector } as never } as const;
     expect(accessibilityOmissionSelectors([observed], "trigger")).toEqual([region.triggerSelector]);
     expect(accessibilityOmissionSelectors([observed], "skyline")).toEqual([region.skylineSelector]);

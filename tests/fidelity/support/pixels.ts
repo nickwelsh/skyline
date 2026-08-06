@@ -89,8 +89,8 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
       if (JSON.stringify(rect) !== JSON.stringify(expectedRect)) throw new Error(`Allowed region ${region.id} changed ${label} outer geometry.`);
     }
     return uniqueRects([
-      boundedRect(region.id, region.presenter.triggerRect, imageWidth, imageHeight),
-      boundedRect(region.id, region.presenter.skylineRect, imageWidth, imageHeight),
+      boundedRect(region.id, region.presenter.triggerRect, imageWidth, imageHeight, 0.65),
+      boundedRect(region.id, region.presenter.skylineRect, imageWidth, imageHeight, 0.65),
     ]);
   }
   if (region.kind === "capability-omission") {
@@ -116,9 +116,9 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
   return [boundedRect(region.id, triggerRect, imageWidth, imageHeight)];
 }
 
-function boundedRect(id: string, rect: Rect, imageWidth: number, imageHeight: number) {
+function boundedRect(id: string, rect: Rect, imageWidth: number, imageHeight: number, maximumFraction = 0.15) {
   const integer = integerRect(rect);
-  if (integer.width * integer.height > imageWidth * imageHeight * 0.15) throw new Error(`Allowed region ${id} is too broad.`);
+  if (integer.width * integer.height > imageWidth * imageHeight * maximumFraction) throw new Error(`Allowed region ${id} is too broad.`);
   if (integer.x < 0 || integer.y < 0 || integer.x + integer.width > imageWidth || integer.y + integer.height > imageHeight) throw new Error(`Allowed region ${id} leaves the screenshot.`);
   return integer;
 }

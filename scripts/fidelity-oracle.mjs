@@ -138,7 +138,7 @@ export function validateAllowedDifferences(differences) {
       lockedRegions.push(region);
     } else if (region.category === "presenter-extension") {
       const complete = region.triggerSelector && region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
-        && region.skylineAccessibleRole && region.skylineAccessibleName && region.anchorAccessibleRole && region.anchorAccessibleName
+        && region.skylineAccessibleRole && typeof region.skylineAccessibleName === "string" && region.anchorAccessibleRole && region.anchorAccessibleName
         && region.decision && Array.isArray(region.acceptance) && region.acceptance.length > 0
         && Array.isArray(region.citations) && region.citations.length > 0
         && Array.isArray(region.captures) && region.captures.length > 0

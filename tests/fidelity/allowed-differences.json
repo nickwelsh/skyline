@@ -6,7 +6,222 @@
     "equivalent-fixture-data",
     "capability-omission",
     "react-router-url",
-    "invisible-integration"
+    "invisible-integration",
+    "presenter-extension"
   ],
-  "regions": []
+  "regions": [
+    {
+      "id": "attempt-exception-evidence",
+      "category": "presenter-extension",
+      "decision": "NW-222",
+      "acceptance": [
+        "Failed-Attempt detail exposes exception class, original message, application/vendor frames, source location where captured, causal Run/Attempt context.",
+        "Absolute Application roots and uncaptured metadata not invented/exposed.",
+        "preserved upstream exception presenter supports collapsed/expanded frames, vendor toggle, long-stack scrolling, valid source links.",
+        "Copy-as-Markdown behavior/content/feedback/dialogs/wrapping/Escape/focus match pinned source.",
+        "distinct evidence per failed Attempt.",
+        "selection URL-stable + keyboard navigable.",
+        "collapsed/expanded/long/app+vendor/retry/loading/error/unavailable fixtures.",
+        "paired tests compare visible/focus/AX/interactions."
+      ],
+      "citations": [
+        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/resources.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.runs.%24runParam.spans.%24spanParam/route.tsx#L1446-L1513",
+        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/components/code/CodeBlock.tsx#L197-L330"
+      ],
+      "captures": [
+        "runs-exception@1440x960-classic",
+        "runs-exception@1440x960-dark",
+        "runs-exception@1440x960-light",
+        "runs-exception-long@1440x960-classic",
+        "runs-exception-long@1440x960-dark",
+        "runs-exception-long@1440x960-light",
+        "runs-exception-retry@1440x960-classic",
+        "runs-exception-retry@1440x960-dark",
+        "runs-exception-retry@1440x960-light"
+      ],
+      "triggerSelector": ".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50 > [translate='no']",
+      "skylineSelector": "[data-skyline-extension='attempt-exception-evidence']",
+      "triggerAnchorSelector": ".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50 > h3",
+      "skylineAnchorSelector": ".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50 > h3",
+      "skylineAccessibleRole": "region",
+      "skylineAccessibleName": "Exception",
+      "anchorAccessibleRole": "heading",
+      "anchorAccessibleName": "Illuminate\\Database\\DeadlockException",
+      "measurements": {
+        "runs-exception@1440x960-classic": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "63cb005a70c2b227bd64dce234a9942a5b514ad1acd86685466d20a25c50550b",
+          "skylineComputedStyleSha256": "3ce4785e0c78270b8fa2952e907aae65bfefbfcc2b994a40075f6badd3fa56f6",
+          "triggerAccessibilitySha256": "797229ff1f7f6a32bb67a1c280ef94ac38f6bbc1672ac3710886a126387eb7ad",
+          "skylineAccessibilitySha256": "6c18ef162f57e80cbb4eba0a81a0ee20c73fa8ba94fa2c888a1e8f7825c9ecf5",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "3df24d79512c4d24df42c99da35ada6e2a5c9b05f5d8a2afaf1997e22468f771",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception@1440x960-dark": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "4cf05e4b23c1eaaf9d7a006e47cb937d2f36511176772cabf3bb35fe32b71e81",
+          "skylineComputedStyleSha256": "58090a81bd62244ff78da51db9996ae0d116e692c66513139cf5d1e88df574c8",
+          "triggerAccessibilitySha256": "797229ff1f7f6a32bb67a1c280ef94ac38f6bbc1672ac3710886a126387eb7ad",
+          "skylineAccessibilitySha256": "6c18ef162f57e80cbb4eba0a81a0ee20c73fa8ba94fa2c888a1e8f7825c9ecf5",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "25606e12e0da2ac773873bceb1814393fc88d98d57514f966fdc0fd2cdf7f7b5",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception@1440x960-light": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "f88ae2989a2761a21871d7f898dbfaebd21154acc4b3ae75614e0ad9a37a3901",
+          "skylineComputedStyleSha256": "a9e86047af6c9fd8839ca68c4ecfbfc83495dac693a310c8bde8c1fe8ef79770",
+          "triggerAccessibilitySha256": "797229ff1f7f6a32bb67a1c280ef94ac38f6bbc1672ac3710886a126387eb7ad",
+          "skylineAccessibilitySha256": "6c18ef162f57e80cbb4eba0a81a0ee20c73fa8ba94fa2c888a1e8f7825c9ecf5",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "152d8912915f18e5e620e2966d95120b1655e4a997b821428063142b34ea6f3e",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception-long@1440x960-classic": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "triggerComputedStyleSha256": "bee9238bbec70fa7b6d43dc1191bcb36fcee8725acb1ab6a17ef741688e8c255",
+          "skylineComputedStyleSha256": "64e18ad47fd6e9cdc9aa7b55487e184a9edcf4efef59a9e1092c44d7c67458db",
+          "triggerAccessibilitySha256": "00744b096e747264f2ab0087b6b4be235c97f2f6f30517a935b04bc06fd2b669",
+          "skylineAccessibilitySha256": "b830ffbe6aae5eb5c36530a82f474ccc062849a7c3c9778fae3a18e4948e224c",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "3df24d79512c4d24df42c99da35ada6e2a5c9b05f5d8a2afaf1997e22468f771",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception-long@1440x960-dark": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "triggerComputedStyleSha256": "37f438c8b0e1873394f9896029153ec8a88999417e313e29aaad099528b26a04",
+          "skylineComputedStyleSha256": "f2a1b94c26281134104ade98ae4cbf3e0331057b2c5eac06f95ed3ce81b451cb",
+          "triggerAccessibilitySha256": "00744b096e747264f2ab0087b6b4be235c97f2f6f30517a935b04bc06fd2b669",
+          "skylineAccessibilitySha256": "b830ffbe6aae5eb5c36530a82f474ccc062849a7c3c9778fae3a18e4948e224c",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "25606e12e0da2ac773873bceb1814393fc88d98d57514f966fdc0fd2cdf7f7b5",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception-long@1440x960-light": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 538 },
+          "triggerComputedStyleSha256": "95d9109075b0b9e1c447e54bb0f38f2ef4a82dc4d4fb22fbe4914bebb5959373",
+          "skylineComputedStyleSha256": "55d7d53034b7a80af507854be6f5b469c803ea5a8f7243bc51bddce118836280",
+          "triggerAccessibilitySha256": "00744b096e747264f2ab0087b6b4be235c97f2f6f30517a935b04bc06fd2b669",
+          "skylineAccessibilitySha256": "b830ffbe6aae5eb5c36530a82f474ccc062849a7c3c9778fae3a18e4948e224c",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "152d8912915f18e5e620e2966d95120b1655e4a997b821428063142b34ea6f3e",
+          "anchorAccessibilitySha256": "a7b4d9f7f2cfb4a9f1cf425fcf99ca8e0db840537165238d81784255fffcce9b",
+          "anchorAccessibleName": "Illuminate\\Database\\DeadlockException"
+        },
+        "runs-exception-retry@1440x960-classic": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "63cb005a70c2b227bd64dce234a9942a5b514ad1acd86685466d20a25c50550b",
+          "skylineComputedStyleSha256": "3ce4785e0c78270b8fa2952e907aae65bfefbfcc2b994a40075f6badd3fa56f6",
+          "triggerAccessibilitySha256": "c6f3bb33a4faf7224fbd00f241ec788a8686fc9b6b0647ececa049661e4953bc",
+          "skylineAccessibilitySha256": "7785ea5da90290e509876563e5620c5a9737cc80ad09999eca08abff69d46d8b",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "3df24d79512c4d24df42c99da35ada6e2a5c9b05f5d8a2afaf1997e22468f771",
+          "anchorAccessibilitySha256": "efd08c0c90affda31f7e71f44ef33bc573dad08f19a20c5124521a8e40761308",
+          "anchorAccessibleName": "LogicException"
+        },
+        "runs-exception-retry@1440x960-dark": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "4cf05e4b23c1eaaf9d7a006e47cb937d2f36511176772cabf3bb35fe32b71e81",
+          "skylineComputedStyleSha256": "58090a81bd62244ff78da51db9996ae0d116e692c66513139cf5d1e88df574c8",
+          "triggerAccessibilitySha256": "c6f3bb33a4faf7224fbd00f241ec788a8686fc9b6b0647ececa049661e4953bc",
+          "skylineAccessibilitySha256": "7785ea5da90290e509876563e5620c5a9737cc80ad09999eca08abff69d46d8b",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "25606e12e0da2ac773873bceb1814393fc88d98d57514f966fdc0fd2cdf7f7b5",
+          "anchorAccessibilitySha256": "efd08c0c90affda31f7e71f44ef33bc573dad08f19a20c5124521a8e40761308",
+          "anchorAccessibleName": "LogicException"
+        },
+        "runs-exception-retry@1440x960-light": {
+          "triggerRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "skylineRelativeRect": { "x": 0, "y": 78, "width": 450, "height": 58 },
+          "triggerComputedStyleSha256": "f88ae2989a2761a21871d7f898dbfaebd21154acc4b3ae75614e0ad9a37a3901",
+          "skylineComputedStyleSha256": "a9e86047af6c9fd8839ca68c4ecfbfc83495dac693a310c8bde8c1fe8ef79770",
+          "triggerAccessibilitySha256": "c6f3bb33a4faf7224fbd00f241ec788a8686fc9b6b0647ececa049661e4953bc",
+          "skylineAccessibilitySha256": "7785ea5da90290e509876563e5620c5a9737cc80ad09999eca08abff69d46d8b",
+          "anchorRect": { "x": 965, "y": 355, "width": 450, "height": 20 },
+          "anchorComputedStyleSha256": "152d8912915f18e5e620e2966d95120b1655e4a997b821428063142b34ea6f3e",
+          "anchorAccessibilitySha256": "efd08c0c90affda31f7e71f44ef33bc573dad08f19a20c5124521a8e40761308",
+          "anchorAccessibleName": "LogicException"
+        }
+      }
+    },
+    {
+      "id": "attempt-exception-dialog",
+      "category": "presenter-extension",
+      "decision": "NW-222",
+      "acceptance": [
+        "Expanded failed-Attempt evidence remains visibly open and preserves the pinned unnamed CodeBlock dialog.",
+        "Dialog geometry, close focus anchor, AX identity, Axe baseline, Escape, wrapping, copy, and frame disclosure remain source-faithful.",
+        "Only the equal outer dialog union may differ; underlying Run detail remains exact."
+      ],
+      "citations": [
+        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/components/code/CodeBlock.tsx#L197-L330",
+        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/components/primitives/Dialog.tsx#L37-L70"
+      ],
+      "captures": [
+        "runs-exception-expanded@1440x960-classic",
+        "runs-exception-expanded@1440x960-dark",
+        "runs-exception-expanded@1440x960-light"
+      ],
+      "triggerSelector": "[role='dialog']",
+      "skylineSelector": "[role='dialog']",
+      "triggerAnchorSelector": "[role='dialog'] > button:last-child",
+      "skylineAnchorSelector": "[role='dialog'] > button:last-child",
+      "skylineAccessibleRole": "dialog",
+      "skylineAccessibleName": "",
+      "anchorAccessibleRole": "button",
+      "anchorAccessibleName": "Esc Close",
+      "measurements": {
+        "runs-exception-expanded@1440x960-classic": {
+          "triggerRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "skylineRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "triggerComputedStyleSha256": "fffeff31478a6e26cf98ef2d9e73c5ea39c0848f9192cc0f92c5fcb440fc7e53",
+          "skylineComputedStyleSha256": "fffeff31478a6e26cf98ef2d9e73c5ea39c0848f9192cc0f92c5fcb440fc7e53",
+          "triggerAccessibilitySha256": "9f4669e4b11c38df6945cef7cb5f7df575f2fa19f698fa7987bf15c7ef2dc43b",
+          "skylineAccessibilitySha256": "725ded9e4e56bb0cd56ebbe9a4aeba6c2995c7b312bb206c88f61e5855228341",
+          "anchorRect": { "x": 1232.265625, "y": 106, "width": 54.734375, "height": 28 },
+          "anchorComputedStyleSha256": "a835b7e5a1f95082642496e26b2404526ba8312d07c5a139922f18b445a25c41",
+          "anchorAccessibilitySha256": "3a9c627df4ab7ca8c003b772981c0744f5f1273f0f5ea6cc33dc5214fa3f6b08",
+          "anchorAccessibleName": "Esc Close"
+        },
+        "runs-exception-expanded@1440x960-dark": {
+          "triggerRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "skylineRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "triggerComputedStyleSha256": "a141566f12ead902c0441c980a44936b8eacc7373ed7b56092b78abf08d437fd",
+          "skylineComputedStyleSha256": "a141566f12ead902c0441c980a44936b8eacc7373ed7b56092b78abf08d437fd",
+          "triggerAccessibilitySha256": "9f4669e4b11c38df6945cef7cb5f7df575f2fa19f698fa7987bf15c7ef2dc43b",
+          "skylineAccessibilitySha256": "725ded9e4e56bb0cd56ebbe9a4aeba6c2995c7b312bb206c88f61e5855228341",
+          "anchorRect": { "x": 1232.265625, "y": 106, "width": 54.734375, "height": 28 },
+          "anchorComputedStyleSha256": "9520b1a05838a623dc8a36c3d17ff736bf1247ca2ecc85c88167ef39bcfa3d3b",
+          "anchorAccessibilitySha256": "3a9c627df4ab7ca8c003b772981c0744f5f1273f0f5ea6cc33dc5214fa3f6b08",
+          "anchorAccessibleName": "Esc Close"
+        },
+        "runs-exception-expanded@1440x960-light": {
+          "triggerRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "skylineRelativeRect": { "x": -1088.265625, "y": -10, "width": 1152, "height": 768 },
+          "triggerComputedStyleSha256": "af8afe80c98979f1e4e79c5391f6382408414729af99619619c596a52addb73c",
+          "skylineComputedStyleSha256": "af8afe80c98979f1e4e79c5391f6382408414729af99619619c596a52addb73c",
+          "triggerAccessibilitySha256": "9f4669e4b11c38df6945cef7cb5f7df575f2fa19f698fa7987bf15c7ef2dc43b",
+          "skylineAccessibilitySha256": "725ded9e4e56bb0cd56ebbe9a4aeba6c2995c7b312bb206c88f61e5855228341",
+          "anchorRect": { "x": 1232.265625, "y": 106, "width": 54.734375, "height": 28 },
+          "anchorComputedStyleSha256": "174d7ccf8c1d6d8ad109219edce4d26042a7d614d7a4b3922d2a58d5e79e4f3e",
+          "anchorAccessibilitySha256": "3a9c627df4ab7ca8c003b772981c0744f5f1273f0f5ea6cc33dc5214fa3f6b08",
+          "anchorAccessibleName": "Esc Close"
+        }
+      }
+    }
+  ]
 }

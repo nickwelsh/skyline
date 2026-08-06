@@ -36,6 +36,13 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [{ ...presenter, presenter: { ...presenter.presenter, skylineAccessibilitySha256: "0".repeat(64) } }])).toThrow(/skylineAccessibilitySha256/i);
   });
 
+  test("allows an exact dialog presenter union but keeps a bounded ceiling", () => {
+    const screenshot = image([255, 0, 0, 255], 10, 10);
+
+    expect(comparePixels(screenshot, screenshot, [sizedPresenter(8, 8)])).toMatchObject({ differingPixels: 0 });
+    expect(() => comparePixels(screenshot, screenshot, [sizedPresenter(9, 8)])).toThrow(/too broad/i);
+  });
+
   test("masks only the union of disjoint capability-omission selector pairs", () => {
     const trigger = image([255, 0, 0, 255], 10, 10);
     const skyline = image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]], [2, 0, [0, 0, 0, 255]]]);
@@ -75,6 +82,14 @@ function presenterRegion(): Extract<DifferenceRegion, { kind: "presenter-extensi
     anchorRect: { x: 0, y: 0, width: 2, height: 1 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64), anchorAccessibleName: "Illuminate\\Database\\DeadlockException",
   };
   return { kind: "presenter-extension", id: "attempt-exception-evidence", expected, presenter: { ...expected, triggerRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRect: { x: 0, y: 0, width: 2, height: 1 } } };
+}
+
+function sizedPresenter(width: number, height: number) {
+  const region = presenterRegion();
+  const relativeRect = { x: 0, y: 0, width, height };
+  const anchorRect = { x: 0, y: 0, width, height };
+  const expected = { ...region.expected, triggerRelativeRect: relativeRect, skylineRelativeRect: relativeRect, anchorRect };
+  return { ...region, expected, presenter: { ...region.presenter, ...expected, triggerRect: relativeRect, skylineRect: relativeRect } };
 }
 
 function capabilityOmissionRegion(): Extract<DifferenceRegion, { kind: "capability-omission" }> {

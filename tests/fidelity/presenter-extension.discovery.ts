@@ -40,6 +40,21 @@ const definition: PresenterExtensionDefinition = {
   measurements: {},
 };
 
+const expandedDefinition: PresenterExtensionDefinition = {
+  ...definition,
+  id: "attempt-exception-dialog",
+  captures: captures.filter((capture) => capture.startsWith("runs-exception-expanded@")),
+  triggerSelector: "[role='dialog']",
+  skylineSelector: "[role='dialog']",
+  triggerAnchorSelector: "[role='dialog'] > button:last-child",
+  skylineAnchorSelector: "[role='dialog'] > button:last-child",
+  skylineAccessibleRole: "dialog",
+  skylineAccessibleName: "",
+  anchorAccessibleRole: "button",
+  anchorAccessibleName: "Esc Close",
+  measurements: {},
+};
+
 expect(captures).toHaveLength(12);
 const referenceFixture = createReferenceFixture();
 
@@ -48,7 +63,10 @@ for (const capture of captures) {
     test.setTimeout(30_000);
     const scenario = parseScenario(capture);
     const captureDefinition = scenario.id === "runs-exception-retry" ? { ...definition, anchorAccessibleName: "LogicException" } : definition;
-    if (scenario.id === "runs-exception-expanded") await proveExpandedInteraction(browser, capture, scenario);
+    if (scenario.id === "runs-exception-expanded") {
+      await proveExpandedInteraction(browser, capture, scenario);
+      return;
+    }
     const context = await browser.newContext({ locale: "en-US", timezoneId: "UTC", deviceScaleFactor: 1 });
     const skyline = await context.newPage();
     const trigger = await context.newPage();
@@ -78,6 +96,7 @@ for (const capture of captures) {
         anchorRect: observation.anchorRect,
         anchorComputedStyleSha256: observation.anchorComputedStyleSha256,
         anchorAccessibilitySha256: observation.anchorAccessibilitySha256,
+        anchorAccessibleName: observation.anchorAccessibleName,
       };
       process.stdout.write(`\nPRESENTER_EXTENSION_MEASUREMENT=${JSON.stringify({ [capture]: measurement })}\n`);
     } finally {
@@ -100,13 +119,16 @@ async function proveExpandedInteraction(browser: Browser, capture: string, scena
     await diagnosticStep(capture, "interaction:skyline-open", () => exposeOwnedState(skyline, scenario));
     await diagnosticStep(capture, "interaction:trigger-open", () => exposeOwnedState(trigger, scenario));
     const triggerDialog = trigger.getByRole("dialog");
-    const skylineDialog = skyline.getByRole("dialog", { name: "exception stack trace" });
+    const skylineDialog = skyline.getByRole("dialog");
     await diagnosticStep(capture, "interaction:trigger-visible", () => expect(triggerDialog).toBeVisible({ timeout: 2_000 }));
     await diagnosticStep(capture, "interaction:skyline-visible", () => expect(skylineDialog).toBeVisible({ timeout: 2_000 }));
     const triggerAx = await diagnosticStep(capture, "interaction:trigger-ax", () => triggerDialog.ariaSnapshot({ timeout: 2_000 }));
     const skylineAx = await diagnosticStep(capture, "interaction:skyline-ax", () => skylineDialog.ariaSnapshot({ timeout: 2_000 }));
     expect(triggerAx).toContain("dialog");
     expect(skylineAx).toContain("dialog");
+    await Promise.all([settleCapture(trigger), settleCapture(skyline)]);
+    const observation = await diagnosticStep(capture, "measurement:dialog", () => discoverPresenterExtensionObservation(trigger, skyline, expandedDefinition));
+    process.stdout.write(`\nPRESENTER_EXTENSION_MEASUREMENT=${JSON.stringify({ [capture]: measurement(observation) })}\n`);
   } finally {
     await context.close();
   }
@@ -122,4 +144,19 @@ async function diagnosticStep<T>(capture: string, label: string, action: () => P
   } finally {
     clearTimeout(pending);
   }
+}
+
+function measurement(observation: Awaited<ReturnType<typeof discoverPresenterExtensionObservation>>) {
+  return {
+    triggerRelativeRect: observation.triggerRelativeRect,
+    skylineRelativeRect: observation.skylineRelativeRect,
+    triggerComputedStyleSha256: observation.triggerComputedStyleSha256,
+    skylineComputedStyleSha256: observation.skylineComputedStyleSha256,
+    triggerAccessibilitySha256: observation.triggerAccessibilitySha256,
+    skylineAccessibilitySha256: observation.skylineAccessibilitySha256,
+    anchorRect: observation.anchorRect,
+    anchorComputedStyleSha256: observation.anchorComputedStyleSha256,
+    anchorAccessibilitySha256: observation.anchorAccessibilitySha256,
+    anchorAccessibleName: observation.anchorAccessibleName,
+  };
 }
