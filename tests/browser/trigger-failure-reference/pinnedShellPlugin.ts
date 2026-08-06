@@ -64,20 +64,19 @@ export function pinnedShell(appRoot: string): Plugin {
 import React from "react";
 import { SideMenuItem as SourceSideMenuItem, SideMenuItemButton as SourceSideMenuItemButton, SideMenuLabel } from "virtual:pinned-trigger-side-menu-item-source";
 export { SideMenuLabel };
+const fixtureCapabilitiesEnabled = () => ["/skyline", "/reference"].some((basePath) => localStorage.getItem("skyline.ui-preferences.v1:" + basePath) !== null);
 export function SideMenuItem(props) {
-  const fixtureCapabilitiesEnabled = localStorage.getItem("skyline.ui-preferences.v1:/skyline") !== null;
   const supported = ["tasks", "runs", "logs", "errors", "queues", "favorite"];
-  return fixtureCapabilitiesEnabled && props["data-action"] && !supported.includes(props["data-action"]) ? null : React.createElement(SourceSideMenuItem, props);
+  return fixtureCapabilitiesEnabled() && props["data-action"] && !supported.includes(props["data-action"]) ? null : React.createElement(SourceSideMenuItem, props);
 }
 export const SideMenuItemButton = React.forwardRef(function SideMenuItemButton(props, ref) {
-  const fixtureCapabilitiesEnabled = localStorage.getItem("skyline.ui-preferences.v1:/skyline") !== null;
-  return fixtureCapabilitiesEnabled && props["data-action"] && props["data-action"] !== "shortcuts" ? null : React.createElement(SourceSideMenuItemButton, { ...props, ref });
+  return fixtureCapabilitiesEnabled() && props["data-action"] && props["data-action"] !== "shortcuts" ? null : React.createElement(SourceSideMenuItemButton, { ...props, ref });
 });`;
       if (id === sideMenuSectionId) return `
 import React from "react";
 import { SideMenuSection as SourceSideMenuSection } from "virtual:pinned-trigger-side-menu-section-source";
 export function SideMenuSection(props) {
-  const fixtureCapabilitiesEnabled = localStorage.getItem("skyline.ui-preferences.v1:/skyline") !== null;
+  const fixtureCapabilitiesEnabled = ["/skyline", "/reference"].some((basePath) => localStorage.getItem("skyline.ui-preferences.v1:" + basePath) !== null);
   return !fixtureCapabilitiesEnabled || ["Favorites", "Observability"].includes(props.title) ? React.createElement(SourceSideMenuSection, props) : null;
 }`;
       if (id === customizeSidebarId) return `

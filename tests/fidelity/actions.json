@@ -5,7 +5,7 @@
       "id": "navigation-history",
       "start": "runs-populated",
       "steps": [
-        { "action": "click", "target": { "role": "link", "name": "Jobs" } },
+        { "action": "click", "target": { "role": "link", "name": "Tasks" } },
         { "action": "click", "target": { "role": "link", "name": "Runs" } },
         { "action": "history", "direction": "back" },
         { "action": "history", "direction": "forward" }

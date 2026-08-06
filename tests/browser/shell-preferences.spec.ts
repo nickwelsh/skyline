@@ -31,6 +31,10 @@ test("source shell exposes only supported surfaces and persists customization", 
   await page.goto("/skyline/runs");
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByText("Project", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
+  await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
+  await expect.poll(async () => (await page.getByTestId("side-menu-project").boundingBox())?.height).toBe(103);
   for (const label of [...baseline.contract.navigation, "Pinned Run"]) {
     await expect(page.getByRole("link", { name: label, exact: true }).first()).toBeVisible();
   }
@@ -113,23 +117,23 @@ test("preferences synchronize across tabs and restore root-only URL state", asyn
   await expect(page.getByRole("button", { name: "Observability" })).toHaveAttribute("aria-expanded", "false");
   await expect(second.getByRole("button", { name: "Observability" })).toHaveAttribute("aria-expanded", "false");
 
-  await page.getByLabel("Root Runs only").click();
+  await page.getByRole("switch", { name: "Root only" }).click();
   await expect(page).toHaveURL(/rootOnly=true/);
   await page.goto("/skyline/runs");
   await expect(page).toHaveURL(/rootOnly=true/);
-  await expect(page.getByLabel("Root Runs only")).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Root only" })).toBeChecked();
 
-  await page.getByLabel("Root Runs only").click();
+  await page.getByRole("switch", { name: "Root only" }).click();
   await expect(page).toHaveURL(/rootOnly=false/);
   await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}").runs?.rootOnly, storageKey)).toBe(false);
   await page.goto("/skyline/runs");
   await expect(page).not.toHaveURL(/rootOnly=/);
-  await expect(page.getByLabel("Root Runs only")).not.toBeChecked();
+  await expect(page.getByRole("switch", { name: "Root only" })).not.toBeChecked();
 
-  await page.getByLabel("Root Runs only").click();
+  await page.getByRole("switch", { name: "Root only" }).click();
   await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
   await expect(page).not.toHaveURL(/rootOnly=/);
-  await expect(page.getByLabel("Root Runs only")).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Root only" })).toHaveCount(0);
   await second.close();
 });
 
@@ -177,6 +181,11 @@ async function exerciseShell(page: Page) {
   });
   await page.reload();
 
+  await expect(page.getByText("Project", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
+  await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
+  const menuTop = (await shellMenu(page).boundingBox())?.y ?? 0;
+  const tasksOffset = Math.round(((await page.getByRole("link", { name: "Tasks", exact: true }).boundingBox())?.y ?? -1) - menuTop);
   for (const action of navigation) await expect(page.locator(`[data-action="${action}"]`).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Pinned Run", exact: true })).toBeVisible();
   const unsupported = ["Sessions", "Prompts", "Models", "Query", "Dashboards", "Deployments", "Deploys", "Environment variables", "Preview branches", "Regions", "Manage", "Waitpoint tokens", "Batches", "Bulk actions", "API keys", "Alerts", "Concurrency", "Limits", "Integrations", "Future Query", "Account", "Notifications", "Job guidance", "Switch organization", "Switch project", "Switch environment", "Ask AI", "Documentation", "Status", "Suggest a feature", "Contact us…", "Full changelog"];
@@ -233,7 +242,7 @@ async function exerciseShell(page: Page) {
   await expect(page.getByRole("status")).toHaveText("Browser storage is unavailable. Preference changes will last for this tab only.");
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
 
-  return { navigation, favorite: "Important Run", shortcuts: baseline.contract.shortcuts, focusReturned: true, persistence: true, storageFallback: true, unsupportedHidden: true, logsVisibleAfterCustomization: false };
+  return { navigation, tasksOffset, favorite: "Important Run", shortcuts: baseline.contract.shortcuts, focusReturned: true, persistence: true, storageFallback: true, unsupportedHidden: true, logsVisibleAfterCustomization: false };
 }
 
 function shellMenu(page: Page) {

@@ -143,9 +143,9 @@ function ReferenceRoot() {
       const link = event.target instanceof Element ? event.target.closest("a") : null;
       if (!link) return;
       const name = link.textContent?.trim();
-      if (name !== "Jobs" && name !== "Runs") return;
+      if (name !== "Tasks" && name !== "Runs") return;
       event.preventDefault();
-      void navigate(`/oracle/${name === "Jobs" ? "jobs-populated" : "runs-populated"}`);
+      void navigate(`/oracle/${name === "Tasks" ? "jobs-populated" : "runs-populated"}`);
     };
     document.addEventListener("click", bridge, true);
     return () => document.removeEventListener("click", bridge, true);

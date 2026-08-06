@@ -49,6 +49,17 @@ afterEach(() => {
 });
 
 describe("SideMenu capabilities", () => {
+  it("preserves the pinned Trigger project and Tasks shell semantics", () => {
+    const container = renderSideMenu(fixtureCapabilities.navigation);
+
+    expect(container.querySelector('[data-testid="side-menu-project"]')?.textContent).toContain("Project");
+    expect(container.querySelector('[data-testid="side-menu-project"]')?.textContent).toContain("Skyline");
+    expect(container.querySelector('[data-testid="side-menu-project"]')?.textContent).toContain("testing");
+    expect(container.querySelector('[data-action="tasks"]')?.textContent).toBe("Tasks");
+    expect(container.textContent).not.toContain("Application environment");
+    expect(container.textContent).not.toContain("Jobs");
+  });
+
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
     const container = renderSideMenu({
       ...fixtureCapabilities.navigation,

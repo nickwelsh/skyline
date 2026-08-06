@@ -8,15 +8,17 @@ import {
   ChartBarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  PlayIcon,
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
 import { Link, useLocation } from "@remix-run/react";
 import { type CSSProperties, type FunctionComponent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BugIcon } from "~/assets/icons/BugIcon";
+import { DevEnvironmentIconSmall, ProdEnvironmentIconSmall } from "~/assets/icons/EnvironmentIcons";
+import { FolderOpenIcon } from "~/assets/icons/FolderOpenIcon";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
-import { TaskIcon } from "~/assets/icons/TaskIcon";
+import { RunsIcon } from "~/assets/icons/RunsIcon";
+import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
 import { cn } from "~/utils/cn";
 import { Dialog } from "../primitives/Dialog";
@@ -200,8 +202,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   };
 
   const topItems: MenuItem[] = [
-    { id: "jobs", name: "Jobs", to: "/jobs", icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" },
-    { id: "runs", name: "Runs", to: "/runs", icon: PlayIcon, activeIconColor: "text-runs", capability: "runs" },
+    { id: "tasks", name: "Tasks", to: "/jobs", icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" },
+    { id: "runs", name: "Runs", to: "/runs", icon: RunsIcon, activeIconColor: "text-runs", capability: "runs" },
     { id: "sessions", name: "Sessions", to: "/sessions", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "sessions" },
   ];
   const staticSections: MenuSection[] = [
@@ -264,7 +266,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
     ...visibleSections,
   ], preferences.sectionOrder);
   const customizeSections: CustomizeSidebarSection[] = [
-    ...(favorites.length > 0 ? [{ id: "favorites", title: "Favorites", items: favorites.map((favorite) => ({ id: favorite.id, name: favorite.label, icon: TaskIcon, isFavorite: true })) }] : []),
+    ...(favorites.length > 0 ? [{ id: "favorites", title: "Favorites", items: favorites.map((favorite) => ({ id: favorite.id, name: favorite.label, icon: TasksIcon, isFavorite: true })) }] : []),
     ...staticSections.flatMap((section) => {
       const items = section.items
         .filter((item) => capabilities.navigation[item.capability] === true)
@@ -275,16 +277,30 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
 
   const style = { width, "--sm-collapse": progress, "--sm-label-opacity": labelOpacity } as CSSProperties;
   return (
-    <aside data-testid="side-menu" className="relative flex h-full min-w-0 flex-col border-r border-grid-bright bg-background-bright" style={style}>
-      <div className="flex h-10 min-w-0 items-center gap-2 border-b border-transparent px-1 py-1">
+    <aside data-testid="side-menu" className="relative grid h-full min-w-0 grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden border-r border-grid-bright bg-background-bright" style={style}>
+      <div className="flex min-w-0 items-center gap-2 overflow-hidden border-b border-transparent px-1 py-1">
         <div className="flex size-8 shrink-0 items-center justify-center">{brandMark}</div>
         <span className="min-w-0 truncate text-[0.90625rem] font-semibold text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
       </div>
-      <div className="border-b border-grid-bright px-2 pb-2.5 pt-1">
-        <div className="mb-1 truncate px-1 text-xs text-text-faint" style={{ opacity: labelOpacity }}>Application environment</div>
-        <div className="flex h-8 items-center gap-2 rounded px-1 text-prod">
-          <Squares2X2Icon className="size-5 shrink-0" />
-          <span className="truncate font-medium capitalize" style={{ opacity: labelOpacity }}>{environmentLabel}</span>
+      <div data-testid="side-menu-project" className="border-b border-grid-bright px-2 pb-2.5 pt-1">
+        <div className="w-full space-y-1">
+          <div className="flex h-4 items-center overflow-hidden pl-1.5 text-xs text-text-faint">
+            <span className="whitespace-nowrap">Proj<span style={{ opacity: labelOpacity }}>ect</span></span>
+          </div>
+          <div className="space-y-1">
+            <div className={cn("flex h-8 items-center rounded border pl-1.75", collapsed ? "justify-center border-transparent pr-0.5" : "border-grid-bright pr-1")}>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+                <FolderOpenIcon className="size-5 shrink-0 text-text-bright" />
+                <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
+              </span>
+            </div>
+            <div className={cn("flex h-8 items-center rounded pl-1.75", collapsed ? "justify-center pr-0.5" : "pr-1")}>
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+                <EnvironmentIcon environmentLabel={environmentLabel} />
+                <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-prod capitalize" style={{ opacity: labelOpacity }}>{environmentLabel}</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2.5 scrollbar-thumb-on-hover">
@@ -295,7 +311,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           <div className="space-y-4">
           {sections.map((section) => section.id === "favorites" ? (
             <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.favorites)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.favorites} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, favorites: value } })}>
-              <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
+              <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
             <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
@@ -327,10 +343,15 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
 
 function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active: boolean; labelOpacity: number }) {
   const ItemIcon = item.icon;
-  return <Link to={item.to} data-action={item.id === "jobs" ? "tasks" : item.id} aria-current={active ? "page" : undefined} className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-[0.90625rem] font-medium tracking-[-0.01em] focus-custom", active ? "bg-background-raised text-text-bright" : "text-text-dimmed hover:bg-background-hover hover:text-text-bright")}>
-    <ItemIcon className={cn("size-5 min-w-5 shrink-0", active ? item.activeIconColor : "text-text-dimmed")} />
+  return <Link to={item.to} data-action={item.id} aria-current={active ? "page" : undefined} className={cn("group/menulink flex h-8 w-full items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 text-[0.90625rem] font-medium tracking-[-0.01em] focus-custom", active ? "bg-tertiary text-text-bright" : "text-text-dimmed hover:bg-background-hover hover:text-text-bright")}>
+    <ItemIcon className={cn("size-5 min-w-5 shrink-0", active ? cn(item.activeIconColor, "side-menu-active-icon") : "text-text-dimmed group-hover/menulink:text-text-bright")} />
     <span className="min-w-0 truncate" style={{ opacity: labelOpacity }}>{item.name}</span>
   </Link>;
+}
+
+function EnvironmentIcon({ environmentLabel }: { environmentLabel: string }) {
+  const Icon = environmentLabel.toLowerCase().includes("dev") ? DevEnvironmentIconSmall : ProdEnvironmentIconSmall;
+  return <Icon className="size-5 shrink-0 text-prod" />;
 }
 
 function SidebarCustomizationMenu({ onCustomize }: { onCustomize: () => void }) {

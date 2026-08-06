@@ -12,7 +12,7 @@
     "shortcuts": { "path": "apps/webapp/app/components/Shortcuts.tsx", "sha256": "296e1139cb6ad6d45dec932f3e62a08fb63dc4ddf1ac395febb05eadd5bf8930" }
   },
   "contract": {
-    "navigation": ["Jobs", "Runs", "Logs", "Errors", "Queues"],
+    "navigation": ["Tasks", "Runs", "Logs", "Errors", "Queues"],
     "themes": ["Classic", "System preference", "Dark", "Light"],
     "help": ["Shortcuts"],
     "shortcuts": ["Close", "Toggle side menu"],
