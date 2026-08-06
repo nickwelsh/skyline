@@ -60,7 +60,8 @@ test("source shell exposes only supported surfaces and persists customization", 
   await page.keyboard.press("Escape");
 
   await page.getByText("Observability", { exact: true }).hover();
-  await page.getByRole("button", { name: "Customize sidebar" }).click();
+  await page.getByRole("button", { name: "Sidebar options" }).click();
+  await page.getByText("Customize sidebar", { exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("Logs");
   await expect(page.getByRole("dialog")).toContainText("Errors");
   await expect(page.getByRole("dialog")).toContainText("Queues");
