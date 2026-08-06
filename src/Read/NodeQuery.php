@@ -273,7 +273,7 @@ final readonly class NodeQuery
             'hit' => isset($attributes['cache.hit']) ? (bool) $attributes['cache.hit'] : null,
             'ttlSeconds' => isset($attributes['cache.ttl']) ? (int) $attributes['cache.ttl'] : null,
             'freshTtlSeconds' => isset($attributes['cache.fresh_ttl']) ? (int) $attributes['cache.fresh_ttl'] : null,
-            'forever' => (bool) ($attributes['cache.forever'] ?? false),
+            'forever' => isset($attributes['cache.forever']) ? (bool) $attributes['cache.forever'] : null,
             'value' => $this->valueCapture($attributes, 'cache.value'),
         ];
     }

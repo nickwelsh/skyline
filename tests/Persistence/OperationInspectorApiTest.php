@@ -100,6 +100,7 @@ it('projects cache and Redis state without widening capture', function (): void 
         ->assertJsonPath('node.presentation.cache.operation', 'PUT')
         ->assertJsonPath('node.presentation.cache.keyCaptured', false)
         ->assertJsonPath('node.presentation.cache.value', null)
+        ->assertJsonPath('node.presentation.cache.forever', null)
         ->assertJsonPath('node.presentation.cache.outcome', 'stored');
 
     expect($cache->json('node.presentation.cache.key'))->toStartWith('sha256:')
