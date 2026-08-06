@@ -117,6 +117,27 @@ it('reapplies bounded allowlisted log presentation at the detail read boundary',
         ->not->toContain('never-present');
 });
 
+it('preserves capture-time log truncation evidence through persistence and detail reads', function (): void {
+    config()->set('skyline.logging.max_message_bytes', 64);
+    seedTelemetryEventRun();
+    DB::table('skyline_spans')->where('span_id', '00000000000000b1')->update([
+        'events' => json_encode([
+            ['name' => 'log', 'timestamp' => 1_786_000_000_001_000_000, 'attributes' => []],
+            ['name' => 'log', 'timestamp' => 1_786_000_000_003_000_000, 'attributes' => [
+                'log.level' => 'error',
+                'log.message' => str_repeat('x', 64),
+                'skyline.log.capture' => json_encode(['isTruncated' => true, 'truncated' => [['path' => 'message', 'originalBytes' => 512]]], JSON_THROW_ON_ERROR),
+            ]],
+        ], JSON_THROW_ON_ERROR),
+    ]);
+
+    $event = collect($this->getJson('/skyline/api/logs')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
+    $this->getJson('/skyline/api/logs/'.$event['id'])->assertOk()
+        ->assertJsonPath('telemetryEvent.capture.isTruncated', true)
+        ->assertJsonPath('telemetryEvent.capture.truncated.0.path', 'message')
+        ->assertJsonPath('telemetryEvent.capture.truncated.0.originalBytes', 512);
+});
+
 it('filters and cursor-paginates Telemetry events through server-supplied URL options', function (): void {
     $now = Nanoseconds::now();
     for ($index = 0; $index < 27; $index++) {

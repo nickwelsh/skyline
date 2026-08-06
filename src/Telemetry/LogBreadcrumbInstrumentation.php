@@ -19,6 +19,7 @@ final class LogBreadcrumbInstrumentation
         private readonly Repository $config,
         private readonly AttemptRegistry $attempts,
         private readonly PersistenceGuard $persistenceGuard,
+        private readonly LogEventSanitizer $sanitizer,
     ) {}
 
     public function boot(): void
@@ -49,16 +50,16 @@ final class LogBreadcrumbInstrumentation
         $this->handling = true;
 
         try {
-            $attributes = [
+            $presented = $this->sanitizer->present([
                 'log.level' => strtolower((string) $event->level),
                 'log.channel' => (string) ($this->config->get('skyline.logging.channel') ?: $this->config->get('logging.default', 'default')),
-                'log.message' => $this->message($event->message),
-            ];
-            $context = $this->context($event->context);
-
-            if ($context !== []) {
-                $attributes['log.context'] = json_encode($context, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}';
-            }
+                'log.message' => $event->message,
+                'log.context' => $event->context,
+            ]);
+            $attributes = $presented['attributes'];
+            $attributes['log.level'] = strtolower((string) $event->level);
+            $attributes['log.context'] = json_encode($presented['context'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}';
+            $attributes['skyline.log.capture'] = json_encode($presented['capture'], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
 
             $active->span->addEvent('log', $attributes);
         } catch (Throwable) {
@@ -75,39 +76,5 @@ final class LogBreadcrumbInstrumentation
             fn (mixed $level): ?string => is_string($level) ? strtolower($level) : null,
             (array) $this->config->get('skyline.logging.levels', []),
         )));
-    }
-
-    private function message(string $message): string
-    {
-        $message = preg_replace(
-            '/\b(password|passwd|token|secret|authorization|cookie|api[_-]?key)\s*[:=]\s*[^\s,;]+/i',
-            '$1=[REDACTED]',
-            $message,
-        ) ?? '';
-        $message = preg_replace('/\bBearer\s+[^\s,;]+/i', 'Bearer [REDACTED]', $message) ?? '';
-
-        return mb_strcut($message, 0, max(64, (int) $this->config->get('skyline.logging.max_message_bytes', 1_024)), 'UTF-8');
-    }
-
-    /** @param array<string, mixed> $context @return array<string, bool|float|int|string> */
-    private function context(array $context): array
-    {
-        $allowed = array_values(array_filter(
-            (array) $this->config->get('skyline.logging.context_allowlist', []),
-            fn (mixed $key): bool => is_string($key),
-        ));
-        $result = [];
-
-        foreach ($allowed as $key) {
-            $value = $context[$key] ?? null;
-
-            if (is_bool($value) || is_int($value) || is_float($value)) {
-                $result[$key] = $value;
-            } elseif (is_string($value)) {
-                $result[$key] = $this->message($value);
-            }
-        }
-
-        return $result;
     }
 }

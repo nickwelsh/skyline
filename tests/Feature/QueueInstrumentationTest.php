@@ -414,6 +414,7 @@ it('closes unfinished child telemetry at the Attempt boundary', function (): voi
 it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
     config()->set('skyline.logging.enabled', true);
     config()->set('skyline.logging.channel', 'queue-workers');
+    config()->set('skyline.logging.max_message_bytes', 64);
 
     SummaryJob::dispatchSync();
 
@@ -433,6 +434,7 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
         ->and($breadcrumbs[0]->getEpochNanos())->toBeLessThanOrEqual($breadcrumbs[1]->getEpochNanos())
         ->and($breadcrumbs[0]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
         ->and($breadcrumbs[0]->getAttributes()->get('log.context'))->toContain('"code":429')
+        ->and($breadcrumbs[0]->getAttributes()->get('skyline.log.capture'))->toContain('"originalBytes"')
         ->and($attributes->get('skyline.summary.sql.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.cache.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.custom.count'))->toBe(1)
