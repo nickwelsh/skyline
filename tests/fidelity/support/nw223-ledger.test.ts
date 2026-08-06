@@ -79,18 +79,44 @@ describe("NW-223 exact evidence ledger schema", () => {
     expect(() => validateNw223Ledger(extra)).toThrow(/measurement keys/i);
   });
 
+  test("requires exact top-level and paired application keys", () => {
+    const top = ledger();
+    Object.assign(top, { extra: {} });
+    expect(() => validateNw223Ledger(top)).toThrow(/ledger keys/i);
+
+    const interaction = ledger();
+    Object.assign(interaction.interactions[expectedNw223AxeCaptureIds[0]], { extra: transcript });
+    expect(() => validateNw223Ledger(interaction)).toThrow(/interaction pair keys/i);
+
+    const pairedAxe = ledger();
+    Object.assign(pairedAxe.axe[expectedNw223AxeCaptureIds[0]], { extra: axe.trigger });
+    expect(() => validateNw223Ledger(pairedAxe)).toThrow(/Axe pair keys/i);
+  });
+
+  test("requires a nonblank string anchor name", () => {
+    const blank = ledger();
+    blank.measurements[expectedNw223CaptureIds[0]].anchorAccessibleName = "   ";
+    expect(() => validateNw223Ledger(blank)).toThrow(/accessible name/i);
+
+    const wrongType = ledger();
+    Object.assign(wrongType.measurements[expectedNw223CaptureIds[0]], { anchorAccessibleName: 7 });
+    expect(() => validateNw223Ledger(wrongType)).toThrow(/accessible name/i);
+  });
+
   test.each([
     ["partition extras", (value: Nw223EvidenceLedger) => Object.assign(value.axe[expectedNw223AxeCaptureIds[0]].trigger, { extra: [] })],
     ["rule extras", (value: Nw223EvidenceLedger) => Object.assign(addRule(value), { extra: true })],
-    ["wildcard rules", (value: Nw223EvidenceLedger) => { addRule(value).id = "*"; }],
-    ["invalid impact", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { impact: 7 }); }],
+    ["wildcard rules", (value: Nw223EvidenceLedger) => { addRule(value).id = "region*"; }],
+    ["invalid impact", (value: Nw223EvidenceLedger) => { addRule(value).impact = "catastrophic"; }],
     ["empty tags", (value: Nw223EvidenceLedger) => { addRule(value).tags = [""]; }],
     ["non-string tags", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { tags: [7] }); }],
-    ["wildcard target segments", (value: Nw223EvidenceLedger) => { addRule(value).targets = ['["*"]']; }],
+    ["empty targets", (value: Nw223EvidenceLedger) => { addRule(value).targets = []; }],
+    ["wildcard target segments", (value: Nw223EvidenceLedger) => { addRule(value).targets = ['["main *"]']; }],
     ["invalid selector syntax", (value: Nw223EvidenceLedger) => { addRule(value).targets = ['["["]']; }],
     ["non-string targets", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { targets: [7] }); }],
     ["duplicate rule signatures", (value: Nw223EvidenceLedger) => { const rule = addRule(value); value.axe[expectedNw223AxeCaptureIds[0]].trigger.outside.push(structuredClone(rule)); }],
     ["duplicate target paths", (value: Nw223EvidenceLedger) => { const rule = addRule(value); rule.targets.push(rule.targets[0]); }],
+    ["canonical duplicate target paths", (value: Nw223EvidenceLedger) => { const rule = addRule(value); rule.targets.push('[ "main" ]'); }],
   ])("rejects Axe %s", (_label, mutate) => {
     const value = ledger();
     mutate(value);
