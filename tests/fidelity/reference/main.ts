@@ -65,6 +65,9 @@ const routes = createBrowserRouter([
       path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/runs/live",
       loader: () => ({ runs: [] }),
     }, {
+      path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/versions",
+      loader: () => ({ versions: [] }),
+    }, {
       path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/runs/:runParam/spans/:spanParam",
       loader: ({ params }: { params: Record<string, string | undefined> }) => referencePort().resource?.("span", params),
     }, {

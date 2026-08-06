@@ -2,6 +2,9 @@
   "schemaVersion": 1,
   "fixtureVersion": "nw-227-v1",
   "description": "NW-216 capability conditioning applied around exact Trigger controls.",
+  "errors": {
+    "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"]
+  },
   "buttons": {
     "blockedVariantPrefixes": ["docs/"],
     "blockedLinkPathFragments": [

@@ -34,12 +34,17 @@ export default defineConfig({
 });
 
 function capabilityAdapters(): Plugin {
-  const source = join(vendorRoot, "components/primitives/Buttons.tsx");
+  const buttonsSource = join(vendorRoot, "components/primitives/Buttons.tsx");
+  const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
+  const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   return {
     name: "skyline-fidelity-reference-capabilities",
     enforce: "pre",
     transform(code, moduleId) {
-      if (moduleId.split("?")[0] !== source) return undefined;
+      const source = moduleId.split("?")[0];
+      if (source === errorsListSource) return hideErrorsListMutations(code);
+      if (source === errorDetailSource) return hideErrorDetailMutations(code);
+      if (source !== buttonsSource) return undefined;
       const adapted = code
         .replace("export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(", "const SourceButton = forwardRef<HTMLButtonElement, ButtonPropsType>(")
         .replace("export const LinkButton = ({", "const SourceLinkButton = ({");
@@ -65,6 +70,26 @@ export const LinkButton = (props) => blocked(props, true) ? null : <SourceLinkBu
 `;
     },
   };
+}
+
+function hideErrorsListMutations(code: string) {
+  const statusHeader = "          <TableHeaderCell>Status</TableHeaderCell>\n";
+  const statusCell = "      <TableCell to={errorPath}>\n        <ErrorStatusBadge status={errorGroup.status} />\n      </TableCell>\n";
+  const actionsCell = "      <ErrorActionsCell\n        errorGroup={errorGroup}\n        organizationSlug={organizationSlug}\n        projectParam={projectParam}\n        envParam={envParam}\n      />\n";
+  const adapted = code.replace(statusHeader, "").replace(statusCell, "").replace(actionsCell, "");
+  if (adapted === code || adapted.includes(statusHeader) || adapted.includes(statusCell) || adapted.includes(actionsCell)) {
+    throw new Error("Pinned Trigger Errors list mutations changed; capability adapter must be reviewed.");
+  }
+  return adapted;
+}
+
+function hideErrorDetailMutations(code: string) {
+  const start = code.indexOf("            {/* Status */}");
+  const end = code.indexOf("            {/* Error message */}", start);
+  if (start < 0 || end < 0) {
+    throw new Error("Pinned Trigger Error detail status changed; capability adapter must be reviewed.");
+  }
+  return code.slice(0, start) + code.slice(end);
 }
 
 function referenceAdapters(): Plugin {

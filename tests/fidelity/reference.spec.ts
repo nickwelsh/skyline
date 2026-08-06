@@ -1,8 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { prepareCapture } from "./support/capture";
+import { prepareCapture, settleCapture } from "./support/capture";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { parseScenario } from "./support/skyline";
 import { seedOwnedState } from "./support/states";
+import { captureAccessibilityTree } from "./support/accessibility";
+import { captureAxe } from "./support/axe";
+import { observeAction } from "./support/actions";
 
 test.setTimeout(20_000);
 
@@ -36,6 +39,28 @@ test("reference paired jobs-populated readiness", async ({ page }) => {
   await waitForReference(page);
   await expect(page.getByText("Tasks", { exact: true }).first()).toBeVisible();
   await expectReferenceHealthy(page);
+  expect(errors).toEqual([]);
+});
+
+test("reference error-found settles at its canonical error route", async ({ page }) => {
+  const capture = "error-found@1440x960-classic";
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await prepareCapture(page, capture, "/reference");
+  await seedOwnedState(page, parseScenario(capture), "/reference");
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/error-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await settleCapture(page);
+  await Promise.all([
+    page.screenshot({ animations: "disabled", caret: "hide" }),
+    captureAccessibilityTree(page),
+    captureAxe(page),
+    observeAction(page, "captured"),
+  ]);
+  await expectReferenceHealthy(page);
+  await expect(page).toHaveURL(/\/oracle\/error-found$/);
+  await expect.poll(() => page.evaluate(() => (window as Window & { __oracleCanonicalUrl?: string }).__oracleCanonicalUrl)).toMatch(/^\/skyline\/errors\//);
   expect(errors).toEqual([]);
 });
 
