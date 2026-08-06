@@ -232,7 +232,7 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
     $inspector = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
         ->assertOk()
         ->assertJsonPath('node.kind', 'query')
-        ->assertJsonPath('node.presentation.type', 'generic')
+        ->assertJsonPath('node.presentation.type', 'sql')
         ->assertJsonPath('node.sql.value', 'select ? as private_value')
         ->assertJsonPath('node.sql.isTruncated', false)
         ->assertJsonPath('node.overview.spanId', $span->span_id);

@@ -211,12 +211,12 @@ final readonly class NodeQuery
     private function generic(object $span, array $attributes): array
     {
         [$details, $presentationType] = match ($span->role) {
-            'cache' => [['cache' => $this->cache($attributes)], null],
-            'redis' => [['redis' => $this->redis($span, $attributes)], null],
+            'cache' => [['cache' => $this->cache($attributes)], 'cache'],
+            'redis' => [['redis' => $this->redis($span, $attributes)], 'redis'],
             'storage' => [['storage' => $this->storage($attributes)], 'storage'],
             'mail', 'notification' => [['delivery' => $this->delivery($span->role, $attributes)], 'delivery'],
             'process' => [['process' => $this->process($attributes)], 'process'],
-            'transaction' => [['transaction' => $this->transaction($attributes)], null],
+            'transaction' => [['transaction' => $this->transaction($attributes)], 'transaction'],
             'custom' => [['custom' => $this->custom($span, $attributes)], 'custom'],
             default => [[], null],
         };
@@ -404,6 +404,16 @@ final readonly class NodeQuery
             max(1, (int) config('skyline.privacy.sql_bytes', 65_536)),
             'sql',
         );
+        $bindings = $this->sqlCapture($attributes, 'skyline.sql.bindings');
+        $result = $this->sqlCapture($attributes, 'skyline.sql.result');
+        $presentation = [
+            'type' => 'sql',
+            'sql' => [
+                'statement' => $sql,
+                'bindings' => $bindings,
+                'result' => $result,
+            ],
+        ];
 
         return [
             'overview' => [
@@ -416,9 +426,9 @@ final readonly class NodeQuery
             ],
             'sql' => $sql,
             'source' => $this->source($attributes, 'skyline.sql.source'),
-            'bindings' => $this->sqlCapture($attributes, 'skyline.sql.bindings'),
-            'result' => $this->sqlCapture($attributes, 'skyline.sql.result'),
-            'presentation' => $this->timedPresentation($span, $attributes, ['type' => 'generic']),
+            'bindings' => $bindings,
+            'result' => $result,
+            'presentation' => $this->timedPresentation($span, $attributes, $presentation),
             'metadata' => $this->spanMetadata($span),
         ];
     }
