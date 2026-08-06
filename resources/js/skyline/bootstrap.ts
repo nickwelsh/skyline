@@ -1,4 +1,15 @@
-import type { SkylineBootstrap } from "./dto";
+import type { SkylineBootstrap, SkylineCapabilities } from "./dto";
+
+const capabilityKeys = {
+  navigation: ["jobs", "runs", "errors", "logs", "queues", "query", "dashboards", "deployments", "schedules", "waitpoints", "alerts", "settings"],
+  runs: ["view", "cancel", "replay", "bulkCancel", "bulkReplay"],
+  jobs: ["view", "testJob", "configure", "schedule"],
+  errors: ["view", "assign", "ignore", "resolve", "alerts", "replay", "cancel", "versions", "bulkActions"],
+  logs: ["view"],
+  queues: ["view", "pause", "concurrency", "workers", "rateLimits"],
+  shell: ["appearance", "sidebarCustomization", "favorites", "panelPersistence", "shortcuts", "account", "notifications", "jobGuidance", "organizationSwitching", "projectSwitching", "environmentSwitching", "accountOpening"],
+  help: ["menu", "shortcuts", "askAi", "documentation", "status", "suggestFeature", "contact", "changelog"],
+} as const;
 
 export function readBootstrap(): SkylineBootstrap {
   const element = document.getElementById("skyline-bootstrap");
@@ -20,5 +31,19 @@ export function readBootstrap(): SkylineBootstrap {
     throw new Error("Skyline bootstrap is invalid.");
   }
 
-  return value as SkylineBootstrap;
+  return { ...value, capabilities: normalizeCapabilities(value.capabilities) } as SkylineBootstrap;
+}
+
+function normalizeCapabilities(value: object): SkylineCapabilities {
+  const input = value as Record<string, unknown>;
+  const normalized: Record<string, Record<string, boolean>> = {};
+
+  for (const [group, keys] of Object.entries(capabilityKeys)) {
+    const rawGroup = typeof input[group] === "object" && input[group] !== null
+      ? input[group] as Record<string, unknown>
+      : {};
+    normalized[group] = Object.fromEntries(keys.map((key) => [key, rawGroup[key] === true]));
+  }
+
+  return normalized as SkylineCapabilities;
 }

@@ -31,4 +31,27 @@ describe("readBootstrap", () => {
   it("fails closed when bootstrap is missing", () => {
     expect(() => readBootstrap()).toThrow("Skyline bootstrap is missing.");
   });
+
+  it("defaults missing, invalid, and unknown capabilities to unavailable", () => {
+    const script = document.createElement("script");
+    script.id = "skyline-bootstrap";
+    script.type = "application/json";
+    script.textContent = JSON.stringify({
+      basePath: "/monitoring",
+      applicationName: "Billing",
+      environmentLabel: "production",
+      capabilities: {
+        navigation: { jobs: true, runs: "yes", futureSurface: true },
+        shell: { shortcuts: true, futureControl: true },
+      },
+    });
+    document.body.append(script);
+
+    expect(readBootstrap().capabilities).toMatchObject({
+      navigation: { jobs: true, runs: false },
+      shell: { shortcuts: true, appearance: false },
+    });
+    expect(readBootstrap().capabilities.navigation).not.toHaveProperty("futureSurface");
+    expect(readBootstrap().capabilities.shell).not.toHaveProperty("futureControl");
+  });
 });

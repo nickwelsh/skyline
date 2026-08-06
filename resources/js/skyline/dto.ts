@@ -374,11 +374,14 @@ export type TelemetryEventDetailDto = {
 };
 
 export type SkylineCapabilities = {
-  navigation: Record<string, boolean> & { runs: boolean };
-  jobs?: Record<string, boolean> & { view: boolean; testJob: boolean };
+  navigation: Record<string, boolean> & Partial<Record<"jobs" | "errors" | "logs" | "queues" | "query" | "dashboards" | "deployments" | "schedules" | "waitpoints" | "alerts" | "settings", boolean>> & { runs: boolean };
+  jobs?: Record<string, boolean> & { view: boolean; testJob: boolean; configure?: boolean; schedule?: boolean };
   errors?: Record<string, boolean> & { view: boolean; assign: boolean; ignore: boolean; resolve: boolean; alerts: boolean; replay: boolean; cancel: boolean; versions: boolean; bulkActions: boolean };
-  runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean };
-  shell: Record<string, boolean> & { shortcuts: boolean };
+  logs?: Record<string, boolean> & { view: boolean };
+  queues?: Record<string, boolean> & { view: boolean; pause: boolean; concurrency: boolean; workers: boolean; rateLimits: boolean };
+  runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean; bulkCancel?: boolean; bulkReplay?: boolean };
+  shell: Record<string, boolean> & { shortcuts: boolean; appearance?: boolean; sidebarCustomization?: boolean; favorites?: boolean; panelPersistence?: boolean; account?: boolean; notifications?: boolean; jobGuidance?: boolean; organizationSwitching?: boolean; projectSwitching?: boolean; environmentSwitching?: boolean; accountOpening?: boolean };
+  help?: Record<string, boolean> & { menu: boolean; shortcuts: boolean; askAi: boolean; documentation: boolean; status: boolean; suggestFeature: boolean; contact: boolean; changelog: boolean };
 };
 
 export type SkylineBootstrap = {
