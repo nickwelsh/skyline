@@ -180,6 +180,38 @@ describe("UiPreferencesAdapter", () => {
     expect(visibleFavorites(favorites, { runs: true, query: true })).toEqual(favorites);
   });
 
+  it("preserves dormant pinned SideMenu item and route preferences", () => {
+    const roots = [
+      "sessions",
+      "prompts",
+      "models",
+      "environment-variables",
+      "preview-branches",
+      "regions",
+      "waitpoint-tokens",
+      "batches",
+      "bulk-actions",
+      "api-keys",
+      "concurrency",
+      "limits",
+      "integrations",
+    ];
+    const favorites = roots.map((root) => ({ id: `favorite_${root}`, label: root, url: `/${root}` }));
+    localStorage.setItem("skyline.ui-preferences.v1:/monitoring", JSON.stringify({
+      sidebar: {
+        hiddenItems: { prompts: true, models: false },
+        sectionItemOrder: { ai: ["models", "prompts"] },
+      },
+      favorites,
+    }));
+
+    const stored = createUiPreferencesAdapter({ basePath: "/monitoring" }).read();
+
+    expect(stored.sidebar.hiddenItems).toEqual({ prompts: true, models: false });
+    expect(stored.sidebar.sectionItemOrder.ai).toEqual(["models", "prompts"]);
+    expect(stored.favorites).toEqual(favorites);
+  });
+
   it("retains hidden state only for registered routes and saved favorites", () => {
     localStorage.setItem("skyline.ui-preferences.v1:/monitoring", JSON.stringify({
       sidebar: {

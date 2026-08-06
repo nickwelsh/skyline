@@ -45,8 +45,8 @@ export type UiPreferencesAdapter = {
 type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 const sectionIds = ["favorites", "ai", "metrics", "deployments", "manage"] as const;
-const itemIds = ["jobs", "runs", "logs", "errors", "query", "queues", "dashboards", "deployments", "environment-variables", "preview-branches", "regions", "waitpoint-tokens", "batches", "bulk-actions", "api-keys", "alerts", "concurrency", "limits", "integrations"] as const;
-const routeRoots = ["jobs", "runs", "errors", "logs", "queues", "query", "dashboards", "deployments", "schedules", "waitpoints", "alerts", "settings"] as const;
+const itemIds = ["jobs", "runs", "prompts", "models", "logs", "errors", "query", "queues", "dashboards", "deployments", "environment-variables", "preview-branches", "regions", "waitpoint-tokens", "batches", "bulk-actions", "api-keys", "alerts", "concurrency", "limits", "integrations"] as const;
+const routeRoots = ["jobs", "runs", "sessions", "prompts", "models", "errors", "logs", "queues", "query", "dashboards", "deployments", "environment-variables", "preview-branches", "regions", "waitpoint-tokens", "batches", "bulk-actions", "api-keys", "concurrency", "limits", "integrations", "schedules", "waitpoints", "alerts", "settings"] as const;
 const panelDefinitions = {
   "panel-run-parent-v3": { orientation: "horizontal", itemIds: ["run", "inspector"] },
   "panel-run-tree": { orientation: "horizontal", itemIds: ["tree", "timeline"] },
