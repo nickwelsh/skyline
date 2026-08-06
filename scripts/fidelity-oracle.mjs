@@ -201,9 +201,14 @@ export function validateAllowedDifferences(differences) {
         ? [region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector]
         : region.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
     for (const selector of new Set(selectors)) {
-      const owner = selectorOwners.get(selector);
-      if (owner) fail(`Locked regions ${owner} and ${region.id} collide on selector ${selector}.`);
-      selectorOwners.set(selector, region.id);
+      const owners = selectorOwners.get(selector) ?? [];
+      for (const owner of owners) {
+        const disjointCapabilityCaptures = owner.category === "capability-omission" && region.category === "capability-omission"
+          && !owner.captures.some((capture) => region.captures.includes(capture));
+        if (!disjointCapabilityCaptures) fail(`Locked regions ${owner.id} and ${region.id} collide on selector ${selector}.`);
+      }
+      owners.push(region);
+      selectorOwners.set(selector, owners);
     }
   }
 }

@@ -9,34 +9,39 @@ const detailChartsCitation = `https://github.com/triggerdotdev/trigger.dev/blob/
 const stableRootStates = ["queues-multiple-targets", "queues-long-labels", "queues-hidden-controls"];
 const stableDetailStates = ["queues-idle", "queues-busy", "queues-activity-wait-history"];
 
-const queueTargets = [
+const queueTargets: ReadonlyArray<{ slug: string; id: string; filtered: boolean; backlogged: boolean }> = [
   { slug: "database-reports", id: "queue_3ac9ae5d", filtered: true, backlogged: false },
   { slug: "redis-billing", id: "queue_c3203647", filtered: false, backlogged: false },
   { slug: "redis-default", id: "queue_3b6b7027", filtered: false, backlogged: true },
   { slug: "redis-mail", id: "queue_04e3fa05", filtered: false, backlogged: false },
   { slug: "sqs-imports", id: "queue_6f8f521a", filtered: false, backlogged: false },
-] as const;
+];
 
 export function queueCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmissionDefinition[] {
   const captureIds = expectedCaptureIds(matrix);
   const genericRootCaptures = captureIds.filter((capture) => capture.startsWith("queues-populated@"));
   const genericDetailCaptures = captureIds.filter((capture) => capture.startsWith("queue-found@"));
   const stableRootCaptures = [...genericRootCaptures, ...captureIds.filter((capture) => stableRootStates.some((state) => capture.startsWith(`${state}@`)))].sort();
+  const filteringCaptures = captureIds.filter((capture) => capture.startsWith("queues-filtering@"));
   const stableDetailCaptures = [...genericDetailCaptures, ...captureIds.filter((capture) => stableDetailStates.some((state) => capture.startsWith(`${state}@`)))].sort();
+  const paginatedCaptures = captureIds.filter((capture) => capture.startsWith("queues-paginated-runs@"));
+  const markersFor = (targets: typeof queueTargets) => targets.flatMap((target) => [
+    `queue-target-${target.id}-limit`,
+    `queue-target-${target.id}-limited-by`,
+    `queue-target-${target.id}-backlog`,
+    `queue-target-${target.id}-pause-resume`,
+    ...(target.backlogged ? [`queue-target-${target.id}-warning`, `queue-target-${target.id}-health`] : []),
+  ]);
+  const rootStats = ["queue-root-running", "queue-root-environment-limit"];
 
   return [
     definition("queue-root-capabilities", stableRootCaptures, [
-      "queue-root-running",
-      "queue-root-environment-limit",
-      ...queueTargets.flatMap((target) => [
-        `queue-target-${target.id}-limit`,
-        `queue-target-${target.id}-limited-by`,
-        `queue-target-${target.id}-backlog`,
-        `queue-target-${target.id}-pause-resume`,
-        ...(target.backlogged ? [`queue-target-${target.id}-warning`, `queue-target-${target.id}-health`] : []),
-      ]),
+      ...rootStats,
+      ...markersFor(queueTargets),
     ], [listCitation]),
+    definition("queue-root-filtering-capabilities", filteringCaptures, [...rootStats, ...markersFor(queueTargets.filter(({ filtered }) => filtered))], [listCitation]),
     definition("queue-detail-capabilities", stableDetailCaptures, ["queue-detail-concurrency", "queue-detail-concurrency-limit", "queue-detail-throttled"], [detailStatsCitation, detailChartsCitation]),
+    definition("queue-detail-paginated-capabilities", paginatedCaptures, ["queue-detail-concurrency", "queue-detail-concurrency-limit"], [detailStatsCitation, detailChartsCitation]),
   ];
 }
 

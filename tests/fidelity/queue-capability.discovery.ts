@@ -1,8 +1,8 @@
-import { test } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 import { type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
-import { createDiscoveryStep } from "./support/discovery";
+import { createDiscoveryStep, type DiscoveryStep } from "./support/discovery";
 import { discoverCapabilityOmissionObservation } from "./support/difference-regions";
 import { queueCapabilityDefinitions } from "./support/queue-capabilities";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
@@ -31,10 +31,17 @@ for (const capture of captures) {
         step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
       ]);
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
-      await Promise.all([
-        step(`state:skyline-${scenario.state}`, () => exposeOwnedState(skyline, scenario, "skyline")),
-        step(`state:trigger-${scenario.state}`, () => exposeOwnedState(trigger, scenario, "trigger")),
-      ]);
+      if (scenario.id === "queues-filtering") {
+        await Promise.all([
+          exposeQueueFilteringState(skyline, "skyline", step),
+          exposeQueueFilteringState(trigger, "trigger", step),
+        ]);
+      } else {
+        await Promise.all([
+          step(`state:skyline-${scenario.state}`, () => exposeOwnedState(skyline, scenario, "skyline")),
+          step(`state:trigger-${scenario.state}`, () => exposeOwnedState(trigger, scenario, "trigger")),
+        ]);
+      }
       await Promise.all([applyLiveSystemChange(skyline, capture), applyLiveSystemChange(trigger, capture)]);
       await Promise.all([
         step("settle:skyline", () => settleCapture(skyline)),
@@ -61,4 +68,16 @@ for (const capture of captures) {
       await context.close();
     }
   });
+}
+
+async function exposeQueueFilteringState(page: Page, application: "skyline" | "trigger", step: DiscoveryStep) {
+  const filter = page.getByLabel("Connection");
+  const count = await step(`filter:${application}:count`, () => filter.count());
+  if (count !== 1) throw new Error(`${application} Queue connection filter must match once; observed ${count}.`);
+  await step(`filter:${application}:visible`, () => filter.waitFor({ state: "visible" }));
+  const options = await step(`filter:${application}:options`, () => filter.locator("option").allTextContents());
+  if (options.length < 2) throw new Error(`${application} Queue connection filter lacks a selectable connection.`);
+  await step(`filter:${application}:select`, () => filter.selectOption({ index: 1 }, { timeout: 1_500 }));
+  const value = await step(`filter:${application}:value`, () => filter.inputValue());
+  if (!value) throw new Error(`${application} Queue connection filter did not retain its selection.`);
 }

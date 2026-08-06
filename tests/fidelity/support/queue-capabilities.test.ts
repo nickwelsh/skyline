@@ -9,13 +9,14 @@ describe("NW-221 Queue capability discovery definitions", () => {
   test("locks exact semantic markers without broad chrome or Recorded Runs", () => {
     expect(definitions.map(({ id }) => id)).toEqual([
       "queue-root-capabilities",
+      "queue-root-filtering-capabilities",
       "queue-detail-capabilities",
+      "queue-detail-paginated-capabilities",
     ]);
 
     const pairs = definitions.flatMap(({ selectorPairs }) => selectorPairs);
-    expect(new Set(pairs.map(({ id }) => id)).size).toBe(pairs.length);
-    expect(new Set(pairs.flatMap(({ triggerSelector, skylineSelector }) => [triggerSelector, skylineSelector])).size).toBe(pairs.length * 2);
-    expect(pairs.map(({ id }) => id)).toEqual([
+    const uniquePairs = [...new Map(pairs.map((pair) => [pair.id, pair])).values()];
+    expect(uniquePairs.map(({ id }) => id)).toEqual([
       "queue-root-running",
       "queue-root-environment-limit",
       "queue-target-queue_3ac9ae5d-limit",
@@ -44,13 +45,19 @@ describe("NW-221 Queue capability discovery definitions", () => {
       "queue-detail-concurrency-limit",
       "queue-detail-throttled",
     ]);
+    for (const [index, definition] of definitions.entries()) for (const other of definitions.slice(index + 1)) {
+      const reused = definition.selectorPairs.some(({ id }) => other.selectorPairs.some((pair) => pair.id === id));
+      if (reused) expect(definition.captures.some((capture) => other.captures.includes(capture))).toBe(false);
+    }
     expect(JSON.stringify(definitions)).not.toMatch(/information|shell|recorded.runs/i);
   });
 
   test("locks capture families around present capability nodes", () => {
-    expect(definitions.map(({ captures }) => captures.length)).toEqual([16, 16]);
+    expect(definitions.map(({ captures }) => captures.length)).toEqual([16, 3, 16, 3]);
     expect(definitions[0].captures).not.toContain("queues-filtering@1440x960-classic");
-    expect(definitions[1].captures).not.toContain("queues-paginated-runs@1440x960-classic");
+    expect(definitions[1].captures).toContain("queues-filtering@1440x960-classic");
+    expect(definitions[2].captures).not.toContain("queues-paginated-runs@1440x960-classic");
+    expect(definitions[3].captures).toContain("queues-paginated-runs@1440x960-classic");
   });
 
   test("pins provenance and starts without inferred measurements", () => {
@@ -61,4 +68,12 @@ describe("NW-221 Queue capability discovery definitions", () => {
       expect(definition.measurements).toEqual({});
     }
   });
+
+  test("allows the source and Skyline filtering navigations to settle", () => {
+    const discovery = readFileSync(resolve(import.meta.dirname, "../queue-capability.discovery.ts"), "utf8");
+    for (const phase of ["count", "visible", "options", "select", "value"]) expect(discovery).toContain(`filter:\${application}:${phase}`);
+    expect(discovery).not.toContain("10_000");
+  });
 });
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
