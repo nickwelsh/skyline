@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Page } from "@playwright/test";
 import type { NormalizedAccessibilityNode } from "./accessibility";
-import type { DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
+import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
 
 type Rect = { x: number; y: number; width: number; height: number };
 export type FrameworkExtensionDefinition = {
@@ -52,7 +52,28 @@ export type PresenterExtensionMeasurement = {
   anchorComputedStyleSha256: string;
   anchorAccessibilitySha256: string;
 };
-export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition;
+export type CapabilityOmissionMeasurement = {
+  triggerRect: Rect;
+  skylineRect: Rect;
+  triggerComputedStyleSha256: string;
+  skylineComputedStyleSha256: string;
+  triggerAccessibilitySha256: string;
+  skylineAccessibilitySha256: string;
+};
+export type CapabilityOmissionDefinition = {
+  id: string;
+  category: "capability-omission";
+  decision: string;
+  acceptance: string[];
+  citations: string[];
+  captures: string[];
+  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string }>;
+  measurements: Record<string, Record<string, CapabilityOmissionMeasurement>>;
+};
+export type CapabilityOmissionObservation = {
+  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string } & CapabilityOmissionMeasurement>;
+};
+export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
 export type FrameworkExtensionObservation = {
   skylineSelector: string;
@@ -81,14 +102,63 @@ export type PresenterExtensionObservation = {
 
 export async function observeDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences): Promise<DifferenceRegion[]> {
   const definitions = applicableExtensionDefinitions(capture, manifest);
-  return Promise.all(definitions.map(async (definition) => {
+  const regions: DifferenceRegion[] = [];
+  for (const definition of definitions) {
     if (definition.category === "framework-extension") {
       const resolved = validateFrameworkExtensionObservation(definition, await discoverFrameworkExtensionObservation(trigger, skyline, definition), capture);
-      return { kind: "framework-extension", id: definition.id, extension: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies FrameworkExtensionRegion;
+      regions.push({ kind: "framework-extension", id: definition.id, extension: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies FrameworkExtensionRegion);
+      continue;
     }
-    const resolved = validatePresenterExtensionObservation(definition, await discoverPresenterExtensionObservation(trigger, skyline, definition), capture);
-    return { kind: "presenter-extension", id: definition.id, presenter: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies PresenterExtensionRegion;
-  }));
+    if (definition.category === "presenter-extension") {
+      const resolved = validatePresenterExtensionObservation(definition, await discoverPresenterExtensionObservation(trigger, skyline, definition), capture);
+      regions.push({ kind: "presenter-extension", id: definition.id, presenter: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies PresenterExtensionRegion);
+      continue;
+    }
+    const resolved = validateCapabilityOmissionObservation(definition, await discoverCapabilityOmissionObservation(trigger, skyline, definition), capture);
+    regions.push({ kind: "capability-omission", id: definition.id, omissions: resolved.selectorPairs, expected: definition.measurements[capture] } satisfies CapabilityOmissionRegion);
+  }
+  return regions;
+}
+
+export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition): Promise<CapabilityOmissionObservation> {
+  const dom = [];
+  for (const pair of definition.selectorPairs) {
+    dom.push({
+      pair,
+      trigger: await observeElementDom(trigger, definition.id, pair.triggerSelector, `${pair.id} Trigger capability`),
+      skyline: await observeElementDom(skyline, definition.id, pair.skylineSelector, `${pair.id} Skyline capability`),
+    });
+  }
+  const selectorPairs = [];
+  for (const observation of dom) {
+    const triggerElement = await observeElementAccessibility(trigger, observation.pair.triggerSelector, observation.trigger);
+    const skylineElement = await observeElementAccessibility(skyline, observation.pair.skylineSelector, observation.skyline);
+    selectorPairs.push({
+      ...observation.pair,
+      triggerRect: triggerElement.rect,
+      skylineRect: skylineElement.rect,
+      triggerComputedStyleSha256: triggerElement.computedStyleSha256,
+      skylineComputedStyleSha256: skylineElement.computedStyleSha256,
+      triggerAccessibilitySha256: triggerElement.accessibilitySha256,
+      skylineAccessibilitySha256: skylineElement.accessibilitySha256,
+    });
+  }
+  return { selectorPairs };
+}
+
+export function validateCapabilityOmissionObservation(definition: CapabilityOmissionDefinition, observation: CapabilityOmissionObservation, capture: string) {
+  const measurement = definition.measurements[capture];
+  if (!measurement) throw new Error(`Allowed region ${definition.id} lacks measurement for ${capture}.`);
+  if (observation.selectorPairs.length !== definition.selectorPairs.length) throw new Error(`Allowed region ${definition.id} changed selector pair count.`);
+  for (const [index, pair] of definition.selectorPairs.entries()) {
+    const observed = observation.selectorPairs[index];
+    const expected = measurement[pair.id];
+    if (!observed || !expected || observed.id !== pair.id || observed.triggerSelector !== pair.triggerSelector || observed.skylineSelector !== pair.skylineSelector) throw new Error(`Allowed region ${definition.id} changed selector pair ${pair.id}.`);
+    for (const key of ["triggerRect", "skylineRect", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256"] as const) {
+      if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} pair ${pair.id} changed ${key}.`);
+    }
+  }
+  return observation;
 }
 
 export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition): Promise<PresenterExtensionObservation> {
@@ -223,17 +293,21 @@ export function applicablePresenterExtensions(capture: string, manifest: Allowed
   return manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension" && region.captures.includes(capture));
 }
 
+export function applicableCapabilityOmissions(capture: string, manifest: AllowedDifferences) {
+  validateFrameworkExtensionDefinitions(manifest);
+  return manifest.regions.filter((region): region is CapabilityOmissionDefinition => region.category === "capability-omission" && region.captures.includes(capture));
+}
+
 function applicableExtensionDefinitions(capture: string, manifest: AllowedDifferences) {
   validateFrameworkExtensionDefinitions(manifest);
-  const definitions = manifest.regions.filter((region) => region.captures.includes(capture));
-  if (definitions.length > 1) throw new Error(`Capture ${capture} has multiple allowed extension regions.`);
-  return definitions;
+  return manifest.regions.filter((region) => region.captures.includes(capture));
 }
 
 export function accessibilityOmissionSelectors(regions: DifferenceRegion[], application: "trigger" | "skyline") {
   return regions.flatMap((region) => {
     if (region.kind === "framework-extension") return application === "skyline" ? [region.extension.skylineSelector] : [];
     if (region.kind === "presenter-extension") return [application === "trigger" ? region.expected.triggerSelector : region.expected.skylineSelector];
+    if (region.kind === "capability-omission") return region.omissions.map((pair) => application === "trigger" ? pair.triggerSelector : pair.skylineSelector);
     return [];
   });
 }
@@ -241,15 +315,20 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
   const captureOwners = new Map<string, string>();
   const selectorOwners = new Map<string, string>();
-  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension")) {
+  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension" || region.category === "capability-omission")) {
     for (const capture of definition.captures) {
-      const owner = captureOwners.get(capture);
+      const ownership = definition.category === "capability-omission" ? "capability-omission" : "extension";
+      const key = `${ownership}:${capture}`;
+      const owner = captureOwners.get(key);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
-      captureOwners.set(capture, definition.id);
+      captureOwners.set(key, definition.id);
     }
     const selectors = definition.category === "presenter-extension"
       ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
-      : [definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector];
+      : definition.category === "framework-extension"
+        ? [definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
+        : definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
+    if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length)) throw new Error(`Capability-omission region ${definition.id} has duplicate selector ownership.`);
     for (const selector of new Set(selectors)) {
       const owner = selectorOwners.get(selector);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on selector ${selector}.`);

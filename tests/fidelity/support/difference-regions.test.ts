@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  applicableCapabilityOmissions,
   applicableFrameworkExtensions,
   applicablePresenterExtensions,
   accessibilityOmissionSelectors,
@@ -7,8 +8,10 @@ import {
   omitFrameworkExtensionAccessibility,
   requireSingleMatch,
   validateFrameworkExtensionObservation,
+  validateCapabilityOmissionObservation,
   validatePairedAnchor,
   validatePresenterExtensionObservation,
+  type CapabilityOmissionDefinition,
   type FrameworkExtensionDefinition,
   type PresenterExtensionDefinition,
 } from "./difference-regions";
@@ -101,6 +104,24 @@ describe("framework-extension fidelity regions", () => {
     expect(accessibilityOmissionSelectors([observed], "skyline")).toEqual([region.skylineSelector]);
     expect(() => applicablePresenterExtensions(region.captures[0], { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
   });
+
+  test("locks every capability-omission selector pair and omits both AX subtrees", () => {
+    const region = capabilityDefinition();
+    const measurement = region.measurements[region.captures[0]];
+    const observed = {
+      selectorPairs: region.selectorPairs.map((pair) => ({ ...pair, ...measurement[pair.id] })),
+    };
+
+    expect(validateCapabilityOmissionObservation(region, observed, region.captures[0])).toBe(observed);
+    expect(applicableCapabilityOmissions(region.captures[0], { regions: [region] })).toEqual([region]);
+    expect(applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...definition(), captures: region.captures }] })).toEqual([region]);
+    expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "trigger")).toEqual(region.selectorPairs.map((pair) => pair.triggerSelector));
+    expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "skyline")).toEqual(region.selectorPairs.map((pair) => pair.skylineSelector));
+    expect(() => validateCapabilityOmissionObservation(region, { selectorPairs: observed.selectorPairs.map((pair, index) => index ? pair : { ...pair, skylineAccessibilitySha256: "0".repeat(64) }) }, region.captures[0])).toThrow(/skylineAccessibilitySha256/i);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|owner/i);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "collision", captures: ["queues-busy@1440x960-dark"], measurements: { "queues-busy@1440x960-dark": measurement } }] })).toThrow(/selector/i);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [...region.selectorPairs, { ...region.selectorPairs[0], id: "duplicate" }] }] })).toThrow(/selector ownership/i);
+  });
 });
 
 function definition(): FrameworkExtensionDefinition {
@@ -156,6 +177,29 @@ function presenterDefinition(): PresenterExtensionDefinition {
         anchorComputedStyleSha256: "e".repeat(64),
         anchorAccessibilitySha256: "f".repeat(64),
       },
+    },
+  };
+}
+
+function capabilityDefinition(): CapabilityOmissionDefinition {
+  const selectors = ["allocated", "environment-limit"];
+  return {
+    id: "queue-unavailable-capabilities",
+    category: "capability-omission",
+    decision: "NW-223",
+    acceptance: ["Unavailable broker metrics remain visibly absent without masking adjacent source UI."],
+    citations: ["https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues/route.tsx#L211-L268"],
+    captures: ["queues-busy@1440x960-classic"],
+    selectorPairs: selectors.map((id) => ({ id, triggerSelector: `[data-trigger-capability='${id}']`, skylineSelector: `[data-skyline-capability='${id}']` })),
+    measurements: {
+      "queues-busy@1440x960-classic": Object.fromEntries(selectors.map((id, index) => [id, {
+        triggerRect: { x: index, y: 0, width: 1, height: 1 },
+        skylineRect: { x: index, y: 0, width: 1, height: 1 },
+        triggerComputedStyleSha256: "a".repeat(64),
+        skylineComputedStyleSha256: "b".repeat(64),
+        triggerAccessibilitySha256: "c".repeat(64),
+        skylineAccessibilitySha256: "d".repeat(64),
+      }])) as CapabilityOmissionDefinition["measurements"][string],
     },
   };
 }

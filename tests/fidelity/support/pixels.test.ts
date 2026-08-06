@@ -35,6 +35,18 @@ describe("paired fidelity pixels", () => {
     expect(comparePixels(trigger, skyline, [presenter])).toMatchObject({ differingPixels: 0, maskedPixels: 2 });
     expect(() => comparePixels(trigger, skyline, [{ ...presenter, presenter: { ...presenter.presenter, skylineAccessibilitySha256: "0".repeat(64) } }])).toThrow(/skylineAccessibilitySha256/i);
   });
+
+  test("masks only the union of disjoint capability-omission selector pairs", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]], [2, 0, [0, 0, 0, 255]]]);
+    const omission = capabilityOmissionRegion();
+    const overlappingPair = { ...omission.omissions[1], triggerRect: { x: 0, y: 0, width: 1, height: 1 }, skylineRect: { x: 0, y: 0, width: 1, height: 1 } };
+    const overlapping = { ...omission, omissions: [omission.omissions[0], overlappingPair], expected: { ...omission.expected, [overlappingPair.id]: { ...omission.expected[overlappingPair.id], triggerRect: overlappingPair.triggerRect, skylineRect: overlappingPair.skylineRect } } };
+
+    expect(comparePixels(trigger, skyline, [omission])).toMatchObject({ differingPixels: 0, maskedPixels: 2 });
+    expect(() => comparePixels(trigger, skyline, [overlapping])).toThrow(/overlap/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...omission, omissions: omission.omissions.map((pair, index) => index ? pair : { ...pair, triggerComputedStyleSha256: "0".repeat(64) }) }])).toThrow(/triggerComputedStyleSha256/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
@@ -63,4 +75,20 @@ function presenterRegion(): Extract<DifferenceRegion, { kind: "presenter-extensi
     anchorRect: { x: 0, y: 0, width: 2, height: 1 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64),
   };
   return { kind: "presenter-extension", id: "attempt-exception-evidence", expected, presenter: { ...expected, triggerRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRect: { x: 0, y: 0, width: 2, height: 1 } } };
+}
+
+function capabilityOmissionRegion(): Extract<DifferenceRegion, { kind: "capability-omission" }> {
+  const hashes = {
+    triggerComputedStyleSha256: "a".repeat(64), skylineComputedStyleSha256: "b".repeat(64),
+    triggerAccessibilitySha256: "c".repeat(64), skylineAccessibilitySha256: "d".repeat(64),
+  };
+  const omissions = [0, 2].map((x, index) => ({
+    id: `pair-${index}`,
+    triggerSelector: `[data-trigger='${index}']`,
+    skylineSelector: `[data-skyline='${index}']`,
+    triggerRect: { x, y: 0, width: 1, height: 1 },
+    skylineRect: { x, y: 0, width: 1, height: 1 },
+    ...hashes,
+  }));
+  return { kind: "capability-omission", id: "queue-unavailable-capabilities", omissions, expected: Object.fromEntries(omissions.map(({ id, triggerRect, skylineRect, ...measurement }) => [id, { triggerRect, skylineRect, ...measurement }])) };
 }

@@ -16,6 +16,17 @@ export type PresenterExtensionRegion = {
   presenter: PresenterExtensionObservation;
   expected: Omit<PresenterExtensionObservation, "triggerRect" | "skylineRect">;
 };
+export type CapabilityOmissionRegion = {
+  kind: "capability-omission";
+  id: string;
+  omissions: Array<{ id: string; triggerSelector: string; skylineSelector: string } & CapabilityOmissionMeasurement>;
+  expected: Record<string, CapabilityOmissionMeasurement>;
+};
+type CapabilityOmissionMeasurement = {
+  triggerRect: Rect; skylineRect: Rect;
+  triggerComputedStyleSha256: string; skylineComputedStyleSha256: string;
+  triggerAccessibilitySha256: string; skylineAccessibilitySha256: string;
+};
 type PresenterExtensionObservation = {
   triggerSelector: string; skylineSelector: string; triggerAnchorSelector: string; skylineAnchorSelector: string;
   skylineAccessibleRole: string; skylineAccessibleName: string;
@@ -24,7 +35,7 @@ type PresenterExtensionObservation = {
   triggerAccessibilitySha256: string; skylineAccessibilitySha256: string;
   anchorRect: Rect; anchorComputedStyleSha256: string; anchorAccessibilitySha256: string;
 };
-export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion;
+export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion;
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
@@ -77,6 +88,21 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
       boundedRect(region.id, region.presenter.triggerRect, imageWidth, imageHeight),
       boundedRect(region.id, region.presenter.skylineRect, imageWidth, imageHeight),
     ]);
+  }
+  if (region.kind === "capability-omission") {
+    const pairMasks = region.omissions.map((pair) => {
+      const expected = region.expected[pair.id];
+      if (!expected) throw new Error(`Allowed region ${region.id} lacks measurement for pair ${pair.id}.`);
+      for (const key of ["triggerRect", "skylineRect", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256"] as const) {
+        if (JSON.stringify(pair[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${region.id} pair ${pair.id} changed ${key}.`);
+      }
+      return uniqueRects([
+        boundedRect(`${region.id}:${pair.id}:trigger`, pair.triggerRect, imageWidth, imageHeight),
+        boundedRect(`${region.id}:${pair.id}:skyline`, pair.skylineRect, imageWidth, imageHeight),
+      ]);
+    });
+    rejectOverlaps(pairMasks);
+    return uniqueRects(pairMasks.flat());
   }
   const triggerRect = integerRect(region.trigger.rect);
   const skylineRect = integerRect(region.skyline.rect);
