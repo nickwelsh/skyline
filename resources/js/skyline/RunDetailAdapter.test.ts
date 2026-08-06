@@ -43,4 +43,24 @@ describe("RunDetailAdapter", () => {
     expect(detail.run).not.toHaveProperty("worker");
     expect(detail.run).not.toHaveProperty("machine");
   });
+
+  it("preserves discriminated operation evidence for the Run inspector", async () => {
+    const adapter = new FixtureAdapter();
+    const dto = await adapter.trace("run_01J8R4NQX6K3PV4W0A1H2Z7M9C");
+    const source = await adapter.inspector("span_4f24adb545b26d31", dto.run.id);
+    source.bindings = { items: [{ position: 0, column: "email", value: "[REDACTED]" }], truncated: false };
+    source.result = { kind: "rows", rows: [{ id: 42 }], rowCount: 1, truncated: false };
+    source.presentation = {
+      type: "sql",
+      timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.001000000Z", durationUs: 1_000 },
+      failure: null,
+      sql: { statement: source.sql!, bindings: source.bindings, result: source.result },
+    };
+    const detail = presentRunDetail(dto, async () => source);
+
+    const inspector = await detail.loadInspector(source.id);
+
+    expect(inspector.presentation).toEqual(source.presentation);
+    expect(inspector.detailSections.map((section) => section.label)).toEqual(["SQL", "Bindings", "Result"]);
+  });
 });

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   HtmlCapturePreview,
   JsonCapturePreview,
+  SqlCapturePreview,
   TextCapturePreview,
 } from "../trigger/CapturePreview";
 import { Header3 } from "../trigger/components/primitives/Headers";
@@ -28,6 +29,14 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
   if (!presentation) return <GenericInspector inspector={inspector} />;
 
   switch (presentation.type) {
+    case "sql":
+      return <SqlInspector presentation={presentation} />;
+    case "transaction":
+      return <TransactionInspector presentation={presentation} />;
+    case "cache":
+      return <CacheInspector presentation={presentation} />;
+    case "redis":
+      return <RedisInspector presentation={presentation} />;
     case "http":
       return <HttpInspector presentation={presentation} overview={inspector.overview} />;
     case "delivery":
@@ -45,6 +54,78 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
     case "generic":
       return <GenericInspector inspector={inspector} presentation={presentation} />;
   }
+}
+
+function SqlInspector({ presentation }: { presentation: PresentationOf<"sql"> }) {
+  const { statement, bindings, result } = presentation.sql;
+
+  return (
+    <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure}>
+      <SqlCapturePreview
+        sql={statement.value}
+        bindings={bindings?.items}
+        sqlTruncated={statement.isTruncated}
+        bindingsTruncated={bindings?.truncated}
+      />
+      {!bindings && <Unavailable>Bindings not captured</Unavailable>}
+      {result
+        ? <JsonCapturePreview label="Result preview" value={result} truncated={result.truncated} summary={result.kind === "rows" ? `${result.rowCount.toLocaleString()} rows` : `${result.affectedRows.toLocaleString()} affected`} />
+        : <Unavailable>Result not captured</Unavailable>}
+    </InspectorLayout>
+  );
+}
+
+function TransactionInspector({ presentation }: { presentation: PresentationOf<"transaction"> }) {
+  const { transaction } = presentation;
+
+  return (
+    <InspectorLayout title="Database transaction" timing={presentation.timing} failure={presentation.failure}>
+      <Property.Table>
+        <Item label="Connection" value={transaction.connection} />
+        <Item label="Driver" value={transaction.driver} />
+        <Item label="Depth" value={transaction.depth} />
+        <Item label="Outcome" value={transaction.outcome} />
+        <Item label="Query time" value={transaction.queryTimeMs === null ? null : `${transaction.queryTimeMs} ms`} />
+      </Property.Table>
+    </InspectorLayout>
+  );
+}
+
+function CacheInspector({ presentation }: { presentation: PresentationOf<"cache"> }) {
+  const { cache } = presentation;
+
+  return (
+    <InspectorLayout title="Cache operation" timing={presentation.timing} failure={presentation.failure}>
+      <Property.Table>
+        <Item label="Operation" value={cache.operation} />
+        <Item label="Store" value={cache.store} />
+        <Item label={cache.keyCaptured ? "Key" : "Key fingerprint"} value={cache.key} breakWords />
+        <Item label="Key count" value={cache.keyCount} />
+        <Item label="Strategy" value={cache.strategy} />
+        <Item label="Outcome" value={cache.outcome} />
+        <Item label="Hit" value={cache.hit === null ? "Not captured" : cache.hit ? "Yes" : "No"} />
+        <Item label="TTL" value={cache.ttlSeconds === null ? null : `${cache.ttlSeconds} s`} />
+        <Item label="Fresh TTL" value={cache.freshTtlSeconds === null ? null : `${cache.freshTtlSeconds} s`} />
+        <Item label="Forever" value={cache.forever === null ? "Not captured" : cache.forever ? "Yes" : "No"} />
+      </Property.Table>
+      <CapturedValuePreview label="Value" capture={cache.value} />
+    </InspectorLayout>
+  );
+}
+
+function RedisInspector({ presentation }: { presentation: PresentationOf<"redis"> }) {
+  const { redis } = presentation;
+
+  return (
+    <InspectorLayout title="Redis command" timing={presentation.timing} failure={presentation.failure}>
+      <Property.Table>
+        <Item label="Command" value={redis.command} />
+        <Item label="Connection" value={redis.connection} />
+        <Item label="Outcome" value={redis.outcome} />
+      </Property.Table>
+      <CapturedValuePreview label="Arguments" capture={redis.arguments} />
+    </InspectorLayout>
+  );
 }
 
 function HttpInspector({ presentation, overview }: { presentation: PresentationOf<"http">; overview: ExternalInspector["overview"] }) {

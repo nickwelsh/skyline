@@ -48,6 +48,125 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
+  it("presents SQL statement, bindings, result, and capture limits", () => {
+    const { container, root } = renderInspector({
+      type: "sql",
+      timing: timing(),
+      failure: null,
+      sql: {
+        statement: { value: "select * from users where email = ?", isTruncated: false, originalBytes: 35 },
+        bindings: { items: [{ position: 0, column: "email", value: "[REDACTED]" }], truncated: true },
+        result: { kind: "rows", rows: [{ id: 42, email: "[REDACTED]" }], rowCount: 1, truncated: true },
+      },
+    });
+
+    expect(container.textContent).toContain("SQL query");
+    expect(container.textContent).toContain("125 ms");
+    expect(container.querySelector('[role="tablist"][aria-label="SQL display"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Copy Parameterized SQL"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Wrap Parameterized SQL"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
+    expect(container.querySelector('[role="tablist"][aria-label="Result preview display"]')).not.toBeNull();
+    expect(container.textContent).toContain("Truncated");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("keeps uncaptured SQL bindings and results unavailable", () => {
+    const { container, root } = renderInspector({
+      type: "sql",
+      timing: timing(),
+      failure: null,
+      sql: {
+        statement: { value: "select 1", isTruncated: false, originalBytes: 8 },
+        bindings: null,
+        result: null,
+      },
+    });
+
+    expect(container.textContent).toContain("Bindings not captured");
+    expect(container.textContent).toContain("Result not captured");
+    expect(container.querySelector('[role="tablist"][aria-label="SQL display"]')).toBeNull();
+
+    flushSync(() => root.unmount());
+  });
+
+  it("presents nested transaction state and failures", () => {
+    const { container, root } = renderInspector({
+      type: "transaction",
+      timing: timing(),
+      failure: { type: null, message: null },
+      transaction: {
+        connection: "testing",
+        driver: "sqlite",
+        depth: 2,
+        outcome: "rolled_back",
+        queryTimeMs: 12.5,
+      },
+    });
+
+    expect(container.textContent).toContain("Database transaction");
+    expect(container.textContent).toContain("Depth2");
+    expect(container.textContent).toContain("rolled_back");
+    expect(container.textContent).toContain("12.5 ms");
+    expect(container.getElementsByClassName("text-error")[0]?.textContent).toContain("Operation failed");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("distinguishes cache fingerprints, captured values, and unavailable values", () => {
+    const { container, root } = renderInspector({
+      type: "cache",
+      timing: timing(),
+      failure: null,
+      cache: {
+        operation: "GET",
+        store: "redis",
+        key: "sha256:0123456789abcdef",
+        keyCaptured: false,
+        keyCount: 2,
+        strategy: "batch",
+        outcome: "hit",
+        hit: true,
+        ttlSeconds: null,
+        freshTtlSeconds: null,
+        forever: null,
+        value: null,
+      },
+    });
+
+    expect(container.textContent).toContain("Cache operation");
+    expect(container.textContent).toContain("Key fingerprintsha256:0123456789abcdef");
+    expect(container.textContent).not.toContain("Keysha256:");
+    expect(container.textContent).toContain("Value not captured");
+    expect(container.textContent).toContain("HitYes");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("presents Redis arguments and truthful failure state", () => {
+    const { container, root } = renderInspector({
+      type: "redis",
+      timing: timing(),
+      failure: { type: "RedisException", message: "Connection lost" },
+      redis: {
+        command: "SET",
+        connection: "default",
+        outcome: "failed",
+        arguments: { type: "array", value: ["private-key", "private-value"], originalBytes: 31, truncated: true },
+      },
+    });
+
+    expect(container.textContent).toContain("Redis command");
+    expect(container.textContent).toContain("SET");
+    expect(container.textContent).toContain("Connection lost");
+    expect(container.querySelector('[role="tablist"][aria-label="Arguments display"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Copy Arguments"]')).not.toBeNull();
+    expect(container.textContent).toContain("Truncated");
+
+    flushSync(() => root.unmount());
+  });
+
   it("presents delivery evidence without inventing recipient or provider state", () => {
     const { container, root } = renderInspector({
       type: "delivery",

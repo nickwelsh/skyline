@@ -418,7 +418,7 @@ export type InspectorDto = TraceNode & {
     hit: boolean | null;
     ttlSeconds: number | null;
     freshTtlSeconds: number | null;
-    forever: boolean;
+    forever: boolean | null;
     value: CapturedValue | null;
   };
   redis?: { command: string | null; connection: string | null; outcome: string | null; arguments: CapturedValue | null };
@@ -490,6 +490,17 @@ export type InspectorTiming = { startedAt: string | null; endedAt: string | null
 export type InspectorFailure = { type: string | null; message: string | null } | null;
 type TimedPresentation = { timing: InspectorTiming; failure: InspectorFailure };
 export type InspectorPresentation =
+  | ({
+    type: "sql";
+    sql: {
+      statement: NonNullable<InspectorDto["sql"]>;
+      bindings: InspectorDto["bindings"];
+      result: InspectorDto["result"];
+    };
+  } & TimedPresentation)
+  | ({ type: "transaction"; transaction: NonNullable<InspectorDto["transaction"]> } & TimedPresentation)
+  | ({ type: "cache"; cache: NonNullable<InspectorDto["cache"]> } & TimedPresentation)
+  | ({ type: "redis"; redis: NonNullable<InspectorDto["redis"]> } & TimedPresentation)
   | ({ type: "http"; http: NonNullable<InspectorDto["http"]> } & TimedPresentation)
   | ({ type: "delivery"; delivery: NonNullable<InspectorDto["delivery"]> } & TimedPresentation)
   | ({ type: "storage"; storage: NonNullable<InspectorDto["storage"]> } & TimedPresentation)
