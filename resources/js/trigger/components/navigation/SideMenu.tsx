@@ -285,7 +285,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       <div data-testid="side-menu-resizer" role="separator" aria-orientation="vertical" aria-label="Resize side menu" className="group/resize absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none" onPointerDown={resize}>
         <div className="pointer-events-none absolute inset-y-0 left-1/2 w-0.75 -translate-x-1/2 bg-indigo-500 opacity-0 transition-opacity duration-300 group-hover/resize:opacity-100" />
       </div>
-      <div className="absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden">
+      <div className="absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto_auto] overflow-hidden">
         <div className="flex min-w-0 items-center overflow-hidden border-b border-transparent px-1 py-1">
         <div className="flex h-8 w-full items-center rounded pl-1.75 pr-1">
           <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
@@ -333,13 +333,15 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </div>
           </nav>
         </div>
+        <div data-testid="side-menu-appearance" className={cn(collapsed && "flex justify-center", "px-1")}>
+          {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
+        </div>
         <div>
           <div className={cn("flex flex-col gap-1 border-t border-grid-bright p-1", collapsed && "items-center")}>
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
           <DormantShellActions capabilities={capabilities.shell} />
           {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
-          {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
           <CollapseMenuButton collapsed={collapsed} onToggle={toggleCollapsed} />
         </div>
         </div>

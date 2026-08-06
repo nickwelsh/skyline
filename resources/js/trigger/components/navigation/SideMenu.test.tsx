@@ -70,7 +70,7 @@ describe("SideMenu capabilities", () => {
     const resizer = container.querySelector<HTMLElement>('[data-testid="side-menu-resizer"]')!;
 
     expect(menu.className).toBe("relative h-full border-r border-grid-bright bg-background-bright");
-    expect(inner.className).toBe("absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden");
+    expect(inner.className).toBe("absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto_auto] overflow-hidden");
     expect(project.className).toBe("border-b border-grid-bright pb-2.5 pt-1");
     expect(project.style.paddingLeft).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
     expect(project.style.paddingRight).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
@@ -101,16 +101,19 @@ describe("SideMenu capabilities", () => {
     }
   });
 
-  it("keeps the source footer anchors around the Appearance extension", () => {
+  it("keeps Appearance in a dedicated row before the unchanged source footer", () => {
     const container = renderSideMenu(fixtureCapabilities.navigation);
     const inner = container.querySelector<HTMLElement>('[data-testid="side-menu"] > .absolute.inset-0.grid')!;
     const footer = inner.lastElementChild as HTMLElement;
+    const appearanceRow = footer.previousElementSibling as HTMLElement;
     const panel = footer.firstElementChild as HTMLElement;
     const controls = panel.lastElementChild as HTMLElement;
     const help = [...controls.querySelectorAll("button")].find((button) => button.textContent?.includes("Help & Feedback"))!;
-    const appearance = controls.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]')!;
+    const appearance = appearanceRow.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]')!;
     const collapse = controls.querySelector<HTMLButtonElement>('button[aria-label="Collapse side menu"]')!;
 
+    expect(appearanceRow.getAttribute("data-testid")).toBe("side-menu-appearance");
+    expect(appearanceRow.className).toBe("px-1");
     expect(footer.className).toBe("");
     expect(panel.className).toBe("flex flex-col gap-1 border-t border-grid-bright p-1");
     expect(controls.className).toBe("flex w-full items-center justify-between");
@@ -118,10 +121,35 @@ describe("SideMenu capabilities", () => {
     expect(container.querySelectorAll('button[aria-label="Collapse side menu"]')).toHaveLength(1);
     expect(help.className).toBe("group flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 hover:bg-background-hover focus-custom w-full justify-between");
     expect(help.querySelector("span > span")?.className).toBe("min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright");
-    expect(appearance.className).toContain("min-w-0 flex-1");
+    expect(appearance.className).toContain("w-full");
+    expect(appearance.textContent).toBe("Appearance");
     expect(appearance.getAttribute("data-skyline-extension")).toBe("shell-appearance");
     expect(collapse.className).toBe("group/button outline-hidden focus-custom");
     expect(collapse.parentElement?.parentElement?.parentElement).toBe(controls);
+    expect(appearance.contains(help)).toBe(false);
+    expect(help.contains(appearance)).toBe(false);
+
+    const buttons = [...container.querySelectorAll("button")];
+    expect(buttons.indexOf(appearance)).toBeLessThan(buttons.indexOf(help));
+    expect(buttons.indexOf(help)).toBeLessThan(buttons.indexOf(collapse));
+  });
+
+  it("keeps the dedicated Appearance target on narrow and collapsed shells", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const narrow = renderSideMenu(fixtureCapabilities.navigation);
+    const narrowAppearance = narrow.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]')!;
+    expect(narrowAppearance.textContent).toBe("Appearance");
+    expect(narrowAppearance.closest('[data-testid="side-menu-appearance"]')).not.toBeNull();
+
+    document.body.replaceChildren();
+    const collapsed = renderSideMenu(fixtureCapabilities.navigation, true);
+    const collapsedRow = collapsed.querySelector<HTMLElement>('[data-testid="side-menu-appearance"]')!;
+    const collapsedAppearance = collapsedRow.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]')!;
+    expect(collapsedRow.className).toBe("flex justify-center px-1");
+    expect(collapsedAppearance.className).toContain("w-8 justify-center pl-0 pr-0");
+    expect(collapsedAppearance.textContent).toBe("");
+    expect(collapsedAppearance.querySelector("svg")).not.toBeNull();
+    expect(collapsed.querySelector('button[aria-label="Expand side menu"]')).not.toBeNull();
   });
 
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
@@ -167,7 +195,7 @@ describe("SideMenu capabilities", () => {
   });
 });
 
-function renderSideMenu(navigation: SideMenuCapabilities["navigation"]) {
+function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapsed = false) {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
@@ -182,7 +210,7 @@ function renderSideMenu(navigation: SideMenuCapabilities["navigation"]) {
           brandMark={null}
           environmentLabel="testing"
           capabilities={{ navigation, shell: fixtureCapabilities.shell, help: fixtureCapabilities.help }}
-          preferences={{ isCollapsed: false, width: 224, sectionOrder: [], collapsedSections: {}, hiddenItems: {}, sectionItemOrder: {} }}
+          preferences={{ isCollapsed: collapsed, width: 224, sectionOrder: [], collapsedSections: {}, hiddenItems: {}, sectionItemOrder: {} }}
           appearance={{ theme: "system", contrast: 50 }}
           warning={null}
           onPreferencesChange={vi.fn()}

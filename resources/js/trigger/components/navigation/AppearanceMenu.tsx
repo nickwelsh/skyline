@@ -18,8 +18,8 @@ export type AppearancePreference = {
 const themes: AppearancePreference["theme"][] = ["classic", "system", "dark", "light"];
 
 export function AppearanceMenu({ appearance, onChange, collapsed, labelOpacity }: { appearance: AppearancePreference; onChange: (value: Partial<AppearancePreference>) => void; collapsed: boolean; labelOpacity: number }) {
-  return <Popover><PopoverTrigger data-skyline-extension="shell-appearance" aria-label="Appearance" className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom", collapsed ? "w-8" : "min-w-0 flex-1")}>
-    {themeIcon(appearance.theme)}<span className="truncate text-[0.90625rem] font-medium" style={{ opacity: labelOpacity }}>Appearance</span>
+  return <Popover><PopoverTrigger data-skyline-extension="shell-appearance" aria-label="Appearance" className={cn("flex h-8 items-center gap-1.5 rounded text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom", collapsed ? "w-8 justify-center pl-0 pr-0" : "w-full pl-1.75 pr-2")}>
+    {themeIcon(appearance.theme)}{!collapsed && <span className="truncate text-[0.90625rem] font-medium" style={{ opacity: labelOpacity }}>Appearance</span>}
   </PopoverTrigger><PopoverContent side={collapsed ? "right" : "top"} align="start" className="w-64 p-3">
     <div className="flex items-center justify-between gap-4"><Label>Interface theme</Label><Select<AppearancePreference["theme"], AppearancePreference["theme"]>
       aria-label="Interface theme"
