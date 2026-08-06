@@ -3,7 +3,7 @@ import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-
 import matrix from "./matrix.json" with { type: "json" };
 import { capturePartitionedAxe, normalizedPartitionLedger, pairedPresenterAxeDifferences } from "./support/axe";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
-import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
+import { discoverPresenterExtensionObservation, waitForStableElementStyle, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
 import { expandedDialogCounts, expectedExpandedDialogTranscript } from "./support/dialog-lifecycle";
 import { isNw223State, nw223InteractionStates, nw223Presentation, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
@@ -163,10 +163,11 @@ async function preparePair(skyline: Page, trigger: Page, capture: string, scenar
   await step("node-select:trigger", () => exposeOwnedState(trigger, scenario, "trigger"));
   await step("live-change:skyline", () => applyLiveSystemChange(skyline, capture));
   await step("live-change:trigger", () => applyLiveSystemChange(trigger, capture));
+  await step("presenter-stable-before-settle:skyline", () => waitForStableElementStyle(skyline, definition.skylineSelector));
   await step("settle:skyline", () => settleCapture(skyline));
   await step("settle:trigger", () => settleCapture(trigger));
+  await step("presenter-stable-after-settle:skyline", () => waitForStableElementStyle(skyline, definition.skylineSelector));
   await step("presenter-ready:trigger", () => trigger.locator(definition.triggerSelector).waitFor());
-  await step("presenter-ready:skyline", () => skyline.locator(definition.skylineSelector).waitFor());
   const expected = operationState(scenario.state);
   await Promise.all([
     step("anchor-state:trigger", () => expectSelectedOperationState(trigger, expected)),

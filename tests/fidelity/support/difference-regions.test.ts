@@ -16,6 +16,7 @@ import {
   validatePairedAnchor,
   validatePresenterExtensionObservation,
   waitForDifferenceRegions,
+  waitForStableElementStyle,
   type CapabilityOmissionDefinition,
   type FrameworkExtensionDefinition,
   type PresenterExtensionDefinition,
@@ -83,6 +84,31 @@ describe("framework-extension fidelity regions", () => {
       identity: { tagName: "section", id: "evidence", className: "panel", role: "region", ariaLabel: "Exception" },
     });
     expect(observation.computedStyle).toContainEqual(["color", "rgb(1, 2, 3)", ""]);
+  });
+
+  test("waits for three consecutive attached visible semantic style frames", async () => {
+    const page = styleStabilityPage([
+      styleSample("transition-property:all"),
+      styleSample("transition-property:none"),
+      styleSample("transition-property:none"),
+      styleSample("transition-property:none"),
+    ]);
+
+    await waitForStableElementStyle(page.page, "[data-extension]", { consecutiveFrames: 3, maxFrames: 6 });
+
+    expect(page.wait).toHaveBeenCalledWith({ state: "visible" });
+    expect(page.sampleCount()).toBe(4);
+  });
+
+  test("fails closed when an attached visible style never stabilizes", async () => {
+    const page = styleStabilityPage([
+      styleSample("transition-property:all"),
+      styleSample("transition-property:none"),
+      styleSample("transition-property:all"),
+    ]);
+
+    await expect(waitForStableElementStyle(page.page, "[data-extension]", { consecutiveFrames: 2, maxFrames: 3 }))
+      .rejects.toThrow(/stable computed style/i);
   });
 
   test("fails closed when the atomic DOM task finds missing or duplicate matches", async () => {
@@ -304,4 +330,19 @@ function waitingPage() {
 function evaluatingPage() {
   const evaluate = vi.fn(async (operation: (selector: string) => unknown, selector: string) => operation(selector));
   return { page: { evaluate } as unknown as Page, evaluate };
+}
+
+function styleSample(signature: string) {
+  return { count: 1, attached: true, visible: true, signature };
+}
+
+function styleStabilityPage(samples: ReturnType<typeof styleSample>[]) {
+  const wait = vi.fn(async () => undefined);
+  const locator = vi.fn(() => ({ waitFor: wait }));
+  let sampleIndex = 0;
+  const evaluate = vi.fn(async () => {
+    const callIndex = evaluate.mock.calls.length - 1;
+    return callIndex % 2 === 0 ? samples[sampleIndex++] : undefined;
+  });
+  return { page: { locator, evaluate } as unknown as Page, wait, sampleCount: () => sampleIndex };
 }

@@ -148,6 +148,40 @@ export async function waitForDifferenceRegions(trigger: Page, skyline: Page, cap
   await Promise.all(waits);
 }
 
+export async function waitForStableElementStyle(page: Page, selector: string, options: { consecutiveFrames?: number; maxFrames?: number } = {}) {
+  const consecutiveFrames = options.consecutiveFrames ?? 3;
+  const maxFrames = options.maxFrames ?? 60;
+  await page.locator(selector).waitFor({ state: "visible" });
+  let previous: string | undefined;
+  let stableFrames = 0;
+  for (let frame = 0; frame < maxFrames; frame += 1) {
+    const sample = await page.evaluate((target) => {
+      const matches = document.querySelectorAll(target);
+      const element = matches.length === 1 ? matches[0] : null;
+      if (!element) return { count: matches.length, attached: false, visible: false, signature: "" };
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      const attached = element.isConnected;
+      const visible = attached && rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && style.visibility !== "collapse";
+      const computedStyle = Array.from(style)
+        .filter((property) => !property.startsWith("--"))
+        .sort()
+        .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+      return { count: matches.length, attached, visible, signature: JSON.stringify({ rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height }, computedStyle }) };
+    }, selector);
+    if (sample.count === 1 && sample.attached && sample.visible) {
+      stableFrames = sample.signature === previous ? stableFrames + 1 : 1;
+      previous = sample.signature;
+      if (stableFrames >= consecutiveFrames) return;
+    } else {
+      previous = undefined;
+      stableFrames = 0;
+    }
+    if (frame + 1 < maxFrames) await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  }
+  throw new Error(`Element ${selector} did not reach stable computed style across ${consecutiveFrames} consecutive visible frames.`);
+}
+
 export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition): Promise<CapabilityOmissionObservation> {
   const dom = [];
   for (const pair of definition.selectorPairs) {
