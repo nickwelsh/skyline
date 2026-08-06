@@ -29,6 +29,9 @@ type CodeBlockProps = {
   wrap?: boolean;
   label?: string;
   modalContent?: ReactNode;
+  extensionId?: string;
+  regionLabel?: string;
+  preClassName?: string;
 };
 
 const dimAmount = 0.5;
@@ -78,6 +81,9 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   wrap = false,
   label = "Code",
   modalContent,
+  extensionId,
+  regionLabel,
+  preClassName,
 }, ref) {
   const expandButton = useRef<HTMLButtonElement>(null);
   const [mouseOver, setMouseOver] = useState(false);
@@ -99,12 +105,15 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
     ? `calc(${(maxLines + extraLinesWhenClipping) * 0.75 * 1.625}rem + 1.5rem)`
     : undefined;
   const highlightLines = highlightedRanges?.flatMap(([start, end]) => Array.from({ length: end - start + 1 }, (_, index) => start + index));
+  const shouldHighlight = lineCount <= 1_000;
 
   return (
     <>
       <div
         ref={ref}
-        aria-label={label}
+        aria-label={regionLabel ?? label}
+        data-skyline-extension={extensionId}
+        role={extensionId ? "region" : undefined}
         className={`relative flex flex-col overflow-hidden rounded-md border border-grid-bright ${className ?? ""}`}
         style={{ backgroundColor: theme.plain.backgroundColor }}
         translate="no"
@@ -154,18 +163,19 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           )}
         </div>
 
-        <HighlightCode
-          theme={theme}
-          code={code}
-          language={language}
-          showLineNumbers={showLineNumbers}
-          highlightLines={highlightLines}
-          maxLineWidth={maxLineWidth}
-          maxHeight={maxHeight}
-          className="px-2 py-3"
-          preClassName="text-xs"
-          isWrapped={isWrapped}
-        />
+        {shouldHighlight
+          ? <HighlightCode
+              theme={theme}
+              code={code}
+              language={language}
+              showLineNumbers={showLineNumbers}
+              highlightLines={highlightLines}
+              maxLineWidth={maxLineWidth}
+              className="px-2 py-3"
+              preClassName={preClassName ?? "text-xs leading-relaxed"}
+              isWrapped={isWrapped}
+            />
+          : <PlainCode code={code} maxHeight={maxHeight} isWrapped={isWrapped} />}
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -198,7 +208,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               highlightLines={highlightLines}
               maxLineWidth={maxLineWidth}
               className={modalContent ? "" : "min-h-full"}
-              preClassName="text-sm"
+              preClassName="text-sm leading-relaxed"
               isWrapped={isWrapped}
             />
             {modalContent}
@@ -223,6 +233,14 @@ function Chrome({ title }: { title?: string }) {
   );
 }
 
+function PlainCode({ code, maxHeight, isWrapped }: { code: string; maxHeight?: string; isWrapped: boolean }) {
+  return (
+    <div dir="ltr" className="min-h-0 flex-1 overflow-auto px-2 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control" style={{ maxHeight }}>
+      <pre className={`relative mr-2 p-2 font-mono text-xs leading-relaxed ${isWrapped ? "whitespace-pre-wrap wrap-break-word" : ""}`} dir="ltr">{code}</pre>
+    </div>
+  );
+}
+
 function TitleRow({ title }: { title: ReactNode }) {
   return <div className="flex items-center justify-between px-3"><div className="w-full border-b border-grid-dimmed py-2 text-sm text-text-bright">{title}</div></div>;
 }
@@ -243,7 +261,7 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
     <Highlight theme={theme} code={code} language={language}>
       {({ className: inheritedClassName, style, tokens, getLineProps, getTokenProps }) => (
         <div dir="ltr" className={`min-h-0 flex-1 overflow-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control ${className ?? ""}`} style={{ maxHeight }}>
-          <pre className={`relative mr-2 font-mono leading-relaxed ${preClassName ?? ""} ${isWrapped ? "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word" : ""} ${inheritedClassName}`} style={style} dir="ltr">
+          <pre className={`relative mr-2 font-mono ${preClassName ?? ""} ${isWrapped ? "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word" : ""} ${inheritedClassName}`} style={style} dir="ltr">
             {tokens.map((line, index) => {
               if (index === tokens.length - 1 && line.length === 1 && line[0].content === "\n") return null;
               const lineNumber = index + 1;

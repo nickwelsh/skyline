@@ -78,8 +78,8 @@ describe("ExceptionPreview", () => {
     const presenter = panel.querySelector<HTMLElement>(":scope > [data-skyline-extension='attempt-exception-evidence'][role='region'][aria-label='Exception']")!;
 
     expect(presenter).not.toBeNull();
+    expect(presenter.matches("[translate='no']")).toBe(true);
     expect(panel.getAttribute("role")).toBeNull();
-    expect(presenter.querySelector('[aria-label="exception stack trace"]')).not.toBeNull();
     const expand = presenter.querySelector<HTMLButtonElement>('button[aria-label="Expand exception stack trace"]')!;
     expect(expand.tabIndex).toBe(0);
     flushSync(() => expand.click());
@@ -97,6 +97,21 @@ describe("ExceptionPreview", () => {
     flushSync(() => root.render(<ExceptionPreview exception={{ ...exception(), class: "LogicException" }} extensionId="attempt-exception-evidence" />));
     expect(container.querySelector("h3")?.textContent).toBe("LogicException");
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+
+    flushSync(() => root.unmount());
+  });
+
+  it("keeps the pinned RunError stack uncapped for highlighted traces", () => {
+    const base = exception();
+    const frames = Array.from({ length: 32 }, (_, index) => ({ ...base.frames[0], file: `app/Jobs/Step${index}.php`, line: index + 1 }));
+    const { container, root } = render({ ...base, frames }, "attempt-exception-evidence");
+    const presenter = container.querySelector<HTMLElement>("[data-skyline-extension='attempt-exception-evidence']")!;
+    const codeViewport = presenter.querySelector<HTMLElement>("[dir='ltr']")!;
+    const code = codeViewport.querySelector("pre")!;
+
+    expect(codeViewport.style.maxHeight).toBe("");
+    expect(code.className).toContain("leading-4");
+    expect(presenter.querySelector('[aria-label="Copy exception stack trace"]')).toBeNull();
 
     flushSync(() => root.unmount());
   });

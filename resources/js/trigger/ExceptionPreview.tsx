@@ -104,16 +104,17 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
     return (
       <section className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
         {common}
-        <div data-skyline-extension="attempt-exception-evidence" role="region" aria-label="Exception">
-          <CodeBlock
-            code={formatStackTrace(exception.frames)}
-            label="exception stack trace"
-            maxLines={20}
-            showCopyButton={false}
-            showLineNumbers={false}
-            modalContent={<div className="flex flex-col gap-2 border-t border-grid-bright px-4 py-3">{metadata}{trace}</div>}
-          />
-        </div>
+        <CodeBlock
+          code={formatStackTrace(exception.frames)}
+          label="exception stack trace"
+          extensionId="attempt-exception-evidence"
+          regionLabel="Exception"
+          preClassName="text-xs leading-4"
+          maxLines={20}
+          showCopyButton={false}
+          showLineNumbers={false}
+          modalContent={<div className="flex flex-col gap-2 border-t border-grid-bright px-4 py-3">{metadata}{trace}</div>}
+        />
       </section>
     );
   }
