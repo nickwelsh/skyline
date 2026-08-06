@@ -90,7 +90,14 @@ async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: Fix
 
 async function responseFor(path: string, search: URLSearchParams, adapter: FixtureAdapter): Promise<unknown> {
   if (path === "jobs") return adapter.jobs({ search: search.get("search") ?? undefined, period: period(search) });
-  if (path.startsWith("jobs/")) return adapter.job(decodeURIComponent(path.slice(5)), { cursor: search.get("cursor") ?? undefined, status: search.getAll("status[]") as never, period: period(search) });
+  if (path.startsWith("jobs/")) {
+    const statuses = search.getAll("status[]");
+    return adapter.job(decodeURIComponent(path.slice(5)), {
+      cursor: search.get("cursor") ?? undefined,
+      status: statuses.length > 0 ? statuses as never : undefined,
+      period: period(search),
+    });
+  }
   if (path === "runs") return adapter.runs({ cursor: search.get("cursor") ?? undefined, search: search.get("search") ?? undefined, status: search.getAll("status[]") as never, job: search.get("job") ?? undefined, connection: search.get("connection") ?? undefined, queue: search.get("queue") ?? undefined, trace: search.get("trace") ?? undefined, rootOnly: search.has("rootOnly") ? search.get("rootOnly") === "true" : undefined, triggeredFrom: search.get("triggeredFrom") ?? undefined, triggeredTo: search.get("triggeredTo") ?? undefined });
   if (path === "runs/updates") return adapter.updates({}, search.get("since") ?? "0", search.getAll("runIds[]"));
   const inspector = path.match(/^runs\/([^/]+)\/nodes\/(.+)$/);
