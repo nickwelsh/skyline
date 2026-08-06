@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -39,6 +39,10 @@ function capabilityAdapters(): Plugin {
   const queueControlsSource = join(vendorRoot, "components/queues/QueueControls.tsx");
   const queueMetricSource = join(vendorRoot, "components/queues/QueueMetricCards.tsx");
   const queueListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx");
+  const queueDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx");
+  const bigNumberSource = join(vendorRoot, "components/metrics/BigNumber.tsx");
+  const tableSource = join(vendorRoot, "components/primitives/Table.tsx");
+  const miniChartSource = join(vendorRoot, "components/metrics/MiniLineChart.tsx");
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
@@ -51,8 +55,12 @@ function capabilityAdapters(): Plugin {
     transform(code, moduleId) {
       const source = moduleId.split("?")[0];
       if (source === queueControlsSource) return conditionQueueControls(code, capabilityPolicy.queues);
-      if (source === queueMetricSource) return conditionQueueMetricResources(code, capabilityPolicy.queues);
-      if (source === queueListSource) return conditionQueueListMetricResources(code, capabilityPolicy.queues);
+      if (source === queueMetricSource) return conditionQueueMetricCardMarkers(conditionQueueMetricResources(code, capabilityPolicy.queues));
+      if (source === queueListSource) return conditionQueueListMarkers(conditionQueueListMetricResources(code, capabilityPolicy.queues));
+      if (source === queueDetailSource) return conditionQueueDetailMarkers(code);
+      if (source === bigNumberSource) return conditionQueueBigNumberMarkers(code);
+      if (source === tableSource) return conditionQueueTableMarkers(code);
+      if (source === miniChartSource) return conditionQueueMiniChartMarkers(code);
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
       if (source === taskRunsTableSource) return conditionErrorRunTableCapabilities(code, capabilityPolicy.errors);

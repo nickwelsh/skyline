@@ -5,12 +5,17 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import policy from "./reference-capabilities.json" with { type: "json" };
 import { conditionQueueControls, conditionQueueListMetricResources, conditionQueueMetricResources, conditionSideMenuItems, conditionSideMenuSections, conditionSideMenuShell } from "./reference/vite.config";
+import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers } from "./reference/capability-adapters";
 
 const root = resolve(import.meta.dirname, "../..");
 const vendor = resolve(root, "tests/fidelity/reference/vendor/components/navigation");
 const queueMetrics = resolve(root, "tests/fidelity/reference/vendor/components/queues/QueueMetricCards.tsx");
 const queueList = resolve(root, "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx");
 const queueControls = resolve(root, "tests/fidelity/reference/vendor/components/queues/QueueControls.tsx");
+const queueDetail = resolve(root, "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx");
+const bigNumber = resolve(root, "tests/fidelity/reference/vendor/components/metrics/BigNumber.tsx");
+const table = resolve(root, "tests/fidelity/reference/vendor/components/primitives/Table.tsx");
+const miniChart = resolve(root, "tests/fidelity/reference/vendor/components/metrics/MiniLineChart.tsx");
 
 describe("pinned shell capability adapters", () => {
   test("locks the reviewed policy digest", () => {
@@ -59,5 +64,26 @@ describe("pinned shell capability adapters", () => {
     expect(() => conditionQueueListMetricResources(list.replace("useMetricResourceQuery(tile.query", "changed(tile.query"))).toThrow(/must be reviewed/i);
     expect(() => conditionQueueControls(controls.replace("export function QueuePauseResumeButton(", "export function changed("))).toThrow(/must be reviewed/i);
     expect(() => conditionQueueMetricResources(source, { ...policy.queues, metricSource: "unknown" })).toThrow(/must be reviewed/i);
+  });
+
+  test("adds unique semantic Queue capability markers without owning broad chrome", () => {
+    const list = conditionQueueListMarkers(readFileSync(queueList, "utf8"));
+    const detail = conditionQueueDetailMarkers(readFileSync(queueDetail, "utf8"));
+    const number = conditionQueueBigNumberMarkers(readFileSync(bigNumber, "utf8"));
+    const cells = conditionQueueTableMarkers(readFileSync(table, "utf8"));
+    const sparkline = conditionQueueMiniChartMarkers(readFileSync(miniChart, "utf8"));
+    const metric = conditionQueueMetricCardMarkers(readFileSync(queueMetrics, "utf8"));
+
+    for (const marker of ["queue-root-running", "queue-root-environment-limit", "queue-target-${queue.id}-limit", "queue-target-${queue.id}-limited-by", "queue-target-${queue.id}-backlog", "queue-target-${queue.id}-pause-resume", "queue-target-${queue.id}-warning", "queue-target-${queue.id}-health"]) {
+      expect(list).toContain(marker);
+    }
+    for (const marker of ["queue-detail-concurrency", "queue-detail-concurrency-limit", "queue-detail-throttled"]) expect(detail).toContain(marker);
+    expect(number).toContain("data-trigger-capability={capabilityMarker}");
+    expect(cells).toContain("data-trigger-capability={capabilityMarker}");
+    expect(sparkline.match(/data-trigger-capability={capabilityMarker}/g)).toHaveLength(2);
+    expect(metric).toContain("data-trigger-capability={capabilityMarker}");
+    expect(list).not.toContain("data-trigger-capability=\"queue-header");
+    expect(detail).not.toContain("queue-recorded-runs");
+    expect(() => conditionQueueListMarkers(readFileSync(queueList, "utf8").replace("              value={envRunningLive}", "              value={changed}"))).toThrow(/must be reviewed/i);
   });
 });
