@@ -8,6 +8,7 @@
     "moduleResolution": "Bundler",
     "paths": {
       "@remix-run/react": ["./resources/js/skyline/remix-react.ts"],
+      "remix-typedjson": ["./resources/js/skyline/remix-typedjson.ts"],
       "~/*": ["./resources/js/trigger/*"]
     },
     "noEmit": true,
@@ -17,5 +18,5 @@
     "target": "ES2023",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "scripts/**/*.mjs", "tests/browser/**/*.ts", "tests/browser/**/*.tsx", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
+  "include": ["resources/js/**/*.ts", "resources/js/**/*.tsx", "resources/js/**/*.d.ts", "scripts/**/*.mjs", "tests/browser/**/*.ts", "tests/browser/**/*.tsx", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

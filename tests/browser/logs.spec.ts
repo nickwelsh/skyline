@@ -25,6 +25,11 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
         - row
         - row
   `);
+  const referenceFirstCell = reference.locator("tbody tr").first().getByRole("button").first();
+  await expect(referenceFirstCell).toHaveAttribute("tabindex", "-1");
+  await referenceFirstCell.focus();
+  await reference.keyboard.press("Tab");
+  const referenceNextFocus = await focusSignature(reference);
   await reference.locator("tbody tr").first().hover();
   await expect(reference.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/runs/run_invoice?span=span_job");
   await reference.locator("tbody tr").nth(1).getByRole("button").first().focus();
@@ -36,17 +41,22 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await routeLogs(page);
   await page.goto("/skyline/logs");
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Logs" })).toHaveAttribute("href", "/skyline/logs");
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Job type", "Level", "Message"]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
   await expect(page.locator("table")).toMatchAriaSnapshot(`
     - table:
       - rowgroup:
-        - row "Time Run Job type Level Message"
+        - row "Time Run Task Level Message"
       - rowgroup:
         - row
         - row
   `);
+  const skylineFirstCell = page.locator("tbody tr").first().getByRole("button").first();
+  await expect(skylineFirstCell).toHaveAttribute("tabindex", "-1");
+  await skylineFirstCell.focus();
+  await page.keyboard.press("Tab");
+  expect(await focusSignature(page)).toEqual(referenceNextFocus);
   await expect(page.getByLabel("Application-log capture")).toContainText("warning, error");
   await page.locator("tbody tr").first().hover();
   await expect(page.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
@@ -58,7 +68,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(detail).toContainText("Application log context");
   await expect(detail).toContainText("trace_invoice");
   await expect(detail).toContainText("parent_job");
-  await expect(detail.getByRole("link", { name: "View full Run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
+  await expect(detail.getByRole("link", { name: "View full run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
   await expect(detail.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=attempt_2");
   await expect(detail.getByRole("link", { name: "View Job" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   expect(await detailVisuals(page, "Telemetry-event detail")).toEqual(referenceDetail);
@@ -77,6 +87,35 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await reference.close();
 });
 
+test("rapid Logs selection ignores aborted and stale detail responses", async ({ page }) => {
+  let releaseLog!: () => void;
+  const heldLog = new Promise<void>((resolve) => { releaseLog = resolve; });
+  let holdLog = true;
+
+  await page.route("**/skyline/api/logs**", async (route) => {
+    const url = new URL(route.request().url());
+    const id = url.pathname.match(/\/api\/logs\/([^/]+)$/)?.[1];
+    if (!id) return route.fulfill({ json: listResponse(url) });
+    if (id === logId && holdLog) await heldLog;
+    return route.fulfill({ json: detailResponse(id) });
+  });
+
+  await page.goto("/skyline/logs");
+  await page.locator("tbody tr").nth(1).getByRole("button").first().click();
+  await expect(page).toHaveURL(new RegExp(`event=${logId}`));
+  await expect(page.getByLabel("Loading Telemetry-event detail")).toBeVisible();
+  await page.locator("tbody tr").first().getByRole("button").first().click();
+  await expect(page).toHaveURL(new RegExp(`event=${operationId}`));
+  const detail = page.getByRole("region", { name: "Telemetry-event detail" });
+  await expect(detail).toContainText("Inspect operation");
+
+  holdLog = false;
+  releaseLog();
+  await page.waitForTimeout(50);
+  await expect(detail).toContainText("Inspect operation");
+  await expect(detail).not.toContainText("Application log context");
+});
+
 test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) => {
   await routeLogs(page, { paginate: true });
   await page.goto("/skyline/logs");
@@ -87,6 +126,7 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
   await page.getByLabel("Run ID").fill("run_invoice");
   await page.getByLabel("Run ID").press("Enter");
+  await expect(page).toHaveURL(/runId=run_invoice/);
   await page.getByLabel("Time range").selectOption("7d");
   await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/runId=run_invoice/);
@@ -225,5 +265,12 @@ async function detailVisuals(page: Page, label: string) {
     const handle = panel.previousElementSibling!;
     const title = detail.querySelector("h2")!; const style = getComputedStyle(title);
     return { width: Math.round(panel.getBoundingClientRect().width), handleWidth: getComputedStyle(handle).width, titleFontSize: style.fontSize, titleFontWeight: style.fontWeight, rows: getComputedStyle(detail).gridTemplateRows.split(" ").length };
+  });
+}
+
+async function focusSignature(page: Page) {
+  return page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null;
+    return { tag: active?.tagName, role: active?.getAttribute("role"), text: active?.textContent?.trim() };
   });
 }

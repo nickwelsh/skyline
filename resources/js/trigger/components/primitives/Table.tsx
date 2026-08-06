@@ -172,6 +172,20 @@ export const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   }
 );
 
+type TableBlankRowProps = {
+  className?: string;
+  colSpan: number;
+  children?: ReactNode;
+};
+
+export const TableBlankRow = forwardRef<HTMLTableRowElement, TableBlankRowProps>(
+  ({ children, colSpan, className }, ref) => (
+    <tr ref={ref}>
+      <td colSpan={colSpan} className={cn("py-6 text-center text-sm", className)}>{children}</td>
+    </tr>
+  )
+);
+
 type TableCellBasicProps = {
   className?: string;
   alignment?: "left" | "center" | "right";
@@ -467,17 +481,14 @@ export const TableCellMenu = forwardRef<
   const { variant } = useContext(TableContext);
 
   return (
-    <td
-      ref={ref}
-      className={cn(
-        "sticky right-0 w-px bg-background-dimmed px-2",
-        variants[variant].stickyCell,
-        className
-      )}
-    >
-      <div data-hidden-buttons className="invisible flex justify-end group-hover/table-row:visible group-focus-within/table-row:visible">
-        {hiddenButtons}
+    <TableCell className={className} ref={ref} alignment="right" hasAction>
+      <div className="relative h-full p-1">
+        <div className={cn("absolute right-0 top-1/2 mr-1 flex -translate-y-1/2 items-center justify-end gap-0.5 rounded-[0.25rem] p-0.5 group-hover/table-row:ring-1", variants[variant].menuButton)}>
+          <div data-hidden-buttons className="hidden group-hover/table-row:block">
+            <div className="flex items-center gap-x-0.5 divide-x divide-grid-bright">{hiddenButtons}</div>
+          </div>
+        </div>
       </div>
-    </td>
+    </TableCell>
   );
 });

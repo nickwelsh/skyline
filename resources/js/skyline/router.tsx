@@ -6,6 +6,8 @@ import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAd
 import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargetsQuery } from "./QueueTargetAdapter";
 import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
 import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
+import type { PresentedTelemetryEventDetail } from "./TelemetryEventsAdapter";
+import { TelemetryEventDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
 import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { BrandMark } from "./BrandMark";
@@ -52,10 +54,13 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
     return {
       ...list,
       selectedSummary: eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null,
+      renderTable: (props) => <TelemetryEventsTable events={list.telemetryEvents} {...props} hasAnyEvents={list.hasAnyTelemetryEvents} hasFilters={list.hasFilters} />,
+      renderDetail: (event, onClose) => <TelemetryEventDetailView event={event as PresentedTelemetryEventDetail} onClose={onClose} />,
       loadDetail: async (id, signal) => {
         try {
           return { state: "found" as const, data: presentTelemetryEventDetail(await adapter.telemetryEvent(id, signal)) };
         } catch (error) {
+          if (signal?.aborted || (error instanceof DOMException && error.name === "AbortError")) throw error;
           const notFound = error instanceof SkylineApiError && error.status === 404;
           return { state: (notFound ? "not-found" : "error") as "not-found" | "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." };
         }

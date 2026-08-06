@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: "@remix-run/react", replacement: fileURLToPath(new URL("./resources/js/skyline/remix-react.ts", import.meta.url)) },
+      { find: "remix-typedjson", replacement: fileURLToPath(new URL("./resources/js/skyline/remix-typedjson.ts", import.meta.url)) },
       { find: "~", replacement: fileURLToPath(new URL("./resources/js/trigger", import.meta.url)) },
     ],
   },

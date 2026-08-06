@@ -1,94 +1,255 @@
-/*!
- * Adapted from Trigger.dev apps/webapp/app/components/logs/LogDetailView.tsx
- * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Fetching, tenant paths, and execution state are external; source detail composition remains.
- */
+import type { TaskRunStatus } from "@trigger.dev/database";
+import { useEffect, useState } from "react";
+import { useTypedFetcher } from "remix-typedjson";
 import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { Button, LinkButton } from "~/components/primitives/Buttons";
-import { Callout } from "~/components/primitives/Callout";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTimeAccurate } from "~/components/primitives/DateTime";
-import { Header2, Header3 } from "~/components/primitives/Headers";
+import { Header2 } from "~/components/primitives/Headers";
+import { Paragraph } from "~/components/primitives/Paragraph";
 import * as Property from "~/components/primitives/PropertyTable";
+import { Spinner } from "~/components/primitives/Spinner";
+import { SimpleTooltip } from "~/components/primitives/Tooltip";
 import { PacketDisplay } from "~/components/runs/v3/PacketDisplay";
-import { LogLevel, type LogLevelValue } from "./LogLevel";
-
-type LogDetailShared = {
-  id: string;
-  runId: string;
-  runPath: string;
-  attemptNumber: number | null;
-  attemptPath: string | null;
-  jobType: string;
-  jobPath: string;
-  timestamp: string;
-  level: LogLevelValue;
-  errorPath: string | null;
-  relationships: { traceId: string; spanId: string; parentSpanId: string | null };
-  attributes: Record<string, unknown>;
-  capture: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
+import {
+  TaskRunStatusCombo,
+  descriptionForTaskRunStatus,
+} from "~/components/runs/v3/TaskRunStatus";
+import { useEnvironment } from "~/hooks/useEnvironment";
+import { useOrganization } from "~/hooks/useOrganizations";
+import { useProject } from "~/hooks/useProject";
+import type { LogEntry } from "~/presenters/v3/LogsListPresenter.server";
+import type { loader as logDetailLoader } from "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs.$logId";
+import { v3RunSpanPath } from "~/utils/pathBuilder";
+import { LogLevel } from "./LogLevel";
+type LogDetailViewProps = {
+  logId: string;
+  // If we have the log entry from the list, we can display it immediately
+  initialLog?: LogEntry;
+  onClose: () => void;
+  searchTerm?: string;
 };
-type OperationLogDetailEntry = LogDetailShared & { variant: "operation"; name: string; role: string | null; kind: number; status: "completed" | "failed"; durationUs: number; operationPath: string; events: unknown[]; links: unknown[]; resource: Record<string, unknown>; instrumentation: Record<string, unknown> };
-type ApplicationLogDetailEntry = LogDetailShared & { variant: "log"; message: string; context: Record<string, unknown>; channel: string | null };
-export type LogDetailEntry = OperationLogDetailEntry | ApplicationLogDetailEntry;
 
-export function LogDetailView({ log, onClose }: { log: LogDetailEntry; onClose: () => void }) {
-  const title = log.variant === "operation" ? log.name : log.message;
+type LogAttributes = Record<string, unknown> & {
+  error?: {
+    message?: string;
+  };
+};
+
+function getDisplayMessage(log: {
+  message: string;
+  level: string;
+  attributes?: LogAttributes;
+}): string {
+  let message = log.message ?? "";
+  if (log.level === "ERROR") {
+    const maybeErrorMessage = log.attributes?.error?.message;
+    if (typeof maybeErrorMessage === "string" && maybeErrorMessage.length > 0) {
+      message = maybeErrorMessage;
+    }
+  }
+  return message;
+}
+
+function formatStringJSON(str: string): string {
+  return str
+    .replace(/\\n/g, "\n") // Converts literal "\n" to newline
+    .replace(/\\t/g, "\t"); // Converts literal "\t" to tab
+}
+
+export function LogDetailView({ logId, initialLog, onClose, searchTerm }: LogDetailViewProps) {
+  const organization = useOrganization();
+  const project = useProject();
+  const environment = useEnvironment();
+  const fetcher = useTypedFetcher<typeof logDetailLoader>();
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch full log details when logId changes
+  useEffect(() => {
+    if (!logId) return;
+
+    setError(null);
+    fetcher.load(
+      `/resources/orgs/${organization.slug}/projects/${project.slug}/env/${
+        environment.slug
+      }/logs/${encodeURIComponent(logId)}`
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organization.slug, project.slug, environment.slug, logId]);
+
+  // Handle fetch errors
+  useEffect(() => {
+    if (fetcher.data && typeof fetcher.data === "object" && "error" in fetcher.data) {
+      setError(fetcher.data.error as string);
+    } else if (fetcher.state === "idle" && fetcher.data === null && !initialLog) {
+      setError("Failed to load log details");
+    } else {
+      setError(null);
+    }
+  }, [fetcher.data, initialLog, fetcher.state]);
+
+  const isLoading = fetcher.state === "loading";
+  const log = fetcher.data ?? initialLog;
+  const runStatus = fetcher.data?.runStatus;
+
+  const runPath = v3RunSpanPath(
+    organization,
+    project,
+    environment,
+    { friendlyId: log?.runId ?? "" },
+    { spanId: log?.spanId ?? "" }
+  );
+
+  if (isLoading && !log) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  if (!log) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between border-b border-grid-dimmed py-2 pl-3 pr-2">
+          <Header2>Log Details</Header2>
+          <Button
+            onClick={onClose}
+            variant="minimal/small"
+            TrailingIcon={ExitIcon}
+            shortcut={{ key: "esc" }}
+            shortcutPosition="before-trailing-icon"
+            className="pl-1"
+          />
+        </div>
+        <div className="flex flex-1 items-center justify-center">
+          <Paragraph className="text-text-dimmed">{error ?? "Log not found"}</Paragraph>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+    <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+      {/* Header */}
       <div className="flex items-center justify-between overflow-hidden border-b border-grid-dimmed py-2 pl-3 pr-2">
-        <Header2 className="truncate">{title}</Header2>
-        <Button aria-label="Close Telemetry-event detail" onClick={onClose} variant="minimal/small" TrailingIcon={ExitIcon} shortcut={{ key: "esc" }} shortcutPosition="before-trailing-icon" className="pl-1" />
+        <Header2 className="truncate">{getDisplayMessage(log)}</Header2>
+        <Button
+          onClick={onClose}
+          variant="minimal/small"
+          TrailingIcon={ExitIcon}
+          shortcut={{ key: "esc" }}
+          shortcutPosition="before-trailing-icon"
+          className="pl-1"
+        />
       </div>
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-        <Property.Table>
-          <Item label="Run ID"><CopyableText value={log.runId} copyValue={log.runId} asChild /><LinkButton to={log.runPath} variant="secondary/small" shortcut={{ key: "v" }} className="mt-2">View full Run</LinkButton></Item>
-          {log.variant === "operation" && <Item label="Status">{log.status}</Item>}
-          <Item label="Job type"><CopyableText value={log.jobType} copyValue={log.jobType} asChild /><LinkButton to={log.jobPath} variant="secondary/small" className="mt-2">View Job</LinkButton></Item>
-          <Item label="Level"><LogLevel level={log.level} /></Item>
-          <Item label="Timestamp"><DateTimeAccurate date={log.timestamp} /></Item>
-        </Property.Table>
-
-        {log.variant === "log" && <Capture title="Message" value={log.message} language="text" />}
-        {log.variant === "log" && Object.keys(log.attributes).length > 0 && <Capture title="Attributes" value={log.attributes} />}
-
-        <Header3 className="mb-2 mt-6">Telemetry</Header3>
-        <Property.Table>
-          {log.attemptNumber !== null && <Item label="Attempt">{log.attemptPath ? <LinkButton to={log.attemptPath} variant="secondary/small">Attempt {log.attemptNumber}</LinkButton> : `Attempt ${log.attemptNumber}`}</Item>}
-          <Item label="Trace ID"><CopyableText value={log.relationships.traceId} /></Item>
-          <Item label="Span ID"><CopyableText value={log.relationships.spanId} /></Item>
-          <Item label="Parent span ID">{log.relationships.parentSpanId ?? "—"}</Item>
-          {log.variant === "operation" && <>
-            <Item label="Role">{log.role ?? "—"}</Item><Item label="Kind">{log.kind}</Item><Item label="Duration">{`${log.durationUs.toLocaleString()}µs`}</Item>
-          </>}
-          {log.variant === "log" && <Item label="Channel">{log.channel ?? "—"}</Item>}
-        </Property.Table>
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {log.variant === "operation" && <LinkButton to={log.operationPath} variant="secondary/small">Inspect operation</LinkButton>}
-          {log.errorPath && <LinkButton to={log.errorPath} variant="secondary/small">View Error group</LinkButton>}
-        </div>
-
-        {log.variant === "log" && Object.keys(log.context).length > 0 && <Capture title="Context" value={log.context} />}
-        {log.variant === "operation" && <>
-          <Capture title="Attributes" value={log.attributes} />
-          <Capture title="Events" value={log.events} />
-          <Capture title="Links" value={log.links} />
-          <Capture title="Resource" value={log.resource} />
-          <Capture title="Instrumentation" value={log.instrumentation} />
-        </>}
-        {log.capture.isTruncated && <Callout variant="warning" className="mt-4">Captured {log.variant === "operation" ? "operation" : "log"} detail was truncated at the recorded presentation boundary.</Callout>}
+        <DetailsTab log={log} runPath={runPath} runStatus={runStatus} searchTerm={searchTerm} />
       </div>
-    </section>
+    </div>
   );
 }
 
-function Item({ label, children }: { label: string; children: React.ReactNode }) {
-  return <Property.Item><Property.Label>{label}</Property.Label><Property.Value>{children}</Property.Value></Property.Item>;
-}
+function DetailsTab({
+  log,
+  runPath,
+  runStatus,
+  searchTerm,
+}: {
+  log: LogEntry & {
+    attributes?: LogAttributes;
+  };
+  runPath: string;
+  runStatus?: TaskRunStatus;
+  searchTerm?: string;
+}) {
+  let beautifiedAttributes: string | null = null;
 
-function Capture({ title, value, language = "json" }: { title: string; value: unknown; language?: "json" | "text" }) {
-  const code = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-  return <div className="mb-6 mt-3"><PacketDisplay data={code} dataType={language === "text" ? "text/plain" : "application/json"} title={title} wrap={language === "text"} /></div>;
+  if (log.attributes) {
+    beautifiedAttributes = JSON.stringify(log.attributes, null, 2);
+    beautifiedAttributes = formatStringJSON(beautifiedAttributes);
+  }
+
+  const showAttributes = beautifiedAttributes && beautifiedAttributes !== "{}";
+
+  const message = getDisplayMessage(log);
+
+  return (
+    <>
+      <Property.Table>
+        <Property.Item>
+          <Property.Label>Run ID</Property.Label>
+          <Property.Value>
+            <CopyableText value={log.runId} copyValue={log.runId} asChild />
+            <LinkButton
+              to={runPath}
+              variant="secondary/small"
+              shortcut={{ key: "v" }}
+              className="mt-2"
+            >
+              View full run
+            </LinkButton>
+          </Property.Value>
+        </Property.Item>
+
+        {runStatus && (
+          <Property.Item>
+            <Property.Label>Status</Property.Label>
+            <Property.Value>
+              <SimpleTooltip
+                button={<TaskRunStatusCombo status={runStatus} />}
+                content={descriptionForTaskRunStatus(runStatus)}
+                disableHoverableContent
+                className="mt-1"
+              />
+            </Property.Value>
+          </Property.Item>
+        )}
+
+        <Property.Item>
+          <Property.Label>Task</Property.Label>
+          <Property.Value>
+            <CopyableText value={log.taskIdentifier} copyValue={log.taskIdentifier} asChild />
+          </Property.Value>
+        </Property.Item>
+
+        <Property.Item>
+          <Property.Label>Level</Property.Label>
+          <Property.Value>
+            <LogLevel level={log.level} />
+          </Property.Value>
+        </Property.Item>
+
+        <Property.Item>
+          <Property.Label>Timestamp</Property.Label>
+          <Property.Value>
+            <DateTimeAccurate date={log.triggeredTimestamp} />
+          </Property.Value>
+        </Property.Item>
+      </Property.Table>
+
+      {/* Message */}
+      <div className="mb-6 mt-3">
+        <PacketDisplay
+          data={message}
+          dataType="application/json"
+          title="Message"
+          searchTerm={searchTerm}
+          wrap={true}
+        />
+      </div>
+
+      {/* Attributes - only available in full log detail */}
+      {showAttributes && beautifiedAttributes && (
+        <div className="mb-6">
+          <PacketDisplay
+            data={beautifiedAttributes}
+            dataType="application/json"
+            title="Attributes"
+            searchTerm={searchTerm}
+          />
+        </div>
+      )}
+    </>
+  );
 }

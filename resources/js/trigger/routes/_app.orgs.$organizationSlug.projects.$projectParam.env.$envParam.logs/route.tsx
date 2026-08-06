@@ -10,8 +10,6 @@ import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@r
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
-import { LogDetailView, type LogDetailEntry } from "~/components/logs/LogDetailView";
-import { LogsTable, type LogsTableEntry } from "~/components/logs/LogsTable";
 import { Button } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
@@ -25,19 +23,20 @@ import {
 import { Spinner } from "~/components/primitives/Spinner";
 
 export type LogsRouteData = {
-  telemetryEvents: LogsTableEntry[];
   pagination: { next?: string; previous?: string };
   filters: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobType: string | null; runId: string | null; period: string };
   filterOptions: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobTypes: string[]; timeRanges: Array<{ value: string; label: string }> };
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
-  selectedSummary: LogsTableEntry | null;
-  loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { telemetryEvent: LogDetailEntry } } | { state: "not-found" | "error"; message: string }>;
+  selectedSummary: { variant: "operation" | "log"; name?: string; message?: string } | null;
+  renderTable: (props: { selectedId?: string; onSelect: (id: string) => void; loading: boolean }) => React.ReactNode;
+  renderDetail: (event: unknown, onClose: () => void) => React.ReactNode;
+  loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { telemetryEvent: unknown } } | { state: "not-found" | "error"; message: string }>;
 };
 
 type DetailState =
-  | { id: string; state: "found"; data: { telemetryEvent: LogDetailEntry }; refreshing: boolean }
+  | { id: string; state: "found"; data: { telemetryEvent: unknown }; refreshing: boolean }
   | { id: string; state: "loading" }
   | { id: string; state: "not-found" | "error"; message: string };
 
@@ -71,9 +70,12 @@ export default function Page() {
       ? { ...current, refreshing: true }
       : { id: selectedId, state: "loading" });
     data.loadDetail(selectedId, controller.signal).then(
-      (value) => setDetail(value.state === "found"
-        ? { id: selectedId, state: "found", data: value.data, refreshing: false }
-        : { id: selectedId, state: value.state, message: value.message }),
+      (value) => {
+        if (controller.signal.aborted) return;
+        setDetail(value.state === "found"
+          ? { id: selectedId, state: "found", data: value.data, refreshing: false }
+          : { id: selectedId, state: value.state, message: value.message });
+      },
       (error) => {
         if (controller.signal.aborted) return;
         setDetail({ id: selectedId, state: "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." });
@@ -91,14 +93,14 @@ export default function Page() {
           <ResizablePanelGroup orientation="horizontal" className="max-h-full">
             <ResizablePanel id="logs-list" min="420px">
               <div className="relative h-full overflow-hidden">
-                <LogsTable logs={data.telemetryEvents} selectedLogId={selectedId} onLogSelect={setSelected} loading={navigation.state !== "idle"} hasAnyTelemetryEvents={data.hasAnyTelemetryEvents} hasFilters={data.hasFilters} />
+                {data.renderTable({ selectedId, onSelect: setSelected, loading: navigation.state !== "idle" })}
                 {navigation.state !== "idle" && <div aria-label="Loading Telemetry events" className="pointer-events-none absolute inset-0 grid place-items-center bg-background-dimmed/70"><Spinner /></div>}
               </div>
             </ResizablePanel>
             <ResizableHandle id="logs-detail-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
             {selectedId && <ResizablePanel id="logs-detail" min="430px" default="430px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
               {detail?.state === "found"
-                ? <div className="relative h-full"><LogDetailView log={detail.data.telemetryEvent} onClose={() => setSelected()} />{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
+                ? <div className="relative h-full">{data.renderDetail(detail.data.telemetryEvent, () => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
                 : detail?.state === "not-found" || detail?.state === "error"
                   ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
                   : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />}
@@ -110,7 +112,7 @@ export default function Page() {
   );
 }
 
-function DetailPreview({ log, onClose }: { log: LogsTableEntry | null; onClose: () => void }) {
+function DetailPreview({ log, onClose }: { log: LogsRouteData["selectedSummary"]; onClose: () => void }) {
   const title = log ? (log.variant === "operation" ? log.name : log.message) : "Log Details";
   return <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[auto_1fr]"><div className="flex items-center justify-between border-b border-grid-dimmed py-2 pl-3 pr-2"><h2 className="truncate font-medium text-text-bright">{title}</h2><Button onClick={onClose} variant="minimal/small">Close</Button></div><div aria-label="Loading Telemetry-event detail" className="grid place-items-center"><Spinner /></div></section>;
 }
