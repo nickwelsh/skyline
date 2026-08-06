@@ -86,7 +86,12 @@ final readonly class ErrorGroupsQuery
             ->whereNotNull('skyline_runs.confirmed_at')
             ->where('skyline_attempts.status', 'failed')
             ->whereNotNull('skyline_attempts.exception_class')
-            ->select(['skyline_attempts.*', 'skyline_runs.job_name']);
+            ->select([
+                'skyline_attempts.*',
+                'skyline_runs.job_name',
+                'skyline_runs.connection',
+                'skyline_runs.queue',
+            ]);
     }
 
     /** @param Collection<int, object> $rows @return Collection<string, Collection<int, array<string, mixed>>> */
@@ -256,6 +261,8 @@ final readonly class ErrorGroupsQuery
             'runId' => $row->run_id,
             'attemptNumber' => (int) $row->attempt_number,
             'jobType' => $row->job_name,
+            'connection' => $row->connection,
+            'queue' => $row->queue,
             'startedAt' => Nanoseconds::toRfc3339((int) $row->started_at),
             'finishedAt' => Nanoseconds::toRfc3339($row->finished_at === null ? null : (int) $row->finished_at),
             'observedAt' => Nanoseconds::toRfc3339($this->observedAt($row)),

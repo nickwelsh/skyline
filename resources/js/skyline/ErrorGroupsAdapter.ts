@@ -118,7 +118,7 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
     version: null,
     machine: null,
     status: "failed",
-    queueTarget: "—",
+    queueTarget: attempt.connection && attempt.queue ? `${attempt.connection} / ${attempt.queue}` : "—",
     traceIdentity: "—",
     attemptCount: attempt.attemptNumber,
     startedAt: attempt.startedAt,

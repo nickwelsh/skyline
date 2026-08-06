@@ -114,6 +114,8 @@ it('shows representative frames activity and cursor-paginated original occurrenc
         ->assertJsonPath('failedAttempts.0.exception.frames.0.line', 46)
         ->assertJsonPath('failedAttempts.0.runId', 'error-run-46')
         ->assertJsonPath('failedAttempts.0.attemptNumber', 1)
+        ->assertJsonPath('failedAttempts.0.connection', 'redis')
+        ->assertJsonPath('failedAttempts.0.queue', 'default')
         ->assertJsonPath('hasAnyOccurrences', true);
 
     expect($first->json('activity'))->not->toBeEmpty()

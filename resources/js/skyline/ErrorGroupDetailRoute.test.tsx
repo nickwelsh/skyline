@@ -57,6 +57,7 @@ describe("Error-group detail source chrome", () => {
     expect(container.textContent).not.toContain("Machine");
     expect(container.textContent).not.toContain("Queue target");
     expect(container.textContent).not.toContain("Trace");
+    expect(container.textContent).toContain("redis / billing");
     const sidebar = container.querySelector<HTMLElement>('aside[aria-label="Error group details"]')!;
     expect(sidebar.textContent).toContain(data.errorGroup.friendlyId);
     expect(sidebar.querySelector(`a[href="${data.errorGroup.jobPath}"]`)).toBeNull();

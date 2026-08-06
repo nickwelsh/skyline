@@ -645,19 +645,21 @@ function fixtureErrorOccurrences(): ErrorGroupOccurrence[] {
   );
 
   return [
-    fixtureOccurrence("run_01J8R4NQX6K3PV4W0A1H2Z7M9C", 1, "App\\Jobs\\GenerateMonthlyInvoices", "2026-08-04T20:01:23.000000000Z", deadlock),
-    fixtureOccurrence(repeatedDeadlockRun.id, 1, repeatedDeadlockRun.name, "2026-08-04T19:55:02.000000000Z", repeated),
-    fixtureOccurrence("run_01J8R3XK1YV76N3Q51RPXQ0VC2", 3, "App\\Jobs\\ImportLegacyOrders", "2026-08-04T20:00:23.000000000Z", importFailure),
+    fixtureOccurrence("run_01J8R4NQX6K3PV4W0A1H2Z7M9C", 1, "App\\Jobs\\GenerateMonthlyInvoices", "redis", "billing", "2026-08-04T20:01:23.000000000Z", deadlock),
+    fixtureOccurrence(repeatedDeadlockRun.id, 1, repeatedDeadlockRun.name, repeatedDeadlockRun.connection, repeatedDeadlockRun.queue, "2026-08-04T19:55:02.000000000Z", repeated),
+    fixtureOccurrence("run_01J8R3XK1YV76N3Q51RPXQ0VC2", 3, "App\\Jobs\\ImportLegacyOrders", "sqs", "imports", "2026-08-04T20:00:23.000000000Z", importFailure),
   ];
 }
 
-function fixtureOccurrence(runId: string, attemptNumber: number, jobType: string, observedAt: string, exception: ErrorGroupOccurrence["exception"]): ErrorGroupOccurrence {
+function fixtureOccurrence(runId: string, attemptNumber: number, jobType: string, connection: string, queue: string, observedAt: string, exception: ErrorGroupOccurrence["exception"]): ErrorGroupOccurrence {
   const id = `attempt_${runId}_${attemptNumber}`;
   return {
     id,
     runId,
     attemptNumber,
     jobType,
+    connection,
+    queue,
     startedAt: observedAt,
     finishedAt: observedAt,
     observedAt,

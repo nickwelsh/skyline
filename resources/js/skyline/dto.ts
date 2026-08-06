@@ -285,6 +285,8 @@ export type ErrorGroupOccurrence = {
   runId: string;
   attemptNumber: number;
   jobType: string;
+  connection: string | null;
+  queue: string | null;
   startedAt: string;
   finishedAt: string | null;
   observedAt: string;
