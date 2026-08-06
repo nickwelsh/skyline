@@ -51,7 +51,23 @@ describe("readBootstrap", () => {
     document.body.append(script);
 
     expect(readBootstrap().capabilities).toMatchObject({
-      navigation: { jobs: true, runs: false },
+      navigation: {
+        jobs: true,
+        runs: false,
+        sessions: false,
+        prompts: false,
+        models: false,
+        environmentVariables: false,
+        previewBranches: false,
+        regions: false,
+        waitpointTokens: false,
+        batches: false,
+        bulkActions: false,
+        apiKeys: false,
+        concurrency: false,
+        limits: false,
+        integrations: false,
+      },
       shell: { shortcuts: true, appearance: false },
     });
     expect(readBootstrap().capabilities.navigation).not.toHaveProperty("futureSurface");

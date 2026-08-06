@@ -67,12 +67,25 @@ export type SideMenuCapabilities = {
   navigation: {
     jobs: boolean;
     runs: boolean;
+    sessions: boolean;
+    prompts: boolean;
+    models: boolean;
     errors: boolean;
     logs: boolean;
     queues: boolean;
     query: boolean;
     dashboards: boolean;
     deployments: boolean;
+    environmentVariables: boolean;
+    previewBranches: boolean;
+    regions: boolean;
+    waitpointTokens: boolean;
+    batches: boolean;
+    bulkActions: boolean;
+    apiKeys: boolean;
+    concurrency: boolean;
+    limits: boolean;
+    integrations: boolean;
     schedules: boolean;
     waitpoints: boolean;
     alerts: boolean;
@@ -103,6 +116,12 @@ type MenuItem = {
   activeIconColor: string;
   capability: keyof SideMenuCapabilities["navigation"];
   defaultHidden?: boolean;
+};
+
+type MenuSection = {
+  id: string;
+  title: string;
+  items: MenuItem[];
 };
 
 export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, preferences, appearance, warning, onPreferencesChange, onAppearanceChange, onCustomize }: SideMenuProps) {
@@ -183,28 +202,75 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   const topItems: MenuItem[] = [
     { id: "jobs", name: "Jobs", to: "/jobs", icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" },
     { id: "runs", name: "Runs", to: "/runs", icon: PlayIcon, activeIconColor: "text-runs", capability: "runs" },
+    { id: "sessions", name: "Sessions", to: "/sessions", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "sessions" },
   ];
-  const observabilityItems: MenuItem[] = [
-    { id: "logs", name: "Logs", to: "/logs", icon: LogsIcon, activeIconColor: "text-text-bright", capability: "logs" },
-    { id: "errors", name: "Errors", to: "/errors", icon: BugIcon, activeIconColor: "text-error", capability: "errors" },
-    { id: "query", name: "Query", to: "/query", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "query" },
-    { id: "queues", name: "Queues", to: "/queues", icon: QueuesIcon, activeIconColor: "text-queues", capability: "queues" },
-    { id: "dashboards", name: "Dashboards", to: "/dashboards", icon: ChartBarIcon, activeIconColor: "text-text-bright", capability: "dashboards" },
-    { id: "deployments", name: "Deployments", to: "/deployments", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "deployments" },
-    { id: "schedules", name: "Schedules", to: "/schedules", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "schedules" },
-    { id: "waitpoints", name: "Waitpoints", to: "/waitpoints", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "waitpoints" },
-    { id: "alerts", name: "Alerts", to: "/alerts", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "alerts" },
-    { id: "settings", name: "Settings", to: "/settings", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "settings" },
+  const staticSections: MenuSection[] = [
+    {
+      id: "ai",
+      title: "AI",
+      items: [
+        { id: "prompts", name: "Prompts", to: "/prompts", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "prompts" },
+        { id: "models", name: "Models", to: "/models", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "models" },
+      ],
+    },
+    {
+      id: "metrics",
+      title: "Observability",
+      items: [
+        { id: "logs", name: "Logs", to: "/logs", icon: LogsIcon, activeIconColor: "text-text-bright", capability: "logs" },
+        { id: "errors", name: "Errors", to: "/errors", icon: BugIcon, activeIconColor: "text-error", capability: "errors" },
+        { id: "query", name: "Query", to: "/query", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "query" },
+        { id: "queues", name: "Queues", to: "/queues", icon: QueuesIcon, activeIconColor: "text-queues", capability: "queues" },
+        { id: "dashboards", name: "Dashboards", to: "/dashboards", icon: ChartBarIcon, activeIconColor: "text-text-bright", capability: "dashboards" },
+      ],
+    },
+    {
+      id: "deployments",
+      title: "Deployments",
+      items: [
+        { id: "deployments", name: "Deploys", to: "/deployments", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "deployments" },
+        { id: "environment-variables", name: "Environment variables", to: "/environment-variables", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "environmentVariables" },
+        { id: "preview-branches", name: "Preview branches", to: "/preview-branches", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "previewBranches" },
+        { id: "regions", name: "Regions", to: "/regions", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "regions" },
+      ],
+    },
+    {
+      id: "manage",
+      title: "Manage",
+      items: [
+        { id: "waitpoint-tokens", name: "Waitpoint tokens", to: "/waitpoint-tokens", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "waitpointTokens" },
+        { id: "batches", name: "Batches", to: "/batches", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "batches" },
+        { id: "bulk-actions", name: "Bulk actions", to: "/bulk-actions", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "bulkActions" },
+        { id: "api-keys", name: "API keys", to: "/api-keys", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "apiKeys" },
+        { id: "alerts", name: "Alerts", to: "/alerts", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "alerts" },
+        { id: "concurrency", name: "Concurrency", to: "/concurrency", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "concurrency" },
+        { id: "limits", name: "Limits", to: "/limits", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "limits" },
+        { id: "integrations", name: "Integrations", to: "/integrations", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "integrations" },
+        { id: "schedules", name: "Schedules", to: "/schedules", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "schedules" },
+        { id: "waitpoints", name: "Waitpoints", to: "/waitpoints", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "waitpoints" },
+        { id: "settings", name: "Settings", to: "/settings", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "settings" },
+      ],
+    },
   ];
-  const visibleObservability = orderByPreference(observabilityItems, preferences.sectionItemOrder.metrics)
-    .filter((item) => capabilities.navigation[item.capability] === true && !isItemHidden(item, preferences.hiddenItems));
+  const visibleSections = staticSections
+    .map((section) => ({
+      ...section,
+      items: orderByPreference(section.items, preferences.sectionItemOrder[section.id])
+        .filter((item) => capabilities.navigation[item.capability] === true && !isItemHidden(item, preferences.hiddenItems)),
+    }))
+    .filter((section) => section.items.length > 0);
   const sections = orderByPreference([
-    ...(favorites.length > 0 ? [{ id: "favorites", title: "Favorites" }] : []),
-    { id: "metrics", title: "Observability" },
+    ...(favorites.length > 0 ? [{ id: "favorites", title: "Favorites", items: [] as MenuItem[] }] : []),
+    ...visibleSections,
   ], preferences.sectionOrder);
   const customizeSections: CustomizeSidebarSection[] = [
     ...(favorites.length > 0 ? [{ id: "favorites", title: "Favorites", items: favorites.map((favorite) => ({ id: favorite.id, name: favorite.label, icon: TaskIcon, isFavorite: true })) }] : []),
-    { id: "metrics", title: "Observability", items: observabilityItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => ({ id: item.id, name: item.name, icon: item.icon, defaultHidden: item.defaultHidden })) },
+    ...staticSections.flatMap((section) => {
+      const items = section.items
+        .filter((item) => capabilities.navigation[item.capability] === true)
+        .map((item) => ({ id: item.id, name: item.name, icon: item.icon, defaultHidden: item.defaultHidden }));
+      return items.length > 0 ? [{ id: section.id, title: section.title, items }] : [];
+    }),
   ];
 
   const style = { width, "--sm-collapse": progress, "--sm-label-opacity": labelOpacity } as CSSProperties;
@@ -232,8 +298,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
               <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
-            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.metrics)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.metrics} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, metrics: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
-              {visibleObservability.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
+            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
+              {section.items.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}
           </div>

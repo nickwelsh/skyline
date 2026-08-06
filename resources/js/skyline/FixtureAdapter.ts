@@ -39,7 +39,7 @@ const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
 const pageSize = 25;
 
 export const fixtureCapabilities: SkylineCapabilities = {
-  navigation: { jobs: true, runs: true, queues: true, errors: true, logs: true, query: false, dashboards: false, deployments: false, schedules: false, waitpoints: false, alerts: false, settings: false },
+  navigation: { jobs: true, runs: true, sessions: false, prompts: false, models: false, queues: true, errors: true, logs: true, query: false, dashboards: false, deployments: false, environmentVariables: false, previewBranches: false, regions: false, waitpointTokens: false, batches: false, bulkActions: false, apiKeys: false, concurrency: false, limits: false, integrations: false, schedules: false, waitpoints: false, alerts: false, settings: false },
   jobs: { view: true, testJob: false, configure: false, schedule: false },
   errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
   runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },

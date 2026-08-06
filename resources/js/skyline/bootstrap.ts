@@ -1,7 +1,7 @@
 import type { SkylineBootstrap, SkylineCapabilities } from "./dto";
 
 const capabilityKeys = {
-  navigation: ["jobs", "runs", "errors", "logs", "queues", "query", "dashboards", "deployments", "schedules", "waitpoints", "alerts", "settings"],
+  navigation: ["jobs", "runs", "sessions", "prompts", "models", "errors", "logs", "queues", "query", "dashboards", "deployments", "environmentVariables", "previewBranches", "regions", "waitpointTokens", "batches", "bulkActions", "apiKeys", "concurrency", "limits", "integrations", "schedules", "waitpoints", "alerts", "settings"],
   runs: ["view", "cancel", "replay", "bulkCancel", "bulkReplay"],
   jobs: ["view", "testJob", "configure", "schedule"],
   errors: ["view", "assign", "ignore", "resolve", "alerts", "replay", "cancel", "versions", "bulkActions"],

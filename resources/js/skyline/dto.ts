@@ -376,7 +376,7 @@ export type TelemetryEventDetailDto = {
 type CapabilityMap<K extends string> = { [P in K]: boolean };
 
 export type SkylineCapabilities = {
-  navigation: CapabilityMap<"jobs" | "runs" | "errors" | "logs" | "queues" | "query" | "dashboards" | "deployments" | "schedules" | "waitpoints" | "alerts" | "settings">;
+  navigation: CapabilityMap<"jobs" | "runs" | "sessions" | "prompts" | "models" | "errors" | "logs" | "queues" | "query" | "dashboards" | "deployments" | "environmentVariables" | "previewBranches" | "regions" | "waitpointTokens" | "batches" | "bulkActions" | "apiKeys" | "concurrency" | "limits" | "integrations" | "schedules" | "waitpoints" | "alerts" | "settings">;
   runs: CapabilityMap<"view" | "cancel" | "replay" | "bulkCancel" | "bulkReplay">;
   jobs: CapabilityMap<"view" | "testJob" | "configure" | "schedule">;
   errors: CapabilityMap<"view" | "assign" | "ignore" | "resolve" | "alerts" | "replay" | "cancel" | "versions" | "bulkActions">;
