@@ -1,7 +1,9 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import { actionCaptureId, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import actionFile from "./actions.json" with { type: "json" };
+import matrixFile from "./matrix.json" with { type: "json" };
 import { runActionScript, type ActionScript } from "./support/action-scripts";
 import { prepareCapture, settleCapture } from "./support/capture";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
@@ -12,13 +14,14 @@ import { assertNoFidelityDifferences, collectFidelityDifferences } from "./suppo
 const root = resolve(import.meta.dirname, "../..");
 const record = process.env.SKYLINE_ORACLE_RECORD === "1";
 const referenceFixture = createReferenceFixture();
+const matrix = matrixFile as unknown as FidelityMatrix;
 
 test.describe.configure({ mode: "serial" });
 
 for (const script of actionFile.scripts as ActionScript[]) {
   test(`shared actions: ${script.id}`, async ({ page, context }) => {
     test.setTimeout(60_000);
-    const capture = `${script.start}@1440x960-classic`;
+    const capture = actionCaptureId(matrix, script.start);
     const scenario = parseScenario(capture);
     const reference = await context.newPage();
     await Promise.all([prepareCapture(page, capture, "/skyline"), prepareCapture(reference, capture, "/reference")]);

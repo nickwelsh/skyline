@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const oracleDecision = "NW-216";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const fail = (message) => { throw new Error(message); };
@@ -41,6 +42,7 @@ export function validateFidelityBundleEnvelope(environment, matrix, actions, bun
     if (document?.schemaVersion !== 1) fail(`Oracle ${name} schema drifted.`);
   }
   if (!isDeepStrictEqual(bundle.environment, environment)) fail("Oracle bundle environment drifted.");
+  enforceOracleDecision(bundle.regeneration?.decision);
   const captures = expectedCaptureIds(matrix);
   if (!isDeepStrictEqual(bundle.captures, captures)) fail("Oracle capture set drifted.");
   if (!isDeepStrictEqual(actions.scripts?.map(({ id }) => id), matrix.actions)) fail("Oracle action-script coverage drifted.");
@@ -52,7 +54,7 @@ export function validateFidelityBundleEnvelope(environment, matrix, actions, bun
 }
 
 export function recordFidelityBundle(root = scriptRoot, decision) {
-  if (!/^NW-\d+$/.test(decision ?? "")) fail("Oracle recording requires --decision NW-<id>.");
+  enforceOracleDecision(decision);
   const fidelity = join(root, "tests/fidelity");
   const bundlePath = join(fidelity, "oracle/bundle.json");
   const environment = readJson(join(fidelity, "environment.json"));
@@ -230,23 +232,37 @@ export function validateAllowedDifferences(differences) {
   }
 }
 
+export function actionCaptureId(matrix, scenario) {
+  const [width, height] = matrix.primary.viewport;
+  const theme = matrix.primary.themes[0];
+  if (!theme) fail("Oracle matrix primary theme missing.");
+  return `${scenario}@${width}x${height}-${theme}`;
+}
+
 export function expectedCaptureIds(matrix) {
   const result = new Set();
+  const [primaryWidth, primaryHeight] = matrix.primary.viewport;
   const primaryScenarios = [
     ...matrix.roots.flatMap((surface) => matrix.rootStates.map((state) => `${surface}-${state}`)),
     ...matrix.details.flatMap((surface) => matrix.detailStates.map((state) => `${surface}-${state}`)),
     ...Object.entries(matrix.ownedStates).flatMap(([surface, states]) => states.map((state) => `${surface}-${state}`)),
   ];
-  for (const scenario of primaryScenarios) for (const theme of matrix.primary.themes) result.add(`${scenario}@1440x960-${theme}`);
+  for (const scenario of primaryScenarios) for (const theme of matrix.primary.themes) result.add(`${scenario}@${primaryWidth}x${primaryHeight}-${theme}`);
   const core = [
     ...matrix.roots.map((surface) => `${surface}-populated`),
     ...matrix.details.map((surface) => `${surface}-found`),
     ...matrix.core.shellStates.map((state) => `shell-${state}`),
   ];
-  for (const [width, height] of matrix.core.viewports) for (const scenario of core) result.add(`${scenario}@${width}x${height}-classic`);
+  for (const [width, height] of matrix.core.viewports) for (const scenario of core) result.add(`${scenario}@${width}x${height}-${matrix.core.theme}`);
+  const [systemWidth, systemHeight] = matrix.system.viewport;
+  const systemScenarios = matrix.system.states.flatMap((state) => {
+    if (state === "populated-roots") return matrix.roots.map((surface) => `${surface}-populated`);
+    if (state === "found-details") return matrix.details.map((surface) => `${surface}-found`);
+    return [`shell-${state}`];
+  });
   for (const scheme of matrix.system.schemes) {
-    for (const scenario of [...matrix.roots.map((surface) => `${surface}-populated`), ...matrix.details.map((surface) => `${surface}-found`), "shell-appearance", "shell-live-change"]) {
-      result.add(`${scenario}@1440x960-system-${scheme}`);
+    for (const scenario of systemScenarios) {
+      result.add(`${scenario}@${systemWidth}x${systemHeight}-system-${scheme}`);
     }
   }
   return [...result].sort();
@@ -262,7 +278,11 @@ function enforceArtifacts(root, bundle) {
     if (!/^[a-f0-9]{64}$/.test(artifact.sha256) || digest(readFileSync(path)) !== artifact.sha256) fail(`Oracle artifact hash mismatch: ${artifact.path}`);
   }
   if (bundle.regeneration?.basis !== "upstream-pin" && bundle.regeneration?.basis !== "accepted-difference") fail("Oracle regeneration lacks an accepted basis.");
-  if (bundle.regeneration?.decision !== "NW-216") fail("Oracle regeneration lacks an accepted decision.");
+  enforceOracleDecision(bundle.regeneration?.decision);
+}
+
+function enforceOracleDecision(decision) {
+  if (decision !== oracleDecision) fail(`Oracle regeneration requires --decision ${oracleDecision}.`);
 }
 
 function expectedArtifactDescriptors(capture) {

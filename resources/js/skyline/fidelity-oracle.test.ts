@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
+import { actionCaptureId, expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
 import { assertPinnedRecordingEnvironment } from "../../../tests/fidelity/global-setup";
 
 const root = resolve(import.meta.dirname, "../../..");
@@ -18,6 +18,42 @@ describe("source-fidelity oracle", () => {
     expect(captures).toContain("log-found@1440x960-system-light");
     expect(captures).toContain("shell-live-change@1440x960-system-dark");
     expect(captures).toContain("runs-exception-unavailable@1440x960-dark");
+  });
+
+  test("capture IDs follow every declared matrix dimension", () => {
+    const matrix: FidelityMatrix = {
+      schemaVersion: 1,
+      roots: ["widgets"], details: ["widget"], rootStates: ["ready"], detailStates: ["opened"], ownedStates: {},
+      primary: { viewport: [1111, 777], themes: ["sepia"] },
+      core: { viewports: [[800, 600]], theme: "contrast", shellStates: ["folded"] },
+      system: { viewport: [900, 700], schemes: ["dim"], states: ["populated-roots", "found-details", "appearance", "diagnostics"] },
+      actions: [],
+    };
+
+    expect(expectedCaptureIds(matrix)).toEqual([
+      "shell-appearance@900x700-system-dim",
+      "shell-diagnostics@900x700-system-dim",
+      "shell-folded@800x600-contrast",
+      "widget-found@800x600-contrast",
+      "widget-found@900x700-system-dim",
+      "widget-opened@1111x777-sepia",
+      "widgets-populated@800x600-contrast",
+      "widgets-populated@900x700-system-dim",
+      "widgets-ready@1111x777-sepia",
+    ]);
+  });
+
+  test("action proofs use the declared primary viewport and theme", () => {
+    const matrix: FidelityMatrix = {
+      schemaVersion: 1,
+      roots: [], details: [], rootStates: [], detailStates: [], ownedStates: {},
+      primary: { viewport: [1111, 777], themes: ["sepia", "light"] },
+      core: { viewports: [], theme: "contrast", shellStates: [] },
+      system: { viewport: [900, 700], schemes: [], states: [] },
+      actions: [],
+    };
+
+    expect(actionCaptureId(matrix, "widgets-ready")).toBe("widgets-ready@1111x777-sepia");
   });
 
   test("allowed differences require a narrow accepted category and selectors", () => {
@@ -180,7 +216,8 @@ describe("source-fidelity oracle", () => {
   });
 
   test("regeneration requires an accepted decision reference", () => {
-    expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/requires --decision NW-/i);
+    expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/NW-216/i);
+    expect(() => recordFidelityBundle(root, "NW-227")).toThrow(/NW-216/i);
   });
 
   test("the committed bundle embeds the exact oracle environment", () => {
@@ -199,6 +236,7 @@ describe("source-fidelity oracle", () => {
       schemaVersion: 1,
       environment,
       captures: [capture],
+      regeneration: { basis: "accepted-difference", decision: "NW-216" },
       artifacts: [
         { path: `tests/fidelity/oracle/artifacts/${capture}/trigger.png`, capture, type: "screenshot", application: "trigger", sha256: "a".repeat(64) },
         { path: `tests/fidelity/oracle/artifacts/${capture}/skyline.png`, capture, type: "screenshot", application: "skyline", sha256: "b".repeat(64) },
@@ -218,6 +256,7 @@ describe("source-fidelity oracle", () => {
     })).toThrow(/artifact/i);
     expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, { ...bundle, schemaVersion: 2 })).toThrow(/schema/i);
     expect(() => validateFidelityBundleEnvelope(environment, matrix, { ...actions, scripts: [] }, bundle)).toThrow(/action/i);
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, { ...bundle, regeneration: { ...bundle.regeneration, decision: "NW-227" } })).toThrow(/decision/i);
   });
 
   test("proof provenance binds runtime and import verification inputs", () => {

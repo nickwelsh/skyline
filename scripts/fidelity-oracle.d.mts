@@ -11,6 +11,7 @@ export type FidelityMatrix = {
   actions: string[];
 };
 
+export function actionCaptureId(matrix: FidelityMatrix, scenario: string): string;
 export function expectedCaptureIds(matrix: FidelityMatrix): string[];
 export function fidelityInputHashes(root?: string): Record<string, string>;
 export function validateAllowedDifferences(differences: unknown): void;
