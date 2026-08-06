@@ -23,3 +23,25 @@ describe("pinned Trigger Errors fixture", () => {
     ]));
   });
 });
+
+describe("pinned Trigger Logs fixture", () => {
+  test("maps task filters and selected log into Trigger presenter contracts", async () => {
+    const fixture = await createReferenceFixture();
+    const list = fixture.loaders.logs as any;
+    const detail = fixture.loaders.log as any;
+
+    expect(list.data.possibleTasks).toEqual([
+      { slug: "App\\Jobs\\GenerateMonthlyInvoices" },
+    ]);
+    expect(detail.selectedLog).toEqual(expect.objectContaining({
+      id: expect.any(String),
+      runId: expect.any(String),
+      taskIdentifier: "App\\Jobs\\GenerateMonthlyInvoices",
+      spanId: expect.any(String),
+      triggeredTimestamp: expect.any(String),
+      level: "WARN",
+      message: "Invoice import delayed",
+      attributes: expect.objectContaining({ "log.context": { code: 429 } }),
+    }));
+  });
+});

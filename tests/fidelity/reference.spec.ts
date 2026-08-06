@@ -64,6 +64,21 @@ test("reference error-found settles at its canonical error route", async ({ page
   expect(errors).toEqual([]);
 });
 
+test("reference log-found selects its pinned event without fallback", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const fixture = await createReferenceFixture();
+  const selectedLog = (fixture.loaders.log as { selectedLog: { id: string } }).selectedLog;
+  await installReferenceFixture(page, fixture);
+  await page.goto("http://127.0.0.1:4185/oracle/log-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page).toHaveURL(new RegExp(`/oracle/log-found\\?event=${selectedLog.id}$`));
+  await expect(page.getByText("Invoice import delayed", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Log not found|Failed to load log details/)).toHaveCount(0);
+  await expectReferenceHealthy(page);
+  expect(errors).toEqual([]);
+});
+
 test("reference app shell fills the viewport", async ({ page }) => {
   await installReferenceFixture(page, await createReferenceFixture());
   await page.goto("http://127.0.0.1:4185/oracle/runs-populated", { waitUntil: "domcontentloaded", timeout: 10_000 });

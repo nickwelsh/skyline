@@ -171,7 +171,11 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         const detail = detailByCapture[captureId];
         return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
       },
-      defaultSearch: (captureId: string) => detailByCapture[captureId] === "run" || captureId === "run-found" ? `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}` : "",
+      defaultSearch: (captureId: string) => {
+        if (detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
+        if (detailByCapture[captureId] === "log" || captureId === "log-found") return `event=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
+        return "";
+      },
       resource: (
         kind: string,
         params: Record<string, string | undefined>,
@@ -383,8 +387,34 @@ function triggerError(detail: any, layout: any) {
 }
 
 function triggerLogs(page: any, selected?: any) {
-  const logs = page.telemetryEvents.map((event: any) => ({ id: event.id, runId: event.runId, taskIdentifier: event.jobType, startTime: event.timestamp, triggeredTimestamp: event.timestamp, traceId: event.traceId, spanId: event.spanId, parentSpanId: event.parentSpanId ?? null, message: event.message ?? event.name, kind: event.variant === "log" ? `LOG_${event.level}` : "SPAN", status: event.level === "ERROR" ? "ERROR" : "OK", duration: event.durationUs ?? 0, level: event.level ?? "INFO" }));
-  return { data: { logs, pagination: { next: page.pagination.next ?? undefined, previous: page.pagination.previous ?? undefined }, possibleTasks: [...new Set(logs.map((log: any) => log.taskIdentifier))], bulkActions: [], filters: { tasks: [], levels: [], from: "2026-08-04T20:02:00.000Z", to: "2026-08-05T20:02:00.000Z" }, hasFilters: false, hasAnyLogs: logs.length > 0 }, defaultPeriod: "1h", retentionLimitDays: 30, selectedLog: selected?.telemetryEvent };
+  const logs = page.telemetryEvents.map(triggerLog);
+  const possibleTasks = [...new Set(logs.map((log: any) => log.taskIdentifier))].map((slug) => ({ slug }));
+  return { data: { logs, pagination: { next: page.pagination.next ?? undefined, previous: page.pagination.previous ?? undefined }, possibleTasks, bulkActions: [], filters: { tasks: [], levels: [], from: "2026-08-04T20:02:00.000Z", to: "2026-08-05T20:02:00.000Z" }, hasFilters: false, hasAnyLogs: logs.length > 0 }, defaultPeriod: "1h", retentionLimitDays: 30, selectedLog: selected ? triggerLog(selected.telemetryEvent) : undefined };
+}
+
+function triggerLog(event: any) {
+  const required = (name: string, value: unknown) => {
+    if (typeof value !== "string" || value.length === 0) throw new Error(`Invalid Trigger log fixture ${name}.`);
+    return value;
+  };
+  const level = required("level", event.level);
+  if (!["TRACE", "DEBUG", "INFO", "WARN", "ERROR"].includes(level)) throw new Error(`Invalid Trigger log fixture level: ${level}.`);
+  return {
+    id: required("id", event.id),
+    runId: required("runId", event.runId),
+    taskIdentifier: required("jobType", event.jobType),
+    startTime: required("timestamp", event.timestamp),
+    triggeredTimestamp: event.timestamp,
+    traceId: required("traceId", event.traceId),
+    spanId: required("spanId", event.spanId),
+    parentSpanId: event.parentSpanId ?? null,
+    message: required("message", event.variant === "log" ? event.message : event.name),
+    kind: event.variant === "log" ? `LOG_${level}` : "SPAN",
+    status: level === "ERROR" ? "ERROR" : "OK",
+    duration: event.durationUs ?? 0,
+    level,
+    attributes: event.attributes ?? (event.variant === "log" ? { "log.context": event.context } : undefined),
+  };
 }
 
 function triggerQueues(page: any) {
