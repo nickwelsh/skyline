@@ -113,13 +113,30 @@ function bundleFixtureHash(root) {
 }
 
 export function validateAllowedDifferences(differences) {
-  const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration"]);
+  const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
   for (const region of differences.regions ?? []) {
     if (!accepted.has(region.category)) fail(`Unclassified allowed-difference region: ${region.id}`);
-    if (!region.triggerSelector || !region.skylineSelector || !region.accessibleName || !region.decision) fail(`Incomplete allowed-difference region: ${region.id}`);
+    if (region.category === "framework-extension") {
+      const complete = region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
+        && region.accessibleRole && region.accessibleName && region.anchorAccessibleRole && region.anchorAccessibleName
+        && region.decision && region.acceptance && Array.isArray(region.captures) && region.captures.length > 0
+        && region.measurements && typeof region.measurements === "object";
+      if (!complete) fail(`Incomplete framework-extension region: ${region.id}`);
+      if (!region.captures.every((capture) => typeof capture === "string" && capture.includes("@"))) fail(`Invalid framework-extension capture: ${region.id}`);
+      if (new Set(region.captures).size !== region.captures.length) fail(`Duplicate framework-extension capture: ${region.id}`);
+      const measurements = Object.keys(region.measurements);
+      if (measurements.length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing framework-extension measurement: ${region.id}`);
+      for (const measurement of Object.values(region.measurements)) {
+        const valid = /^[a-f0-9]{64}$/.test(measurement.computedStyleSha256 ?? "")
+          && /^[a-f0-9]{64}$/.test(measurement.anchorComputedStyleSha256 ?? "")
+          && [measurement.relativeRect, measurement.anchorRect].every((rect) => ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])));
+        if (!valid) fail(`Invalid framework-extension measurement: ${region.id}`);
+      }
+    } else if (!region.triggerSelector || !region.skylineSelector || !region.accessibleName || !region.decision) fail(`Incomplete allowed-difference region: ${region.id}`);
   }
+  if ((differences.regions ?? []).filter((region) => region.category === "framework-extension").length > 1) fail("Only one framework-extension region is allowed.");
 }
 
 function enforceMatrix(matrix, bundle) {

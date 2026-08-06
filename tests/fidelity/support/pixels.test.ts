@@ -17,6 +17,15 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [region()])).toThrow(/1 unclassified pixel/i);
     expect(() => comparePixels(trigger, trigger, [region({ accessibleName: "Changed" })])).toThrow(/accessible name/i);
   });
+
+  test("allows an exact narrow framework extension and fails closed on drift", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]]]);
+    const extension = extensionRegion();
+
+    expect(comparePixels(trigger, skyline, [extension])).toMatchObject({ differingPixels: 0, maskedPixels: 1 });
+    expect(() => comparePixels(trigger, skyline, [{ ...extension, extension: { ...extension.extension, accessibleName: "Changed" } }])).toThrow(/accessibleName/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
@@ -26,7 +35,12 @@ function image(color: [number, number, number, number], width: number, height: n
   return PNG.sync.write(png);
 }
 
-function region(skyline: Partial<DifferenceRegion["skyline"]> = {}): DifferenceRegion {
+function region(skyline: Partial<Extract<DifferenceRegion, { kind?: "paired" }>["skyline"]> = {}): DifferenceRegion {
   const observation = { selector: "[data-oracle-region='identity']", rect: { x: 0, y: 0, width: 1, height: 1 }, computedStyle: { color: "rgb(255, 0, 0)", fontSize: "12px" }, accessibleName: "Application identity" };
   return { id: "identity", trigger: observation, skyline: { ...observation, ...skyline } };
+}
+
+function extensionRegion(): Extract<DifferenceRegion, { kind: "framework-extension" }> {
+  const expected = { skylineSelector: "[data-extension]", triggerAnchorSelector: "[data-anchor]", skylineAnchorSelector: "[data-anchor]", accessibleRole: "region", accessibleName: "Exception", relativeRect: { x: 0, y: 1, width: 1, height: 1 }, computedStyleSha256: "a".repeat(64), anchorRect: { x: 0, y: 0, width: 1, height: 1 }, anchorComputedStyleSha256: "b".repeat(64) };
+  return { kind: "framework-extension", id: "php-exception-evidence", expected, extension: { ...expected, rect: { x: 0, y: 0, width: 1, height: 1 } } };
 }

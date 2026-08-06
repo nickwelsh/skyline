@@ -3,7 +3,14 @@ import { PNG } from "pngjs";
 
 type Rect = { x: number; y: number; width: number; height: number };
 type Observation = { selector: string; rect: Rect; computedStyle: Record<string, string>; accessibleName: string };
-export type DifferenceRegion = { id: string; trigger: Observation; skyline: Observation };
+type PairedRegion = { kind?: "paired"; id: string; trigger: Observation; skyline: Observation };
+export type FrameworkExtensionRegion = {
+  kind: "framework-extension";
+  id: string;
+  extension: { skylineSelector: string; triggerAnchorSelector: string; skylineAnchorSelector: string; accessibleRole: string; accessibleName: string; rect: Rect; relativeRect: Rect; computedStyleSha256: string; anchorRect: Rect; anchorComputedStyleSha256: string };
+  expected: { skylineSelector: string; triggerAnchorSelector: string; skylineAnchorSelector: string; accessibleRole: string; accessibleName: string; relativeRect: Rect; computedStyleSha256: string; anchorRect: Rect; anchorComputedStyleSha256: string };
+};
+export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion;
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
@@ -34,14 +41,27 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
 }
 
 function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number): Rect {
+  if (region.kind === "framework-extension") {
+    for (const key of ["skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "accessibleRole", "accessibleName", "computedStyleSha256", "anchorComputedStyleSha256"] as const) {
+      if (region.extension[key] !== region.expected[key]) throw new Error(`Allowed region ${region.id} changed ${key}.`);
+    }
+    if (JSON.stringify(region.extension.relativeRect) !== JSON.stringify(region.expected.relativeRect)) throw new Error(`Allowed region ${region.id} changed anchor-relative geometry.`);
+    if (JSON.stringify(region.extension.anchorRect) !== JSON.stringify(region.expected.anchorRect)) throw new Error(`Allowed region ${region.id} anchor changed locked geometry.`);
+    return boundedRect(region.id, region.extension.rect, imageWidth, imageHeight);
+  }
   const triggerRect = integerRect(region.trigger.rect);
   const skylineRect = integerRect(region.skyline.rect);
   if (JSON.stringify(triggerRect) !== JSON.stringify(skylineRect)) throw new Error(`Allowed region ${region.id} changed geometry.`);
   if (JSON.stringify(region.trigger.computedStyle) !== JSON.stringify(region.skyline.computedStyle)) throw new Error(`Allowed region ${region.id} changed computed style.`);
   if (region.trigger.accessibleName !== region.skyline.accessibleName) throw new Error(`Allowed region ${region.id} changed accessible name.`);
-  if (triggerRect.width * triggerRect.height > imageWidth * imageHeight * 0.15) throw new Error(`Allowed region ${region.id} is too broad.`);
-  if (triggerRect.x < 0 || triggerRect.y < 0 || triggerRect.x + triggerRect.width > imageWidth || triggerRect.y + triggerRect.height > imageHeight) throw new Error(`Allowed region ${region.id} leaves the screenshot.`);
-  return triggerRect;
+  return boundedRect(region.id, triggerRect, imageWidth, imageHeight);
+}
+
+function boundedRect(id: string, rect: Rect, imageWidth: number, imageHeight: number) {
+  const integer = integerRect(rect);
+  if (integer.width * integer.height > imageWidth * imageHeight * 0.15) throw new Error(`Allowed region ${id} is too broad.`);
+  if (integer.x < 0 || integer.y < 0 || integer.x + integer.width > imageWidth || integer.y + integer.height > imageHeight) throw new Error(`Allowed region ${id} leaves the screenshot.`);
+  return integer;
 }
 
 function integerRect(rect: Rect): Rect {

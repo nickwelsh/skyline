@@ -25,6 +25,34 @@ describe("source-fidelity oracle", () => {
     })).toThrow(/unclassified/i);
   });
 
+  test("framework extensions require an exact fail-closed ledger entry", () => {
+    const region = {
+      id: "php-exception-evidence",
+      category: "framework-extension",
+      decision: "NW-224",
+      acceptance: "Captured PHP exception frames remain inspectable.",
+      captures: ["error-found@1440x960-classic"],
+      skylineSelector: "[data-skyline-extension='error-exception-evidence']",
+      triggerAnchorSelector: ".error-details-heading",
+      skylineAnchorSelector: ".error-details-heading",
+      accessibleRole: "region",
+      accessibleName: "Exception",
+      anchorAccessibleRole: "heading",
+      anchorAccessibleName: "Details",
+      measurements: {
+        "error-found@1440x960-classic": {
+          relativeRect: { x: 0, y: 8, width: 300, height: 120 },
+          computedStyleSha256: "a".repeat(64),
+          anchorRect: { x: 10, y: 10, width: 300, height: 24 },
+          anchorComputedStyleSha256: "b".repeat(64),
+        },
+      },
+    };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, captures: ["error-found@1440x960-dark"] }] })).toThrow(/measurement/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, acceptance: "" }] })).toThrow(/incomplete/i);
+  });
+
   test("regeneration requires an accepted decision reference", () => {
     expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/requires --decision NW-/i);
   });
