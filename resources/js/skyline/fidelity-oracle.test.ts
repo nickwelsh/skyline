@@ -1,7 +1,8 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { expectedCaptureIds, recordFidelityBundle, validateAllowedDifferences } from "../../../scripts/fidelity-oracle.mjs";
+import { expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
 
 const root = resolve(import.meta.dirname, "../../..");
 describe("source-fidelity oracle", () => {
@@ -179,5 +180,47 @@ describe("source-fidelity oracle", () => {
 
   test("regeneration requires an accepted decision reference", () => {
     expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/requires --decision NW-/i);
+  });
+
+  test("the committed bundle embeds the exact oracle environment", () => {
+    const environment = { schemaVersion: 1, fixtureVersion: "nw-227-v1" };
+    const matrix: FidelityMatrix = {
+      schemaVersion: 1,
+      roots: ["jobs"], details: [], rootStates: ["populated"], detailStates: [], ownedStates: {},
+      primary: { viewport: [1440, 960], themes: ["classic"] },
+      core: { viewports: [], theme: "classic", shellStates: [] },
+      system: { viewport: [1440, 960], schemes: [], states: [] },
+      actions: ["navigation-history"],
+    };
+    const actions = { schemaVersion: 1, scripts: [{ id: "navigation-history", start: "jobs-populated", steps: [] }] };
+    const capture = "jobs-populated@1440x960-classic";
+    const bundle = {
+      schemaVersion: 1,
+      environment,
+      captures: [capture],
+      artifacts: [
+        { path: `tests/fidelity/oracle/artifacts/${capture}/trigger.png`, capture, type: "screenshot", application: "trigger", sha256: "a".repeat(64) },
+        { path: `tests/fidelity/oracle/artifacts/${capture}/skyline.png`, capture, type: "screenshot", application: "skyline", sha256: "b".repeat(64) },
+        { path: `tests/fidelity/oracle/artifacts/${capture}/comparison.json`, capture, type: "comparison", sha256: "c".repeat(64) },
+        { path: `tests/fidelity/oracle/artifacts/${capture}/accessibility.json`, capture, type: "accessibility-tree", sha256: "d".repeat(64) },
+        { path: `tests/fidelity/oracle/artifacts/${capture}/interactions.json`, capture, type: "interaction-transcript", sha256: "e".repeat(64) },
+        { path: "tests/fidelity/oracle/actions/navigation-history.json", type: "interaction-transcript", action: "navigation-history", sha256: "f".repeat(64) },
+      ],
+    };
+
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, bundle)).not.toThrow();
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, { ...bundle, environment: { ...environment, fixtureVersion: "stale" } })).toThrow(/environment/i);
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, { ...bundle, captures: [capture, capture] })).toThrow(/capture/i);
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, {
+      ...bundle,
+      artifacts: [...bundle.artifacts, { path: "README.md", type: "unclassified", sha256: "0".repeat(64) }],
+    })).toThrow(/artifact/i);
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, actions, { ...bundle, schemaVersion: 2 })).toThrow(/schema/i);
+    expect(() => validateFidelityBundleEnvelope(environment, matrix, { ...actions, scripts: [] }, bundle)).toThrow(/action/i);
+  });
+
+  test("proof provenance binds the Skyline fixture server", () => {
+    const source = readFileSync(join(root, "scripts/serve-fixture.mjs"));
+    expect(fidelityInputHashes(root).serveFixtureSha256).toBe(createHash("sha256").update(source).digest("hex"));
   });
 });

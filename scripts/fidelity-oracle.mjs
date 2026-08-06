@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -20,12 +21,11 @@ export function verifyFidelityBundle(root = scriptRoot) {
   const bundle = readJson(join(fidelity, "oracle/bundle.json"));
 
   enforceEnvironment(root, environment, fixtures, fixturesPath);
+  validateFidelityBundleEnvelope(environment, matrix, actions, bundle);
   execFileSync(process.execPath, [join(root, "scripts/import-fidelity-reference.mjs"), "--check"], { stdio: "pipe" });
-  const actualInputs = inputHashes(root);
+  const actualInputs = fidelityInputHashes(root);
   if (JSON.stringify(bundle.inputs) !== JSON.stringify(actualInputs)) fail("Oracle input hashes drifted.");
   validateAllowedDifferences(differences);
-  enforceMatrix(matrix, bundle);
-  if (JSON.stringify(actions.scripts?.map(({ id }) => id)) !== JSON.stringify(matrix.actions)) fail("Oracle action-script coverage drifted.");
   enforceArtifacts(root, bundle);
 
   return {
@@ -34,6 +34,21 @@ export function verifyFidelityBundle(root = scriptRoot) {
     chromiumRevision: environment.chromiumRevision,
     artifacts: bundle.artifacts.length,
   };
+}
+
+export function validateFidelityBundleEnvelope(environment, matrix, actions, bundle) {
+  for (const [name, document] of Object.entries({ environment, matrix, actions, bundle })) {
+    if (document?.schemaVersion !== 1) fail(`Oracle ${name} schema drifted.`);
+  }
+  if (!isDeepStrictEqual(bundle.environment, environment)) fail("Oracle bundle environment drifted.");
+  const captures = expectedCaptureIds(matrix);
+  if (!isDeepStrictEqual(bundle.captures, captures)) fail("Oracle capture set drifted.");
+  if (!isDeepStrictEqual(actions.scripts?.map(({ id }) => id), matrix.actions)) fail("Oracle action-script coverage drifted.");
+  const expectedArtifacts = [...captures.flatMap(expectedArtifactDescriptors), ...(matrix.actions ?? []).map(expectedActionDescriptor)];
+  const actualArtifacts = Array.isArray(bundle.artifacts)
+    ? bundle.artifacts.map(({ sha256: _sha256, ...artifact }) => artifact)
+    : undefined;
+  if (!isDeepStrictEqual(actualArtifacts, expectedArtifacts)) fail("Oracle artifact set drifted.");
 }
 
 export function recordFidelityBundle(root = scriptRoot, decision) {
@@ -48,7 +63,7 @@ export function recordFidelityBundle(root = scriptRoot, decision) {
     if (!existsSync(path)) fail(`Missing oracle artifact while recording: ${artifact.path}`);
     return { ...artifact, sha256: digest(readFileSync(path)) };
   });
-  const inputs = inputHashes(root);
+  const inputs = fidelityInputHashes(root);
   let basis = "upstream-pin";
   if (existsSync(bundlePath)) {
     const previous = readJson(bundlePath);
@@ -215,13 +230,6 @@ export function validateAllowedDifferences(differences) {
   }
 }
 
-function enforceMatrix(matrix, bundle) {
-  const required = new Set(expectedCaptureIds(matrix));
-  const actual = new Set(bundle.captures ?? []);
-  for (const capture of required) if (!actual.has(capture)) fail(`Missing oracle capture: ${capture}`);
-  for (const capture of actual) if (!required.has(capture)) fail(`Unclassified oracle capture: ${capture}`);
-}
-
 export function expectedCaptureIds(matrix) {
   const result = new Set();
   const primaryScenarios = [
@@ -253,16 +261,6 @@ function enforceArtifacts(root, bundle) {
     if (!existsSync(path)) fail(`Missing oracle artifact: ${artifact.path}`);
     if (!/^[a-f0-9]{64}$/.test(artifact.sha256) || digest(readFileSync(path)) !== artifact.sha256) fail(`Oracle artifact hash mismatch: ${artifact.path}`);
   }
-  for (const capture of bundle.captures ?? []) {
-    const actual = (bundle.artifacts ?? []).filter((artifact) => artifact.capture === capture).map(({ path, sha256: _sha256, ...artifact }) => artifact);
-    const expected = expectedArtifactDescriptors(capture).map(({ path: _path, ...artifact }) => artifact);
-    if (JSON.stringify(actual) !== JSON.stringify(expected)) fail(`Oracle artifact set mismatched for ${capture}`);
-  }
-  const matrix = readJson(join(root, "tests/fidelity/matrix.json"));
-  for (const action of matrix.actions ?? []) {
-    const expected = expectedActionDescriptor(action);
-    if (!(bundle.artifacts ?? []).some((artifact) => artifact.path === expected.path && artifact.type === expected.type && artifact.action === action)) fail(`Missing interaction transcript for ${action}`);
-  }
   if (bundle.regeneration?.basis !== "upstream-pin" && bundle.regeneration?.basis !== "accepted-difference") fail("Oracle regeneration lacks an accepted basis.");
   if (bundle.regeneration?.decision !== "NW-216") fail("Oracle regeneration lacks an accepted decision.");
 }
@@ -282,7 +280,7 @@ function expectedActionDescriptor(action) {
   return { path: `tests/fidelity/oracle/actions/${action}.json`, type: "interaction-transcript", action };
 }
 
-function inputHashes(root) {
+export function fidelityInputHashes(root = scriptRoot) {
   const paths = {
     environmentSha256: "tests/fidelity/environment.json",
     fixturesSha256: "tests/fidelity/fixtures.json",
@@ -297,6 +295,7 @@ function inputHashes(root) {
     fidelitySpecSha256: "tests/fidelity/fidelity.spec.ts",
     actionsSpecSha256: "tests/fidelity/actions.spec.ts",
     verifierSha256: "scripts/fidelity-oracle.mjs",
+    serveFixtureSha256: "scripts/serve-fixture.mjs",
     packageSha256: "package.json",
     dockerfileSha256: "tests/fidelity/Dockerfile",
     ciSha256: ".github/workflows/ci.yml",
