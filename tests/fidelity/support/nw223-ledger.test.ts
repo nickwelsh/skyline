@@ -27,6 +27,12 @@ const axe: PairedPresenterAxeLedger = {
   trigger: { outside: [], inside: [] },
   skyline: { outside: [], inside: [] },
 };
+const axeRule = {
+  id: "region",
+  impact: "moderate",
+  tags: ["cat.keyboard"],
+  targets: ['["main"]'],
+};
 
 function ledger(): Nw223EvidenceLedger {
   return {
@@ -62,4 +68,38 @@ describe("NW-223 exact evidence ledger schema", () => {
     malformed.measurements[expectedNw223CaptureIds[0]].triggerAccessibilitySha256 = "sentinel";
     expect(() => validateNw223Ledger(malformed)).toThrow(/measurement/i);
   });
+
+  test("requires exact measurement shape and relative rect parity", () => {
+    const unequal = ledger();
+    unequal.measurements[expectedNw223CaptureIds[0]].skylineRelativeRect.x = 1;
+    expect(() => validateNw223Ledger(unequal)).toThrow(/relative rect/i);
+
+    const extra = ledger();
+    Object.assign(extra.measurements[expectedNw223CaptureIds[0]], { wildcard: "*" });
+    expect(() => validateNw223Ledger(extra)).toThrow(/measurement keys/i);
+  });
+
+  test.each([
+    ["partition extras", (value: Nw223EvidenceLedger) => Object.assign(value.axe[expectedNw223AxeCaptureIds[0]].trigger, { extra: [] })],
+    ["rule extras", (value: Nw223EvidenceLedger) => Object.assign(addRule(value), { extra: true })],
+    ["wildcard rules", (value: Nw223EvidenceLedger) => { addRule(value).id = "*"; }],
+    ["invalid impact", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { impact: 7 }); }],
+    ["empty tags", (value: Nw223EvidenceLedger) => { addRule(value).tags = [""]; }],
+    ["non-string tags", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { tags: [7] }); }],
+    ["wildcard target segments", (value: Nw223EvidenceLedger) => { addRule(value).targets = ['["*"]']; }],
+    ["invalid selector syntax", (value: Nw223EvidenceLedger) => { addRule(value).targets = ['["["]']; }],
+    ["non-string targets", (value: Nw223EvidenceLedger) => { Object.assign(addRule(value), { targets: [7] }); }],
+    ["duplicate rule signatures", (value: Nw223EvidenceLedger) => { const rule = addRule(value); value.axe[expectedNw223AxeCaptureIds[0]].trigger.outside.push(structuredClone(rule)); }],
+    ["duplicate target paths", (value: Nw223EvidenceLedger) => { const rule = addRule(value); rule.targets.push(rule.targets[0]); }],
+  ])("rejects Axe %s", (_label, mutate) => {
+    const value = ledger();
+    mutate(value);
+    expect(() => validateNw223Ledger(value)).toThrow(/Axe/i);
+  });
 });
+
+function addRule(value: Nw223EvidenceLedger) {
+  const rule = structuredClone(axeRule);
+  value.axe[expectedNw223AxeCaptureIds[0]].trigger.outside.push(rule);
+  return rule;
+}
