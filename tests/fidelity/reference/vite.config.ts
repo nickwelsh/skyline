@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -46,6 +46,7 @@ function capabilityAdapters(): Plugin {
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
+  const sharedFiltersSource = join(vendorRoot, "components/runs/v3/SharedFilters.tsx");
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
   const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
   const sideMenuSectionSource = join(vendorRoot, "components/navigation/SideMenuSection.tsx");
@@ -64,6 +65,7 @@ function capabilityAdapters(): Plugin {
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
       if (source === taskRunsTableSource) return conditionErrorRunTableCapabilities(code, capabilityPolicy.errors);
+      if (source === sharedFiltersSource) return conditionQueueTimeFilterAnchor(code);
       if (source === sideMenuSource) return conditionSideMenuShell(code);
       if (source === sideMenuItemSource) return conditionSideMenuItems(code);
       if (source === sideMenuSectionSource) return conditionSideMenuSections(code);

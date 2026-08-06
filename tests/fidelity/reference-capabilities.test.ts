@@ -6,7 +6,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 import policy from "./reference-capabilities.json" with { type: "json" };
 import { conditionQueueControls, conditionQueueListMetricResources, conditionQueueMetricResources, conditionSideMenuItems, conditionSideMenuSections, conditionSideMenuShell } from "./reference/vite.config";
-import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers } from "./reference/capability-adapters";
+import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./reference/capability-adapters";
 
 const root = resolve(import.meta.dirname, "../..");
 const vendor = resolve(root, "tests/fidelity/reference/vendor/components/navigation");
@@ -17,6 +17,7 @@ const queueDetail = resolve(root, "tests/fidelity/reference/vendor/routes/_app.o
 const bigNumber = resolve(root, "tests/fidelity/reference/vendor/components/metrics/BigNumber.tsx");
 const table = resolve(root, "tests/fidelity/reference/vendor/components/primitives/Table.tsx");
 const miniChart = resolve(root, "tests/fidelity/reference/vendor/components/metrics/MiniLineChart.tsx");
+const sharedFilters = resolve(root, "tests/fidelity/reference/vendor/components/runs/v3/SharedFilters.tsx");
 
 describe("pinned shell capability adapters", () => {
   test("locks the reviewed policy digest", () => {
@@ -92,5 +93,14 @@ describe("pinned shell capability adapters", () => {
     expect(list).not.toContain("data-trigger-capability=\"queue-header");
     expect(detail).not.toContain("queue-recorded-runs");
     expect(() => conditionQueueListMarkers(readFileSync(queueList, "utf8").replace("              value={envRunningLive}", "              value={changed}"))).toThrow(/must be reviewed/i);
+  });
+
+  test("anchors the real pinned Period Select without changing its structure", () => {
+    const source = readFileSync(sharedFilters, "utf8");
+    const adapted = conditionQueueTimeFilterAnchor(source);
+    expect(adapted).toContain('data-trigger-anchor="queue-period-filter"');
+    expect(adapted).toContain('className="group cursor-pointer focus-custom"');
+    expect(adapted.match(/data-trigger-anchor="queue-period-filter"/g)).toHaveLength(1);
+    expect(() => conditionQueueTimeFilterAnchor(source.replace('className="group cursor-pointer focus-custom"', 'className="changed"'))).toThrow(/must be reviewed/i);
   });
 });

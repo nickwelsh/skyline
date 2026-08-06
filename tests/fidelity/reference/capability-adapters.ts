@@ -114,3 +114,12 @@ export function conditionQueueDetailMarkers(code: string) {
   adapted = replaceMarker(adapted, '          title="Throttled"', '          title="Throttled"\n          capabilityMarker="queue-detail-throttled"', "Throttled chart");
   return replaceMarker(adapted, '          <div className="flex flex-wrap items-baseline gap-2">', '          <div data-trigger-capability="queue-detail-concurrency" className="flex flex-wrap items-baseline gap-2">', "detail concurrency");
 }
+
+export function conditionQueueTimeFilterAnchor(code: string) {
+  return replaceMarker(
+    code,
+    '<div className="group cursor-pointer focus-custom" />',
+    '<div data-trigger-anchor="queue-period-filter" className="group cursor-pointer focus-custom" />',
+    "Period filter anchor",
+  );
+}
