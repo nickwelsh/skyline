@@ -152,7 +152,7 @@ function ReferenceRoot() {
     document.addEventListener("click", bridge, true);
     return () => document.removeEventListener("click", bridge, true);
   }, [navigate]);
-  return createElement(AppContainer, null, createElement(Outlet));
+  return createElement(AppContainer, { className: "min-w-[1024px]" }, createElement(Outlet));
 }
 
 function ReferenceSurfaceLayout() {

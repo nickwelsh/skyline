@@ -118,6 +118,17 @@ test("reference app shell fills the viewport", async ({ page }) => {
   await expectReferenceHealthy(page);
 });
 
+test("reference pins Trigger's mobile canvas", async ({ page }) => {
+  const capture = "error-found@390x844-classic";
+  await prepareCapture(page, capture, "/reference");
+  await seedOwnedState(page, parseScenario(capture), "/reference");
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/error-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBe(1024);
+  await expectReferenceHealthy(page);
+});
+
 for (const id of ["shell-populated", "runs-populated", "errors-populated", "logs-populated", "queues-populated", "run-found", "error-found", "log-found", "queue-found"]) {
   test(`reference boots ${id}`, async ({ page }) => {
     const errors: string[] = [];
