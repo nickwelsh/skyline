@@ -71,12 +71,12 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <QueuePeriodFilter generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
           {!showRecordedRuns && (
             <section data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs">
               <Button ref={recordedRunsControl} variant="secondary/small" aria-controls="queue-recorded-runs-content" aria-expanded={false} onClick={() => setShowRecordedRuns(true)}>Recorded runs</Button>
             </section>
           )}
+          <QueuePeriodFilter generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>

@@ -47,7 +47,10 @@ describe("Queue capability markers", () => {
       "queue-detail-concurrency-limit",
       "queue-detail-throttled",
     ]);
-    expect(container.querySelector("[data-skyline-extension='queue-recorded-runs']")?.hasAttribute("data-skyline-capability")).toBe(false);
+    const extension = container.querySelector<HTMLElement>("[data-skyline-extension='queue-recorded-runs']")!;
+    const period = container.querySelector<HTMLElement>("[data-skyline-anchor='queue-period-filter']")!;
+    expect(extension.hasAttribute("data-skyline-capability")).toBe(false);
+    expect(extension.nextElementSibling).toBe(period);
   });
 });
 

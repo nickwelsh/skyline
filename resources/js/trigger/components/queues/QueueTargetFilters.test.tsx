@@ -22,7 +22,13 @@ describe("QueuePeriodFilter", () => {
       </MemoryRouter>,
     ));
 
-    expect(container.textContent).toContain("Period: 1hr");
+    expect(container.textContent).toContain("Period:1hr");
+    const anchor = container.querySelector<HTMLElement>('[data-skyline-anchor="queue-period-filter"]')!;
+    const chrome = anchor.querySelector<HTMLElement>(".flex.items-center.transition")!;
+    expect(chrome.className).toContain("bg-secondary");
+    expect(chrome.className).toContain("pl-1.5");
+    expect(chrome.className).toContain("pr-2");
+    expect(chrome.querySelector("svg")?.getAttribute("class")).toContain("size-4");
     const select = container.querySelector<HTMLSelectElement>('select[aria-label="Period"]')!;
     expect(select.value).toBe("1h");
 
@@ -31,7 +37,7 @@ describe("QueuePeriodFilter", () => {
       select.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain("Period: 24hr");
+    expect(container.textContent).toContain("Period:24hr");
     const query = new URLSearchParams(container.querySelector("output")!.textContent ?? "");
     expect(query.get("range")).toBe("24h");
     expect(query.has("cursor")).toBe(false);

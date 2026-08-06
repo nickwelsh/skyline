@@ -6,6 +6,7 @@
 import { CalendarDaysIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
+import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { SearchInput } from "~/components/primitives/SearchInput";
 
 export type QueueTimeRangeOption = {
@@ -66,8 +67,8 @@ export function QueuePeriodFilter({
   };
 
   return (
-    <label className="relative block h-6 rounded text-xs text-text-dimmed focus-within:outline focus-within:-outline-offset-1 focus-within:outline-text-link">
-      <span aria-hidden="true" className="flex h-6 items-center gap-1 rounded border border-border-bright/50 bg-surface-control px-2 text-text-bright"><CalendarDaysIcon className="size-3.5 text-text-dimmed" />Period: {selectedLabel}</span>
+    <label data-skyline-anchor="queue-period-filter" className="group relative block h-6 rounded text-xs text-text-dimmed focus-within:outline focus-within:-outline-offset-1 focus-within:outline-text-link">
+      <span aria-hidden="true" className="block"><AppliedFilter icon={<CalendarDaysIcon className="size-4" />} label="Period" value={selectedLabel} removable={false} /></span>
       <select
         aria-label="Period"
         value={selected}
