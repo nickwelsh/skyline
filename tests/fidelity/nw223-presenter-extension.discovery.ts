@@ -3,7 +3,7 @@ import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
-import { nw223States } from "./support/nw223";
+import { nw223NodeId, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -33,8 +33,8 @@ const definition: PresenterExtensionDefinition = {
   captures,
   triggerSelector: "div[translate='no']",
   skylineSelector: "[data-skyline-extension='database-state-operation-inspector']",
-  triggerAnchorSelector: "[data-node-id='run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C'] p",
-  skylineAnchorSelector: "[data-node-id='run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C'] p",
+  triggerAnchorSelector: `[data-node-id='${nw223NodeId}'] p`,
+  skylineAnchorSelector: `[data-node-id='${nw223NodeId}'] p`,
   skylineAccessibleRole: "region",
   skylineAccessibleName: "Database and state operation inspector",
   anchorAccessibleRole: "paragraph",
@@ -97,8 +97,8 @@ async function preparePair(skyline: Page, trigger: Page, capture: string, scenar
     step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
   ]);
   await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
-  await step("node-select:skyline", () => exposeOwnedState(skyline, scenario));
-  await step("node-select:trigger", () => exposeOwnedState(trigger, scenario));
+  await step("node-select:skyline", () => exposeOwnedState(skyline, scenario, "skyline"));
+  await step("node-select:trigger", () => exposeOwnedState(trigger, scenario, "trigger"));
   await step("live-change:skyline", () => applyLiveSystemChange(skyline, capture));
   await step("live-change:trigger", () => applyLiveSystemChange(trigger, capture));
   await step("settle:skyline", () => settleCapture(skyline));
