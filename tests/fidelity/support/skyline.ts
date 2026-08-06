@@ -118,7 +118,10 @@ async function responseFor(path: string, search: URLSearchParams, adapter: Fixtu
   if (path === "logs") return adapter.telemetryEvents({ search: search.get("search") ?? undefined, levels: search.getAll("levels[]") as never, jobType: search.get("jobType") ?? undefined, runId: search.get("runId") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path.startsWith("logs/")) return adapter.telemetryEvent(decodeURIComponent(path.slice(5)));
   if (path === "queues") return adapter.queueTargets({ cursor: search.get("cursor") ?? undefined, connection: search.get("connection") ?? undefined, search: search.get("search") ?? undefined, from: search.get("from") ?? undefined, to: search.get("to") ?? undefined });
-  if (path.startsWith("queues/")) return adapter.queueTarget(decodeURIComponent(path.slice(7)), { cursor: search.get("cursor") ?? undefined, search: search.get("search") ?? undefined, from: search.get("from") ?? undefined, to: search.get("to") ?? undefined, status: search.getAll("status[]") as never });
+  if (path.startsWith("queues/")) {
+    const statuses = search.getAll("status");
+    return adapter.queueTarget(decodeURIComponent(path.slice(7)), { cursor: search.get("cursor") ?? undefined, search: search.get("search") ?? undefined, from: search.get("from") ?? undefined, to: search.get("to") ?? undefined, status: statuses.length ? statuses as never : undefined });
+  }
   throw new Error(`Unknown fidelity API path: ${path}`);
 }
 
