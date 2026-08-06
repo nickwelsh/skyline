@@ -14,6 +14,7 @@ export function queueConnectionExtensionDefinition(matrix: FidelityMatrix): Fram
     acceptance: "Connection, search, and time-range filters are URL-backed and use valid server-supplied options.",
     captures,
     skylineSelector: '[data-skyline-extension="queue-connection-filter"]',
+    skylineAccessibilitySelector: '[data-skyline-extension="queue-connection-filter"] > select',
     triggerAnchorSelector: '[data-trigger-anchor="queue-filter-controls"]',
     skylineAnchorSelector: '[data-skyline-anchor="queue-filter-controls"]',
     accessibleRole: "combobox",

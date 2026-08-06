@@ -12,6 +12,7 @@ export type FrameworkExtensionDefinition = {
   acceptance: string;
   captures: string[];
   skylineSelector: string;
+  skylineAccessibilitySelector?: string;
   triggerAnchorSelector: string;
   skylineAnchorSelector: string;
   accessibleRole: string;
@@ -298,7 +299,11 @@ export function validatePresenterExtensionObservation(definition: PresenterExten
 export async function discoverFrameworkExtensionObservation(trigger: Page, skyline: Page, definition: FrameworkExtensionDefinition, diagnosticStep?: DiscoveryStep): Promise<FrameworkExtensionObservation> {
   const step: DiscoveryStep = diagnosticStep ?? ((_label, action) => action());
   const [extension, triggerAnchor, skylineAnchor] = await Promise.all([
-    step("element:skyline-extension", () => observeElement(skyline, definition.id, definition.skylineSelector, "Skyline extension")),
+    step("element:skyline-extension", async () => {
+      const observation = await observeElementDom(skyline, definition.id, definition.skylineSelector, "Skyline extension");
+      const accessibilitySelector = await resolveFrameworkExtensionAccessibilitySelector(skyline, definition);
+      return observeElementAccessibility(skyline, accessibilitySelector, observation, definition.skylineSelector);
+    }),
     step("element:trigger-anchor", () => observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor")),
     step("element:skyline-anchor", () => observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor")),
   ]);
@@ -448,6 +453,13 @@ async function observeElement(page: Page, id: string, selector: string, label: s
   return observeElementAccessibility(page, selector, await observeElementDom(page, id, selector, label));
 }
 
+export async function resolveFrameworkExtensionAccessibilitySelector(page: Page, definition: FrameworkExtensionDefinition) {
+  const selector = definition.skylineAccessibilitySelector ?? definition.skylineSelector;
+  const count = await page.locator(selector).count();
+  requireSingleMatch(count, definition.id, "Skyline extension accessibility selector");
+  return selector;
+}
+
 export async function observeElementDom(page: Page, id: string, selector: string, label: string) {
   const result = await page.evaluate((target) => {
     const matches = document.querySelectorAll(target);
@@ -479,9 +491,14 @@ export async function observeElementDom(page: Page, id: string, selector: string
   return { ...observation, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle) };
 }
 
-async function observeElementAccessibility(page: Page, selector: string, observation: Awaited<ReturnType<typeof observeElementDom>>) {
-  const locator = page.locator(selector);
-  const accessibility = await observeAccessibleIdentity(page, selector);
+export async function observeElementAccessibility(
+  page: Page,
+  identitySelector: string,
+  observation: Awaited<ReturnType<typeof observeElementDom>> | { rect: Rect; computedStyleSha256: string },
+  snapshotSelector = identitySelector,
+) {
+  const locator = page.locator(snapshotSelector);
+  const accessibility = await observeAccessibleIdentity(page, identitySelector);
   const accessibilitySnapshot = await locator.ariaSnapshot();
   return { ...observation, ...accessibility, accessibilitySha256: fingerprintAccessibility(accessibilitySnapshot) };
 }

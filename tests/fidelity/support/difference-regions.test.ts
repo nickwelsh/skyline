@@ -9,8 +9,10 @@ import {
   fingerprintCapabilityAccessibility,
   fingerprintComputedStyle,
   omitFrameworkExtensionAccessibility,
+  observeElementAccessibility,
   observeElementDom,
   requireSingleMatch,
+  resolveFrameworkExtensionAccessibilitySelector,
   settleStableElementPair,
   validateFrameworkExtensionObservation,
   validateCapabilityOmissionObservation,
@@ -85,6 +87,36 @@ describe("framework-extension fidelity regions", () => {
       identity: { tagName: "section", id: "evidence", className: "panel", role: "region", ariaLabel: "Exception" },
     });
     expect(observation.computedStyle).toContainEqual(["color", "rgb(1, 2, 3)", ""]);
+  });
+
+  test("defaults framework accessibility identity to the geometry selector", async () => {
+    const expected = definition();
+    const page = countingPage(1);
+
+    await expect(resolveFrameworkExtensionAccessibilitySelector(page.page, expected)).resolves.toBe(expected.skylineSelector);
+    expect(page.locator).toHaveBeenCalledWith(expected.skylineSelector);
+  });
+
+  test("requires one exact optional framework accessibility selector", async () => {
+    const expected = { ...definition(), skylineAccessibilitySelector: "[data-extension] > select" };
+    const page = countingPage(1);
+
+    await expect(resolveFrameworkExtensionAccessibilitySelector(page.page, expected)).resolves.toBe(expected.skylineAccessibilitySelector);
+    expect(page.locator).toHaveBeenCalledWith(expected.skylineAccessibilitySelector);
+    await expect(resolveFrameworkExtensionAccessibilitySelector(countingPage(0).page, expected)).rejects.toThrow(/exactly one element; observed 0/i);
+    await expect(resolveFrameworkExtensionAccessibilitySelector(countingPage(2).page, expected)).rejects.toThrow(/exactly one element; observed 2/i);
+  });
+
+  test("fingerprints the outer framework marker while reading identity from its inner control", async () => {
+    const page = accessibilityPage();
+    const observation = { rect: { x: 1, y: 2, width: 3, height: 4 }, computedStyleSha256: "a".repeat(64) };
+
+    const result = await observeElementAccessibility(page.page, "[data-extension] > select", observation, "[data-extension]");
+
+    expect(result).toMatchObject({ accessibleRole: "combobox", accessibleName: "Connection" });
+    expect(result.accessibilitySha256).toBe(fingerprintAccessibility("- combobox \"Connection\""));
+    expect(page.locator).toHaveBeenCalledWith("[data-extension]");
+    expect(page.querySelectorCalls()).toEqual(["[data-extension] > select"]);
   });
 
   test("waits for three consecutive attached visible semantic style frames", async () => {
@@ -367,6 +399,31 @@ function waitingPage() {
 function evaluatingPage() {
   const evaluate = vi.fn(async (operation: (selector: string) => unknown, selector: string) => operation(selector));
   return { page: { evaluate } as unknown as Page, evaluate };
+}
+
+function countingPage(matches: number) {
+  const count = vi.fn(async () => matches);
+  const locator = vi.fn(() => ({ count }));
+  return { page: { locator } as unknown as Page, locator };
+}
+
+function accessibilityPage() {
+  const selectors: string[] = [];
+  const ariaSnapshot = vi.fn(async () => '- combobox "Connection"');
+  const locator = vi.fn(() => ({ ariaSnapshot }));
+  const send = vi.fn(async (method: string, params?: { selector?: string }) => {
+    if (method === "DOM.getDocument") return { root: { nodeId: 1 } };
+    if (method === "DOM.querySelector") {
+      selectors.push(params?.selector ?? "");
+      return { nodeId: 2 };
+    }
+    if (method === "DOM.describeNode") return { node: { backendNodeId: 3 } };
+    if (method === "Accessibility.getPartialAXTree") return { nodes: [{ role: { value: "combobox" }, name: { value: "Connection" } }] };
+    return {};
+  });
+  const session = { send, detach: vi.fn(async () => undefined) };
+  const page = { locator, context: () => ({ newCDPSession: async () => session }) } as unknown as Page;
+  return { page, locator, querySelectorCalls: () => selectors };
 }
 
 function styleSample(signature: string) {

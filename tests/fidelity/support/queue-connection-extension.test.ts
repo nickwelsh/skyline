@@ -17,6 +17,7 @@ describe("NW-221 Queue Connection framework extension", () => {
       decision: "NW-221",
       acceptance: "Connection, search, and time-range filters are URL-backed and use valid server-supplied options.",
       skylineSelector: '[data-skyline-extension="queue-connection-filter"]',
+      skylineAccessibilitySelector: '[data-skyline-extension="queue-connection-filter"] > select',
       triggerAnchorSelector: '[data-trigger-anchor="queue-filter-controls"]',
       skylineAnchorSelector: '[data-skyline-anchor="queue-filter-controls"]',
       accessibleRole: "combobox",
