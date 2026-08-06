@@ -1,13 +1,23 @@
-import type { ReactNode } from "react";
+/*!
+ * Adapted from Trigger.dev SpanEntity in
+ * apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Retains the source Span body and Properties CodeBlock slot; recorded external
+ * variants are available inside that viewer's expand slot.
+ */
+import { ClipboardCheckIcon, ClipboardIcon } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import {
   HtmlCapturePreview,
   JsonCapturePreview,
   SqlCapturePreview,
   TextCapturePreview,
 } from "../trigger/CapturePreview";
+import { CodeBlock } from "../trigger/CodeBlock";
 import { Header3 } from "../trigger/components/primitives/Headers";
 import { DateTimeAccurate } from "../trigger/components/primitives/DateTime";
 import * as Property from "../trigger/components/primitives/PropertyTable";
+import { TaskRunStatusCombo, type RunStatus } from "../trigger/components/runs/v3/TaskRunStatus";
 import type {
   CapturedValue,
   HttpMessageCapture,
@@ -28,17 +38,21 @@ type PresentationOf<Type extends InspectorPresentation["type"]> = Extract<Inspec
 export function ExternalOperationInspector({ inspector }: { inspector: ExternalInspector }) {
   const presentation = inspector.presentation;
 
+  if (inspector.kind && !["run", "attempt"].includes(inspector.kind)) {
+    return <SourceSpanInspector inspector={inspector}>{presentation ? presentationDetails(presentation, inspector) : <GenericInspector inspector={inspector} />}</SourceSpanInspector>;
+  }
+
   if (!presentation) return <GenericInspector inspector={inspector} />;
 
   switch (presentation.type) {
     case "sql":
-      return <OperationExtension><SqlInspector presentation={presentation} /></OperationExtension>;
+      return <SqlInspector presentation={presentation} />;
     case "transaction":
-      return <OperationExtension><TransactionInspector presentation={presentation} /></OperationExtension>;
+      return <TransactionInspector presentation={presentation} />;
     case "cache":
-      return <OperationExtension><CacheInspector presentation={presentation} /></OperationExtension>;
+      return <CacheInspector presentation={presentation} />;
     case "redis":
-      return <OperationExtension><RedisInspector presentation={presentation} /></OperationExtension>;
+      return <RedisInspector presentation={presentation} />;
     case "http":
       return <HttpInspector presentation={presentation} overview={inspector.overview} />;
     case "delivery":
@@ -58,8 +72,128 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
   }
 }
 
-function OperationExtension({ children }: { children: ReactNode }) {
-  return <section aria-label="Database and state operation inspector" data-skyline-extension="database-state-operation-inspector">{children}</section>;
+function presentationDetails(presentation: InspectorPresentation, inspector: ExternalInspector) {
+  switch (presentation.type) {
+    case "sql": return <SqlInspector presentation={presentation} />;
+    case "transaction": return <TransactionInspector presentation={presentation} />;
+    case "cache": return <CacheInspector presentation={presentation} />;
+    case "redis": return <RedisInspector presentation={presentation} />;
+    case "http": return <HttpInspector presentation={presentation} overview={inspector.overview} />;
+    case "delivery": return <DeliveryInspector presentation={presentation} />;
+    case "storage": return <StorageInspector presentation={presentation} />;
+    case "process": return <ProcessInspector presentation={presentation} />;
+    case "breadcrumb": return <BreadcrumbInspector presentation={presentation} />;
+    case "custom": return <CustomInspector presentation={presentation} />;
+    case "summary": return <SummaryInspector presentation={presentation} />;
+    case "generic": return <GenericInspector inspector={inspector} presentation={presentation} />;
+  }
+}
+
+function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspector; children: ReactNode }) {
+  const presentation = inspector.presentation;
+  const extension = presentation && ["sql", "transaction", "cache", "redis"].includes(presentation.type);
+  const evidence = presentation ?? inspector.metadata.value;
+
+  return (
+    <div className="flex flex-col gap-4 p-3">
+      <div className="border-b border-grid-bright pb-3">
+        <TaskRunStatusCombo status={sourceStatus(inspector)} className="text-sm" />
+      </div>
+      <SourceSpanTimeline inspector={inspector} />
+      <Property.Table>
+        <Property.Item>
+          <Property.Label className="flex items-center justify-between">
+            <span>Message</span>
+            <CopyTextLink value={inspector.label} />
+          </Property.Label>
+          <Property.Value className="whitespace-pre-wrap wrap-break-word">{inspector.label}</Property.Value>
+        </Property.Item>
+      </Property.Table>
+      {(inspector.timelineEvents?.length ?? 0) > 0 && <SourceSpanEvents inspector={inspector} />}
+      <CodeBlock
+        rowTitle="Properties"
+        code={JSON.stringify(evidence, null, 2)}
+        label="Properties"
+        maxLines={20}
+        showLineNumbers={false}
+        showCopyButton
+        showTextWrapping
+        showOpenInModal
+        extensionId={extension ? "database-state-operation-inspector" : undefined}
+        regionLabel={extension ? "Database and state operation inspector" : undefined}
+        modalContent={<div className="border-t border-grid-bright p-4">{children}</div>}
+      />
+    </div>
+  );
+}
+
+function SourceSpanTimeline({ inspector }: { inspector: ExternalInspector }) {
+  const startedAt = inspector.presentation && "timing" in inspector.presentation
+    ? inspector.presentation.timing?.startedAt ?? null
+    : null;
+  const finishedAt = inspector.presentation && "timing" in inspector.presentation
+    ? inspector.presentation.timing?.endedAt ?? null
+    : null;
+  const state = inspector.isError ? "error" : inspector.isPartial ? "inprogress" : undefined;
+
+  return (
+    <div className="min-w-fit max-w-80">
+      <SourceTimelineEvent title="Started" timestamp={startedAt} state={state} variant="start" />
+      <div className="grid h-6 grid-cols-[1.125rem_1fr] gap-1 text-xs">
+        <div className="flex items-stretch justify-center"><div className={`w-1.75 ${inspector.isError ? "bg-error" : inspector.isPartial ? "bg-text-dimmed" : "bg-text-dimmed"}`} /></div>
+        <div className="flex items-center justify-between gap-3"><span className="text-text-dimmed">{formatMicroseconds(inspector.durationUs)}</span></div>
+      </div>
+      <SourceTimelineEvent title="Finished" timestamp={finishedAt} state={state} variant="end" />
+    </div>
+  );
+}
+
+function SourceTimelineEvent({ title, timestamp, state, variant }: { title: string; timestamp: string | null; state?: "error" | "inprogress"; variant: "start" | "end" }) {
+  const color = state === "error" ? "bg-error" : "bg-text-dimmed";
+  return (
+    <div className="grid h-5 grid-cols-[1.125rem_1fr] gap-1 text-sm">
+      <div className="relative flex flex-col items-center justify-center"><div className={`${color} h-full w-1.75 ${variant === "start" ? "rounded-t-xs" : "rounded-b-xs"}`} /></div>
+      <div className="flex min-w-0 items-baseline justify-between gap-3">
+        <div className="min-w-0 max-w-full cursor-default text-left"><div className="truncate font-medium text-text-bright">{title}</div></div>
+        {timestamp && <span className="whitespace-nowrap text-xs tabular-nums text-text-dimmed"><DateTimeAccurate date={timestamp} /></span>}
+      </div>
+    </div>
+  );
+}
+
+function SourceSpanEvents({ inspector }: { inspector: ExternalInspector }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {inspector.timelineEvents.map((event, index) => (
+        <div key={`${event.name}-${index}`} className="flex flex-col gap-2">
+          <div className="flex items-center justify-between"><Header3>{event.name}</Header3></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CopyTextLink({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1_500);
+  };
+  return (
+    <button type="button" onClick={copy} className={`inline-flex cursor-pointer items-center gap-1 text-xs transition-colors ${copied ? "text-success" : "text-text-dimmed hover:text-text-bright"}`}>
+      {copied ? "Copied" : "Copy"}
+      {copied ? <ClipboardCheckIcon className="size-3" /> : <ClipboardIcon className="size-3" />}
+    </button>
+  );
+}
+
+function sourceStatus(inspector: ExternalInspector): RunStatus {
+  if (inspector.isError || inspector.status === "failed") return "failed";
+  if (inspector.isPartial || inspector.status === "running") return "running";
+  if (inspector.status === "queued") return "queued";
+  if (inspector.status === "retrying" || inspector.status === "released") return "retrying";
+  return "completed";
 }
 
 function SqlInspector({ presentation }: { presentation: PresentationOf<"sql"> }) {

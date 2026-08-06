@@ -119,6 +119,37 @@ describe("Run detail source primitives", () => {
     expect(router.state.location.search).toBe("");
     await act(async () => root.unmount());
   });
+
+  it("uses the pinned header-only Span body for a selected query", async () => {
+    const queryId = "span_4f24adb545b26d31";
+    const adapter = new FixtureAdapter();
+    const loadInspector = async (nodeId: string) => ({
+      ...await adapter.inspector(nodeId, runId),
+      label: "SQL query",
+      presentation: {
+        type: "sql" as const,
+        timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 },
+        failure: null,
+        sql: {
+          statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 49 },
+          bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 },
+          result: null,
+        },
+      },
+    });
+    const { container, root } = await renderRoute({ initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`, loadInspector });
+
+    await vi.waitFor(() => expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull());
+    const inspector = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
+
+    expect(inspector.className).toContain("grid-rows-[2.5rem_1fr]");
+    expect(inspector.querySelector('[role="tablist"]')).toBeNull();
+    expect(inspector.textContent).toContain("Completed");
+    expect(inspector.textContent).toContain("Message");
+    expect(inspector.textContent).toContain("Properties");
+
+    await act(async () => root.unmount());
+  });
 });
 
 async function renderRoute(options: { initialEntry?: string; loadInspector?: Parameters<typeof presentRunDetail>[1] } = {}) {

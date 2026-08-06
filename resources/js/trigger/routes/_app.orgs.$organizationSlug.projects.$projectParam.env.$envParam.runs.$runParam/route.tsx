@@ -583,23 +583,24 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
     setParams(next);
   };
   const failure = data.attempts.find((attempt) => attempt.id === frozenId)?.failure;
+  const sourceSpan = node && !["run", "attempt"].includes(node.kind);
+
+  if (sourceSpan) {
+    return (
+      <section className="grid h-full max-h-full grid-rows-[2.5rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
+        <InspectorHeader node={node} onClose={onClose} />
+        <div className="scrollbar-gutter-stable overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+          {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
+          {error && <div role="alert" className="p-3 text-error">{error.message}</div>}
+          {inspector && <data.renderInspectorDetails inspector={inspector} />}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="grid h-full grid-rows-[2.5rem_2rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
-      <div className="flex items-center justify-between gap-2 overflow-x-hidden px-3 pr-2">
-        <div className="flex min-w-0 items-center gap-1">
-          <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
-          <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>
-        </div>
-        <Button
-          onClick={onClose}
-          variant="minimal/small"
-          TrailingIcon={ExitIcon}
-          shortcut={{ key: "esc" }}
-          shortcutPosition="before-trailing-icon"
-          className="pl-1"
-        />
-      </div>
+      <InspectorHeader node={node} onClose={onClose} />
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
         {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, ...(inspector?.context ? [{ id: "context", label: "Context", key: "x" }] : []), { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
           <InspectorTab key={item.id} active={tab === item.id} enabled={Boolean(selectedId)} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
@@ -621,6 +622,25 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
         )}
       </div>
     </section>
+  );
+}
+
+function InspectorHeader({ node, onClose }: { node?: TraceNode; onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2 overflow-x-hidden border-b border-grid-bright px-3 pr-2">
+      <div className="flex min-w-0 items-center gap-1">
+        <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
+        <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>
+      </div>
+      <Button
+        onClick={onClose}
+        variant="minimal/small"
+        TrailingIcon={ExitIcon}
+        shortcut={{ key: "esc" }}
+        shortcutPosition="before-trailing-icon"
+        className="pl-1"
+      />
+    </div>
   );
 }
 

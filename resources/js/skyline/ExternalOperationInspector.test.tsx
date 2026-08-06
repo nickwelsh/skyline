@@ -69,11 +69,37 @@ describe("ExternalOperationInspector", () => {
     expect(container.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
     expect(container.querySelector('[role="tablist"][aria-label="Result preview display"]')).not.toBeNull();
     expect(container.textContent).toContain("Truncated");
-    expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"][aria-label="Database and state operation inspector"] > [aria-label="SQL query detail"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="SQL query detail"]')).not.toBeNull();
+    expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).toBeNull();
     expect([...container.querySelectorAll("time")].map((element) => element.getAttribute("datetime"))).toEqual([
       "2026-08-05T12:00:00.000000000Z",
       "2026-08-05T12:00:00.125000000Z",
     ]);
+
+    flushSync(() => root.unmount());
+  });
+
+  it("keeps SQL in the pinned Properties CodeBlock slot and opens variant detail inside it", () => {
+    const { container, root } = renderInspector({
+      type: "sql",
+      timing: timing(),
+      failure: null,
+      sql: {
+        statement: { value: "select * from users where email = ?", isTruncated: false, originalBytes: 35 },
+        bindings: { items: [{ position: 0, column: "email", value: "[REDACTED]" }], truncated: false, originalBytes: 128 },
+        result: null,
+      },
+    }, {}, "query");
+    const properties = container.querySelector<HTMLElement>('[data-skyline-extension="database-state-operation-inspector"]');
+
+    expect(properties?.getAttribute("translate")).toBe("no");
+    expect(properties?.getAttribute("role")).toBe("region");
+    expect(properties?.textContent).toContain("Properties");
+    expect(properties?.textContent).toContain('"type": "sql"');
+    expect(properties?.querySelector('[aria-label="SQL query detail"]')).toBeNull();
+
+    flushSync(() => properties?.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')?.click());
+    expect(document.querySelector('[role="dialog"] [aria-label="SQL query detail"]')).not.toBeNull();
 
     flushSync(() => root.unmount());
   });
@@ -350,11 +376,28 @@ describe("ExternalOperationInspector", () => {
   });
 });
 
-function renderInspector(presentation: RunDetailInspector["presentation"], metadata: Record<string, unknown> = {}) {
+function renderInspector(presentation: RunDetailInspector["presentation"], metadata: Record<string, unknown> = {}, kind: RunDetailInspector["kind"] = "run") {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
   const inspector = {
+    id: "span-1",
+    parentId: null,
+    runId: "run-1",
+    kind,
+    label: presentation?.type === "sql" ? "SQL query" : "Recorded operation",
+    level: 1,
+    offsetUs: 0,
+    durationUs: 125_000,
+    status: "completed",
+    isError: false,
+    isPartial: false,
+    hasErrorDescendant: false,
+    children: [],
+    hasChildren: false,
+    timelineEvents: [],
+    inspectorHref: "#",
+    telemetryEventHref: null,
     overview: { runId: "run-1", attemptNumber: 1, traceId: "trace-1", spanId: "span-1" },
     presentation,
     detailSections: [],
