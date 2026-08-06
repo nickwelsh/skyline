@@ -20,11 +20,16 @@ ReactDOM.createRoot(root).render(
       <ShortcutsProvider>
         <RouterProvider
           router={router}
-          fallbackElement={window.location.pathname.match(/\/runs\/[^/]+$/)
-            ? <div aria-label="Loading Run" className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading Run…</div>
-            : <div aria-label="Loading Runs" className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading Runs…</div>}
+          fallbackElement={<InitialLoadingState />}
         />
       </ShortcutsProvider>
     </OperatingSystemContextProvider>
   </React.StrictMode>,
 );
+
+function InitialLoadingState() {
+  const segment = window.location.pathname.match(/\/(runs|queues)(?:\/[^/]+)?$/)?.[1] ?? "runs";
+  const detail = window.location.pathname.match(new RegExp(`/${segment}/[^/]+$`));
+  const label = detail ? `${segment === "queues" ? "Queue target" : "Run"}` : `${segment === "queues" ? "Queues" : "Runs"}`;
+  return <div aria-label={`Loading ${label}`} className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading {label}…</div>;
+}

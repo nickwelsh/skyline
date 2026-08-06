@@ -7,15 +7,18 @@ import { PlayIcon, Squares2X2Icon } from "@heroicons/react/20/solid";
 import { Link, useLocation } from "@remix-run/react";
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useCallback, useRef, useState } from "react";
 import { cn } from "~/utils/cn";
+import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 
 type SideMenuProps = {
   applicationName: string;
   brandMark: React.ReactNode;
   environmentLabel: string;
+  capabilities: Record<string, boolean>;
   runsPath: string;
+  queuesPath: string;
 };
 
-export function SideMenu({ applicationName, brandMark, environmentLabel, runsPath }: SideMenuProps) {
+export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, runsPath, queuesPath }: SideMenuProps) {
   const location = useLocation();
   const [width, setWidth] = useState(224);
   const widthRef = useRef(width);
@@ -67,16 +70,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, runsPat
         </div>
       </div>
       <nav aria-label="Application" className="px-2">
-        <Link
-          to={runsPath}
-          className={cn(
-            "flex h-8 items-center gap-2 rounded px-1",
-            location.pathname === runsPath ? "bg-background-raised text-text-bright" : "hover:bg-background-hover"
-          )}
-        >
-          <PlayIcon className="size-5 shrink-0 text-runs" />
-          <span className="truncate" style={{ opacity: labelOpacity }}>Runs</span>
-        </Link>
+        {capabilities.runs ? <NavigationLink to={runsPath} active={location.pathname.startsWith(runsPath)} label="Runs" labelOpacity={labelOpacity}><PlayIcon className="size-5 shrink-0 text-runs" /></NavigationLink> : null}
+        {capabilities.queues ? <NavigationLink to={queuesPath} active={location.pathname.startsWith(queuesPath)} label="Queues" labelOpacity={labelOpacity}><QueuesIcon className="size-5 shrink-0 text-queues" /></NavigationLink> : null}
       </nav>
       <div
         data-testid="side-menu-resizer"
@@ -86,5 +81,13 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, runsPat
         <div className="absolute inset-y-0 left-[3px] w-px bg-grid-bright group-hover:bg-indigo-500" />
       </div>
     </aside>
+  );
+}
+
+function NavigationLink({ to, active, label, labelOpacity, children }: { to: string; active: boolean; label: string; labelOpacity: number; children: React.ReactNode }) {
+  return (
+    <Link to={to} className={cn("flex h-8 items-center gap-2 rounded px-1", active ? "bg-background-raised text-text-bright" : "hover:bg-background-hover")}>
+      {children}<span className="truncate" style={{ opacity: labelOpacity }}>{label}</span>
+    </Link>
   );
 }

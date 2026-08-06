@@ -13,7 +13,7 @@ final class Capabilities
                 'runs' => true,
                 'errors' => false,
                 'logs' => false,
-                'queues' => false,
+                'queues' => true,
                 'query' => false,
                 'dashboards' => false,
             ],

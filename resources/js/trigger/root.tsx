@@ -11,13 +11,14 @@ type TriggerShellProps = {
   applicationName: string;
   brandMark: React.ReactNode;
   environmentLabel: string;
+  capabilities: Record<string, boolean>;
 };
 
-export function TriggerShell({ applicationName, brandMark, environmentLabel }: TriggerShellProps) {
+export function TriggerShell({ applicationName, brandMark, environmentLabel, capabilities }: TriggerShellProps) {
   return (
     <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
       <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
-        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} runsPath="/runs" />
+        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} runsPath="/runs" queuesPath="/queues" />
         <main className="min-w-0 overflow-hidden"><Outlet /></main>
       </div>
     </AppContainer>

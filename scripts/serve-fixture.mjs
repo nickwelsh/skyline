@@ -14,7 +14,7 @@ const bootstrap = JSON.stringify({
   applicationName: "Fixture Laravel",
   environmentLabel: "testing",
   capabilities: {
-    navigation: { jobs: false, runs: true, errors: false, logs: false, queues: false, query: false, dashboards: false },
+    navigation: { jobs: false, runs: true, errors: false, logs: false, queues: true, query: false, dashboards: false },
     runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },
     shell: { appearance: false, sidebarCustomization: false, favorites: false, shortcuts: true },
   },
