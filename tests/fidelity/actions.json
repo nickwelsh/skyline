@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "scripts": [
+    {
+      "id": "navigation-history",
+      "start": "runs-populated",
+      "steps": [
+        { "action": "click", "target": { "role": "link", "name": "Jobs" } },
+        { "action": "click", "target": { "role": "link", "name": "Runs" } },
+        { "action": "history", "direction": "back" },
+        { "action": "history", "direction": "forward" }
+      ]
+    },
+    {
+      "id": "dialogs-menus",
+      "start": "shell-expanded",
+      "steps": [
+        { "action": "click", "target": { "role": "button", "name": "Help & Feedback" } },
+        { "action": "click", "target": { "role": "button", "name": "Shortcuts" } },
+        { "action": "press", "key": "Escape" }
+      ]
+    },
+    {
+      "id": "filters-pagination",
+      "start": "runs-populated",
+      "steps": [
+        { "action": "fill", "target": { "label": "Search Runs" }, "value": "invoice" },
+        { "action": "select", "target": { "label": "Status" }, "value": "failed" },
+        { "action": "click", "target": { "selector": "a[href*='direction=forward']" } },
+        { "action": "history", "direction": "back" }
+      ]
+    },
+    {
+      "id": "selection-inspector-timeline-copy",
+      "start": "run-found",
+      "steps": [
+        { "action": "click", "target": { "selector": "[data-node-id]:nth-of-type(2)" } },
+        { "action": "click", "target": { "role": "tab", "name": "Detail" } },
+        { "action": "click", "target": { "role": "switch", "name": "Queue time" } },
+        { "action": "click", "target": { "selector": "button[aria-label^='Copy']" } }
+      ]
+    },
+    {
+      "id": "preferences",
+      "start": "shell-expanded",
+      "steps": [
+        { "action": "click", "target": { "role": "button", "name": "Appearance" } },
+        { "action": "click", "target": { "label": "Interface theme" } },
+        { "action": "click", "target": { "role": "option", "name": "Light" } },
+        { "action": "press", "key": "Control+b" },
+        { "action": "reload" }
+      ]
+    },
+    {
+      "id": "live-error-recovery",
+      "start": "runs-populated",
+      "steps": [
+        { "action": "fixture", "state": "api-error" },
+        { "action": "reload" },
+        { "action": "fixture", "state": "populated" },
+        { "action": "reload" }
+      ]
+    },
+    {
+      "id": "keyboard-focus-shortcuts",
+      "start": "shell-expanded",
+      "steps": [
+        { "action": "press", "key": "Control+b" },
+        { "action": "press", "key": "Shift+?" },
+        { "action": "press", "key": "Tab" },
+        { "action": "press", "key": "Escape" }
+      ]
+    }
+  ]
+}
