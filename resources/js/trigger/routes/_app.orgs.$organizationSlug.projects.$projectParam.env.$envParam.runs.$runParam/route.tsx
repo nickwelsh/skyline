@@ -344,7 +344,16 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
                   selected={nodeState.selected}
                   expanded={nodeState.expanded}
                   onSelect={() => state.selectNode(node.id)}
-                  onToggle={(level) => level ? state.toggleExpandLevel(node.data.level) : state.toggleExpandNode(node.id)}
+                  onToggle={(all) => {
+                    if (all) {
+                      nodeState.expanded
+                        ? state.collapseAllBelowDepth(node.data.level)
+                        : state.expandAllBelowDepth(node.data.level);
+                    } else {
+                      state.toggleExpandNode(node.id);
+                    }
+                    state.scrollToNode(node.id);
+                  }}
                 />
               )}
             />

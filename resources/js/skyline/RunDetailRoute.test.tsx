@@ -96,6 +96,24 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
+  it("restores every deeper row when Alt-expanding a collapsed Trace branch", async () => {
+    const { container, root } = await renderRoute();
+    const childRunId = "run_run_01J8R4H9S9J12V04CNH6F6JQ3M";
+    const childAttemptId = "attempt_run_01J8R4H9S9J12V04CNH6F6JQ3M_1";
+    const childQueryId = "span_a866b446b5df56e3";
+
+    await act(async () => expansionControl(container, childAttemptId).click());
+    expect(container.querySelector(`[data-node-id="${childQueryId}"]`)).toBeNull();
+
+    await act(async () => expansionControl(container, childRunId).click());
+    expect(container.querySelector(`[data-node-id="${childAttemptId}"]`)).toBeNull();
+
+    await act(async () => expansionControl(container, childRunId).dispatchEvent(new MouseEvent("click", { bubbles: true, altKey: true })));
+    expect(container.querySelector(`[data-node-id="${childQueryId}"]`)).not.toBeNull();
+
+    await act(async () => root.unmount());
+  });
+
   it("preserves the pinned Run panel group sizing classes", async () => {
     const { container, root } = await renderRoute();
     const group = container.querySelector('[data-group-id="panel-run-parent-v3"]');
@@ -198,4 +216,8 @@ async function renderRoute(options: { initialEntry?: string; loadInspector?: Par
   });
   await vi.waitFor(() => expect(container.querySelector(`[data-node-id="run_${runId}"]`)).not.toBeNull());
   return { container, root, router };
+}
+
+function expansionControl(container: HTMLElement, nodeId: string): HTMLElement {
+  return container.querySelector<HTMLElement>(`[data-node-id="${nodeId}"] > div:first-child > div:last-child`)!;
 }
