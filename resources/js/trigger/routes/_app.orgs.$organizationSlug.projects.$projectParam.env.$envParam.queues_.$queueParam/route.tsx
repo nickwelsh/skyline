@@ -4,7 +4,6 @@
  */
 import { useLoaderData, useNavigation, useRouteError } from "@remix-run/react";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
-import { Badge } from "~/components/primitives/Badge";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { QueueTargetDetailPresenter, type QueueTargetDetailPresentation } from "~/components/queues/QueueTargetDetailPresenter";
 
@@ -17,11 +16,6 @@ export default function Page() {
   return (
     <PageContainer>
       <NavBar><PageTitle title={data.queueTarget.queue} backButton={{ to: "/queues", text: "Queues" }} /></NavBar>
-      <div className="flex items-center gap-2 border-b border-grid-bright bg-background-bright px-3 py-2">
-        <span className="font-mono text-xs text-text-dimmed">{data.queueTarget.destination}</span>
-        <Badge variant="small" className={data.queueTarget.state === "Busy" ? "text-pending" : "text-text-dimmed"}>{data.queueTarget.state}</Badge>
-        <span className="ml-auto text-xs text-text-dimmed">Recorded Runs, not broker depth</span>
-      </div>
       <QueueTargetDetailPresenter data={data} loading={navigation.state !== "idle"} />
     </PageContainer>
   );
