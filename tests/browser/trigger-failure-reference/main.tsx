@@ -8,6 +8,11 @@ import { PinnedTriggerRunError } from "virtual:pinned-trigger-run-error";
 import { PinnedTriggerStateInspector } from "virtual:pinned-trigger-state-inspector";
 import { PinnedTriggerLogDetail } from "virtual:pinned-trigger-log-detail";
 import { PinnedTriggerLogsTable } from "virtual:pinned-trigger-logs-table";
+import { PinnedTriggerShortcuts } from "virtual:pinned-trigger-shell";
+import { SideMenuSection } from "virtual:pinned-trigger-side-menu-section";
+import { CustomizeSidebarDialog } from "virtual:pinned-trigger-customize-sidebar";
+import { TaskIcon } from "../../../resources/js/trigger/assets/icons/TaskIcon";
+import { Dialog } from "../../../resources/js/trigger/components/primitives/Dialog";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "../../../resources/js/trigger/components/primitives/Resizable";
 import { LocaleContextProvider } from "../../../../trigger.dev/apps/webapp/app/components/primitives/LocaleProvider";
 import { OperatingSystemContextProvider } from "../../../../trigger.dev/apps/webapp/app/components/primitives/OperatingSystemProvider";
@@ -45,7 +50,52 @@ function Reference() {
     return <PinnedLogs />;
   }
 
+  if (location.pathname.startsWith("/shell")) {
+    return <PinnedTriggerShell />;
+  }
+
   return <div className="w-[488px]"><PinnedTriggerRunError error={triggerError} /></div>;
+}
+
+function PinnedTriggerShell() {
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [logsHidden, setLogsHidden] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setShortcutsOpen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
+
+  return <div className="flex h-screen w-screen bg-background-dimmed text-text-bright">
+    <aside data-testid="pinned-trigger-shell" className="flex w-56 flex-col border-r border-grid-bright bg-background-bright p-2">
+      <div className="mb-4 h-10 border-b border-grid-bright px-1 text-sm font-semibold leading-10">Fixture Trigger</div>
+      <nav aria-label="Application" className="flex-1 space-y-4">
+        <div className="space-y-1"><a href="/shell/jobs" className="block rounded px-2 py-1">Jobs</a><a href="/shell/runs" className="block rounded px-2 py-1">Runs</a></div>
+        <SideMenuSection title="Observability">
+          <div className="space-y-1">{!logsHidden && <a href="/shell/logs" className="block rounded px-2 py-1">Logs</a>}<a href="/shell/errors" className="block rounded px-2 py-1">Errors</a><a href="/shell/queues" className="block rounded px-2 py-1">Queues</a></div>
+        </SideMenuSection>
+      </nav>
+      <div className="space-y-1 border-t border-grid-bright pt-2">
+        <button type="button" onClick={() => setShortcutsOpen(true)} className="h-8 w-full rounded px-2 text-left">Shortcuts</button>
+        <button type="button" onClick={() => setCustomizeOpen(true)} className="h-8 w-full rounded px-2 text-left">Customize sidebar</button>
+      </div>
+    </aside>
+    <main className="flex-1 p-6"><h1 className="text-lg font-semibold">Runs</h1></main>
+    <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
+      <CustomizeSidebarDialog
+        sections={[{ id: "metrics", title: "Observability", items: [
+          { id: "logs", name: "Logs", icon: TaskIcon },
+          { id: "errors", name: "Errors", icon: TaskIcon },
+          { id: "queues", name: "Queues", icon: TaskIcon },
+        ] }]}
+        prefs={{ hiddenItems: logsHidden ? { logs: true } : {} }}
+        onConfirm={(payload) => { setLogsHidden(payload.hiddenItems?.logs === true); setCustomizeOpen(false); }}
+        isConfirming={false}
+      />
+    </Dialog>
+    <PinnedTriggerShortcuts open={shortcutsOpen} />
+  </div>;
 }
 
 function PinnedLogs() {
