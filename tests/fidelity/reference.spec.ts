@@ -8,7 +8,7 @@ test.setTimeout(20_000);
 
 const cases = [
   { id: "jobs-populated", text: "Tasks" },
-  { id: "job-found", text: "Runs" },
+  { id: "job-found", text: "GenerateMonthlyInvoices" },
   { id: "runs-api-error", text: "Deterministic telemetry error." },
 ] as const;
 
@@ -20,8 +20,7 @@ for (const scenario of cases) {
     await page.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`, { waitUntil: "domcontentloaded", timeout: 10_000 });
     await waitForReference(page);
     await expect(page.getByText(scenario.text, { exact: false }).first()).toBeVisible();
-    await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
-    await expect(page.locator("body")).not.toContainText("ReferenceError");
+    await expectReferenceHealthy(page);
     expect(errors).toEqual([]);
   });
 }
@@ -36,7 +35,7 @@ test("reference paired jobs-populated readiness", async ({ page }) => {
   await page.goto("http://127.0.0.1:4185/oracle/jobs-populated", { waitUntil: "domcontentloaded", timeout: 10_000 });
   await waitForReference(page);
   await expect(page.getByText("Tasks", { exact: true }).first()).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(/Unexpected Application Error|ReferenceError/);
+  await expectReferenceHealthy(page);
   expect(errors).toEqual([]);
 });
 
@@ -47,10 +46,22 @@ for (const id of ["shell-populated", "runs-populated", "errors-populated", "logs
     await installReferenceFixture(page, await createReferenceFixture());
     await page.goto(`http://127.0.0.1:4185/oracle/${id}`, { waitUntil: "domcontentloaded", timeout: 10_000 });
     await waitForReference(page);
-    await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
-    await expect(page.locator("body")).not.toContainText("ReferenceError");
+    await expectReferenceHealthy(page);
     expect(errors).toEqual([]);
   });
+}
+
+async function expectReferenceHealthy(page: import("@playwright/test").Page) {
+  try {
+    await expect(page.locator("body")).not.toContainText(
+      /Unexpected Application Error|ReferenceError|TypeError|404: Page not found/
+    );
+  } catch (error) {
+    const state = await page.evaluate(() => (window as Window & {
+      __oracleRouter?: { state?: unknown };
+    }).__oracleRouter?.state);
+    throw new Error(`Reference health failed: ${JSON.stringify(state)}`, { cause: error });
+  }
 }
 
 async function waitForReference(page: import("@playwright/test").Page) {

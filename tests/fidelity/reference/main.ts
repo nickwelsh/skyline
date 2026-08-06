@@ -61,6 +61,9 @@ const routes = createBrowserRouter([
     loader: () => referencePort().context.root,
     element: createElement(ReferenceRoot),
     children: [{
+      path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/runs/live",
+      loader: () => ({ runs: [] }),
+    }, {
       id: "routes/_app.orgs.$organizationSlug",
       path: "oracle",
       loader: () => referencePort().context.organization,

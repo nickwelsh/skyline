@@ -194,9 +194,11 @@ function triggerJobs(page: any) {
 
 function triggerJob(detail: any) {
   const list = triggerRunList({ runs: detail.runs, pagination: detail.pagination, hasAnyRuns: detail.hasAnyRuns });
+  const statusMap = { queued: "PENDING", running: "EXECUTING", retrying: "RETRYING_AFTER_FAILURE", completed: "COMPLETED_SUCCESSFULLY", failed: "COMPLETED_WITH_ERRORS" } as const;
+  const statuses = Object.values(statusMap);
   return {
-    task: { slug: detail.job.name, filePath: detail.job.name.replaceAll("\\", "/") + ".php", exportName: detail.job.name, description: null, workerVersion: "20260804.1", machinePreset: "small-1x", maxDurationInSeconds: 300, ttl: null, hasPayloadSchema: false, retry: null, createdAt: detail.job.firstObservedAt, queue: detail.queueTargets[0] ? { friendlyId: detail.queueTargets[0].id, name: detail.queueTargets[0].queue } : null },
-    activity: detail.activity.map((point: any) => ({ date: point.timestamp, total: point.total, COMPLETED_SUCCESSFULLY: point.statusCounts.completed ?? 0, COMPLETED_WITH_ERRORS: point.statusCounts.failed ?? 0, EXECUTING: point.statusCounts.running ?? 0, PENDING: point.statusCounts.queued ?? 0, RETRYING_AFTER_FAILURE: point.statusCounts.retrying ?? 0 })),
+    task: { slug: detail.job.name, filePath: detail.job.name.replaceAll("\\", "/") + ".php", exportName: detail.job.name, description: null, workerVersion: "20260804.1", machinePreset: "small-1x", maxDurationInSeconds: 300, ttl: null, hasPayloadSchema: false, retry: null, createdAt: detail.job.firstObservedAt, queue: detail.queueTargets[0] ? { friendlyId: detail.queueTargets[0].id, name: detail.queueTargets[0].queue, concurrencyLimit: null, paused: false } : null },
+    activity: { data: detail.activity.map((point: any) => ({ bucket: point.timestamp, total: point.total, ...Object.fromEntries(Object.entries(statusMap).map(([status, triggerStatus]) => [triggerStatus, point.statusCounts[status] ?? 0])) })), statuses },
     runList: list,
     queueMetrics: null,
   };
