@@ -425,10 +425,15 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
     const selectors = definition.category === "presenter-extension"
       ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
       : definition.category === "framework-extension"
-        ? [definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
+        ? [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : []), definition.triggerAnchorSelector, definition.skylineAnchorSelector]
         : definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
     if (definition.category !== "capability-omission") {
-      const extensions = definition.category === "presenter-extension" ? [definition.triggerSelector, definition.skylineSelector] : [definition.skylineSelector];
+      const extensions = definition.category === "presenter-extension"
+        ? [definition.triggerSelector, definition.skylineSelector]
+        : [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : [])];
+      if (definition.category === "framework-extension" && definition.skylineAccessibilitySelector === definition.skylineSelector) {
+        throw new Error(`Framework-extension region ${definition.id} has duplicate extension selector ownership ${definition.skylineSelector}.`);
+      }
       const collision = extensions.find((selector) => selector === definition.triggerAnchorSelector || selector === definition.skylineAnchorSelector);
       if (collision) throw new Error(`Framework-extension region ${definition.id} collides on extension and anchor selector ${collision}.`);
     }
@@ -436,7 +441,9 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
     const anchorPair = definition.category === "capability-omission" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
       const kind = definition.category === "capability-omission" ? "capability"
-        : selector === definition.skylineSelector || (definition.category === "presenter-extension" && selector === definition.triggerSelector) ? "extension" : "anchor";
+        : selector === definition.skylineSelector
+          || (definition.category === "framework-extension" && selector === definition.skylineAccessibilitySelector)
+          || (definition.category === "presenter-extension" && selector === definition.triggerSelector) ? "extension" : "anchor";
       const owner = selectorOwners.get(selector);
       const disjointCapabilityReuse = owner?.category === "capability-omission"
         && definition.category === "capability-omission"

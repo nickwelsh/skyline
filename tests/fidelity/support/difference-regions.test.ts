@@ -220,6 +220,22 @@ describe("framework-extension fidelity regions", () => {
     expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [{ ...region, skylineAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
   });
 
+  test("owns optional accessibility selectors without weakening selector collisions", () => {
+    const region = { ...definition(), skylineAccessibilitySelector: "[data-extension-control]" };
+    const sibling = { ...definition(), id: "sibling", skylineSelector: "[data-sibling]", accessibleName: "Sibling" };
+    const presenter = { ...presenterDefinition(), captures: ["runs-other@1440x960-classic"], triggerSelector: region.skylineAccessibilitySelector };
+    const capability = capabilityDefinition();
+    capability.selectorPairs[0] = { ...capability.selectorPairs[0], skylineSelector: region.skylineAccessibilitySelector };
+
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [{ ...region, skylineAccessibilitySelector: region.skylineSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [{ ...region, skylineAccessibilitySelector: region.triggerAnchorSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [{ ...region, skylineAccessibilitySelector: region.skylineAnchorSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [region, { ...sibling, skylineSelector: region.skylineAccessibilitySelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [region, { ...sibling, triggerAnchorSelector: region.skylineAccessibilitySelector, skylineAnchorSelector: region.skylineAccessibilitySelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [region, presenter] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions(region.captures[0], { regions: [region, capability] })).toThrow(/selector/i);
+  });
+
   test("omits exactly the named extension AX subtree", () => {
     const tree = { role: "main", children: [{ role: "heading", name: "Error" }, { role: "region", name: "Exception", children: [{ role: "button", name: "Show 2 frames" }] }] };
     const manifest = { regions: [definition()] };
