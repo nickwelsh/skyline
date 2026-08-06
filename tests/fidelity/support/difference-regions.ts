@@ -118,9 +118,28 @@ export function omitFrameworkExtensionAccessibility(tree: NormalizedAccessibilit
 }
 
 export function applicableFrameworkExtensions(capture: string, manifest: AllowedDifferences) {
+  validateFrameworkExtensionDefinitions(manifest);
   const definitions = manifest.regions.filter((region) => region.category === "framework-extension" && region.captures.includes(capture));
   if (definitions.length > 1) throw new Error(`Capture ${capture} has multiple framework-extension regions.`);
   return definitions;
+}
+
+export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
+  const captureOwners = new Map<string, string>();
+  const selectorOwners = new Map<string, string>();
+  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension")) {
+    for (const capture of definition.captures) {
+      const owner = captureOwners.get(capture);
+      if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
+      captureOwners.set(capture, definition.id);
+    }
+    for (const key of ["skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector"] as const) {
+      const identity = `${key}:${definition[key]}`;
+      const owner = selectorOwners.get(identity);
+      if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on ${key} selector ${definition[key]}.`);
+      selectorOwners.set(identity, definition.id);
+    }
+  }
 }
 
 async function observeElement(page: Page, id: string, selector: string, label: string) {

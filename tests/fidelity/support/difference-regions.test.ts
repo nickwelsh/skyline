@@ -48,11 +48,15 @@ describe("framework-extension fidelity regions", () => {
     expect(fingerprintComputedStyle(trigger)).not.toBe(fingerprintComputedStyle([["color", "rgb(3, 2, 1)", ""]]));
   });
 
-  test("allows at most one exact capture region", () => {
+  test("allows multiple disjoint regions but at most one per capture", () => {
     const region = definition();
+    const queue = { ...definition(), id: "queue-recorded-runs", captures: ["queue-found@1440x960-classic"], skylineSelector: "[data-skyline-extension='queue-recorded-runs']", triggerAnchorSelector: ".queue-heading", skylineAnchorSelector: ".queue-heading" };
     expect(applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region] })).toEqual([region]);
+    expect(applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, queue] })).toEqual([queue]);
     expect(applicableFrameworkExtensions("errors-populated@1440x960-classic", { regions: [region] })).toEqual([]);
-    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/multiple/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
+    expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, captures: region.captures }] })).toThrow(/overlap|multiple/i);
+    expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, skylineSelector: region.skylineSelector }] })).toThrow(/selector/i);
   });
 
   test("omits exactly the named extension AX subtree", () => {
