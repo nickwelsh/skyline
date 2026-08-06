@@ -44,12 +44,14 @@ describe("framework-extension fidelity regions", () => {
       accessibleRole: expected.accessibleRole,
       accessibleName: expected.accessibleName,
       rect: { x: 10, y: 20, width: 30, height: 40 },
+      accessibilitySha256: "c".repeat(64),
       ...expected.measurements[expected.captures[0]],
     };
 
     expect(validateFrameworkExtensionObservation(expected, observed, expected.captures[0])).toBe(observed);
     expect(() => validateFrameworkExtensionObservation(expected, { ...observed, relativeRect: { ...observed.relativeRect, y: 9 } }, expected.captures[0])).toThrow(/anchor-relative geometry/i);
     expect(() => validateFrameworkExtensionObservation(expected, { ...observed, computedStyleSha256: "b".repeat(64) }, expected.captures[0])).toThrow(/computedStyleSha256/i);
+    expect(() => validateFrameworkExtensionObservation(expected, { ...observed, accessibilitySha256: "d".repeat(64) }, expected.captures[0])).toThrow(/accessibilitySha256/i);
     expect(() => validateFrameworkExtensionObservation(expected, { ...observed, accessibleName: "Changed" }, expected.captures[0])).toThrow(/accessibleName/i);
     expect(() => validateFrameworkExtensionObservation(expected, observed, "error-found@1440x960-dark")).toThrow(/lacks measurement/i);
   });
@@ -206,7 +208,7 @@ describe("framework-extension fidelity regions", () => {
     expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "skyline")).toEqual(region.selectorPairs.map((pair) => pair.skylineSelector));
     expect(() => validateCapabilityOmissionObservation(region, { selectorPairs: observed.selectorPairs.map((pair, index) => index ? pair : { ...pair, skylineAccessibilitySha256: "0".repeat(64) }) }, region.captures[0])).toThrow(/skylineAccessibilitySha256/i);
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|owner/i);
-    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "collision", captures: ["queues-busy@1440x960-dark"], measurements: { "queues-busy@1440x960-dark": measurement } }] })).toThrow(/selector/i);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "disjoint-reuse", captures: ["queues-busy@1440x960-dark"], measurements: { "queues-busy@1440x960-dark": measurement } }] })).not.toThrow();
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [...region.selectorPairs, { ...region.selectorPairs[0], id: "duplicate" }] }] })).toThrow(/selector ownership/i);
   });
 });
@@ -229,6 +231,7 @@ function definition(): FrameworkExtensionDefinition {
       "error-found@1440x960-classic": {
         relativeRect: { x: 0, y: 8, width: 300, height: 120 },
         computedStyleSha256: "a".repeat(64),
+        accessibilitySha256: "c".repeat(64),
         anchorRect: { x: 10, y: 10, width: 300, height: 24 },
         anchorComputedStyleSha256: "b".repeat(64),
       },

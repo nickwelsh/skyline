@@ -21,6 +21,7 @@ export type FrameworkExtensionDefinition = {
   measurements: Record<string, {
     relativeRect: Rect;
     computedStyleSha256: string;
+    accessibilitySha256?: string;
     anchorRect: Rect;
     anchorComputedStyleSha256: string;
   }>;
@@ -86,6 +87,7 @@ export type FrameworkExtensionObservation = {
   rect: Rect;
   relativeRect: Rect;
   computedStyleSha256: string;
+  accessibilitySha256: string;
   anchorRect: Rect;
   anchorComputedStyleSha256: string;
 };
@@ -264,6 +266,7 @@ export async function discoverFrameworkExtensionObservation(trigger: Page, skyli
     rect: extension.rect,
     relativeRect: { x: extension.rect.x - skylineAnchor.rect.x, y: extension.rect.y - skylineAnchor.rect.y, width: extension.rect.width, height: extension.rect.height },
     computedStyleSha256: extension.computedStyleSha256,
+    accessibilitySha256: extension.accessibilitySha256,
     anchorRect: skylineAnchor.rect,
     anchorComputedStyleSha256: skylineAnchor.computedStyleSha256,
   };
@@ -278,6 +281,7 @@ export function validateFrameworkExtensionObservation(definition: FrameworkExten
   for (const key of ["computedStyleSha256", "anchorComputedStyleSha256"] as const) {
     if (observation[key] !== measurement[key]) throw new Error(`Allowed region ${definition.id} changed ${key}.`);
   }
+  if (measurement.accessibilitySha256 && observation.accessibilitySha256 !== measurement.accessibilitySha256) throw new Error(`Allowed region ${definition.id} changed accessibilitySha256.`);
   if (JSON.stringify(observation.relativeRect) !== JSON.stringify(measurement.relativeRect)) throw new Error(`Allowed region ${definition.id} changed anchor-relative geometry.`);
   if (JSON.stringify(observation.anchorRect) !== JSON.stringify(measurement.anchorRect)) throw new Error(`Allowed region ${definition.id} anchor changed locked geometry.`);
   return observation;
@@ -349,7 +353,7 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
 
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
   const captureOwners = new Map<string, string>();
-  const selectorOwners = new Map<string, string>();
+  const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[] }>();
   for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension" || region.category === "capability-omission")) {
     for (const capture of definition.captures) {
       const ownership = definition.category === "capability-omission" ? "capability-omission" : "extension";
@@ -366,8 +370,11 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
     if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length)) throw new Error(`Capability-omission region ${definition.id} has duplicate selector ownership.`);
     for (const selector of new Set(selectors)) {
       const owner = selectorOwners.get(selector);
-      if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on selector ${selector}.`);
-      selectorOwners.set(selector, definition.id);
+      const disjointCapabilityReuse = owner?.category === "capability-omission"
+        && definition.category === "capability-omission"
+        && !definition.captures.some((capture) => owner.captures.includes(capture));
+      if (owner && !disjointCapabilityReuse) throw new Error(`Framework-extension regions ${owner.id} and ${definition.id} collide on selector ${selector}.`);
+      if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures });
     }
   }
 }

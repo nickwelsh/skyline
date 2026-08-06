@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
 import matrix from "../matrix.json" with { type: "json" };
@@ -74,9 +76,9 @@ describe("NW-221 Queue capability discovery definitions", () => {
     for (const phase of ["count", "visible", "fill", "value", "submit", "navigation", "ready"]) expect(discovery).toContain(`filter:\${application}:${phase}`);
     expect(discovery).toContain('getByPlaceholder("Search queues…")');
     expect(discovery).toContain('application === "trigger" ? "query" : "search"');
-    expect(discovery).not.toContain('getByLabel("Connection")');
+    expect(discovery).toContain('getByLabel("Connection", { exact: true })');
+    expect(discovery).toContain('connection.selectOption("database")');
+    expect(discovery).toContain('url.searchParams.get("connection") === "database"');
     expect(discovery).not.toContain("10_000");
   });
 });
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";

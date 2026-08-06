@@ -71,6 +71,13 @@ for (const capture of captures) {
 }
 
 async function exposeQueueFilteringState(page: Page, application: "skyline" | "trigger", step: DiscoveryStep) {
+  if (application === "skyline") {
+    const connection = page.getByLabel("Connection", { exact: true });
+    const count = await step("filter:skyline:connection-count", () => connection.count());
+    if (count !== 1) throw new Error(`skyline Connection filter must match once; observed ${count}.`);
+    await step("filter:skyline:connection-select", () => connection.selectOption("database"));
+    await step("filter:skyline:connection-navigation", () => page.waitForURL((url) => url.searchParams.get("connection") === "database", { timeout: 1_500 }));
+  }
   const filter = page.getByPlaceholder("Search queues…");
   const count = await step(`filter:${application}:count`, () => filter.count());
   if (count !== 1) throw new Error(`${application} Queue search filter must match once; observed ${count}.`);

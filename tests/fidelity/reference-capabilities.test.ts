@@ -81,6 +81,8 @@ describe("pinned shell capability adapters", () => {
     for (const marker of ["queue-detail-concurrency", "queue-detail-concurrency-limit", "queue-detail-throttled"]) expect(detail).toContain(marker);
     expect(list).toContain("QueueHealth & { capabilityMarker?: string }");
     expect(list).toContain("data-trigger-capability={health.capabilityMarker}");
+    expect(list).toContain('data-trigger-anchor="queue-filter-controls"');
+    expect(list).toContain('role="search" aria-label="Queue search"');
     const diagnostics = ts.transpileModule(list, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX }, reportDiagnostics: true }).diagnostics ?? [];
     expect(diagnostics.filter(({ category }) => category === ts.DiagnosticCategory.Error)).toEqual([]);
     expect(number).toContain("data-trigger-capability={capabilityMarker}");

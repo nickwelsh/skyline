@@ -1,6 +1,6 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { QueueConnectionFilter, QueuePeriodFilter } from "./QueueTargetFilters";
 
@@ -46,7 +46,7 @@ describe("QueuePeriodFilter", () => {
 describe("QueueConnectionFilter", () => {
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("uses server options and URL-backed native selection", () => {
+  it("uses server options and preserves selected URL state through history and reload", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
@@ -55,6 +55,7 @@ describe("QueueConnectionFilter", () => {
       <MemoryRouter initialEntries={["/queues?cursor=next&direction=forward"]}>
         <QueueConnectionFilter connections={["database", "redis", "sqs"]} />
         <LocationProbe />
+        <HistoryControls />
       </MemoryRouter>,
     ));
 
@@ -72,11 +73,31 @@ describe("QueueConnectionFilter", () => {
     expect(query.has("cursor")).toBe(false);
     expect(query.has("direction")).toBe(false);
 
+    flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Back"]')!.click());
+    expect(select.value).toBe("");
+    flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Forward"]')!.click());
+    expect(select.value).toBe("database");
+
+    const reloadEntry = container.querySelector("output")!.textContent ?? "";
     flushSync(() => root.unmount());
+    const reloadRoot = createRoot(container);
+    flushSync(() => reloadRoot.render(
+      <MemoryRouter initialEntries={[`/queues${reloadEntry}`]}>
+        <QueueConnectionFilter connections={["database", "redis", "sqs"]} />
+      </MemoryRouter>,
+    ));
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Connection"]')!.value).toBe("database");
+
+    flushSync(() => reloadRoot.unmount());
   });
 });
 
 function LocationProbe() {
   const location = useLocation();
   return <output>{location.search}</output>;
+}
+
+function HistoryControls() {
+  const navigate = useNavigate();
+  return <><button aria-label="Back" onClick={() => navigate(-1)} /><button aria-label="Forward" onClick={() => navigate(1)} /></>;
 }

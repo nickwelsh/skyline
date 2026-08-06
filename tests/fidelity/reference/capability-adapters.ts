@@ -91,7 +91,13 @@ export function conditionQueueMetricCardMarkers(code: string) {
 }
 
 export function conditionQueueListMarkers(code: string) {
-  let adapted = replaceMarker(code, '              title="Running"\n              value={envRunningLive}', '              title="Running"\n              capabilityMarker="queue-root-running"\n              value={envRunningLive}', "Running stat");
+  let adapted = replaceMarker(
+    code,
+    'export function QueueFilters() {\n  return <SearchInput placeholder="Search queues…" paramName="query" resetParams={["page"]} />;\n}',
+    'export function QueueFilters() {\n  return (\n    <div data-trigger-anchor="queue-filter-controls" role="search" aria-label="Queue search">\n      <SearchInput placeholder="Search queues…" paramName="query" resetParams={["page"]} />\n    </div>\n  );\n}',
+    "filter anchor",
+  );
+  adapted = replaceMarker(adapted, '              title="Running"\n              value={envRunningLive}', '              title="Running"\n              capabilityMarker="queue-root-running"\n              value={envRunningLive}', "Running stat");
   adapted = replaceMarker(adapted, '              title="Environment limit"\n              value={envLimit}', '              title="Environment limit"\n              capabilityMarker="queue-root-environment-limit"\n              value={envLimit}', "Environment limit stat");
   adapted = replaceMarker(adapted, 'button={<ExclamationTriangleIcon className="size-4 text-warning" />}', 'button={<ExclamationTriangleIcon data-trigger-capability={`queue-target-${queue.id}-warning`} className="size-4 text-warning" />}', "warning adornment");
   adapted = replaceMarker(adapted, '                            queue.concurrency?.overriddenAt && "font-medium text-text-bright"\n                          )}\n                        >', '                            queue.concurrency?.overriddenAt && "font-medium text-text-bright"\n                          )}\n                          capabilityMarker={`queue-target-${queue.id}-limit`}\n                        >', "Limit marker");

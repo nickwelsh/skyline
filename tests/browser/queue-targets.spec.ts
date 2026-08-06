@@ -32,6 +32,22 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page.getByText("Broker depth")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
 
+  const connection = page.getByLabel("Connection", { exact: true });
+  await expect(connection).toHaveCount(1);
+  await expect(connection.locator("option")).toHaveText(["All", "database", "redis", "sqs"]);
+  await connection.selectOption("database");
+  await expect(page).toHaveURL(/connection=database/);
+  await page.reload();
+  await expect(connection).toHaveValue("database");
+  await page.goBack();
+  await expect(page).not.toHaveURL(/connection=/);
+  await expect(connection).toHaveValue("");
+  await page.goForward();
+  await expect(page).toHaveURL(/connection=database/);
+  await expect(connection).toHaveValue("database");
+  await connection.selectOption("");
+  await expect(page).not.toHaveURL(/connection=/);
+
   const queueSearch = page.getByRole("textbox", { name: "Search queues…" });
   await queueSearch.fill("billing");
   await queueSearch.press("Enter");
