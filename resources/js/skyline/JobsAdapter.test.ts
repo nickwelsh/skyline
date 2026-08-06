@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JobDetailDto, JobsPageDto } from "./dto";
+import { fixtureCapabilities } from "./FixtureAdapter";
 import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAdapter";
 
 describe("JobsAdapter", () => {
@@ -29,7 +30,7 @@ function jobsPage(): JobsPageDto {
     schemaVersion: 1,
     packageVersion: "fixture",
     generatedAt: "2026-08-05T12:00:00Z",
-    capabilities: capabilities(),
+    capabilities: fixtureCapabilities,
     jobs: [jobSummary()],
     filters: { search: "invoice", period: "24h" },
     options: { timeRanges },
@@ -65,8 +66,3 @@ function jobSummary() {
 }
 
 const timeRanges = [{ value: "24h" as const, label: "Last 24 hours" }, { value: "7d" as const, label: "Last 7 days" }];
-function capabilities() {
-  return {
-    navigation: { jobs: true, runs: true }, jobs: { view: true, testJob: false }, runs: { view: true, cancel: false, replay: false }, shell: { shortcuts: true },
-  };
-}

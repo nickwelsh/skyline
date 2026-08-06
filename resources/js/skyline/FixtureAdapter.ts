@@ -18,6 +18,7 @@ import type {
   RunsQuery,
   RunsUpdatesDto,
   Scenario,
+  SkylineCapabilities,
   SkylineDtoAdapter,
   TelemetryEventDetailDto,
   TelemetryEventsPageDto,
@@ -37,13 +38,18 @@ const triggeredAtByRun = new Map([
 const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
 const pageSize = 25;
 
-const capabilities = {
-  navigation: { jobs: true, runs: true, queues: true, errors: true, logs: true },
-  jobs: { view: true, testJob: false },
+export const fixtureCapabilities: SkylineCapabilities = {
+  navigation: { jobs: true, runs: true, queues: true, errors: true, logs: true, query: false, dashboards: false, deployments: false, schedules: false, waitpoints: false, alerts: false, settings: false },
+  jobs: { view: true, testJob: false, configure: false, schedule: false },
   errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
-  runs: { view: true, cancel: false, replay: false },
-  shell: { favorites: true, shortcuts: true },
+  runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },
+  logs: { view: true },
+  queues: { view: true, pause: false, concurrency: false, workers: false, rateLimits: false },
+  shell: { appearance: true, sidebarCustomization: true, favorites: true, panelPersistence: true, shortcuts: true, account: false, notifications: false, jobGuidance: false, organizationSwitching: false, projectSwitching: false, environmentSwitching: false, accountOpening: false },
+  help: { menu: true, shortcuts: true, askAi: false, documentation: false, status: false, suggestFeature: false, contact: false, changelog: false },
 };
+
+const capabilities = fixtureCapabilities;
 
 export class FixtureAdapter implements SkylineDtoAdapter {
   async telemetryEvents(query: TelemetryEventsQuery = {}): Promise<TelemetryEventsPageDto> {

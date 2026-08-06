@@ -48,6 +48,7 @@ it('boots from one escaped inline payload with Application identity and capabili
     $bootstrap = json_decode($match[1], true, flags: JSON_THROW_ON_ERROR);
 
     expect($bootstrap)->toMatchArray([
+        'schemaVersion' => 1,
         'basePath' => '/skyline',
         'applicationName' => '</script><script>alert("no")</script>',
         'environmentLabel' => 'staging',

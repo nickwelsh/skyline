@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { SkylineCapabilities, TelemetryEventDetailDto, TelemetryEventsPageDto } from "../../resources/js/skyline/dto";
+import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-225-trigger-logs-baseline.json" with { type: "json" };
 
 const operationId = "event_operation";
@@ -250,7 +251,7 @@ function log(): TelemetryEventsPageDto["telemetryEvents"][number] {
 }
 
 const timeRanges = [{ value: "1h" as const, label: "Last hour" }, { value: "24h" as const, label: "Last 24 hours" }, { value: "7d" as const, label: "Last 7 days" }, { value: "30d" as const, label: "Last 30 days" }, { value: "all" as const, label: "All time" }];
-function capabilities(): SkylineCapabilities { return { navigation: { jobs: true, runs: true, queues: true, errors: true, logs: true }, jobs: { view: true, testJob: false }, errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false }, runs: { view: true, cancel: false, replay: false }, shell: { shortcuts: true } }; }
+function capabilities(): SkylineCapabilities { return fixtureCapabilities; }
 
 async function visuals(page: Page) {
   return page.locator("table").first().evaluate((table) => {

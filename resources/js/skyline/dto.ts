@@ -373,18 +373,21 @@ export type TelemetryEventDetailDto = {
   capture: TelemetryCapture;
 };
 
+type CapabilityMap<K extends string> = { [P in K]: boolean };
+
 export type SkylineCapabilities = {
-  navigation: Record<string, boolean> & Partial<Record<"jobs" | "errors" | "logs" | "queues" | "query" | "dashboards" | "deployments" | "schedules" | "waitpoints" | "alerts" | "settings", boolean>> & { runs: boolean };
-  jobs?: Record<string, boolean> & { view: boolean; testJob: boolean; configure?: boolean; schedule?: boolean };
-  errors?: Record<string, boolean> & { view: boolean; assign: boolean; ignore: boolean; resolve: boolean; alerts: boolean; replay: boolean; cancel: boolean; versions: boolean; bulkActions: boolean };
-  logs?: Record<string, boolean> & { view: boolean };
-  queues?: Record<string, boolean> & { view: boolean; pause: boolean; concurrency: boolean; workers: boolean; rateLimits: boolean };
-  runs: Record<string, boolean> & { view: boolean; cancel: boolean; replay: boolean; bulkCancel?: boolean; bulkReplay?: boolean };
-  shell: Record<string, boolean> & { shortcuts: boolean; appearance?: boolean; sidebarCustomization?: boolean; favorites?: boolean; panelPersistence?: boolean; account?: boolean; notifications?: boolean; jobGuidance?: boolean; organizationSwitching?: boolean; projectSwitching?: boolean; environmentSwitching?: boolean; accountOpening?: boolean };
-  help?: Record<string, boolean> & { menu: boolean; shortcuts: boolean; askAi: boolean; documentation: boolean; status: boolean; suggestFeature: boolean; contact: boolean; changelog: boolean };
+  navigation: CapabilityMap<"jobs" | "runs" | "errors" | "logs" | "queues" | "query" | "dashboards" | "deployments" | "schedules" | "waitpoints" | "alerts" | "settings">;
+  runs: CapabilityMap<"view" | "cancel" | "replay" | "bulkCancel" | "bulkReplay">;
+  jobs: CapabilityMap<"view" | "testJob" | "configure" | "schedule">;
+  errors: CapabilityMap<"view" | "assign" | "ignore" | "resolve" | "alerts" | "replay" | "cancel" | "versions" | "bulkActions">;
+  logs: CapabilityMap<"view">;
+  queues: CapabilityMap<"view" | "pause" | "concurrency" | "workers" | "rateLimits">;
+  shell: CapabilityMap<"appearance" | "sidebarCustomization" | "favorites" | "panelPersistence" | "shortcuts" | "account" | "notifications" | "jobGuidance" | "organizationSwitching" | "projectSwitching" | "environmentSwitching" | "accountOpening">;
+  help: CapabilityMap<"menu" | "shortcuts" | "askAi" | "documentation" | "status" | "suggestFeature" | "contact" | "changelog">;
 };
 
 export type SkylineBootstrap = {
+  schemaVersion: 1;
   basePath: string;
   applicationName: string;
   environmentLabel: string;

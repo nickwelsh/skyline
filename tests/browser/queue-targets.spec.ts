@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import type { QueueTargetDetailDto, QueueTargetsPageDto, RunStatus } from "../../resources/js/skyline/dto";
+import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-221-trigger-queues-baseline.json" with { type: "json" };
 
 const queueId = `queue_${"a".repeat(64)}`;
@@ -258,12 +259,7 @@ function counts(values: Partial<Record<RunStatus, number>>): Record<RunStatus, n
 }
 
 function capabilities() {
-  return {
-    navigation: { jobs: true, runs: true, queues: true },
-    jobs: { view: true, testJob: false },
-    runs: { view: true, cancel: false, replay: false },
-    shell: { shortcuts: true },
-  };
+  return fixtureCapabilities;
 }
 
 function queueTimeRanges() {

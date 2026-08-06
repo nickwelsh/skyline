@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { ErrorGroupDetailDto, ErrorGroupsPageDto, ExceptionDetails, SkylineCapabilities } from "../../resources/js/skyline/dto";
+import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import errorsScenario from "./fixtures/nw-224-trigger-errors-scenario.json" with { type: "json" };
 import baseline from "./fixtures/nw-224-trigger-errors-baseline.json" with { type: "json" };
 
@@ -286,9 +287,5 @@ const timeRanges = [
 ];
 
 function capabilities(): SkylineCapabilities {
-  return {
-    navigation: { jobs: true, runs: true, queues: true, errors: true }, jobs: { view: true, testJob: false },
-    errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
-    runs: { view: true, cancel: false, replay: false }, shell: { shortcuts: true },
-  };
+  return fixtureCapabilities;
 }

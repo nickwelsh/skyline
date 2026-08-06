@@ -19,6 +19,7 @@ final readonly class DashboardController
 
         return response()->view('skyline::index', [
             'bootstrap' => [
+                'schemaVersion' => 1,
                 'basePath' => '/'.trim((string) config('skyline.path', 'skyline'), '/'),
                 'applicationName' => (string) config('app.name', 'Laravel'),
                 'environmentLabel' => app()->environment(),

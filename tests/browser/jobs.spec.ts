@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { JobDetailDto, JobsPageDto, SkylineCapabilities } from "../../resources/js/skyline/dto";
+import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-219-trigger-jobs-baseline.json" with { type: "json" };
 
 test("Jobs list and detail keep observed activity in basename URLs", async ({ page }) => {
@@ -209,10 +210,5 @@ const timeRanges = [
 ];
 
 function capabilities(): SkylineCapabilities {
-  return {
-    navigation: { jobs: true, runs: true, queues: true },
-    jobs: { view: true, testJob: false },
-    runs: { view: true, cancel: false, replay: false },
-    shell: { shortcuts: true },
-  };
+  return fixtureCapabilities;
 }

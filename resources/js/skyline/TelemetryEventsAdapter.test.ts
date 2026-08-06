@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fixtureCapabilities } from "./FixtureAdapter";
 import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
 import type { TelemetryEventDetailDto, TelemetryEventsPageDto } from "./dto";
 
@@ -58,11 +59,7 @@ function pageFixture(): TelemetryEventsPageDto {
     schemaVersion: 1,
     packageVersion: "fixture",
     generatedAt: "2026-08-05T12:00:01.000000000Z",
-    capabilities: {
-      navigation: { runs: true, logs: true },
-      runs: { view: true, cancel: false, replay: false },
-      shell: { shortcuts: true },
-    },
+    capabilities: fixtureCapabilities,
     telemetryEvents: [{
       id: "event_operation",
       href: "/skyline/logs?event=event_operation",

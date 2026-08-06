@@ -22,6 +22,7 @@ export function readBootstrap(): SkylineBootstrap {
 
   if (
     value === null
+    || value.schemaVersion !== 1
     || typeof value.basePath !== "string"
     || typeof value.applicationName !== "string"
     || typeof value.environmentLabel !== "string"
@@ -31,7 +32,13 @@ export function readBootstrap(): SkylineBootstrap {
     throw new Error("Skyline bootstrap is invalid.");
   }
 
-  return { ...value, capabilities: normalizeCapabilities(value.capabilities) } as SkylineBootstrap;
+  return {
+    schemaVersion: 1,
+    basePath: value.basePath,
+    applicationName: value.applicationName,
+    environmentLabel: value.environmentLabel,
+    capabilities: normalizeCapabilities(value.capabilities),
+  };
 }
 
 function normalizeCapabilities(value: object): SkylineCapabilities {

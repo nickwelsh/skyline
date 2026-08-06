@@ -9,6 +9,7 @@ describe("readBootstrap", () => {
     script.id = "skyline-bootstrap";
     script.type = "application/json";
     script.textContent = JSON.stringify({
+      schemaVersion: 1,
       basePath: "/monitoring",
       applicationName: "Billing",
       environmentLabel: "production",
@@ -21,6 +22,7 @@ describe("readBootstrap", () => {
     document.body.append(script);
 
     expect(readBootstrap()).toMatchObject({
+      schemaVersion: 1,
       basePath: "/monitoring",
       applicationName: "Billing",
       environmentLabel: "production",
@@ -37,6 +39,7 @@ describe("readBootstrap", () => {
     script.id = "skyline-bootstrap";
     script.type = "application/json";
     script.textContent = JSON.stringify({
+      schemaVersion: 1,
       basePath: "/monitoring",
       applicationName: "Billing",
       environmentLabel: "production",
@@ -53,5 +56,15 @@ describe("readBootstrap", () => {
     });
     expect(readBootstrap().capabilities.navigation).not.toHaveProperty("futureSurface");
     expect(readBootstrap().capabilities.shell).not.toHaveProperty("futureControl");
+  });
+
+  it("rejects unsupported bootstrap versions", () => {
+    const script = document.createElement("script");
+    script.id = "skyline-bootstrap";
+    script.type = "application/json";
+    script.textContent = JSON.stringify({ schemaVersion: 2, basePath: "/skyline", applicationName: "Skyline", environmentLabel: "local", capabilities: {} });
+    document.body.append(script);
+
+    expect(() => readBootstrap()).toThrow("Skyline bootstrap is invalid.");
   });
 });
