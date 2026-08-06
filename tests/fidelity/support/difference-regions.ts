@@ -186,15 +186,18 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   return observation;
 }
 
-export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition, capture?: string): Promise<PresenterExtensionObservation> {
-  const triggerPresenterDom = await observeElementDom(trigger, definition.id, definition.triggerSelector, "Trigger presenter");
-  const triggerAnchorDom = await observeElementDom(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor");
-  const skylinePresenterDom = await observeElementDom(skyline, definition.id, definition.skylineSelector, "Skyline presenter");
-  const skylineAnchorDom = await observeElementDom(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor");
-  const triggerPresenter = await observeElementAccessibility(trigger, definition.triggerSelector, triggerPresenterDom);
-  const triggerAnchor = await observeElementAccessibility(trigger, definition.triggerAnchorSelector, triggerAnchorDom);
-  const skylinePresenter = await observeElementAccessibility(skyline, definition.skylineSelector, skylinePresenterDom);
-  const skylineAnchor = await observeElementAccessibility(skyline, definition.skylineAnchorSelector, skylineAnchorDom);
+export type PresenterObservationStep = <T>(label: string, action: () => Promise<T>) => Promise<T>;
+
+export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition, capture?: string, diagnosticStep?: PresenterObservationStep): Promise<PresenterExtensionObservation> {
+  const step: PresenterObservationStep = diagnosticStep ?? ((_label, action) => action());
+  const triggerPresenterDom = await step("trigger-presenter:dom", () => observeElementDom(trigger, definition.id, definition.triggerSelector, "Trigger presenter"));
+  const triggerAnchorDom = await step("trigger-anchor:dom", () => observeElementDom(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor"));
+  const skylinePresenterDom = await step("skyline-presenter:dom", () => observeElementDom(skyline, definition.id, definition.skylineSelector, "Skyline presenter"));
+  const skylineAnchorDom = await step("skyline-anchor:dom", () => observeElementDom(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor"));
+  const triggerPresenter = await step("trigger-presenter:ax", () => observeElementAccessibility(trigger, definition.triggerSelector, triggerPresenterDom));
+  const triggerAnchor = await step("trigger-anchor:ax", () => observeElementAccessibility(trigger, definition.triggerAnchorSelector, triggerAnchorDom));
+  const skylinePresenter = await step("skyline-presenter:ax", () => observeElementAccessibility(skyline, definition.skylineSelector, skylinePresenterDom));
+  const skylineAnchor = await step("skyline-anchor:ax", () => observeElementAccessibility(skyline, definition.skylineAnchorSelector, skylineAnchorDom));
   const anchorAccessibleName = capture ? definition.measurements[capture]?.anchorAccessibleName ?? definition.anchorAccessibleName : definition.anchorAccessibleName;
   validatePairedAnchorIdentity({ ...definition, anchorAccessibleName }, triggerAnchor, skylineAnchor);
   if (triggerAnchor.accessibilitySha256 !== skylineAnchor.accessibilitySha256) throw new Error(`Allowed region ${definition.id} anchor changed accessibility.`);

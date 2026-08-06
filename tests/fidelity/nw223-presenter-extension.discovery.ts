@@ -2,7 +2,7 @@ import { expect, test, type Browser, type Locator, type Page } from "@playwright
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
-import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition } from "./support/difference-regions";
+import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
 import { nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
@@ -54,8 +54,9 @@ for (const capture of captures) {
     const skyline = await context.newPage();
     const trigger = await context.newPage();
     try {
-      await preparePair(skyline, trigger, capture, scenario);
-      const observation = await discoverPresenterExtensionObservation(trigger, skyline, definition);
+      const step = observationStep(capture);
+      await preparePair(skyline, trigger, capture, scenario, step);
+      const observation = await discoverPresenterExtensionObservation(trigger, skyline, definition, undefined, step);
       const measurement = {
         triggerRelativeRect: observation.triggerRelativeRect,
         skylineRelativeRect: observation.skylineRelativeRect,
@@ -80,18 +81,30 @@ const interactionStates = new Set([
   "inspectors-cache-long", "inspectors-redis-long",
 ]);
 
-async function preparePair(skyline: Page, trigger: Page, capture: string, scenario: FidelityScenario) {
-  await Promise.all([prepareCapture(skyline, capture, "/skyline"), prepareCapture(trigger, capture, "/reference")]);
-  await Promise.all([seedOwnedState(skyline, scenario), seedOwnedState(trigger, scenario, "/reference")]);
-  await installReferenceFixture(trigger, await referenceFixture);
-  const fixture = await installSkylineFixture(skyline, scenario);
-  await Promise.all([skyline.goto(scenarioPath(scenario, fixture.catalog)), trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)]);
-  await trigger.locator("html[data-oracle-ready='true']").waitFor();
-  await Promise.all([exposeOwnedState(skyline, scenario), exposeOwnedState(trigger, scenario)]);
-  await Promise.all([applyLiveSystemChange(skyline, capture), applyLiveSystemChange(trigger, capture)]);
-  await Promise.all([settleCapture(skyline), settleCapture(trigger)]);
-  await trigger.locator(definition.triggerSelector).waitFor();
-  await skyline.locator(definition.skylineSelector).waitFor();
+async function preparePair(skyline: Page, trigger: Page, capture: string, scenario: FidelityScenario, step: PresenterObservationStep) {
+  await Promise.all([
+    step("fixture-prepare:skyline", () => prepareCapture(skyline, capture, "/skyline")),
+    step("fixture-prepare:trigger", () => prepareCapture(trigger, capture, "/reference")),
+  ]);
+  await Promise.all([
+    step("fixture-seed:skyline", () => seedOwnedState(skyline, scenario)),
+    step("fixture-seed:trigger", () => seedOwnedState(trigger, scenario, "/reference")),
+  ]);
+  await step("fixture-install:trigger", async () => installReferenceFixture(trigger, await referenceFixture));
+  const fixture = await step("fixture-install:skyline", () => installSkylineFixture(skyline, scenario));
+  await Promise.all([
+    step("goto:skyline", () => skyline.goto(scenarioPath(scenario, fixture.catalog))),
+    step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
+  ]);
+  await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
+  await step("node-select:skyline", () => exposeOwnedState(skyline, scenario));
+  await step("node-select:trigger", () => exposeOwnedState(trigger, scenario));
+  await step("live-change:skyline", () => applyLiveSystemChange(skyline, capture));
+  await step("live-change:trigger", () => applyLiveSystemChange(trigger, capture));
+  await step("settle:skyline", () => settleCapture(skyline));
+  await step("settle:trigger", () => settleCapture(trigger));
+  await step("presenter-ready:trigger", () => trigger.locator(definition.triggerSelector).waitFor());
+  await step("presenter-ready:skyline", () => skyline.locator(definition.skylineSelector).waitFor());
 }
 
 async function proveCaptureInteraction(browser: Browser, capture: string, scenario: FidelityScenario) {
@@ -99,12 +112,30 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
   const skyline = await context.newPage();
   const trigger = await context.newPage();
   try {
-    await preparePair(skyline, trigger, capture, scenario);
+    await preparePair(skyline, trigger, capture, scenario, observationStep(capture));
     await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false);
     await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true);
   } finally {
     await context.close();
   }
+}
+
+function observationStep(capture: string): PresenterObservationStep {
+  return async <T>(label: string, action: () => Promise<T>) => {
+    const started = Date.now();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        action(),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error(`NW223 discovery phase ${label} exceeded 2000ms for ${capture}.`)), 2_000);
+        }),
+      ]);
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      process.stdout.write(`\nNW223_DISCOVERY_STEP=${JSON.stringify({ capture, label, elapsedMs: Date.now() - started })}\n`);
+    }
+  };
 }
 
 async function exerciseCapture(page: Page, region: Locator, named: boolean) {
