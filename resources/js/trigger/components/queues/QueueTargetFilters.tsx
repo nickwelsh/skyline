@@ -15,7 +15,34 @@ export type QueueTimeRangeOption = {
 };
 
 export function QueueSearchFilter() {
-  return <SearchInput placeholder="Search queues…" paramName="search" />;
+  return <div data-skyline-anchor="queue-filter-controls" role="search" aria-label="Queue search"><SearchInput placeholder="Search queues…" paramName="search" /></div>;
+}
+
+export function QueueConnectionFilter({ connections }: { connections: string[] }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  return (
+    <label className="flex items-center gap-1 text-xs text-text-dimmed">
+      <span>Connection</span>
+      <select
+        data-skyline-extension="queue-connection-filter"
+        aria-label="Connection"
+        value={params.get("connection") ?? ""}
+        onChange={(event) => {
+          const next = new URLSearchParams(location.search);
+          event.currentTarget.value ? next.set("connection", event.currentTarget.value) : next.delete("connection");
+          next.delete("cursor");
+          next.delete("direction");
+          navigate(`${location.pathname}${next.size ? `?${next}` : ""}`);
+        }}
+        className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
+      >
+        <option value="">All</option>
+        {connections.map((connection) => <option key={connection} value={connection}>{connection}</option>)}
+      </select>
+    </label>
+  );
 }
 
 export function QueuePeriodFilter({

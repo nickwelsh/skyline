@@ -34,6 +34,8 @@ describe("Queue capability markers", () => {
       ]),
     ]);
     expect(new Set(markers).size).toBe(markers.length);
+    expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);
+    expect(container.querySelectorAll('select[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
   });
 
   it("marks unavailable detail concurrency and chart series without owning Recorded Runs", () => {
@@ -66,7 +68,7 @@ function list(): QueueTargetsPresentation {
     generatedAt: "2026-08-05T12:00:00Z",
     environment: { queued: 12, running: 14, allocated: null, limit: null },
     queueTargets: [target("reports", "Active"), target("billing", "Idle"), target("default", "Backlogged")],
-    pagination: {}, connectionOptions: [], timeRanges: [], hasAnyQueueTargets: true, hasFilters: false,
+    pagination: {}, connectionOptions: ["database", "redis", "sqs"], timeRanges: [], hasAnyQueueTargets: true, hasFilters: false,
   };
 }
 

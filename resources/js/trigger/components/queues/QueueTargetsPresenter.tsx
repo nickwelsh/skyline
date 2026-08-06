@@ -19,7 +19,7 @@ import { Spinner } from "~/components/primitives/Spinner";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { QueueBigNumber } from "./QueueBigNumber";
 import { QueueEnvironmentCharts } from "./QueueTargetCharts";
-import { QueuePeriodFilter, QueueSearchFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
+import { QueueConnectionFilter, QueuePeriodFilter, QueueSearchFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
 
 export type PresentedQueueTarget = {
   id: string;
@@ -60,7 +60,7 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
   return (
     <MetricsLayout.Root>
       <MetricsLayout.Filters className="px-2">
-        <div className="flex items-center gap-1.5"><QueueSearchFilter /></div>
+        <div className="flex items-center gap-1.5"><QueueSearchFilter /><QueueConnectionFilter connections={data.connectionOptions} /></div>
         <div className="flex items-center gap-1.5">
           <QueuePeriodFilter generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
           <ListPagination list={data} />
