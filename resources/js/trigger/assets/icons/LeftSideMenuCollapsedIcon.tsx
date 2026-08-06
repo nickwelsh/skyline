@@ -1,3 +1,7 @@
+/*!
+ * Adapted from Trigger.dev apps/webapp/app/assets/icons/LeftSideMenuCollapsedIcon.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ */
 export function LeftSideMenuCollapsedIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -1,3 +1,7 @@
+/*!
+ * Adapted from Trigger.dev apps/webapp/app/assets/icons/LeftSideMenuIcon.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ */
 import { motion } from "framer-motion";
 
 export function LeftSideMenuIcon({ className, hovered }: { className?: string; hovered: boolean }) {

@@ -1,3 +1,7 @@
+/*!
+ * Adapted from Trigger.dev apps/webapp/app/components/ListPagination.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ */
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/20/solid";
 import { useLocation } from "@remix-run/react";
 import { z } from "zod";
