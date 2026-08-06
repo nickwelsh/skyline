@@ -2,6 +2,7 @@
 
 namespace NickWelsh\Skyline\Read;
 
+use NickWelsh\Skyline\Support\PrivacySanitizer;
 use NickWelsh\Skyline\Support\Utf8;
 
 final class TraceViewBuilder

@@ -1,10 +1,8 @@
 <?php
 
-namespace NickWelsh\Skyline\Telemetry;
+namespace NickWelsh\Skyline\Support;
 
 use Illuminate\Contracts\Config\Repository;
-use NickWelsh\Skyline\Read\PrivacySanitizer;
-use NickWelsh\Skyline\Support\TelemetryEventLevel;
 
 final readonly class LogEventSanitizer
 {

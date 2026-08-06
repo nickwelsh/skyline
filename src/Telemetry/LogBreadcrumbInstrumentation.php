@@ -6,6 +6,7 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Log\Events\MessageLogged;
 use NickWelsh\Skyline\Persistence\PersistenceGuard;
+use NickWelsh\Skyline\Support\LogEventSanitizer;
 use Throwable;
 
 final class LogBreadcrumbInstrumentation
@@ -19,7 +20,7 @@ final class LogBreadcrumbInstrumentation
         private readonly Repository $config,
         private readonly AttemptRegistry $attempts,
         private readonly PersistenceGuard $persistenceGuard,
-        private readonly LogEventSanitizer $sanitizer,
+        private readonly LogEventSanitizer $logs,
     ) {}
 
     public function boot(): void
@@ -50,7 +51,7 @@ final class LogBreadcrumbInstrumentation
         $this->handling = true;
 
         try {
-            $presented = $this->sanitizer->present([
+            $presented = $this->logs->present([
                 'log.level' => strtolower((string) $event->level),
                 'log.channel' => (string) ($this->config->get('skyline.logging.channel') ?: $this->config->get('logging.default', 'default')),
                 'log.message' => $event->message,

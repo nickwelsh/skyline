@@ -1,8 +1,6 @@
 <?php
 
-namespace NickWelsh\Skyline\Read;
-
-use NickWelsh\Skyline\Support\Utf8;
+namespace NickWelsh\Skyline\Support;
 
 final class PrivacySanitizer
 {

@@ -2,12 +2,12 @@
 
 namespace NickWelsh\Skyline\Persistence;
 
-use NickWelsh\Skyline\Read\LogEventPresenter;
 use NickWelsh\Skyline\Read\ObservedIds;
+use NickWelsh\Skyline\Support\LogEventSanitizer;
 
 final readonly class TelemetryEventIndexer
 {
-    public function __construct(private LogEventPresenter $logs) {}
+    public function __construct(private LogEventSanitizer $logs) {}
 
     /** @param array<string, mixed> $span @return list<array<string, mixed>> */
     public function rows(array $span): array

@@ -7,6 +7,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
+use NickWelsh\Skyline\Support\LogEventSanitizer;
 
 final readonly class TelemetryEventsQuery
 {
@@ -19,7 +20,7 @@ final readonly class TelemetryEventsQuery
         private CursorCodec $cursors,
         private ExceptionPresenter $exceptions,
         private ErrorGroupFingerprint $errorGroups,
-        private LogEventPresenter $logs,
+        private LogEventSanitizer $logs,
     ) {}
 
     /** @return array<string, mixed> */
