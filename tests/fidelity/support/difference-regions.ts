@@ -182,6 +182,19 @@ export async function waitForStableElementStyle(page: Page, selector: string, op
   throw new Error(`Element ${selector} did not reach stable computed style across ${consecutiveFrames} consecutive visible frames.`);
 }
 
+type StableElementSide = { label: string; page: Page; selector: string };
+
+export async function settleStableElementPair(
+  sides: readonly [StableElementSide, StableElementSide],
+  settle: (page: Page) => Promise<void>,
+  diagnosticStep?: DiscoveryStep,
+) {
+  const step: DiscoveryStep = diagnosticStep ?? ((_label, action) => action());
+  await Promise.all(sides.map(({ label, page, selector }) => step(`presenter-stable-before-settle:${label}`, () => waitForStableElementStyle(page, selector))));
+  await Promise.all(sides.map(({ label, page }) => step(`settle:${label}`, () => settle(page))));
+  await Promise.all(sides.map(({ label, page, selector }) => step(`presenter-stable-after-settle:${label}`, () => waitForStableElementStyle(page, selector))));
+}
+
 export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition): Promise<CapabilityOmissionObservation> {
   const dom = [];
   for (const pair of definition.selectorPairs) {

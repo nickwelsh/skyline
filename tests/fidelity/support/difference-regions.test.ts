@@ -11,6 +11,7 @@ import {
   omitFrameworkExtensionAccessibility,
   observeElementDom,
   requireSingleMatch,
+  settleStableElementPair,
   validateFrameworkExtensionObservation,
   validateCapabilityOmissionObservation,
   validatePairedAnchor,
@@ -109,6 +110,25 @@ describe("framework-extension fidelity regions", () => {
 
     await expect(waitForStableElementStyle(page.page, "[data-extension]", { consecutiveFrames: 2, maxFrames: 3 }))
       .rejects.toThrow(/stable computed style/i);
+  });
+
+  test("settles both visible presenters only between paired stable observations", async () => {
+    const trigger = styleStabilityPage(Array.from({ length: 6 }, () => styleSample("transition-property:none")));
+    const skyline = styleStabilityPage(Array.from({ length: 6 }, () => styleSample("transition-property:none")));
+    const settled: Page[] = [];
+
+    await settleStableElementPair([
+      { label: "trigger", page: trigger.page, selector: "[data-trigger]" },
+      { label: "skyline", page: skyline.page, selector: "[data-skyline]" },
+    ], async (page) => {
+      expect(trigger.sampleCount()).toBe(3);
+      expect(skyline.sampleCount()).toBe(3);
+      settled.push(page);
+    });
+
+    expect(settled).toEqual([trigger.page, skyline.page]);
+    expect(trigger.sampleCount()).toBe(6);
+    expect(skyline.sampleCount()).toBe(6);
   });
 
   test("fails closed when the atomic DOM task finds missing or duplicate matches", async () => {
@@ -340,9 +360,6 @@ function styleStabilityPage(samples: ReturnType<typeof styleSample>[]) {
   const wait = vi.fn(async () => undefined);
   const locator = vi.fn(() => ({ waitFor: wait }));
   let sampleIndex = 0;
-  const evaluate = vi.fn(async () => {
-    const callIndex = evaluate.mock.calls.length - 1;
-    return callIndex % 2 === 0 ? samples[sampleIndex++] : undefined;
-  });
+  const evaluate = vi.fn(async (_operation: unknown, selector?: string) => selector === undefined ? undefined : samples[sampleIndex++]);
   return { page: { locator, evaluate } as unknown as Page, wait, sampleCount: () => sampleIndex };
 }
