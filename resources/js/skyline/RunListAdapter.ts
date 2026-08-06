@@ -45,14 +45,17 @@ export function presentRun(run: RunSummary, tableState: string) {
   return {
     id: run.id,
     path: `/runs/${encodeURIComponent(run.id)}?${params}`,
+    isRoot: run.isRoot,
     jobType: run.name,
     status: run.status,
     queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—",
     traceIdentity: run.traceId,
     attemptCount: run.attemptCount,
     triggeredAt: run.triggeredAt,
+    startedAt: run.startedAt,
     queueDuration: formatRunDuration(run.queueDurationUs),
-    duration: formatRunDuration(run.durationUs ?? run.activeDurationUs),
+    duration: formatRunDuration(run.durationUs),
+    activeDuration: formatRunDuration(run.activeDurationUs),
   };
 }
 

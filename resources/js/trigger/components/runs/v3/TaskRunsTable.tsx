@@ -1,78 +1,142 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/components/runs/v3/TaskRunsTable.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Trigger execution, selection, machine, region, version, cost, replay, and cancel columns are omitted.
+ * Selection, write actions, deployment, machine, region, cost, delay, TTL, and tags remain external.
  */
-import { ClockIcon } from "@heroicons/react/20/solid";
-import { Link } from "@remix-run/react";
+import { ClockIcon, CpuChipIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
+import { Badge } from "~/components/primitives/Badge";
+import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTimeShort } from "~/components/primitives/DateTime";
+import { Paragraph } from "~/components/primitives/Paragraph";
+import { Spinner } from "~/components/primitives/Spinner";
+import {
+  Table,
+  TableBlankRow,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from "~/components/primitives/Table";
+import { SimpleTooltip } from "~/components/primitives/Tooltip";
 import { TaskRunStatusCombo, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
-import { cn } from "~/utils/cn";
 
 export type PresentedRun = {
   id: string;
   path: string;
+  isRoot?: boolean;
   jobType: string;
   status: RunStatus;
   queueTarget: string;
   traceIdentity: string;
   attemptCount: number;
   triggeredAt: string;
+  startedAt?: string | null;
   queueDuration: string;
   duration: string;
+  activeDuration?: string;
 };
 
 type TaskRunsTableProps = {
+  total?: number;
+  hasFilters?: boolean;
   runs: PresentedRun[];
   isLoading?: boolean;
 };
 
-export function TaskRunsTable({ runs, isLoading = false }: TaskRunsTableProps) {
+export function TaskRunsTable({ total, hasFilters, runs, isLoading = false }: TaskRunsTableProps) {
+  const resolvedTotal = total ?? runs.length;
   return (
-    <div className="max-h-full overflow-auto whitespace-nowrap border-t border-grid-dimmed scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-      <table className="w-full">
-        <thead className="sticky top-0 z-10 bg-background-dimmed">
-          <tr className="border-b border-grid-dimmed text-left">
-            <HeaderCell>Run</HeaderCell>
-            <HeaderCell>Status</HeaderCell>
-            <HeaderCell>Queue target</HeaderCell>
-            <HeaderCell>Trace</HeaderCell>
-            <HeaderCell>Attempts</HeaderCell>
-            <HeaderCell>Triggered</HeaderCell>
-            <HeaderCell>Queue time</HeaderCell>
-            <HeaderCell className="text-right">Duration</HeaderCell>
-          </tr>
-        </thead>
-        <tbody aria-busy={isLoading} className={cn(isLoading && "opacity-50")}>
-          {runs.map((run) => (
-            <tr key={run.id} className="group/table-row border-b border-grid-dimmed">
-              <Cell className="max-w-md">
-                <Link to={run.path} className="group/run block outline-hidden focus-custom">
-                  <div className="truncate font-medium text-text-bright group-hover/run:underline">{shortName(run.jobType)}</div>
-                  <div className="truncate font-mono text-xs text-text-faint">{run.id}</div>
-                </Link>
-              </Cell>
-              <Cell><TaskRunStatusCombo status={run.status} /></Cell>
-              <Cell className="font-mono text-xs text-text-bright">{run.queueTarget}</Cell>
-              <Cell className="max-w-40 truncate font-mono text-xs text-text-dimmed">{run.traceIdentity}</Cell>
-              <Cell className="tabular-nums">{run.attemptCount}</Cell>
-              <Cell className="tabular-nums text-text-bright"><DateTimeShort date={run.triggeredAt} /></Cell>
-              <Cell className="tabular-nums"><span className="flex items-center gap-1"><ClockIcon className="size-3 text-text-faint" />{run.queueDuration}</span></Cell>
-              <Cell className="text-right font-mono tabular-nums text-text-bright">{run.duration}</Cell>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table variant="dimmed" className="max-h-full overflow-y-auto">
+      <TableHeader>
+        <TableRow>
+          <TableHeaderCell>ID</TableHeaderCell>
+          <TableHeaderCell>Job</TableHeaderCell>
+          <TableHeaderCell>Status</TableHeaderCell>
+          <TableHeaderCell>Started</TableHeaderCell>
+          <TableHeaderCell colSpan={3}>Duration</TableHeaderCell>
+          <TableHeaderCell>Attempts</TableHeaderCell>
+          <TableHeaderCell>Queue target</TableHeaderCell>
+          <TableHeaderCell>Trace</TableHeaderCell>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {resolvedTotal === 0 ? (
+          <TableBlankRow colSpan={10}>
+            {!isLoading && (
+              <Paragraph className="w-auto">
+                {hasFilters ? "No runs match your filters." : "No runs found"}
+              </Paragraph>
+            )}
+          </TableBlankRow>
+        ) : (
+          runs.map((run) => (
+            <TableRow key={run.id}>
+              <TableCell to={run.path} isTabbableCell>
+                <RunId value={run.id} />
+              </TableCell>
+              <TableCell to={run.path}>
+                <span className="flex items-center gap-x-1">
+                  <span>{shortName(run.jobType)}</span>
+                  {run.isRoot ? <Badge variant="extra-small">Root</Badge> : null}
+                </span>
+              </TableCell>
+              <TableCell to={run.path}>
+                <TaskRunStatusCombo status={run.status} />
+              </TableCell>
+              <TableCell to={run.path}>
+                {run.startedAt ? <DateTimeShort date={run.startedAt} /> : "–"}
+              </TableCell>
+              <TableCell to={run.path} className="w-[1%]" actionClassName="pr-0 tabular-nums">
+                <span className="flex items-center gap-1">
+                  <RectangleStackIcon className="size-4 text-text-dimmed" />
+                  {run.queueDuration}
+                </span>
+              </TableCell>
+              <TableCell to={run.path} className="w-[1%]" actionClassName="px-4 tabular-nums">
+                <span className="flex items-center gap-1">
+                  <ClockIcon className="size-4 text-blue-500" />
+                  {run.duration}
+                </span>
+              </TableCell>
+              <TableCell to={run.path} actionClassName="pl-0 tabular-nums">
+                <span className="flex items-center gap-1">
+                  <CpuChipIcon className="size-4 text-success" />
+                  {run.activeDuration ?? "–"}
+                </span>
+              </TableCell>
+              <TableCell to={run.path} className="tabular-nums">{run.attemptCount}</TableCell>
+              <TableCell to={run.path}>{run.queueTarget}</TableCell>
+              <TableCell to={run.path} className="font-mono">{run.traceIdentity}</TableCell>
+            </TableRow>
+          ))
+        )}
+        {isLoading && (
+          <TableBlankRow
+            colSpan={10}
+            className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-2 bg-background-dimmed"
+          >
+            <Spinner /> <span className="text-text-dimmed">Loading…</span>
+          </TableBlankRow>
+        )}
+      </TableBody>
+    </Table>
   );
 }
 
-function HeaderCell({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <th className={cn("px-3 py-2.5 pb-3 text-sm font-normal text-text-dimmed", className)}>{children}</th>;
-}
-
-function Cell({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <td className={cn("px-3 py-3 text-xs group-hover/table-row:bg-background-bright", className)}>{children}</td>;
+function RunId({ value }: { value: string }) {
+  return (
+    <SimpleTooltip
+      content={value}
+      button={
+        <span className="flex h-6 items-center gap-1">
+          <CopyableText value={value.slice(-8)} copyValue={value} className="font-mono" />
+        </span>
+      }
+      asChild
+      disableHoverableContent
+    />
+  );
 }
 
 function shortName(name: string) {

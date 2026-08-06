@@ -23,13 +23,15 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page).toHaveURL(/search=invoice/);
   await page.getByLabel("Status").selectOption("running");
   await expect(page).toHaveURL(/status=running/);
-  await page.getByLabel("Root Runs only").click();
+  await page.getByRole("switch", { name: "Root only" }).click();
   await expect(page).toHaveURL(/rootOnly=true/);
   await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
-  await expect(page.getByLabel("Root Runs only")).toHaveCount(0);
+  await expect(page.getByRole("switch", { name: "Root only" })).toHaveCount(0);
   await expect(page).not.toHaveURL(/rootOnly=/);
+  await page.getByRole("button", { name: "More filters" }).click();
   await page.getByLabel("Queue target").selectOption(`redis\u0000default`);
   await page.getByLabel("Trace").selectOption(traceId);
+  await page.getByRole("button", { name: "Created range" }).click();
   await page.getByLabel("Triggered from").fill("2026-08-05T08:00");
   await page.getByLabel("Triggered to").fill("2026-08-05T09:00");
   await expect(page).toHaveURL(/job=App%5CJobs%5CGenerateMonthlyInvoices/);
@@ -89,10 +91,10 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
 
   mode = "initial-empty";
   await page.goto("/skyline/runs");
-  await expect(page.getByRole("heading", { name: "No Runs yet" })).toBeVisible();
+  await expect(page.getByText("No runs found", { exact: true })).toBeVisible();
   mode = "filtered-empty";
   await page.goto("/skyline/runs?search=missing");
-  await expect(page.getByRole("heading", { name: "No matching Runs" })).toBeVisible();
+  await expect(page.getByText("No runs match your filters.", { exact: true })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/runs");
   await expect(page.getByRole("alert")).toContainText("Telemetry unavailable.");
