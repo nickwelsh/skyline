@@ -163,6 +163,8 @@ docker run --rm --platform linux/amd64 --ipc=host \
 
 Oracle regeneration is a review decision, not an automatic screenshot update. Change the pinned upstream/environment or `allowed-differences.json`, run the same container with `SKYLINE_ORACLE_RECORD=1`, then run `pnpm oracle:record -- --decision NW-<issue>` inside it. Commit the changed inputs, every proof artifact, and `bundle.json` together.
 
+For final review, assemble the source-fidelity handoff only after the committed oracle verifies: `pnpm handoff:record -- --decision NW-228`. Commit `tests/fidelity/handoff.json` with the proof, then use `pnpm handoff:check` to reject missing or stale handoff evidence. See [source-fidelity handoff](docs/source-fidelity-handoff.md).
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).

@@ -15,6 +15,8 @@
     "oracle:check": "node scripts/fidelity-oracle.mjs",
     "oracle:record": "node scripts/fidelity-oracle.mjs --record",
     "oracle:test": "playwright test --config playwright.oracle.config.ts",
+    "handoff:check": "node scripts/fidelity-handoff.mjs",
+    "handoff:record": "node scripts/fidelity-handoff.mjs --record",
     "oracle:reference:build": "vite build --config tests/fidelity/reference/vite.config.ts",
     "oracle:reference:check": "node scripts/import-fidelity-reference.mjs --check",
     "oracle:reference:import": "node scripts/import-fidelity-reference.mjs",
