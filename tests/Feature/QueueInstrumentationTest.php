@@ -50,6 +50,7 @@ use Tests\Fixtures\Jobs\FailingStorageJob;
 use Tests\Fixtures\Jobs\FailingSummaryJob;
 use Tests\Fixtures\Jobs\HttpJob;
 use Tests\Fixtures\Jobs\LifecycleCleanupJob;
+use Tests\Fixtures\Jobs\LongLogJob;
 use Tests\Fixtures\Jobs\MailNotificationJob;
 use Tests\Fixtures\Jobs\ParentJob;
 use Tests\Fixtures\Jobs\PolledProcessJob;
@@ -414,7 +415,6 @@ it('closes unfinished child telemetry at the Attempt boundary', function (): voi
 it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
     config()->set('skyline.logging.enabled', true);
     config()->set('skyline.logging.channel', 'queue-workers');
-    config()->set('skyline.logging.max_message_bytes', 64);
 
     SummaryJob::dispatchSync();
 
@@ -434,7 +434,6 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
         ->and($breadcrumbs[0]->getEpochNanos())->toBeLessThanOrEqual($breadcrumbs[1]->getEpochNanos())
         ->and($breadcrumbs[0]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
         ->and($breadcrumbs[0]->getAttributes()->get('log.context'))->toContain('"code":429')
-        ->and($breadcrumbs[0]->getAttributes()->get('skyline.log.capture'))->toContain('"originalBytes"')
         ->and($attributes->get('skyline.summary.sql.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.cache.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.custom.count'))->toBe(1)
@@ -447,6 +446,23 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
     ]))->not->toContain('private-token')
         ->not->toContain('private-password')
         ->not->toContain('ignored info');
+});
+
+it('records original byte evidence when capture truncates a log', function (): void {
+    config()->set('skyline.logging.enabled', true);
+    config()->set('skyline.logging.max_message_bytes', 64);
+
+    LongLogJob::dispatchSync();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $consumer = collect($sink->spans)->first(fn ($span) => $span->getAttributes()->get('skyline.role') === 'consumer');
+    $breadcrumb = collect($consumer->getEvents())->first(fn ($event) => $event->getName() === 'log');
+    $capture = json_decode($breadcrumb->getAttributes()->get('skyline.log.capture'), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($breadcrumb->getAttributes()->get('log.message'))->toHaveLength(64)
+        ->and($capture['isTruncated'])->toBeTrue()
+        ->and($capture['truncated'][0])->toBe(['path' => 'message', 'originalBytes' => 160]);
 });
 
 it('bounds breadcrumbs per Attempt', function (): void {

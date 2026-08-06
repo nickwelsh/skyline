@@ -16,7 +16,7 @@ final class SummaryJob implements ShouldQueue
     public function handle(): void
     {
         Log::info('ignored info');
-        Log::warning('Import token=private-token delayed '.str_repeat('waiting ', 12), ['code' => 429, 'password' => 'private-password']);
+        Log::warning('Import token=private-token delayed', ['code' => 429, 'password' => 'private-password']);
         DB::select('select 1 as summary_value');
         Cache::store('array')->put('summary-private-key', 'private-value', 60);
         Skyline::measure('Summarize import', fn (): int => 1);
