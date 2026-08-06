@@ -1,0 +1,18 @@
+{
+  "generatedBy": "NW-226 pinned Trigger shell fixture",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "sideMenu": { "path": "apps/webapp/app/components/navigation/SideMenu.tsx", "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f" },
+    "customizeSidebar": { "path": "apps/webapp/app/components/navigation/CustomizeSidebarDialog.tsx", "sha256": "9ddad993754a3f2fb62ee4ae7d32ea0c15d847c6c1583c5de949021ae1af919d" },
+    "appearance": { "path": "apps/webapp/app/routes/account._index/route.tsx", "sha256": "d86a94891947ffb2f5f68b3535a4798336fe396be0960b3f3983fc4b32a5da17" },
+    "help": { "path": "apps/webapp/app/components/navigation/HelpAndFeedbackPopover.tsx", "sha256": "ee6f4703179ceb7aaeac1fc18c92633be9fd620ae07f8488d54c5927ea736a2b" },
+    "shortcuts": { "path": "apps/webapp/app/components/Shortcuts.tsx", "sha256": "296e1139cb6ad6d45dec932f3e62a08fb63dc4ddf1ac395febb05eadd5bf8930" }
+  },
+  "contract": {
+    "navigation": ["Jobs", "Runs", "Logs", "Errors", "Queues"],
+    "themes": ["Classic", "System preference", "Dark", "Light"],
+    "help": ["Shortcuts"],
+    "shortcuts": ["Close", "Filter", "Toggle side menu", "Favorite this page", "Navigate"],
+    "customization": ["Jobs", "Runs", "Logs", "Errors", "Queues"]
+  }
+}

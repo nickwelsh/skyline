@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { RunsPageDto } from "../../resources/js/skyline/dto";
+import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import fixture from "./fixtures/nw-217-runs.json" with { type: "json" };
 
 const traceId = "00000000000000000000000000000001";
@@ -22,16 +23,18 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page).toHaveURL(/search=invoice/);
   await page.getByLabel("Status").selectOption("running");
   await expect(page).toHaveURL(/status=running/);
+  await page.getByLabel("Root Runs only").click();
+  await expect(page).toHaveURL(/rootOnly=true/);
   await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
+  await expect(page.getByLabel("Root Runs only")).toHaveCount(0);
+  await expect(page).not.toHaveURL(/rootOnly=/);
   await page.getByLabel("Queue target").selectOption(`redis\u0000default`);
   await page.getByLabel("Trace").selectOption(traceId);
-  await page.getByLabel("Root Runs only").click();
   await page.getByLabel("Triggered from").fill("2026-08-05T08:00");
   await page.getByLabel("Triggered to").fill("2026-08-05T09:00");
   await expect(page).toHaveURL(/job=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/connection=redis/);
   await expect(page).toHaveURL(/trace=00000000000000000000000000000001/);
-  await expect(page).toHaveURL(/rootOnly=true/);
   await expect(page).toHaveURL(/triggeredFrom=/);
   await expect(page).toHaveURL(/triggeredTo=/);
 
@@ -100,7 +103,8 @@ async function routeRuns(page: Page, response: ReturnType<typeof pageResponse>) 
 }
 
 function pageResponse(status: "running" | "completed" = "running") {
-  const response = structuredClone(fixture.apiResponse) as RunsPageDto;
+  const response = structuredClone(fixture.apiResponse) as unknown as RunsPageDto;
+  response.capabilities = fixtureCapabilities;
   response.runs[0].status = status;
   response.runs[0].finishedAt = status === "completed" ? "2026-08-05T11:59:01.001000000Z" : null;
   response.runs[0].durationUs = status === "completed" ? 1_000_000 : null;
