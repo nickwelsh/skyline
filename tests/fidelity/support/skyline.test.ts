@@ -1,9 +1,37 @@
 import { describe, expect, test } from "vitest";
-import { parseScenario, scenarioPath, type FixtureCatalog } from "./skyline";
+import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import fixture from "../fixtures.json" with { type: "json" };
+import { fixtureCatalog, parseScenario, scenarioPath, type FixtureCatalog } from "./skyline";
 
 const catalog: FixtureCatalog = { job: "job-1", run: "run-1", error: "error-1", log: "log-1", queue: "queue-1" };
 
 describe("packaged Skyline fidelity fixture", () => {
+  test("uses the reviewed seed identifiers", async () => {
+    await expect(fixtureCatalog()).resolves.toEqual({
+      job: fixture.ids.job,
+      run: fixture.ids.run,
+      error: fixture.ids.error,
+      log: fixture.ids.event,
+      queue: fixture.ids.queue,
+    });
+  });
+
+  test("uses the reviewed seed values", async () => {
+    const adapter = new FixtureAdapter();
+    const [jobs, runs, errors, logs, queues] = await Promise.all([
+      adapter.jobs(), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
+    ]);
+    const catalog = await fixtureCatalog(adapter);
+    expect({
+      jobType: jobs.jobs.find(({ id }) => id === catalog.job)?.name,
+      runStatus: runs.runs.find(({ id }) => id === catalog.run)?.status,
+      exceptionClass: errors.errorGroups.find(({ id }) => id === catalog.error)?.exceptionClass,
+      logLevel: logs.telemetryEvents.find(({ id }) => id === catalog.log)?.level,
+      connection: queues.queueTargets.find(({ id }) => id === catalog.queue)?.connection,
+      queue: queues.queueTargets.find(({ id }) => id === catalog.queue)?.queue,
+    }).toEqual(fixture.values);
+  });
+
   test.each([
     ["jobs-loading@1440x960-classic", "root", "/skyline/jobs"],
     ["run-stale-refresh@1440x960-dark", "detail", "/skyline/runs/run-1"],

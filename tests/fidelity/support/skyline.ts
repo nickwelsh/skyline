@@ -1,5 +1,6 @@
 import type { Page, Route } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import fixture from "../fixtures.json" with { type: "json" };
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
@@ -20,12 +21,17 @@ export async function fixtureCatalog(adapter = new FixtureAdapter()): Promise<Fi
     adapter.jobs(), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
   ]);
   return {
-    job: jobs.jobTypes[0].id,
-    run: runs.runs[0].id,
-    error: errors.errorGroups[0].id,
-    log: logs.telemetryEvents[0].id,
-    queue: queues.queueTargets[0].id,
+    job: required(jobs.jobs.find((job) => job.name === fixture.values.jobType), "Job").id,
+    run: required(runs.runs.find((run) => run.id === fixture.ids.run), "Run").id,
+    error: required(errors.errorGroups.find((error) => error.exceptionClass === fixture.values.exceptionClass), "Error").id,
+    log: required(logs.telemetryEvents.find((event) => event.level === fixture.values.logLevel), "Telemetry event").id,
+    queue: required(queues.queueTargets.find((queue) => queue.connection === fixture.values.connection && queue.queue === fixture.values.queue), "Queue target").id,
   };
+}
+
+function required<T>(value: T | undefined, label: string): T {
+  if (!value) throw new Error(`Fidelity ${label} seed is missing.`);
+  return value;
 }
 
 export function scenarioPath(scenario: FidelityScenario, catalog: FixtureCatalog) {
@@ -83,17 +89,17 @@ async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: Fix
 }
 
 async function responseFor(path: string, search: URLSearchParams, adapter: FixtureAdapter): Promise<unknown> {
-  if (path === "jobs") return adapter.jobs({ search: search.get("search") ?? undefined, period: search.get("period") ?? undefined });
-  if (path.startsWith("jobs/")) return adapter.job(decodeURIComponent(path.slice(5)), { cursor: search.get("cursor") ?? undefined, status: search.getAll("status[]") as never, period: search.get("period") ?? undefined });
+  if (path === "jobs") return adapter.jobs({ search: search.get("search") ?? undefined, period: period(search) });
+  if (path.startsWith("jobs/")) return adapter.job(decodeURIComponent(path.slice(5)), { cursor: search.get("cursor") ?? undefined, status: search.getAll("status[]") as never, period: period(search) });
   if (path === "runs") return adapter.runs({ cursor: search.get("cursor") ?? undefined, search: search.get("search") ?? undefined, status: search.getAll("status[]") as never, job: search.get("job") ?? undefined, connection: search.get("connection") ?? undefined, queue: search.get("queue") ?? undefined, trace: search.get("trace") ?? undefined, rootOnly: search.has("rootOnly") ? search.get("rootOnly") === "true" : undefined, triggeredFrom: search.get("triggeredFrom") ?? undefined, triggeredTo: search.get("triggeredTo") ?? undefined });
   if (path === "runs/updates") return adapter.updates({}, search.get("since") ?? "0", search.getAll("runIds[]"));
   const inspector = path.match(/^runs\/([^/]+)\/nodes\/(.+)$/);
   if (inspector) return { node: await adapter.inspector(decodeURIComponent(inspector[2]), decodeURIComponent(inspector[1])) };
   const run = path.match(/^runs\/([^/]+)$/);
   if (run) return adapter.trace(decodeURIComponent(run[1]), search.get("tableState") ?? undefined);
-  if (path === "errors") return adapter.errorGroups({ jobType: search.get("jobType") ?? undefined, exceptionClass: search.get("exceptionClass") ?? undefined, period: search.get("period") ?? undefined, cursor: search.get("cursor") ?? undefined });
-  if (path.startsWith("errors/")) return adapter.errorGroup(decodeURIComponent(path.slice(7)), { period: search.get("period") ?? undefined, cursor: search.get("cursor") ?? undefined });
-  if (path === "logs") return adapter.telemetryEvents({ levels: search.getAll("levels[]") as never, jobType: search.get("jobType") ?? undefined, runId: search.get("runId") ?? undefined, period: search.get("period") ?? undefined, cursor: search.get("cursor") ?? undefined });
+  if (path === "errors") return adapter.errorGroups({ jobType: search.get("jobType") ?? undefined, exceptionClass: search.get("exceptionClass") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
+  if (path.startsWith("errors/")) return adapter.errorGroup(decodeURIComponent(path.slice(7)), { period: period(search), cursor: search.get("cursor") ?? undefined });
+  if (path === "logs") return adapter.telemetryEvents({ levels: search.getAll("levels[]") as never, jobType: search.get("jobType") ?? undefined, runId: search.get("runId") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path.startsWith("logs/")) return adapter.telemetryEvent(decodeURIComponent(path.slice(5)));
   if (path === "queues") return adapter.queueTargets({ cursor: search.get("cursor") ?? undefined, connection: search.get("connection") ?? undefined, search: search.get("search") ?? undefined, from: search.get("from") ?? undefined, to: search.get("to") ?? undefined });
   if (path.startsWith("queues/")) return adapter.queueTarget(decodeURIComponent(path.slice(7)), { cursor: search.get("cursor") ?? undefined, search: search.get("search") ?? undefined, from: search.get("from") ?? undefined, to: search.get("to") ?? undefined, status: search.getAll("status[]") as never });
@@ -102,8 +108,8 @@ async function responseFor(path: string, search: URLSearchParams, adapter: Fixtu
 
 function emptyRoot(response: unknown, surface: string, filtered: boolean) {
   const clone = structuredClone(response) as Record<string, unknown>;
-  const collections: Record<string, string> = { jobs: "jobTypes", runs: "runs", errors: "errorGroups", logs: "telemetryEvents", queues: "queueTargets" };
-  const flags: Record<string, string> = { jobs: "hasAnyJobTypes", runs: "hasAnyRuns", errors: "hasAnyErrorGroups", logs: "hasAnyTelemetryEvents", queues: "hasAnyQueueTargets" };
+  const collections: Record<string, string> = { jobs: "jobs", runs: "runs", errors: "errorGroups", logs: "telemetryEvents", queues: "queueTargets" };
+  const flags: Record<string, string> = { jobs: "hasAnyJobs", runs: "hasAnyRuns", errors: "hasAnyErrorGroups", logs: "hasAnyTelemetryEvents", queues: "hasAnyQueueTargets" };
   clone[collections[surface]] = [];
   clone[flags[surface]] = filtered;
   if (filtered && typeof clone.filters === "object" && clone.filters) {
@@ -113,6 +119,11 @@ function emptyRoot(response: unknown, surface: string, filtered: boolean) {
     else filters.search = "missing";
   }
   return clone;
+}
+
+function period(search: URLSearchParams) {
+  const value = search.get("period");
+  return (["1h", "24h", "7d", "30d", "all"] as const).find((candidate) => candidate === value);
 }
 
 function ownedResponse(response: unknown, scenario: FidelityScenario, path: string) {

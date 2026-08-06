@@ -3,17 +3,17 @@
   "version": "nw-227-v1",
   "generatedAt": "2026-08-05T12:00:00.000Z",
   "ids": {
-    "job": "job_fixture_invoice",
+    "job": "job_01e91cdc",
     "run": "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
-    "error": "error_fixture_deadlock",
-    "event": "event_fixture_query",
-    "queue": "queue_fixture_redis_default"
+    "error": "error_14f2a26c14f2a26c14f2a26c14f2a26c14f2a26c14f2a26c14f2a26c14f2a26c",
+    "event": "event_fixture_log",
+    "queue": "queue_3b6b7027"
   },
   "values": {
     "jobType": "App\\Jobs\\GenerateMonthlyInvoices",
-    "runStatus": "failed",
+    "runStatus": "completed",
     "exceptionClass": "Illuminate\\Database\\DeadlockException",
-    "logLevel": "ERROR",
+    "logLevel": "WARN",
     "connection": "redis",
     "queue": "default"
   }

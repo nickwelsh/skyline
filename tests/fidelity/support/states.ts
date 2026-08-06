@@ -1,9 +1,8 @@
 import type { Page } from "@playwright/test";
 import type { FidelityScenario } from "./skyline";
 
-const storageKey = "skyline.ui-preferences.v1:/skyline";
-
-export async function seedOwnedState(page: Page, scenario: FidelityScenario) {
+export async function seedOwnedState(page: Page, scenario: FidelityScenario, basePath = "/skyline") {
+  const storageKey = `skyline.ui-preferences.v1:${basePath}`;
   await page.addInitScript(({ key, id }) => {
     const current = JSON.parse(localStorage.getItem(key) ?? "{\"version\":1}");
     if (id === "shell-collapsed") current.sidebar = { ...(current.sidebar ?? {}), isCollapsed: true };
@@ -35,7 +34,7 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario) {
   if (scenario.id === "errors-stack-expansion") await page.getByRole("button", { name: /vendor frame/i }).first().click();
   if (scenario.id === "runs-inspectors" || scenario.id === "runs-exception") await page.locator("[data-node-id]").nth(1).click();
   if (scenario.id === "runs-timeline-extremes") await page.getByRole("switch", { name: "Queue time" }).click();
-  if (scenario.id === "jobs-filtering") await page.getByPlaceholder(/Search tasks/i).fill("invoice");
+  if (scenario.id === "jobs-filtering") await page.getByPlaceholder(/Search (?:Jobs|tasks)/i).fill("invoice");
   if (scenario.id === "errors-filters") await page.getByLabel("Job type").selectOption({ index: 1 });
   if (scenario.id === "logs-job-run-filters") await page.getByLabel("Job type").selectOption({ index: 1 });
   if (scenario.id === "queues-filtering") await page.getByLabel("Connection").selectOption({ index: 1 });
