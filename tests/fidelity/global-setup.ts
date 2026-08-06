@@ -9,6 +9,7 @@ const root = resolve(import.meta.dirname, "../..");
 
 export default async function globalSetup() {
   const hostOverride = process.env.SKYLINE_ORACLE_ALLOW_HOST === "1";
+  assertPinnedRecordingEnvironment(process.env.SKYLINE_ORACLE_RECORD === "1", hostOverride);
   if (!hostOverride && process.platform !== "linux") throw new Error("Fidelity oracle requires its pinned Linux image.");
   if (!hostOverride && process.env.SKYLINE_ORACLE_IMAGE !== environment.linuxImage) throw new Error("Fidelity oracle image digest is not declared.");
   if (!hostOverride && process.versions.node !== environment.nodeVersion) throw new Error(`Fidelity Node drifted: ${process.versions.node}.`);
@@ -28,6 +29,10 @@ export default async function globalSetup() {
     assertFont(join(root, "dist"), name, expected);
     assertFont(join(root, "tests/fidelity/reference/dist/assets"), name, expected);
   }
+}
+
+export function assertPinnedRecordingEnvironment(record: boolean, hostOverride: boolean) {
+  if (record && hostOverride) throw new Error("Oracle recording requires the pinned Linux environment.");
 }
 
 function assertFont(directory: string, sourceName: string, expected: string) {

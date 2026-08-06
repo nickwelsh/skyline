@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import { expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
+import { assertPinnedRecordingEnvironment } from "../../../tests/fidelity/global-setup";
 
 const root = resolve(import.meta.dirname, "../../..");
 describe("source-fidelity oracle", () => {
@@ -226,6 +227,12 @@ describe("source-fidelity oracle", () => {
     expect(inputs.referenceImportCheckerSha256).toBe(fileHash("scripts/import-fidelity-reference.mjs"));
     expect(inputs.triggerImportCheckerSha256).toBe(fileHash("scripts/import-trigger.mjs"));
     expect(inputs.nw223EvidenceLedgerSha256).toBe(fileHash("tests/fidelity/nw223-evidence-ledger.json"));
+  });
+
+  test("recording cannot bypass the pinned Linux environment", () => {
+    expect(() => assertPinnedRecordingEnvironment(true, true)).toThrow(/recording.*pinned Linux/i);
+    expect(() => assertPinnedRecordingEnvironment(false, true)).not.toThrow();
+    expect(() => assertPinnedRecordingEnvironment(true, false)).not.toThrow();
   });
 
   function fileHash(path: string) {
