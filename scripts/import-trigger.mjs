@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateSourceTargetMappings } from "./trigger-import-manifest.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = join(root, "resources/js/trigger/import-manifest.json");
@@ -20,13 +21,8 @@ const fail = (message) => {
 if (!Array.isArray(manifest.files) || manifest.files.length === 0) fail("Trigger import manifest has no files.");
 if (!manifest.adaptedTargets || typeof manifest.adaptedTargets !== "object") fail("Trigger import manifest has no adapted target hashes.");
 
-const seen = new Set();
-const targets = new Set();
+validateSourceTargetMappings(manifest.files);
 for (const file of manifest.files) {
-  if (seen.has(file.source)) fail(`Duplicate Trigger source: ${file.source}`);
-  seen.add(file.source);
-  if (targets.has(file.target)) fail(`Multiple Trigger sources target one module: ${file.target}`);
-  targets.add(file.target);
   if (!/^[a-f0-9]{64}$/.test(file.sha256)) fail(`Invalid hash for ${file.source}`);
   if (!existsSync(join(root, file.target))) fail(`Missing vendored target: ${file.target}`);
   if (file.mode === "exact" && digest(join(root, file.target)) !== file.sha256) {
