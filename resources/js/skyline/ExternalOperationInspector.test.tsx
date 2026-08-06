@@ -69,7 +69,7 @@ describe("ExternalOperationInspector", () => {
     expect(container.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
     expect(container.querySelector('[role="tablist"][aria-label="Result preview display"]')).not.toBeNull();
     expect(container.textContent).toContain("Truncated");
-    expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull();
+    expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"][aria-label="Database and state operation inspector"] > [aria-label="SQL query detail"]')).not.toBeNull();
     expect([...container.querySelectorAll("time")].map((element) => element.getAttribute("datetime"))).toEqual([
       "2026-08-05T12:00:00.000000000Z",
       "2026-08-05T12:00:00.125000000Z",
@@ -147,7 +147,7 @@ describe("ExternalOperationInspector", () => {
     expect(container.textContent).toContain("Depth2");
     expect(container.textContent).toContain("rolled_back");
     expect(container.textContent).toContain("12.5 ms");
-    expect(container.getElementsByClassName("text-error")[0]?.textContent).toContain("Operation failed");
+    expect(container.querySelector('[role="alert"] .text-text-bright')?.textContent).toContain("Operation failed");
 
     flushSync(() => root.unmount());
   });

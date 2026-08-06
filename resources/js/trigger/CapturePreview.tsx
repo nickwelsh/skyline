@@ -345,6 +345,7 @@ export function HighlightedCode({ code, language, startingLine, highlightedLine,
         <pre
           dir="ltr"
           translate="no"
+          tabIndex={0}
           className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto p-3 font-mono text-base @sm:text-xs ${wrap ? "whitespace-pre-wrap break-words" : "whitespace-pre"} ${className}`}
           style={{ ...style, backgroundColor: "transparent" }}
         >
@@ -365,7 +366,7 @@ export function HighlightedCode({ code, language, startingLine, highlightedLine,
 
 function JsonTree({ value, label, expanded = false }: { value: unknown; label: string; expanded?: boolean }) {
   return (
-    <div role="tree" aria-label={`${label} JSON tree`} className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto py-2 font-mono text-base @sm:text-xs`}>
+    <div role="tree" aria-label={`${label} JSON tree`} tabIndex={0} className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto py-2 font-mono text-base @sm:text-xs`}>
       <JsonTreeNode value={value} depth={0} siblingCount={1} path="$" />
     </div>
   );

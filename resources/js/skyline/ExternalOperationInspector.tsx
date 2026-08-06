@@ -32,13 +32,13 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
 
   switch (presentation.type) {
     case "sql":
-      return <SqlInspector presentation={presentation} />;
+      return <OperationExtension><SqlInspector presentation={presentation} /></OperationExtension>;
     case "transaction":
-      return <TransactionInspector presentation={presentation} />;
+      return <OperationExtension><TransactionInspector presentation={presentation} /></OperationExtension>;
     case "cache":
-      return <CacheInspector presentation={presentation} />;
+      return <OperationExtension><CacheInspector presentation={presentation} /></OperationExtension>;
     case "redis":
-      return <RedisInspector presentation={presentation} />;
+      return <OperationExtension><RedisInspector presentation={presentation} /></OperationExtension>;
     case "http":
       return <HttpInspector presentation={presentation} overview={inspector.overview} />;
     case "delivery":
@@ -58,11 +58,15 @@ export function ExternalOperationInspector({ inspector }: { inspector: ExternalI
   }
 }
 
+function OperationExtension({ children }: { children: ReactNode }) {
+  return <section aria-label="Database and state operation inspector" data-skyline-extension="database-state-operation-inspector">{children}</section>;
+}
+
 function SqlInspector({ presentation }: { presentation: PresentationOf<"sql"> }) {
   const { statement, bindings, result } = presentation.sql;
 
   return (
-    <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
+    <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure}>
       <SqlCapturePreview
         sql={statement.value}
         bindings={bindings?.items}
@@ -81,7 +85,7 @@ function TransactionInspector({ presentation }: { presentation: PresentationOf<"
   const { transaction } = presentation;
 
   return (
-    <InspectorLayout title="Database transaction" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
+    <InspectorLayout title="Database transaction" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table>
         <Item label="Connection" value={transaction.connection} />
         <Item label="Driver" value={transaction.driver} />
@@ -97,7 +101,7 @@ function CacheInspector({ presentation }: { presentation: PresentationOf<"cache"
   const { cache } = presentation;
 
   return (
-    <InspectorLayout title="Cache operation" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
+    <InspectorLayout title="Cache operation" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table>
         <Item label="Operation" value={cache.operation} />
         <Item label="Store" value={cache.store} />
@@ -119,7 +123,7 @@ function RedisInspector({ presentation }: { presentation: PresentationOf<"redis"
   const { redis } = presentation;
 
   return (
-    <InspectorLayout title="Redis command" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
+    <InspectorLayout title="Redis command" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table>
         <Item label="Command" value={redis.command} />
         <Item label="Connection" value={redis.connection} />
@@ -271,9 +275,9 @@ function GenericInspector({ inspector, presentation }: { inspector: ExternalInsp
   );
 }
 
-function InspectorLayout({ title, timing, failure, extensionId, children }: { title: string; timing?: InspectorTiming; failure?: InspectorFailure; extensionId?: string; children: ReactNode }) {
+function InspectorLayout({ title, timing, failure, children }: { title: string; timing?: InspectorTiming; failure?: InspectorFailure; children: ReactNode }) {
   return (
-    <section aria-label={`${title} detail`} data-skyline-extension={extensionId} className="flex min-w-0 flex-col gap-4">
+    <section aria-label={`${title} detail`} className="flex min-w-0 flex-col gap-4">
       <Header3>{title}</Header3>
       {timing && (
         <Property.Table>
@@ -284,7 +288,7 @@ function InspectorLayout({ title, timing, failure, extensionId, children }: { ti
       )}
       {failure && (
         <div role="alert" className="rounded border border-error/40 bg-error/10 p-3 text-sm">
-          <div className="font-medium text-error">{failure.type ?? "Operation failed"}</div>
+          <div className="font-medium text-text-bright">{failure.type ?? "Operation failed"}</div>
           {failure.message && <div className="mt-1 whitespace-pre-wrap break-words text-text-dimmed">{failure.message}</div>}
         </div>
       )}

@@ -49,7 +49,7 @@
     "resources/js/trigger/components/primitives/Headers.tsx": "d2d6730cd400f596375a1ac8d671a1fd0517f4823829151ee3c4e8ba2d5d3dea",
     "resources/js/trigger/components/primitives/PropertyTable.tsx": "6797a6ca83ed526df18bd90b603b970ea885703f4fccb6ba209a43cfe81d66b3",
     "resources/js/trigger/components/primitives/DateTime.tsx": "41500fe05e63ce3c21526d2252dd03e015881d5c013434710f73664d072f1565",
-    "resources/js/trigger/CapturePreview.tsx": "41f938b3b0d2ab81c8a1ac9c56885c72f37a2576cab582c1be59d19624a70634",
+    "resources/js/trigger/CapturePreview.tsx": "cd325fe25283a7baf48f44781256cbef61402231baa58ab30ae140ffa30a9c1e",
     "resources/js/trigger/hooks/useShortcutKeys.tsx": "24f52df218ca86c08f8d15730f4757b1a596821f503f9dd6ebb12edea22aa74e",
     "resources/js/trigger/utils/cn.ts": "e3a032baa677062639c05146364807423e34168f9eea5ced0e35beee7b1a8f82",
     "resources/js/trigger/components/primitives/charts/ChartRoot.tsx": "62eb1284337d7f92edb70eadfb6cc1228e30c4250a39fdf861b3166b258d0cee",

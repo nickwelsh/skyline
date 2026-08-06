@@ -1,7 +1,7 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
-import { HtmlCapturePreview, JsonCapturePreview } from "./CapturePreview";
+import { HtmlCapturePreview, JsonCapturePreview, TextCapturePreview } from "./CapturePreview";
 
 describe("HtmlCapturePreview", () => {
   afterEach(() => {
@@ -52,6 +52,22 @@ describe("HtmlCapturePreview", () => {
     flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(document.activeElement).not.toBe(expand);
+
+    flushSync(() => root.unmount());
+  });
+
+  it("keeps scrollable text and tree evidence keyboard reachable", () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(<TextCapturePreview label="Output" value={"line\n".repeat(100)} />));
+    expect(container.querySelector("pre")?.tabIndex).toBe(0);
+
+    flushSync(() => root.render(<JsonCapturePreview label="Result" value={{ rows: [{ id: 42 }] }} />));
+    const treeTab = [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find((button) => button.textContent === "Tree")!;
+    flushSync(() => treeTab.click());
+    expect(container.querySelector<HTMLElement>('[role="tree"]')?.tabIndex).toBe(0);
 
     flushSync(() => root.unmount());
   });
