@@ -2,7 +2,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
 type Rect = { x: number; y: number; width: number; height: number };
-type Mask = { rect: Rect; source: Rect };
+type Mask = { rect: Rect; source: Rect; application: "trigger" | "skyline" | "both" };
 type Observation = { selector: string; rect: Rect; computedStyle: Record<string, string>; accessibleName: string };
 type PairedRegion = { kind?: "paired"; id: string; trigger: Observation; skyline: Observation };
 export type FrameworkExtensionRegion = {
@@ -78,7 +78,7 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
     }
     if (JSON.stringify(region.extension.relativeRect) !== JSON.stringify(region.expected.relativeRect)) throw new Error(`Allowed region ${region.id} changed anchor-relative geometry.`);
     if (JSON.stringify(region.extension.anchorRect) !== JSON.stringify(region.expected.anchorRect)) throw new Error(`Allowed region ${region.id} anchor changed locked geometry.`);
-    return [boundedMask(region.id, region.extension.rect, imageWidth, imageHeight)];
+    return [boundedMask(region.id, region.extension.rect, "skyline", imageWidth, imageHeight)];
   }
   if (region.kind === "presenter-extension") {
     for (const key of ["triggerSelector", "skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "skylineAccessibleRole", "skylineAccessibleName", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256", "anchorAccessibleName"] as const) {
@@ -94,8 +94,8 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
       if (JSON.stringify(rect) !== JSON.stringify(expectedRect)) throw new Error(`Allowed region ${region.id} changed ${label} outer geometry.`);
     }
     return [
-      boundedMask(region.id, region.presenter.triggerRect, imageWidth, imageHeight, 0.65),
-      boundedMask(region.id, region.presenter.skylineRect, imageWidth, imageHeight, 0.65),
+      boundedMask(region.id, region.presenter.triggerRect, "trigger", imageWidth, imageHeight, 0.65),
+      boundedMask(region.id, region.presenter.skylineRect, "skyline", imageWidth, imageHeight, 0.65),
     ];
   }
   if (region.kind === "capability-omission") {
@@ -106,8 +106,8 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
         if (JSON.stringify(pair[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${region.id} pair ${pair.id} changed ${key}.`);
       }
       return [
-        boundedMask(`${region.id}:${pair.id}:trigger`, pair.triggerRect, imageWidth, imageHeight),
-        boundedMask(`${region.id}:${pair.id}:skyline`, pair.skylineRect, imageWidth, imageHeight),
+        boundedMask(`${region.id}:${pair.id}:trigger`, pair.triggerRect, "trigger", imageWidth, imageHeight),
+        boundedMask(`${region.id}:${pair.id}:skyline`, pair.skylineRect, "skyline", imageWidth, imageHeight),
       ];
     });
     rejectOverlaps(pairMasks);
@@ -118,18 +118,22 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
   if (JSON.stringify(triggerRect) !== JSON.stringify(skylineRect)) throw new Error(`Allowed region ${region.id} changed geometry.`);
   if (JSON.stringify(region.trigger.computedStyle) !== JSON.stringify(region.skyline.computedStyle)) throw new Error(`Allowed region ${region.id} changed computed style.`);
   if (region.trigger.accessibleName !== region.skyline.accessibleName) throw new Error(`Allowed region ${region.id} changed accessible name.`);
-  return [boundedMask(region.id, region.trigger.rect, imageWidth, imageHeight)];
+  return [boundedMask(region.id, region.trigger.rect, "both", imageWidth, imageHeight)];
 }
 
-function boundedMask(id: string, source: Rect, imageWidth: number, imageHeight: number, maximumFraction = 0.15): Mask {
-  return { rect: boundedRect(id, source, imageWidth, imageHeight, maximumFraction), source };
+function boundedMask(id: string, source: Rect, application: Mask["application"], imageWidth: number, imageHeight: number, maximumFraction = 0.15): Mask {
+  return { rect: boundedRect(id, source, imageWidth, imageHeight, maximumFraction), source, application };
 }
 
 function boundedRect(id: string, rect: Rect, imageWidth: number, imageHeight: number, maximumFraction = 0.15) {
   const integer = integerRect(rect);
-  if (integer.width * integer.height > imageWidth * imageHeight * maximumFraction) throw new Error(`Allowed region ${id} is too broad.`);
-  if (integer.x < 0 || integer.y < 0 || integer.x + integer.width > imageWidth || integer.y + integer.height > imageHeight) throw new Error(`Allowed region ${id} leaves the screenshot.`);
-  return integer;
+  const x = Math.max(0, integer.x);
+  const y = Math.max(0, integer.y);
+  const right = Math.min(imageWidth, integer.x + integer.width);
+  const bottom = Math.min(imageHeight, integer.y + integer.height);
+  const visible = { x, y, width: Math.max(0, right - x), height: Math.max(0, bottom - y) };
+  if (visible.width * visible.height > imageWidth * imageHeight * maximumFraction) throw new Error(`Allowed region ${id} is too broad.`);
+  return visible;
 }
 
 function integerRect(rect: Rect): Rect {
@@ -140,14 +144,19 @@ function rejectOverlaps(regions: Mask[][]) {
   for (let left = 0; left < regions.length; left += 1) {
     for (let right = left + 1; right < regions.length; right += 1) {
       for (const a of regions[left]) for (const b of regions[right]) {
-        if (overlaps(a.rect, b.rect) && overlaps(a.source, b.source)) throw new Error("Allowed-difference regions overlap.");
+        if (sameCoordinateSpace(a, b) && overlaps(a.rect, b.rect) && overlaps(a.source, b.source)) throw new Error("Allowed-difference regions overlap.");
       }
     }
   }
 }
 
 function overlaps(a: Rect, b: Rect) {
-  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+  return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
+    && a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}
+
+function sameCoordinateSpace(a: Mask, b: Mask) {
+  return a.application === "both" || b.application === "both" || a.application === b.application;
 }
 
 function samePixel(trigger: Buffer, skyline: Buffer, offset: number) {

@@ -68,6 +68,38 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [fractionalCapabilityOmissionRegion(1.5)]))
       .toThrow(/overlap/i);
   });
+
+  test("allows cross-application mask overlap but rejects same-application overlap", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [
+      [0, 0, [0, 0, 0, 255]],
+      [1, 0, [0, 0, 0, 255]],
+      [4, 0, [0, 0, 0, 255]],
+      [5, 0, [0, 0, 0, 255]],
+    ]);
+    const rect = (x: number) => ({ x, y: 0, width: 2, height: 1 });
+
+    expect(comparePixels(trigger, skyline, [capabilityOmissionWithRects([
+      { triggerRect: rect(0), skylineRect: rect(4) },
+      { triggerRect: rect(4), skylineRect: rect(0) },
+    ])])).toMatchObject({ differingPixels: 0, maskedPixels: 4 });
+    expect(() => comparePixels(trigger, skyline, [capabilityOmissionWithRects([
+      { triggerRect: rect(0), skylineRect: rect(4) },
+      { triggerRect: rect(1), skylineRect: rect(7) },
+    ])])).toThrow(/overlap/i);
+  });
+
+  test("clips masks to their visible intersection and budgets only visible pixels", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, Array.from({ length: 10 }, (_, x) => [x, 0, [0, 0, 0, 255]] as [number, number, [number, number, number, number]]));
+
+    expect(comparePixels(trigger, skyline, [singleCapabilityRect({ x: -90, y: 0, width: 100, height: 1 })]))
+      .toMatchObject({ differingPixels: 0, maskedPixels: 10 });
+    expect(comparePixels(trigger, trigger, [singleCapabilityRect({ x: 11, y: 0, width: 2, height: 2 })]))
+      .toMatchObject({ differingPixels: 0, maskedPixels: 0 });
+    expect(() => comparePixels(trigger, trigger, [singleCapabilityRect({ x: -90, y: 0, width: 100, height: 2 })]))
+      .toThrow(/too broad/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
@@ -129,4 +161,14 @@ function fractionalCapabilityOmissionRegion(secondX: number): Extract<Difference
     { ...region.omissions[1], triggerRect: { x: secondX, y: 0, width: 1.5, height: 1 }, skylineRect: { x: secondX, y: 0, width: 1.5, height: 1 } },
   ];
   return { ...region, omissions, expected: Object.fromEntries(omissions.map(({ id, triggerRect, skylineRect, ...measurement }) => [id, { triggerRect, skylineRect, ...measurement }])) };
+}
+
+function capabilityOmissionWithRects(rects: Array<{ triggerRect: { x: number; y: number; width: number; height: number }; skylineRect: { x: number; y: number; width: number; height: number } }>): Extract<DifferenceRegion, { kind: "capability-omission" }> {
+  const region = capabilityOmissionRegion();
+  const omissions = rects.map((rect, index) => ({ ...region.omissions[index], ...rect }));
+  return { ...region, omissions, expected: Object.fromEntries(omissions.map(({ id, triggerRect, skylineRect, ...measurement }) => [id, { triggerRect, skylineRect, ...measurement }])) };
+}
+
+function singleCapabilityRect(rect: { x: number; y: number; width: number; height: number }) {
+  return capabilityOmissionWithRects([{ triggerRect: rect, skylineRect: rect }]);
 }
