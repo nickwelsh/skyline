@@ -7,6 +7,8 @@ describe("BrandMark", () => {
     const markup = renderToStaticMarkup(<BrandMark name="Fixture Laravel" />);
 
     expect(markup).toContain("size-5");
+    expect(markup).toContain('style="background-color:#fbbf24"');
+    expect(markup).not.toContain("bg-amber-400");
     expect(markup).toContain(">Fi</span>");
   });
 });
