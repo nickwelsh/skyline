@@ -92,10 +92,14 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
 }
 
 export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition): Promise<PresenterExtensionObservation> {
-  const triggerPresenter = await observeElement(trigger, definition.id, definition.triggerSelector, "Trigger presenter");
-  const triggerAnchor = await observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor");
-  const skylinePresenter = await observeElement(skyline, definition.id, definition.skylineSelector, "Skyline presenter");
-  const skylineAnchor = await observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor");
+  const triggerPresenterDom = await observeElementDom(trigger, definition.id, definition.triggerSelector, "Trigger presenter");
+  const triggerAnchorDom = await observeElementDom(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor");
+  const skylinePresenterDom = await observeElementDom(skyline, definition.id, definition.skylineSelector, "Skyline presenter");
+  const skylineAnchorDom = await observeElementDom(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor");
+  const triggerPresenter = await observeElementAccessibility(trigger, definition.triggerSelector, triggerPresenterDom);
+  const triggerAnchor = await observeElementAccessibility(trigger, definition.triggerAnchorSelector, triggerAnchorDom);
+  const skylinePresenter = await observeElementAccessibility(skyline, definition.skylineSelector, skylinePresenterDom);
+  const skylineAnchor = await observeElementAccessibility(skyline, definition.skylineAnchorSelector, skylineAnchorDom);
   validatePairedAnchorIdentity(definition, triggerAnchor, skylineAnchor);
   if (triggerAnchor.accessibilitySha256 !== skylineAnchor.accessibilitySha256) throw new Error(`Allowed region ${definition.id} anchor changed accessibility.`);
   if (skylinePresenter.accessibleRole !== definition.skylineAccessibleRole || skylinePresenter.accessibleName !== definition.skylineAccessibleName) throw new Error(`Allowed region ${definition.id} changed Skyline accessible identity.`);
@@ -255,9 +259,13 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
 }
 
 async function observeElement(page: Page, id: string, selector: string, label: string) {
+  return observeElementAccessibility(page, selector, await observeElementDom(page, id, selector, label));
+}
+
+async function observeElementDom(page: Page, id: string, selector: string, label: string) {
   const locator = page.locator(selector);
   requireSingleMatch(await locator.count(), id, label);
-  const [observation, accessibility, accessibilitySnapshot] = await Promise.all([locator.evaluate((element) => {
+  const observation = await locator.evaluate((element) => {
     const box = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as [string, string, string]);
@@ -265,9 +273,16 @@ async function observeElement(page: Page, id: string, selector: string, label: s
       rect: { x: box.x, y: box.y, width: box.width, height: box.height },
       computedStyle,
     };
-  }), observeAccessibleIdentity(page, selector), locator.ariaSnapshot()]);
+  });
   const computedStyle = standardComputedStyleEntries(observation.computedStyle);
-  return { ...observation, ...accessibility, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle), accessibilitySha256: fingerprintAccessibility(accessibilitySnapshot) };
+  return { ...observation, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle) };
+}
+
+async function observeElementAccessibility(page: Page, selector: string, observation: Awaited<ReturnType<typeof observeElementDom>>) {
+  const locator = page.locator(selector);
+  const accessibility = await observeAccessibleIdentity(page, selector);
+  const accessibilitySnapshot = await locator.ariaSnapshot();
+  return { ...observation, ...accessibility, accessibilitySha256: fingerprintAccessibility(accessibilitySnapshot) };
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {

@@ -1,10 +1,10 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Browser } from "@playwright/test";
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition } from "./support/difference-regions";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
-import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
+import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
 
 const states = ["exception", "exception-expanded", "exception-long", "exception-retry"];
@@ -45,22 +45,29 @@ const referenceFixture = createReferenceFixture();
 
 for (const capture of captures) {
   test(`discover exact NW-222 ${capture}`, async ({ browser }) => {
+    test.setTimeout(30_000);
+    const scenario = parseScenario(capture);
+    const captureDefinition = scenario.id === "runs-exception-retry" ? { ...definition, anchorAccessibleName: "LogicException" } : definition;
+    if (scenario.id === "runs-exception-expanded") await proveExpandedInteraction(browser, capture, scenario);
     const context = await browser.newContext({ locale: "en-US", timezoneId: "UTC", deviceScaleFactor: 1 });
     const skyline = await context.newPage();
     const trigger = await context.newPage();
     try {
-      const scenario = parseScenario(capture);
       await Promise.all([prepareCapture(skyline, capture, "/skyline"), prepareCapture(trigger, capture, "/reference")]);
       await Promise.all([seedOwnedState(skyline, scenario), seedOwnedState(trigger, scenario, "/reference")]);
       await installReferenceFixture(trigger, await referenceFixture);
       const fixture = await installSkylineFixture(skyline, scenario);
       await Promise.all([skyline.goto(scenarioPath(scenario, fixture.catalog)), trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)]);
       await trigger.locator("html[data-oracle-ready='true']").waitFor();
-      await Promise.all([exposeOwnedState(skyline, scenario), exposeOwnedState(trigger, scenario)]);
-      await Promise.all([trigger.locator(definition.triggerSelector).waitFor(), skyline.locator(definition.skylineSelector).waitFor()]);
-      await Promise.all([applyLiveSystemChange(skyline, capture), applyLiveSystemChange(trigger, capture)]);
-      await Promise.all([settleCapture(skyline), settleCapture(trigger)]);
-      const observation = await discoverPresenterExtensionObservation(trigger, skyline, definition);
+      await exposeOwnedState(skyline, scenario, { expandException: false });
+      await exposeOwnedState(trigger, scenario, { expandException: false });
+      await trigger.locator(captureDefinition.triggerSelector).waitFor();
+      await skyline.locator(captureDefinition.skylineSelector).waitFor();
+      await applyLiveSystemChange(skyline, capture);
+      await applyLiveSystemChange(trigger, capture);
+      await settleCapture(skyline);
+      await settleCapture(trigger);
+      const observation = await diagnosticStep(capture, "measurement", () => discoverPresenterExtensionObservation(trigger, skyline, captureDefinition));
       const measurement = {
         triggerRelativeRect: observation.triggerRelativeRect,
         skylineRelativeRect: observation.skylineRelativeRect,
@@ -77,4 +84,42 @@ for (const capture of captures) {
       await context.close();
     }
   });
+}
+
+async function proveExpandedInteraction(browser: Browser, capture: string, scenario: FidelityScenario) {
+  const context = await browser.newContext({ locale: "en-US", timezoneId: "UTC", deviceScaleFactor: 1 });
+  const skyline = await context.newPage();
+  const trigger = await context.newPage();
+  try {
+    await Promise.all([prepareCapture(skyline, capture, "/skyline"), prepareCapture(trigger, capture, "/reference")]);
+    await Promise.all([seedOwnedState(skyline, scenario), seedOwnedState(trigger, scenario, "/reference")]);
+    await installReferenceFixture(trigger, await referenceFixture);
+    const fixture = await installSkylineFixture(skyline, scenario);
+    await Promise.all([skyline.goto(scenarioPath(scenario, fixture.catalog)), trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)]);
+    await trigger.locator("html[data-oracle-ready='true']").waitFor();
+    await diagnosticStep(capture, "interaction:skyline-open", () => exposeOwnedState(skyline, scenario));
+    await diagnosticStep(capture, "interaction:trigger-open", () => exposeOwnedState(trigger, scenario));
+    const triggerDialog = trigger.getByRole("dialog");
+    const skylineDialog = skyline.getByRole("dialog", { name: "exception stack trace" });
+    await diagnosticStep(capture, "interaction:trigger-visible", () => expect(triggerDialog).toBeVisible({ timeout: 2_000 }));
+    await diagnosticStep(capture, "interaction:skyline-visible", () => expect(skylineDialog).toBeVisible({ timeout: 2_000 }));
+    const triggerAx = await diagnosticStep(capture, "interaction:trigger-ax", () => triggerDialog.ariaSnapshot({ timeout: 2_000 }));
+    const skylineAx = await diagnosticStep(capture, "interaction:skyline-ax", () => skylineDialog.ariaSnapshot({ timeout: 2_000 }));
+    expect(triggerAx).toContain("dialog");
+    expect(skylineAx).toContain("dialog");
+  } finally {
+    await context.close();
+  }
+}
+
+async function diagnosticStep<T>(capture: string, label: string, action: () => Promise<T>) {
+  const started = Date.now();
+  const pending = setTimeout(() => process.stdout.write(`\nPRESENTER_STEP_PENDING=${JSON.stringify({ capture, label, elapsedMs: Date.now() - started })}\n`), 2_000);
+  try {
+    const result = await action();
+    process.stdout.write(`\nPRESENTER_STEP=${JSON.stringify({ capture, label, elapsedMs: Date.now() - started })}\n`);
+    return result;
+  } finally {
+    clearTimeout(pending);
+  }
 }

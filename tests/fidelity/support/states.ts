@@ -20,7 +20,7 @@ export async function seedOwnedState(page: Page, scenario: FidelityScenario, bas
   }
 }
 
-export async function exposeOwnedState(page: Page, scenario: FidelityScenario) {
+export async function exposeOwnedState(page: Page, scenario: FidelityScenario, options: { expandException?: boolean } = {}) {
   if (scenario.id === "shell-appearance") await page.getByRole("button", { name: "Appearance" }).click();
   if (scenario.id === "shell-shortcuts-dialog") {
     await page.getByRole("button", { name: "Help & Feedback" }).click();
@@ -36,6 +36,14 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario) {
   if (scenario.id === "runs-inspectors" || scenario.id.startsWith("runs-exception")) {
     const attempt = scenario.id === "runs-exception-retry" ? 2 : 1;
     await page.getByRole("treeitem", { name: new RegExp(`Attempt ${attempt}`) }).first().click();
+  }
+  if (scenario.id === "runs-exception-expanded" && options.expandException !== false) {
+    if (new URL(page.url()).pathname.startsWith("/skyline/")) {
+      await page.getByRole("button", { name: "Expand exception stack trace" }).click();
+    } else {
+      const code = page.locator(".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50 > [translate='no']");
+      await code.getByRole("button").last().click();
+    }
   }
   if (scenario.id === "runs-timeline-extremes") await page.getByRole("switch", { name: "Queue time" }).click();
   if (scenario.id === "jobs-filtering") await page.getByPlaceholder(/Search (?:Jobs|tasks)/i).fill("invoice");
