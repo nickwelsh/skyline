@@ -65,7 +65,7 @@ export function errorOccurrencesQuery(request: Request): ErrorOccurrencesQuery {
   });
 }
 
-export function presentErrorGroups(page: ErrorGroupsPageDto): ErrorGroupsRouteData {
+export function presentErrorGroups(page: ErrorGroupsPageDto, request?: Request): ErrorGroupsRouteData {
   return {
     generatedAt: page.generatedAt,
     errorGroups: page.errorGroups.map(presentErrorGroup),
@@ -73,7 +73,9 @@ export function presentErrorGroups(page: ErrorGroupsPageDto): ErrorGroupsRouteDa
     filters: page.filters,
     filterOptions: page.options,
     hasAnyErrorGroups: page.hasAnyErrorGroups,
-    hasFilters: page.filters.jobType !== null || page.filters.exceptionClass !== null || page.filters.period !== "24h",
+    hasFilters: page.filters.jobType !== null
+      || page.filters.exceptionClass !== null
+      || new URL(request?.url ?? "https://skyline.invalid/errors").searchParams.has("period"),
   };
 }
 

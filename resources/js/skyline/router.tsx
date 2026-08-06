@@ -63,7 +63,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
       (nodeId, signal) => adapter.inspector(nodeId, runId, signal),
     );
   };
-  const errorsLoader = async ({ request }: LoaderFunctionArgs) => presentErrorGroups(await adapter.errorGroups(errorGroupsQuery(request)));
+  const errorsLoader = async ({ request }: LoaderFunctionArgs) => presentErrorGroups(await adapter.errorGroups(errorGroupsQuery(request)), request);
   const errorLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.errorId) throw new Response("The Error group was not found.", { status: 404 });
     return presentErrorGroupDetail(await adapter.errorGroup(params.errorId, errorOccurrencesQuery(request)));

@@ -143,4 +143,21 @@ describe("ErrorGroupsAdapter", () => {
 
     expect(presented.hasFilters).toBe(false);
   });
+
+  it("keeps the explicit default period in filtered state", () => {
+    const request = new Request("https://example.test/skyline/errors?period=24h");
+    const presented = presentErrorGroups({
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T12:01:00.000000000Z",
+      capabilities: {} as ErrorGroupsPageDto["capabilities"],
+      errorGroups: [summary],
+      pagination: { next: null, previous: null },
+      filters: { jobType: null, exceptionClass: null, period: "24h" },
+      options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
+      hasAnyErrorGroups: true,
+    }, request);
+
+    expect(presented.hasFilters).toBe(true);
+  });
 });
