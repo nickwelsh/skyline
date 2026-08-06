@@ -9,7 +9,7 @@ describe("source-fidelity oracle", () => {
     const matrix = JSON.parse(readFileSync(join(root, "tests/fidelity/matrix.json"), "utf8"));
     const captures = expectedCaptureIds(matrix);
 
-    expect(captures).toHaveLength(385);
+    expect(captures).toHaveLength(439);
     expect(captures).toContain("runs-loading@1440x960-classic");
     expect(captures).toContain("run-stale-refresh@1440x960-dark");
     expect(captures).toContain("shell-customized@390x844-classic");
