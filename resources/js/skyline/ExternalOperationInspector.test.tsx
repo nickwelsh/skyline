@@ -55,8 +55,8 @@ describe("ExternalOperationInspector", () => {
       failure: null,
       sql: {
         statement: { value: "select * from users where email = ?", isTruncated: false, originalBytes: 35 },
-        bindings: { items: [{ position: 0, column: "email", value: "[REDACTED]" }], truncated: true },
-        result: { kind: "rows", rows: [{ id: 42, email: "[REDACTED]" }], rowCount: 1, truncated: true },
+        bindings: { items: [{ position: 0, column: "email", value: "[REDACTED]" }], truncated: true, originalBytes: 128 },
+        result: { kind: "rows", rows: [{ id: 42, email: "[REDACTED]" }], rowCount: 1, truncated: true, originalBytes: 256 },
       },
     });
 

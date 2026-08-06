@@ -2,6 +2,7 @@
 
 namespace NickWelsh\Skyline\Read;
 
+use NickWelsh\Skyline\Support\Utf8;
 use Throwable;
 
 final readonly class NodeQuery
@@ -236,7 +237,7 @@ final readonly class NodeQuery
                 'operation' => $attributes['cache.operation'] ?? $attributes['storage.operation'] ?? $attributes['db.operation.name'] ?? null,
                 'store' => $attributes['cache.store'] ?? $attributes['storage.disk'] ?? $attributes['db.namespace'] ?? null,
                 'hit' => $attributes['cache.hit'] ?? null,
-                'key' => $attributes['cache.key'] ?? null,
+                'key' => $details['cache']['key'] ?? null,
                 'ttl' => $attributes['cache.ttl'] ?? null,
                 'driver' => $attributes['storage.driver'] ?? null,
                 'bytes' => $attributes['storage.bytes'] ?? null,
@@ -262,19 +263,31 @@ final readonly class NodeQuery
     /** @param array<string, mixed> $attributes @return array<string, mixed> */
     private function cache(array $attributes): array
     {
+        $key = is_string($attributes['cache.key'] ?? null) ? $attributes['cache.key'] : null;
+        $storedRawKey = (bool) ($attributes['cache.key_captured'] ?? false);
+        $captureKeys = (bool) config('skyline.cache.capture_keys', false);
+
+        if ($key !== null && $storedRawKey && ! $captureKeys) {
+            $key = 'sha256:'.substr(hash('sha256', $key), 0, 16);
+        } elseif ($key !== null && $storedRawKey) {
+            $key = Utf8::truncate($key, max(1, (int) config('skyline.cache.max_key_bytes', 256)));
+        }
+
         return [
             'operation' => $attributes['cache.operation'] ?? null,
             'store' => $attributes['cache.store'] ?? null,
-            'key' => $attributes['cache.key'] ?? null,
-            'keyCaptured' => (bool) ($attributes['cache.key_captured'] ?? false),
-            'keyCount' => isset($attributes['cache.key_count']) ? (int) $attributes['cache.key_count'] : 1,
+            'key' => $key,
+            'keyCaptured' => $storedRawKey && $captureKeys,
+            'keyCount' => isset($attributes['cache.key_count']) ? (int) $attributes['cache.key_count'] : null,
             'strategy' => $attributes['cache.strategy'] ?? null,
             'outcome' => $attributes['cache.outcome'] ?? null,
             'hit' => isset($attributes['cache.hit']) ? (bool) $attributes['cache.hit'] : null,
             'ttlSeconds' => isset($attributes['cache.ttl']) ? (int) $attributes['cache.ttl'] : null,
             'freshTtlSeconds' => isset($attributes['cache.fresh_ttl']) ? (int) $attributes['cache.fresh_ttl'] : null,
             'forever' => isset($attributes['cache.forever']) ? (bool) $attributes['cache.forever'] : null,
-            'value' => $this->valueCapture($attributes, 'cache.value'),
+            'value' => (bool) config('skyline.cache.capture_values', config('skyline.capture_all', false))
+                ? $this->valueCapture($attributes, 'cache.value', max(1, (int) config('skyline.cache.max_value_bytes', 65_536)))
+                : null,
         ];
     }
 
@@ -285,7 +298,9 @@ final readonly class NodeQuery
             'command' => $attributes['db.operation.name'] ?? null,
             'connection' => $attributes['db.namespace'] ?? null,
             'outcome' => strtolower((string) $span->status_code) === 'error' ? 'failed' : 'completed',
-            'arguments' => $this->valueCapture($attributes, 'db.operation.arguments'),
+            'arguments' => (bool) config('skyline.redis.capture_arguments', config('skyline.capture_all', false))
+                ? $this->valueCapture($attributes, 'db.operation.arguments', max(1, (int) config('skyline.redis.max_argument_bytes', 65_536)))
+                : null,
         ];
     }
 
@@ -315,7 +330,7 @@ final readonly class NodeQuery
                 'path' => $destinationLocalFile,
                 'href' => $this->editorLink->href($destinationLocalFile, 1),
             ] : null,
-            'content' => $this->valueCapture($attributes, 'storage.content'),
+            'content' => $this->valueCapture($attributes, 'storage.content', max(1, (int) config('skyline.storage.max_content_bytes', 65_536))),
             'result' => [
                 'exists' => isset($attributes['storage.result.exists']) ? (bool) $attributes['storage.result.exists'] : null,
                 'lastModified' => isset($attributes['storage.result.last_modified']) ? (int) $attributes['storage.result.last_modified'] : null,
@@ -337,12 +352,12 @@ final readonly class NodeQuery
             'recipientCount' => isset($attributes['messaging.destination.recipient_count']) ? (int) $attributes['messaging.destination.recipient_count'] : null,
             'outcome' => $attributes['messaging.operation.outcome'] ?? null,
             'recipients' => is_array($recipients) ? $recipients : null,
-            'recipientIdentity' => $this->valueCapture($attributes, 'messaging.destination.identity'),
+            'recipientIdentity' => $this->valueCapture($attributes, 'messaging.destination.identity', max(1, (int) config('skyline.delivery.max_content_bytes', 65_536))),
             'subject' => $this->textCapture($attributes, 'messaging.message.subject'),
             'text' => $this->textCapture($attributes, 'messaging.message.text'),
             'html' => $this->textCapture($attributes, 'messaging.message.html'),
-            'messageData' => $this->valueCapture($attributes, 'messaging.message.data'),
-            'operationData' => $this->valueCapture($attributes, 'messaging.operation.data'),
+            'messageData' => $this->valueCapture($attributes, 'messaging.message.data', max(1, (int) config('skyline.delivery.max_content_bytes', 65_536))),
+            'operationData' => $this->valueCapture($attributes, 'messaging.operation.data', max(1, (int) config('skyline.delivery.max_content_bytes', 65_536))),
         ];
     }
 
@@ -356,11 +371,11 @@ final readonly class NodeQuery
             'exitCode' => isset($attributes['process.exit_code']) ? (int) $attributes['process.exit_code'] : null,
             'timedOut' => isset($attributes['process.timed_out']) ? (bool) $attributes['process.timed_out'] : null,
             'outcome' => $attributes['process.outcome'] ?? null,
-            'command' => $this->valueCapture($attributes, 'process.command'),
-            'environment' => $this->valueCapture($attributes, 'process.environment'),
-            'input' => $this->valueCapture($attributes, 'process.input'),
-            'stdout' => $this->valueCapture($attributes, 'process.stdout'),
-            'stderr' => $this->valueCapture($attributes, 'process.stderr'),
+            'command' => $this->valueCapture($attributes, 'process.command', max(1, (int) config('skyline.process.max_content_bytes', 65_536))),
+            'environment' => $this->valueCapture($attributes, 'process.environment', max(1, (int) config('skyline.process.max_content_bytes', 65_536))),
+            'input' => $this->valueCapture($attributes, 'process.input', max(1, (int) config('skyline.process.max_content_bytes', 65_536))),
+            'stdout' => $this->valueCapture($attributes, 'process.stdout', max(1, (int) config('skyline.process.max_content_bytes', 65_536))),
+            'stderr' => $this->valueCapture($attributes, 'process.stderr', max(1, (int) config('skyline.process.max_content_bytes', 65_536))),
         ];
     }
 
@@ -404,8 +419,8 @@ final readonly class NodeQuery
             max(1, (int) config('skyline.privacy.sql_bytes', 65_536)),
             'sql',
         );
-        $bindings = $this->sqlCapture($attributes, 'skyline.sql.bindings');
-        $result = $this->sqlCapture($attributes, 'skyline.sql.result');
+        $bindings = (bool) config('skyline.sql.capture_bindings', false) ? $this->sqlBindings($attributes) : null;
+        $result = (bool) config('skyline.sql.capture_results', false) ? $this->sqlResult($attributes) : null;
         $presentation = [
             'type' => 'sql',
             'sql' => [
@@ -525,6 +540,10 @@ final readonly class NodeQuery
             $attributes['skyline.sql.result'],
             $attributes['skyline.sql.source.file'],
             $attributes['skyline.sql.source.line'],
+            $attributes['db.query.text'],
+            $attributes['cache.key'],
+            $attributes['cache.value'],
+            $attributes['db.operation.arguments'],
             $attributes['skyline.http.request.headers'],
             $attributes['skyline.http.request.body'],
             $attributes['skyline.http.response.headers'],
@@ -587,7 +606,7 @@ final readonly class NodeQuery
     }
 
     /** @param array<string, mixed> $attributes @return array{type: string, value: mixed, originalBytes: int, truncated: bool}|null */
-    private function valueCapture(array $attributes, string $key): ?array
+    private function valueCapture(array $attributes, string $key, int $limit): ?array
     {
         $capture = $this->sqlCapture($attributes, $key);
 
@@ -595,12 +614,126 @@ final readonly class NodeQuery
             return null;
         }
 
+        $value = $capture['value'];
+        $encoded = (bool) ($capture['truncated'] ?? false) && is_string($value)
+            ? $value
+            : $this->jsonValue($value);
+        $originalBytes = max(
+            strlen($encoded),
+            is_numeric($capture['originalBytes'] ?? null) ? (int) $capture['originalBytes'] : 0,
+        );
+        $truncated = (bool) ($capture['truncated'] ?? false);
+
+        if (strlen($encoded) > $limit) {
+            $value = Utf8::truncate($encoded, $limit);
+            $truncated = true;
+        }
+
         return [
             'type' => $capture['type'],
-            'value' => $capture['value'],
-            'originalBytes' => is_numeric($capture['originalBytes'] ?? null) ? (int) $capture['originalBytes'] : 0,
-            'truncated' => (bool) ($capture['truncated'] ?? false),
+            'value' => $value,
+            'originalBytes' => $originalBytes,
+            'truncated' => $truncated,
         ];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed>|null */
+    private function sqlBindings(array $attributes): ?array
+    {
+        $raw = $attributes['skyline.sql.bindings'] ?? null;
+        $capture = $this->sqlCapture($attributes, 'skyline.sql.bindings');
+
+        if (! is_string($raw) || ! is_array($capture['items'] ?? null)) {
+            return null;
+        }
+
+        $items = collect($capture['items'])->filter(fn (mixed $item): bool => is_array($item))->map(function (array $item): array {
+            $column = is_string($item['column'] ?? null) ? $item['column'] : null;
+
+            return [
+                'position' => is_numeric($item['position'] ?? null) ? (int) $item['position'] : 0,
+                'column' => $column,
+                'value' => $column !== null && $this->sensitiveSqlColumn($column) ? '[REDACTED]' : ($item['value'] ?? null),
+            ];
+        })->values()->all();
+        $originalBytes = strlen($raw);
+        $truncated = (bool) ($capture['truncated'] ?? false);
+        $limit = max(1, (int) config('skyline.sql.max_binding_bytes', 16_384));
+
+        while ($items !== [] && strlen($this->jsonValue(['items' => $items, 'truncated' => $truncated])) > $limit) {
+            array_pop($items);
+            $truncated = true;
+        }
+
+        return ['items' => $items, 'truncated' => $truncated, 'originalBytes' => $originalBytes];
+    }
+
+    /** @param array<string, mixed> $attributes @return array<string, mixed>|null */
+    private function sqlResult(array $attributes): ?array
+    {
+        $raw = $attributes['skyline.sql.result'] ?? null;
+        $capture = $this->sqlCapture($attributes, 'skyline.sql.result');
+
+        if (! is_string($raw) || ! is_string($capture['kind'] ?? null)) {
+            return null;
+        }
+
+        $originalBytes = strlen($raw);
+        $capture['originalBytes'] = $originalBytes;
+
+        if ($capture['kind'] !== 'rows' || ! is_array($capture['rows'] ?? null)) {
+            return $capture;
+        }
+
+        $rows = array_map(fn (mixed $row): mixed => $this->redactSqlValue($row), $capture['rows']);
+        $rowLimit = max(1, (int) config('skyline.sql.max_result_rows', 25));
+        $truncated = (bool) ($capture['truncated'] ?? false) || count($rows) > $rowLimit;
+        $rows = array_slice($rows, 0, $rowLimit);
+        $limit = max(1, (int) config('skyline.sql.max_result_bytes', 65_536));
+
+        while ($rows !== [] && strlen($this->jsonValue([...$capture, 'rows' => $rows, 'truncated' => $truncated])) > $limit) {
+            array_pop($rows);
+            $truncated = true;
+        }
+
+        return [...$capture, 'rows' => $rows, 'truncated' => $truncated, 'originalBytes' => $originalBytes];
+    }
+
+    private function redactSqlValue(mixed $value, ?string $key = null): mixed
+    {
+        if ($key !== null && $this->sensitiveSqlColumn($key)) {
+            return '[REDACTED]';
+        }
+
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $redacted = [];
+
+        foreach ($value as $itemKey => $item) {
+            $redacted[$itemKey] = $this->redactSqlValue($item, (string) $itemKey);
+        }
+
+        return $redacted;
+    }
+
+    private function sensitiveSqlColumn(string $column): bool
+    {
+        $column = strtolower($column);
+
+        foreach ((array) config('skyline.sql.redact_columns', []) as $pattern) {
+            if (is_string($pattern) && $pattern !== '' && str_contains($column, strtolower($pattern))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function jsonValue(mixed $value): string
+    {
+        return json_encode($value, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     /** @param array<string, mixed> $attributes @return array{value: string, truncated: bool}|null */

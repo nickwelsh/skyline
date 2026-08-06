@@ -616,7 +616,7 @@ function databaseStatePresentation(key: string): NonNullable<InspectorDto["prese
 
   switch (key) {
     case "sql-captured":
-      return { type: "sql", timing, failure: null, sql: { statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 44 }, bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false }, result: { kind: "rows", rows: [{ id: 42, total: "125.00" }], rowCount: 1, truncated: true } } };
+      return { type: "sql", timing, failure: null, sql: { statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 44 }, bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 }, result: { kind: "rows", rows: [{ id: 42, total: "125.00" }], rowCount: 1, truncated: true, originalBytes: 128 } } };
     case "sql-unavailable":
       return { type: "sql", timing, failure: null, sql: { statement: { value: "select 1", isTruncated: false, originalBytes: 8 }, bindings: null, result: null } };
     case "transaction-failed":

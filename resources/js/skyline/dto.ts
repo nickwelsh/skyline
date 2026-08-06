@@ -389,16 +389,19 @@ export type InspectorDto = TraceNode & {
   bindings?: {
     items: SqlBinding[];
     truncated: boolean;
+    originalBytes: number;
   } | null;
   result?: {
     kind: "rows";
     rows: unknown[];
     rowCount: number;
     truncated: boolean;
+    originalBytes: number;
   } | {
     kind: "affected";
     affectedRows: number;
     truncated: boolean;
+    originalBytes: number;
   } | null;
   http?: {
     method: string;
