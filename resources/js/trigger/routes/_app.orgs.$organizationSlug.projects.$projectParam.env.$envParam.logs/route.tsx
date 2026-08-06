@@ -128,7 +128,7 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const update = (key: string, value?: string) => {
     const next = new URLSearchParams(searchParams);
-    value && value !== "all" ? next.set(key, value) : next.delete(key);
+    value ? next.set(key, value) : next.delete(key);
     next.delete("cursor");
     next.delete("direction");
     setSearchParams(next);

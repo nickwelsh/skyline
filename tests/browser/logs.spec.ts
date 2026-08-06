@@ -166,6 +166,9 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/runId=run_invoice/);
   await expect(page).toHaveURL(/period=7d/);
+  await page.getByRole("button", { name: /Created:/ }).click();
+  await page.getByRole("menuitemcheckbox", { name: "All time" }).click();
+  await expect(page).toHaveURL(/period=all/);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(/\/skyline\/logs$/);
   await page.locator('a[href*="cursor=opaque-next"]').click();
