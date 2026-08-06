@@ -17,7 +17,13 @@ export async function observeAction(page: Page, step: string, visibleSelectors: 
     return {
       step: currentStep,
       url: typeof oracleWindow.__oracleCanonicalUrl === "string"
-        ? oracleWindow.__oracleCanonicalUrl
+        ? (() => {
+            const actual = new URL(`${location.pathname}${location.search}${location.hash}`, location.origin);
+            const canonical = new URL(oracleWindow.__oracleCanonicalUrl, location.origin);
+            if (!canonical.search && actual.search) canonical.search = actual.search;
+            if (!canonical.hash && actual.hash) canonical.hash = actual.hash;
+            return `${canonical.pathname}${canonical.search}${canonical.hash}`;
+          })()
         : `${location.pathname}${location.search}${location.hash}`,
       activeElement: active ? { tag: active.tagName, role: active.getAttribute("role"), name: active.getAttribute("aria-label") ?? active.textContent?.trim() ?? "" } : null,
       visible: selectors.filter((selector) => {
@@ -28,6 +34,14 @@ export async function observeAction(page: Page, step: string, visibleSelectors: 
       clipboard,
     };
   }, { currentStep: step, selectors: visibleSelectors });
+}
+
+export function canonicalActionUrl(actualUrl: string, canonicalUrl: string) {
+  const actual = new URL(actualUrl, "https://fidelity.invalid");
+  const canonical = new URL(canonicalUrl, "https://fidelity.invalid");
+  if (!canonical.search && actual.search) canonical.search = actual.search;
+  if (!canonical.hash && actual.hash) canonical.hash = actual.hash;
+  return `${canonical.pathname}${canonical.search}${canonical.hash}`;
 }
 
 export function normalizeActionTranscript(transcript: ActionObservation[], basePath: string) {

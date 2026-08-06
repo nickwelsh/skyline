@@ -35,13 +35,87 @@ export function collectFidelityDifferences(evidence: FidelityEvidence): Fidelity
 }
 
 function normalizeObservation(observation: ActionObservation): ActionObservation {
-  const url = observation.url.replace(/^\/(?:skyline|reference|oracle)(?=\/|$)/, "") || "/";
-  const storage = Object.fromEntries(Object.entries(observation.storage).map(([key, value]) => [
-    key.replace(/:\/(?:skyline|reference)$/, ":/application"),
-    value,
-  ]));
+  const url = normalizeRouterUrl(observation.url);
+  const storage = normalizeStorage(observation.storage);
   const activeElement = observation.activeElement?.tag === "BODY" ? { ...observation.activeElement, name: "" } : observation.activeElement;
   return { ...observation, url, storage, activeElement };
+}
+
+function normalizeRouterUrl(value: string) {
+  const prefixed = value.replace(/^\/(?:skyline|reference|oracle)(?=\/|$)/, "") || "/";
+  const url = new URL(prefixed, "https://fidelity.invalid");
+  const span = url.searchParams.get("span");
+  const node = url.searchParams.get("node");
+  if (span !== null || node !== null) {
+    url.searchParams.delete("span");
+    url.searchParams.delete("node");
+    url.searchParams.set("attempt-selection", span ?? node ?? "");
+  }
+  url.searchParams.sort();
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function normalizeStorage(storage: Record<string, string>) {
+  const normalized: Record<string, string> = {};
+  const panels: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(storage)) {
+    if (key.startsWith("skyline.ui-preferences.v1:")) {
+      const preferences = parseRecord(value);
+      normalized["skyline.ui-preferences.v1:/application"] = JSON.stringify({
+        version: preferences.version,
+        theme: preferences.theme,
+        contrast: preferences.contrast,
+      });
+      for (const [id, panel] of Object.entries(record(preferences.panels))) panels[id] = normalizeAdapterPanel(panel);
+      continue;
+    }
+    if (key === "panel-run-parent-v3" || key === "panel-run-tree") {
+      panels[key] = normalizeNativePanel(parseRecord(value));
+      continue;
+    }
+    normalized[key] = value;
+  }
+  for (const id of Object.keys(panels).sort()) normalized[`panel:${id}`] = JSON.stringify(panels[id]);
+  return normalized;
+}
+
+function normalizeAdapterPanel(value: unknown) {
+  const panel = record(value);
+  return panelSnapshot(panel.orientation, panel.itemIds, panel.sizes);
+}
+
+function normalizeNativePanel(panel: Record<string, unknown>) {
+  const items = Array.isArray(panel.items) ? panel.items.map(record).filter((item) => item.type === "panel") : [];
+  const sizes = items.map((item) => {
+    const current = record(item.currentValue);
+    const fallback = record(item.default);
+    return number(current.type === "percent" ? current.value : fallback.value);
+  });
+  return panelSnapshot(panel.orientation, items.map((item) => item.id), sizes);
+}
+
+function panelSnapshot(orientation: unknown, itemIds: unknown, sizes: unknown) {
+  const values = Array.isArray(sizes) ? sizes.map(number) : [];
+  const total = values.reduce((sum, value) => sum + value, 0);
+  return {
+    orientation,
+    itemIds: Array.isArray(itemIds) ? itemIds : [],
+    sizes: values.map((value) => Math.round((total > 0 ? value / total : value) * 100) / 100),
+  };
+}
+
+function parseRecord(value: string) {
+  try { return record(JSON.parse(value)); }
+  catch { return {}; }
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function number(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function assertNoFidelityDifferences(differences: FidelityDifference[]) {
