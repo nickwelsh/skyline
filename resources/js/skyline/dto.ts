@@ -299,6 +299,77 @@ export type ErrorGroupDetailDto = {
   hasAnyOccurrences: boolean;
 };
 
+export type TelemetryEventLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+export type TelemetryEventsQuery = {
+  levels?: TelemetryEventLevel[];
+  jobType?: string;
+  runId?: string;
+  period?: JobsQuery["period"];
+  cursor?: string;
+};
+type TelemetryEventShared = {
+  id: string;
+  href: string;
+  runId: string;
+  runHref: string;
+  attemptNumber: number | null;
+  attemptHref: string | null;
+  jobType: string;
+  jobHref: string;
+  timestamp: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId: string | null;
+  level: TelemetryEventLevel;
+};
+export type OperationTelemetryEvent = TelemetryEventShared & {
+  variant: "operation";
+  name: string;
+  role: string | null;
+  kind: number;
+  status: "completed" | "failed";
+  durationUs: number;
+  operationHref: string;
+};
+export type LogTelemetryEvent = TelemetryEventShared & {
+  variant: "log";
+  message: string;
+  context: Record<string, unknown>;
+};
+export type TelemetryEventSummary = OperationTelemetryEvent | LogTelemetryEvent;
+export type TelemetryCapture = { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
+export type TelemetryEventsPageDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  telemetryEvents: TelemetryEventSummary[];
+  pagination: { next: string | null; previous: string | null };
+  filters: { levels: TelemetryEventLevel[]; jobType: string | null; runId: string | null; period: NonNullable<JobsQuery["period"]> };
+  options: { levels: TelemetryEventLevel[]; jobTypes: string[]; timeRanges: TimeRangeOption[] };
+  capture: TelemetryCapture;
+  hasAnyTelemetryEvents: boolean;
+};
+export type TelemetryEventDetail = TelemetryEventSummary & {
+  relationships: { traceId: string; spanId: string; parentSpanId: string | null };
+  channel?: string | null;
+  attributes?: Record<string, unknown>;
+  events?: Array<{ name: string; timestamp: string | null; attributes: Record<string, unknown> }>;
+  links?: Array<{ traceId: string | null; spanId: string | null; traceFlags: number | null; remote: boolean | null; attributes: Record<string, unknown> }>;
+  resource?: Record<string, unknown>;
+  instrumentation?: Record<string, unknown>;
+  capture?: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
+  errorHref: string | null;
+};
+export type TelemetryEventDetailDto = {
+  schemaVersion: 1;
+  packageVersion: string;
+  generatedAt: string;
+  capabilities: SkylineCapabilities;
+  telemetryEvent: TelemetryEventDetail;
+  capture: TelemetryCapture;
+};
+
 export type SkylineCapabilities = {
   navigation: Record<string, boolean> & { runs: boolean };
   jobs?: Record<string, boolean> & { view: boolean; testJob: boolean };
@@ -568,6 +639,8 @@ export type Scenario = {
 };
 
 export interface SkylineDtoAdapter {
+  telemetryEvents(query?: TelemetryEventsQuery, signal?: AbortSignal): Promise<TelemetryEventsPageDto>;
+  telemetryEvent(eventId: string, signal?: AbortSignal): Promise<TelemetryEventDetailDto>;
   errorGroups(query?: ErrorGroupsQuery, signal?: AbortSignal): Promise<ErrorGroupsPageDto>;
   errorGroup(errorId: string, query?: ErrorOccurrencesQuery, signal?: AbortSignal): Promise<ErrorGroupDetailDto>;
   queueTargets(query?: QueueTargetsQuery, signal?: AbortSignal): Promise<QueueTargetsPageDto>;

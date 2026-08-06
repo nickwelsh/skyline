@@ -10,6 +10,7 @@ import { cn } from "~/utils/cn";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { BugIcon } from "~/assets/icons/BugIcon";
+import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { useJobFavorites } from "./JobFavorites";
 
 type SideMenuProps = {
@@ -21,9 +22,10 @@ type SideMenuProps = {
   runsPath: string;
   queuesPath: string;
   errorsPath: string;
+  logsPath: string;
 };
 
-export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, jobsPath, runsPath, queuesPath, errorsPath }: SideMenuProps) {
+export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, jobsPath, runsPath, queuesPath, errorsPath, logsPath }: SideMenuProps) {
   const location = useLocation();
   const favorites = useJobFavorites();
   const [width, setWidth] = useState(224);
@@ -89,6 +91,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         {capabilities.jobs ? <NavigationLink to={jobsPath} active={location.pathname.startsWith(jobsPath)} label="Jobs" labelOpacity={labelOpacity}><TaskIcon className="size-5 shrink-0 text-tasks" /></NavigationLink> : null}
         {capabilities.runs ? <NavigationLink to={runsPath} active={location.pathname.startsWith(runsPath)} label="Runs" labelOpacity={labelOpacity}><PlayIcon className="size-5 shrink-0 text-runs" /></NavigationLink> : null}
         {capabilities.errors ? <NavigationLink to={errorsPath} active={location.pathname.startsWith(errorsPath)} label="Errors" labelOpacity={labelOpacity}><BugIcon className="size-5 shrink-0 text-error" /></NavigationLink> : null}
+        {capabilities.logs ? <NavigationLink to={logsPath} active={location.pathname.startsWith(logsPath)} label="Logs" labelOpacity={labelOpacity}><LogsIcon className="size-5 shrink-0 text-text-dimmed" /></NavigationLink> : null}
         {capabilities.queues ? <NavigationLink to={queuesPath} active={location.pathname.startsWith(queuesPath)} label="Queues" labelOpacity={labelOpacity}><QueuesIcon className="size-5 shrink-0 text-queues" /></NavigationLink> : null}
       </nav>
       <div

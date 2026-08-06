@@ -28,8 +28,8 @@ ReactDOM.createRoot(root).render(
 );
 
 function InitialLoadingState() {
-  const segment = window.location.pathname.match(/\/(jobs|runs|queues)(?:\/[^/]+)?$/)?.[1] ?? "runs";
+  const segment = window.location.pathname.match(/\/(jobs|runs|queues|errors|logs)(?:\/[^/]+)?$/)?.[1] ?? "runs";
   const detail = window.location.pathname.match(new RegExp(`/${segment}/[^/]+$`));
-  const label = detail ? `${segment === "jobs" ? "Job" : segment === "queues" ? "Queue target" : "Run"}` : `${segment === "jobs" ? "Jobs" : segment === "queues" ? "Queues" : "Runs"}`;
+  const label = detail ? `${segment === "jobs" ? "Job" : segment === "queues" ? "Queue target" : segment === "errors" ? "Error group" : segment === "logs" ? "Telemetry event" : "Run"}` : `${segment === "jobs" ? "Jobs" : segment === "queues" ? "Queues" : segment === "errors" ? "Errors" : segment === "logs" ? "Logs" : "Runs"}`;
   return <div aria-label={`Loading ${label}`} className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading {label}…</div>;
 }

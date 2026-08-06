@@ -5,6 +5,8 @@ import { presentRunDetail } from "./RunDetailAdapter";
 import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAdapter";
 import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargetsQuery } from "./QueueTargetAdapter";
 import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
+import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
+import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { BrandMark } from "./BrandMark";
 import { TriggerShell } from "../trigger/root";
@@ -16,6 +18,7 @@ import QueuesRoute, { QueuesErrorBoundary } from "../trigger/routes/_app.orgs.$o
 import QueueDetailRoute, { QueueDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
 import ErrorsRoute, { ErrorsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route";
 import ErrorDetailRoute, { ErrorDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
+import LogsRoute, { LogsErrorBoundary, type LogsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
 
 export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath)) {
   const runsLoader = async ({ request }: LoaderFunctionArgs) => presentRuns(await adapter.runs(runsQuery(request)));
@@ -43,6 +46,18 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
     if (!params.errorId) throw new Response("The Error group was not found.", { status: 404 });
     return presentErrorGroupDetail(await adapter.errorGroup(params.errorId, errorOccurrencesQuery(request)));
   };
+  const logsLoader = async ({ request }: LoaderFunctionArgs): Promise<LogsRouteData> => {
+    const list = presentTelemetryEvents(await adapter.telemetryEvents(telemetryEventsQuery(request)));
+    const eventId = new URL(request.url).searchParams.get("event");
+    if (!eventId) return { ...list, selected: null };
+
+    try {
+      return { ...list, selected: { state: "found", data: presentTelemetryEventDetail(await adapter.telemetryEvent(eventId)) } };
+    } catch (error) {
+      const notFound = error instanceof SkylineApiError && error.status === 404;
+      return { ...list, selected: { state: notFound ? "not-found" : "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." } };
+    }
+  };
 
   return createBrowserRouter([
     {
@@ -58,6 +73,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
         { path: "queues/:queueId", loader: queueLoader, element: <QueueDetailRoute />, errorElement: <QueueDetailErrorBoundary /> },
         { path: "errors", loader: errorsLoader, element: <ErrorsRoute />, errorElement: <ErrorsErrorBoundary /> },
         { path: "errors/:errorId", loader: errorLoader, element: <ErrorDetailRoute />, errorElement: <ErrorDetailErrorBoundary /> },
+        { path: "logs", loader: logsLoader, element: <LogsRoute />, errorElement: <LogsErrorBoundary /> },
       ],
     },
   ], { basename: bootstrap.basePath });

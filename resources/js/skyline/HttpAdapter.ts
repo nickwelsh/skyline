@@ -16,6 +16,9 @@ import type {
   RunsQuery,
   RunsUpdatesDto,
   SkylineDtoAdapter,
+  TelemetryEventDetailDto,
+  TelemetryEventsPageDto,
+  TelemetryEventsQuery,
   TracePageDto,
 } from "./dto";
 
@@ -36,6 +39,14 @@ export class HttpAdapter implements SkylineDtoAdapter {
   private readonly cache = new Map<string, { etag: string; value: unknown }>();
 
   constructor(private readonly basePath: string) {}
+
+  telemetryEvents(query: TelemetryEventsQuery = {}, signal?: AbortSignal): Promise<TelemetryEventsPageDto> {
+    return this.get<TelemetryEventsPageDto>("api/logs", this.telemetryEventsQuery(query), signal);
+  }
+
+  telemetryEvent(eventId: string, signal?: AbortSignal): Promise<TelemetryEventDetailDto> {
+    return this.get<TelemetryEventDetailDto>(`api/logs/${encodeURIComponent(eventId)}`, new URLSearchParams(), signal);
+  }
 
   errorGroups(query: ErrorGroupsQuery = {}, signal?: AbortSignal): Promise<ErrorGroupsPageDto> {
     return this.get<ErrorGroupsPageDto>("api/errors", this.errorGroupsQuery(query), signal);
@@ -114,6 +125,16 @@ export class HttpAdapter implements SkylineDtoAdapter {
     const params = new URLSearchParams();
     if (query.jobType) params.set("jobType", query.jobType);
     if (query.exceptionClass) params.set("exceptionClass", query.exceptionClass);
+    if (query.period) params.set("period", query.period);
+    if (query.cursor) params.set("cursor", query.cursor);
+    return params;
+  }
+
+  private telemetryEventsQuery(query: TelemetryEventsQuery): URLSearchParams {
+    const params = new URLSearchParams();
+    query.levels?.forEach((level) => params.append("levels[]", level));
+    if (query.jobType) params.set("jobType", query.jobType);
+    if (query.runId) params.set("runId", query.runId);
     if (query.period) params.set("period", query.period);
     if (query.cursor) params.set("cursor", query.cursor);
     return params;

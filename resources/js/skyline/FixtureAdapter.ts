@@ -19,6 +19,9 @@ import type {
   RunsUpdatesDto,
   Scenario,
   SkylineDtoAdapter,
+  TelemetryEventDetailDto,
+  TelemetryEventsPageDto,
+  TelemetryEventsQuery,
   TraceNode,
   TracePageDto,
 } from "./dto";
@@ -35,7 +38,7 @@ const fixtureGeneratedAt = "2026-08-04T20:02:00.000000000Z";
 const pageSize = 25;
 
 const capabilities = {
-  navigation: { jobs: true, runs: true, queues: true, errors: true },
+  navigation: { jobs: true, runs: true, queues: true, errors: true, logs: true },
   jobs: { view: true, testJob: false },
   errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
   runs: { view: true, cancel: false, replay: false },
@@ -43,6 +46,52 @@ const capabilities = {
 };
 
 export class FixtureAdapter implements SkylineDtoAdapter {
+  async telemetryEvents(query: TelemetryEventsQuery = {}): Promise<TelemetryEventsPageDto> {
+    const filtered = fixtureTelemetryEvents.filter((event) =>
+      (!query.levels || query.levels.includes(event.level))
+      && (!query.jobType || event.jobType === query.jobType)
+      && (!query.runId || event.runId === query.runId));
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: fixtureGeneratedAt,
+      capabilities,
+      telemetryEvents: filtered,
+      pagination: { previous: null, next: null },
+      filters: { levels: query.levels ?? [], jobType: query.jobType ?? null, runId: query.runId ?? null, period: query.period ?? "all" },
+      options: { levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"], jobTypes: [...new Set(fixtureTelemetryEvents.map((event) => event.jobType))].sort(), timeRanges: fixtureTimeRanges },
+      capture: fixtureTelemetryCapture,
+      hasAnyTelemetryEvents: fixtureTelemetryEvents.length > 0,
+    };
+  }
+
+  async telemetryEvent(eventId: string): Promise<TelemetryEventDetailDto> {
+    const event = fixtureTelemetryEvents.find((candidate) => candidate.id === eventId);
+    if (!event) throw new Error(`Unknown fixture Telemetry event: ${eventId}`);
+
+    return {
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: fixtureGeneratedAt,
+      capabilities,
+      capture: fixtureTelemetryCapture,
+      telemetryEvent: {
+        ...event,
+        relationships: { traceId: event.traceId, spanId: event.spanId, parentSpanId: event.parentSpanId },
+        ...(event.variant === "operation" ? {
+          attributes: { "db.namespace": "testing" },
+          events: [{ name: "query.completed", timestamp: event.timestamp, attributes: {} }],
+          links: [],
+          resource: { "service.name": "fixture-worker" },
+          instrumentation: { name: "nickwelsh/skyline", version: null },
+          capture: { isTruncated: false, truncated: [] },
+        } : { channel: "stack" }),
+        errorHref: null,
+      },
+    };
+  }
+
   async errorGroups(query: ErrorGroupsQuery = {}): Promise<ErrorGroupsPageDto> {
     const source = fixtureErrorOccurrences();
     const groups = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
@@ -741,6 +790,50 @@ const fixtureQueueTimeRanges = [
   { value: "1h" as const, label: "Last hour", durationSeconds: 3_600 },
   { value: "24h" as const, label: "Last 24 hours", durationSeconds: 86_400 },
   { value: "7d" as const, label: "Last 7 days", durationSeconds: 604_800 },
+];
+
+const fixtureTelemetryCapture = { enabled: true, supportedLevels: ["warning", "error"], perAttemptLimit: 100 };
+const fixtureTelemetryEvents: TelemetryEventsPageDto["telemetryEvents"] = [
+  {
+    id: "event_fixture_operation",
+    href: "/skyline/logs?event=event_fixture_operation",
+    variant: "operation",
+    runId: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    runHref: "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    attemptNumber: 2,
+    attemptHref: "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    jobType: "App\\Jobs\\GenerateMonthlyInvoices",
+    jobHref: `/skyline/jobs/${fixtureJobId("App\\Jobs\\GenerateMonthlyInvoices")}`,
+    timestamp: "2026-08-04T20:01:24.100000000Z",
+    traceId: "fda8d9cf9d53e8845fd0738b8407731d",
+    spanId: "4f24adb545b26d31",
+    parentSpanId: "9adb4c77c49de9aa",
+    level: "TRACE",
+    name: "insert into invoices",
+    role: "sql",
+    kind: 3,
+    status: "completed",
+    durationUs: 82_000,
+    operationHref: "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=span_4f24adb545b26d31",
+  },
+  {
+    id: "event_fixture_log",
+    href: "/skyline/logs?event=event_fixture_log",
+    variant: "log",
+    runId: "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    runHref: "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    attemptNumber: 2,
+    attemptHref: "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_2",
+    jobType: "App\\Jobs\\GenerateMonthlyInvoices",
+    jobHref: `/skyline/jobs/${fixtureJobId("App\\Jobs\\GenerateMonthlyInvoices")}`,
+    timestamp: "2026-08-04T20:01:23.000000000Z",
+    traceId: "fda8d9cf9d53e8845fd0738b8407731d",
+    spanId: "9adb4c77c49de9aa",
+    parentSpanId: null,
+    level: "WARN",
+    message: "Invoice import delayed",
+    context: { code: 429 },
+  },
 ];
 
 function fixtureJobId(name: string) {
