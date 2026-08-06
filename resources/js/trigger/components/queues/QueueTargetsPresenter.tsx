@@ -74,7 +74,7 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
       </MetricsLayout.Grid>
       {(data.hasFilters || data.hasAnyQueueTargets) && (
         <MetricsLayout.Grid kind="charts" columns={{ base: 2, lg: 4 }}>
-          <QueueEnvironmentCharts targets={data.queueTargets} />
+          <QueueEnvironmentCharts />
         </MetricsLayout.Grid>
       )}
       <MetricsLayout.Content>

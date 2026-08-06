@@ -113,11 +113,13 @@ describe("pinned Trigger Queues fixture", () => {
       pagination: { previous: undefined, next: undefined },
     }));
     expect(fixture.resources?.queueMetrics).toEqual(expect.objectContaining({
-      concurrency: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), limit: 10 })]),
+      concurrency: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), limit: null })]),
       queueDepth: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number) })]),
       schedulingDelay: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), p50: expect.any(Number), p95: expect.any(Number), samples: 1 })]),
-      environmentSaturation: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), env_limit: 10 })]),
-      environmentBacklog: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number) })]),
+      environmentSaturation: [],
+      environmentBacklog: [],
+      environmentSchedulingDelay: [],
+      environmentThrottled: [],
       environmentLive: [{
         t: "2026-08-05T20:02:00.000Z",
         env_queued: list.environment.queued,

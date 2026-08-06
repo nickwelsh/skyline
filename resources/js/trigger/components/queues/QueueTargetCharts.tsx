@@ -11,20 +11,13 @@ import type { ReactNode } from "react";
 
 type Point = { timestamp: string };
 
-export function QueueEnvironmentCharts({
-  targets,
-}: {
-  targets: Array<{ running: number; queued: number; queueTimeSampleCount: number; backlog: number[] }>;
-}) {
-  const running = targets.map((target) => target.running);
-  const backlog = targets.flatMap((target) => target.backlog);
-  const delay = targets.map((target) => target.queueTimeSampleCount);
+export function QueueEnvironmentCharts() {
   return (
     <>
-      <MetricChartCard title="Env saturation" series={[{ values: running, color: "var(--color-queues-chart)" }]} />
-      <MetricChartCard title="Backlog" series={[{ values: backlog, color: "var(--color-queues-chart)" }]} />
-      <MetricChartCard title="Scheduling delay p95" series={[{ values: delay, color: "var(--color-queues-chart)" }]} />
-      <MetricChartCard title="Throttled" series={[{ values: targets.map(() => 0), color: "var(--color-warning)" }]} />
+      <MetricChartCard title="Env saturation" series={[]} />
+      <MetricChartCard title="Backlog" series={[]} />
+      <MetricChartCard title="Scheduling delay p95" series={[]} />
+      <MetricChartCard title="Throttled" series={[]} />
     </>
   );
 }
@@ -93,17 +86,25 @@ export function MetricChartCard({
   className?: string;
   legend?: Array<{ color: string; label: string }>;
 }) {
+  const hasActivity = series.some((item) => item.values.length > 0);
   return (
     <figure className={`group min-h-0 overflow-hidden rounded-lg border border-grid-bright bg-background-bright pb-2 pt-3 ${className ?? "h-full"}`}>
       <div className="mb-3 flex min-h-6 flex-col gap-1 pl-4 pr-3">
         <span className="flex items-center gap-1"><Header3>{title}</Header3><button type="button" aria-label={`${title} information`} title={`${title} from captured Queue activity.`} className="rounded-sm text-text-dimmed focus-custom"><InformationCircleIcon className="size-3.5" /></button></span>
         {legend && <div className="flex gap-2">{legend.map((item) => <span key={item.label} className="flex items-center gap-1 text-xs text-text-dimmed"><span className="size-2.5 rounded-[2px]" style={{ backgroundColor: item.color }} />{item.label}</span>)}</div>}
       </div>
-      <svg role="img" aria-label={`${title} chart`} viewBox="0 0 400 180" className="h-[calc(100%-2.25rem)] w-full px-2">
-        <title>{title}</title>
-        <line x1="24" x2="396" y1="166" y2="166" stroke="var(--color-grid-bright)" />
-        {series.map((item, index) => <polyline key={index} points={lineFor(item.values, 400, 166)} fill="none" stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
-      </svg>
+      {hasActivity ? (
+        <svg role="img" aria-label={`${title} chart`} viewBox="0 0 400 180" className="h-[calc(100%-2.25rem)] w-full px-2">
+          <title>{title}</title>
+          <line x1="24" x2="396" y1="166" y2="166" stroke="var(--color-grid-bright)" />
+          {series.map((item, index) => <polyline key={index} points={lineFor(item.values, 400, 166)} fill="none" stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+        </svg>
+      ) : (
+        <svg role="img" aria-label={`${title} chart`} viewBox="0 0 400 180" className="h-[calc(100%-2.25rem)] w-full">
+          <title>{title}</title>
+          <text x="200" y="90" textAnchor="middle" fill="var(--color-text-dimmed)" fontSize="12">No activity</text>
+        </svg>
+      )}
     </figure>
   );
 }

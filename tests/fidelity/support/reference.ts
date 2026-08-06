@@ -4,7 +4,7 @@ import { nw222InspectorState, nw222States, nw222TraceState } from "./nw222";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
 import { fixtureCatalog } from "./skyline";
 
-type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentLive" | "live";
+type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentSchedulingDelay" | "environmentThrottled" | "environmentLive" | "live";
 
 export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey; includes: string[]; excludes?: string[] }> = [
   { key: "gate", includes: ["peak_keys"] },
@@ -12,6 +12,8 @@ export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey;
   { key: "environmentLive", includes: ["max(max_env_queued) AS env_queued", "max(max_env_running) AS env_running"] },
   { key: "environmentSaturation", includes: ["max(max_env_running) AS running", "max(max_env_limit) AS env_limit"] },
   { key: "environmentBacklog", includes: ["max(max_env_queued) AS queued"] },
+  { key: "environmentSchedulingDelay", includes: ["wait_quantiles", "FROM env_metrics"] },
+  { key: "environmentThrottled", includes: ["throttled_count", "FROM env_metrics"] },
   { key: "concurrency", includes: ["max(max_running) AS running", "max(max_limit) AS limit"] },
   { key: "queueDepth", includes: ["max(max_queued) AS queued"], excludes: ["max(max_running)"] },
   { key: "throughput", includes: ["enqueued", "started"] },
@@ -499,7 +501,7 @@ function triggerQueueMetricRows(detail: any, page: any) {
     t: point.timestamp,
     running: point.recordedRunCounts.running,
     queued: point.recordedRunCounts.queued,
-    limit: 10,
+    limit: null,
     enqueued: point.recordedRuns,
     started: point.recordedRunCounts.running + point.recordedRunCounts.completed + point.recordedRunCounts.failed,
   }));
@@ -512,8 +514,10 @@ function triggerQueueMetricRows(detail: any, page: any) {
     throughput: activity.map(({ t, enqueued, started }: any) => ({ t, enqueued, started })),
     schedulingDelay,
     throttled: activity.map(({ t }: any) => ({ t, throttled: 0 })),
-    environmentSaturation: activity.map(({ t, running, limit }: any) => ({ t, running, env_limit: limit })),
-    environmentBacklog: activity.map(({ t, queued }: any) => ({ t, queued })),
+    environmentSaturation: [],
+    environmentBacklog: [],
+    environmentSchedulingDelay: [],
+    environmentThrottled: [],
     environmentLive: [{
       t: "2026-08-05T20:02:00.000Z",
       env_queued: page.queueTargets.reduce((sum: number, queue: any) => sum + queue.recordedRunCounts.queued, 0),
