@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { expectedCaptureIds, validateAllowedDifferences } from "../../../scripts/fidelity-oracle.mjs";
+import { expectedCaptureIds, recordFidelityBundle, validateAllowedDifferences } from "../../../scripts/fidelity-oracle.mjs";
 
 const root = resolve(import.meta.dirname, "../../..");
 describe("source-fidelity oracle", () => {
@@ -23,5 +23,9 @@ describe("source-fidelity oracle", () => {
       categories: ["visual-tolerance"],
       regions: [],
     })).toThrow(/unclassified/i);
+  });
+
+  test("regeneration requires an accepted decision reference", () => {
+    expect(() => recordFidelityBundle(root, "refresh screenshots")).toThrow(/requires --decision NW-/i);
   });
 });

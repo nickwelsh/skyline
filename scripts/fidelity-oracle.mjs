@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -28,6 +28,39 @@ export function verifyFidelityBundle(root = scriptRoot) {
     chromiumRevision: environment.chromiumRevision,
     artifacts: bundle.artifacts.length,
   };
+}
+
+export function recordFidelityBundle(root = scriptRoot, decision) {
+  if (!/^NW-\d+$/.test(decision ?? "")) fail("Oracle recording requires --decision NW-<id>.");
+  const fidelity = join(root, "tests/fidelity");
+  const bundlePath = join(fidelity, "oracle/bundle.json");
+  const environment = readJson(join(fidelity, "environment.json"));
+  const matrix = readJson(join(fidelity, "matrix.json"));
+  const captures = expectedCaptureIds(matrix);
+  const artifacts = captures.flatMap((capture) => expectedArtifactDescriptors(capture)).map((artifact) => {
+    const path = join(root, artifact.path);
+    if (!existsSync(path)) fail(`Missing oracle artifact while recording: ${artifact.path}`);
+    return { ...artifact, sha256: digest(readFileSync(path)) };
+  });
+  const inputs = inputHashes(root);
+  let basis = "upstream-pin";
+  if (existsSync(bundlePath)) {
+    const previous = readJson(bundlePath);
+    const upstreamChanged = previous.environment?.triggerCommit !== environment.triggerCommit || previous.inputs?.environmentSha256 !== inputs.environmentSha256;
+    const differencesChanged = previous.inputs?.differencesSha256 !== inputs.differencesSha256;
+    if (!upstreamChanged && !differencesChanged) fail("Oracle regeneration requires a changed upstream/environment pin or accepted-difference decision.");
+    basis = upstreamChanged ? "upstream-pin" : "accepted-difference";
+  }
+  const bundle = {
+    schemaVersion: 1,
+    environment: { triggerCommit: environment.triggerCommit, fixtureVersion: environment.fixtureVersion, linuxImage: environment.linuxImage },
+    inputs,
+    captures,
+    artifacts,
+    regeneration: { basis, decision },
+  };
+  writeFileSync(bundlePath, `${JSON.stringify(bundle, null, 2)}\n`);
+  return bundle;
 }
 
 function enforceEnvironment(root, environment, fixtures, fixturesPath) {
@@ -119,17 +152,45 @@ function enforceArtifacts(root, bundle) {
     if (!existsSync(path)) fail(`Missing oracle artifact: ${artifact.path}`);
     if (!/^[a-f0-9]{64}$/.test(artifact.sha256) || digest(readFileSync(path)) !== artifact.sha256) fail(`Oracle artifact hash mismatch: ${artifact.path}`);
   }
-  const expectedTypes = new Set(["screenshot", "accessibility-tree", "interaction-transcript", "comparison"]);
   for (const capture of bundle.captures ?? []) {
-    for (const type of expectedTypes) {
-      if (!(bundle.artifacts ?? []).some((artifact) => artifact.capture === capture && artifact.type === type)) fail(`Missing ${type} artifact for ${capture}`);
-    }
+    const actual = (bundle.artifacts ?? []).filter((artifact) => artifact.capture === capture).map(({ path, sha256: _sha256, ...artifact }) => artifact);
+    const expected = expectedArtifactDescriptors(capture).map(({ path: _path, ...artifact }) => artifact);
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) fail(`Oracle artifact set mismatched for ${capture}`);
   }
   if (bundle.regeneration?.basis !== "upstream-pin" && bundle.regeneration?.basis !== "accepted-difference") fail("Oracle regeneration lacks an accepted basis.");
   if (bundle.regeneration?.decision !== "NW-216") fail("Oracle regeneration lacks an accepted decision.");
 }
 
+function expectedArtifactDescriptors(capture) {
+  const directory = `tests/fidelity/oracle/artifacts/${capture}`;
+  return [
+    { path: `${directory}/trigger.png`, capture, type: "screenshot", application: "trigger" },
+    { path: `${directory}/skyline.png`, capture, type: "screenshot", application: "skyline" },
+    { path: `${directory}/comparison.json`, capture, type: "comparison" },
+    { path: `${directory}/accessibility.json`, capture, type: "accessibility-tree" },
+    { path: `${directory}/interactions.json`, capture, type: "interaction-transcript" },
+  ];
+}
+
+function inputHashes(root) {
+  const paths = {
+    environmentSha256: "tests/fidelity/environment.json",
+    fixturesSha256: "tests/fidelity/fixtures.json",
+    matrixSha256: "tests/fidelity/matrix.json",
+    differencesSha256: "tests/fidelity/allowed-differences.json",
+    importManifestSha256: "resources/js/trigger/import-manifest.json",
+    lockfileSha256: "pnpm-lock.yaml",
+  };
+  return Object.fromEntries(Object.entries(paths).map(([key, path]) => [key, digest(readFileSync(join(root, path)))]));
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const result = verifyFidelityBundle(scriptRoot);
-  process.stdout.write(`Verified ${result.artifacts} fidelity artifacts for ${result.triggerCommit}.\n`);
+  if (process.argv.includes("--record")) {
+    const decisionIndex = process.argv.indexOf("--decision");
+    const result = recordFidelityBundle(scriptRoot, decisionIndex >= 0 ? process.argv[decisionIndex + 1] : undefined);
+    process.stdout.write(`Recorded ${result.artifacts.length} fidelity artifacts.\n`);
+  } else {
+    const result = verifyFidelityBundle(scriptRoot);
+    process.stdout.write(`Verified ${result.artifacts} fidelity artifacts for ${result.triggerCommit}.\n`);
+  }
 }

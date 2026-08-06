@@ -17,3 +17,4 @@ export function verifyFidelityBundle(root?: string): {
   chromiumRevision: string;
   artifacts: number;
 };
+export function recordFidelityBundle(root: string | undefined, decision: string): unknown;
