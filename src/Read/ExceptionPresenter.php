@@ -196,7 +196,10 @@ final readonly class ExceptionPresenter
             return null;
         }
 
-        return $this->editorLink->href($resolvedFile, $line);
+        $relativeFile = substr($normalizedFile, strlen($normalizedBase));
+        $lexicalFile = rtrim(str_replace('\\', '/', base_path()), '/').'/'.$relativeFile;
+
+        return $this->editorLink->href($lexicalFile, $line);
     }
 
     /** @param list<array<string, mixed>> $frames */

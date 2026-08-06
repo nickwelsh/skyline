@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use NickWelsh\Skyline\Read\EditorLink;
@@ -647,6 +648,35 @@ it('returns curated relative exception details without raw stack metadata', func
     expect($outside['frames'][0]['file'])
         ->toBe('tests/Persistence/ReadApiTest.php')
         ->and($outside['frames'][0]['href'])->toBeNull();
+
+    $filesystem = new Filesystem;
+    $temporaryRoot = sys_get_temp_dir().'/skyline-editor-'.bin2hex(random_bytes(8));
+    $releaseRoot = $temporaryRoot.'/releases/20260806';
+    $linkedBase = $temporaryRoot.'/current';
+    $physicalFile = $releaseRoot.'/app/Jobs/FailingJob.php';
+    $originalBase = base_path();
+    $filesystem->ensureDirectoryExists(dirname($physicalFile));
+    $filesystem->put($physicalFile, "<?php\n");
+    $filesystem->link($releaseRoot, $linkedBase);
+
+    try {
+        app()->setBasePath($linkedBase);
+        $symlinkedAttempt = (object) [
+            ...(array) $attempt,
+            'exception_file' => $physicalFile,
+            'exception_line' => 1,
+            'exception_trace' => "#0 {$physicalFile}(1): App\\Jobs\\FailingJob->handle()",
+        ];
+        $symlinked = (new ExceptionPresenter(app(EditorLink::class)))
+            ->present($symlinkedAttempt, FailingJob::class);
+    } finally {
+        app()->setBasePath($originalBase);
+        $filesystem->deleteDirectory($temporaryRoot);
+    }
+
+    expect($symlinked['frames'][0]['href'])
+        ->toBe('vscode://file//workspace/skyline/app/Jobs/FailingJob.php:1')
+        ->not->toContain($releaseRoot);
 });
 
 it('keeps failed Attempt evidence distinct without inventing uncaptured metadata', function (): void {
