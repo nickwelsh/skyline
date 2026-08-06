@@ -276,17 +276,22 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   ];
 
   const style = { width, "--sm-collapse": progress, "--sm-label-opacity": labelOpacity } as CSSProperties;
+  const sideMenuPadding = "calc(0.625rem - 0.375rem * var(--sm-collapse, 0))";
   return (
-    <aside data-testid="side-menu" className="relative grid h-full min-w-0 grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden border-r border-grid-bright bg-background-bright" style={style}>
-      <div className="flex min-w-0 items-center overflow-hidden border-b border-transparent px-1 py-1">
+    <aside data-testid="side-menu" className="relative h-full border-r border-grid-bright bg-background-bright" style={style}>
+      <div data-testid="side-menu-resizer" role="separator" aria-orientation="vertical" aria-label="Resize side menu" className="group/resize absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none" onPointerDown={resize}>
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-0.75 -translate-x-1/2 bg-indigo-500 opacity-0 transition-opacity duration-300 group-hover/resize:opacity-100" />
+      </div>
+      <div className="absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden">
+        <div className="flex min-w-0 items-center overflow-hidden border-b border-transparent px-1 py-1">
         <div className="flex h-8 w-full items-center rounded pl-1.75 pr-1">
           <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
             {brandMark}
             <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
           </span>
         </div>
-      </div>
-      <div data-testid="side-menu-project" className="border-b border-grid-bright px-2 pb-2.5 pt-1">
+        </div>
+        <div data-testid="side-menu-project" className="border-b border-grid-bright pb-2.5 pt-1" style={{ paddingLeft: sideMenuPadding, paddingRight: sideMenuPadding }}>
         <div className="w-full space-y-1">
           <div className="flex h-4 items-center overflow-hidden pl-1.5 text-xs">
             <span className="whitespace-nowrap">Proj<span style={{ opacity: labelOpacity }}>ect</span></span>
@@ -306,10 +311,10 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
             </div>
           </div>
         </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-2 pt-2.5 scrollbar-thumb-on-hover">
-        <nav aria-label="Application">
-          <div className="mb-4">
+        </div>
+        <div className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
+          <nav aria-label="Application" className="mb-6 flex w-full flex-col gap-4 overflow-hidden" style={{ paddingLeft: sideMenuPadding, paddingRight: "0px" }}>
+          <div className="w-full space-y-0">
           {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
           </div>
           <div className="space-y-4">
@@ -323,9 +328,9 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
             </SideMenuSection>
           ))}
           </div>
-        </nav>
-      </div>
-      <div className="border-t border-grid-bright p-1">
+          </nav>
+        </div>
+        <div className="border-t border-grid-bright p-1">
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex gap-1", collapsed ? "flex-col" : "items-center")}>
           <DormantShellActions capabilities={capabilities.shell} />
@@ -335,8 +340,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
             {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
           </button>
         </div>
+        </div>
       </div>
-      <div data-testid="side-menu-resizer" className="group absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none" onPointerDown={resize}><div className="absolute inset-y-0 left-[3px] w-px bg-grid-bright group-hover:bg-indigo-500" /></div>
       <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
         {customizeOpen && <CustomizeSidebarDialog sections={customizeSections} prefs={preferences} onConfirm={(payload) => { onCustomize(payload); setCustomizeOpen(false); }} isConfirming={false} />}
       </Dialog>

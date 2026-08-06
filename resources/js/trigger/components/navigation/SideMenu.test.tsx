@@ -60,6 +60,31 @@ describe("SideMenu capabilities", () => {
     expect(container.textContent).not.toContain("Jobs");
   });
 
+  it("preserves the pinned Trigger shell geometry and resize seam", () => {
+    const container = renderSideMenu(fixtureCapabilities.navigation);
+    const menu = container.querySelector<HTMLElement>('[data-testid="side-menu"]')!;
+    const inner = menu.querySelector<HTMLElement>(":scope > .absolute.inset-0.grid")!;
+    const project = container.querySelector<HTMLElement>('[data-testid="side-menu-project"]')!;
+    const navigation = container.querySelector<HTMLElement>('nav[aria-label="Application"]')!.parentElement!;
+    const navigationContent = navigation.firstElementChild as HTMLElement;
+    const resizer = container.querySelector<HTMLElement>('[data-testid="side-menu-resizer"]')!;
+
+    expect(menu.className).toBe("relative h-full border-r border-grid-bright bg-background-bright");
+    expect(inner.className).toBe("absolute inset-0 grid grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden");
+    expect(project.className).toBe("border-b border-grid-bright pb-2.5 pt-1");
+    expect(project.style.paddingLeft).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
+    expect(project.style.paddingRight).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
+    expect(navigation.className).toBe("min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover");
+    expect(navigationContent.className).toBe("mb-6 flex w-full flex-col gap-4 overflow-hidden");
+    expect(navigationContent.style.paddingLeft).toBe("calc(0.625rem - 0.375rem * var(--sm-collapse, 0))");
+    expect(navigationContent.style.paddingRight).toBe("0px");
+    expect(resizer.getAttribute("role")).toBe("separator");
+    expect(resizer.getAttribute("aria-orientation")).toBe("vertical");
+    expect(resizer.getAttribute("aria-label")).toBe("Resize side menu");
+    expect(resizer.className).toBe("group/resize absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none");
+    expect((resizer.firstElementChild as HTMLElement).className).toBe("pointer-events-none absolute inset-y-0 left-1/2 w-0.75 -translate-x-1/2 bg-indigo-500 opacity-0 transition-opacity duration-300 group-hover/resize:opacity-100");
+  });
+
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
     const container = renderSideMenu({
       ...fixtureCapabilities.navigation,
