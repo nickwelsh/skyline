@@ -5,22 +5,42 @@
  */
 import { Outlet } from "@remix-run/react";
 import { AppContainer } from "~/components/layout/AppLayout";
-import { SideMenu } from "~/components/navigation/SideMenu";
+import { FavoritesProvider, type JobFavorite } from "~/components/navigation/JobFavorites";
+import { SideMenu, type AppearancePreference, type SideMenuPreferences } from "~/components/navigation/SideMenu";
+import type { SidebarCustomizationPayload } from "~/components/navigation/CustomizeSidebarDialog";
+import { PanelPersistenceProvider } from "~/components/primitives/Resizable";
 
 type TriggerShellProps = {
   applicationName: string;
   brandMark: React.ReactNode;
   environmentLabel: string;
-  capabilities: Record<string, boolean>;
+  capabilities: {
+    navigation: Record<string, boolean>;
+    shell: Record<string, boolean>;
+    help: Record<string, boolean>;
+  };
+  preferences: SideMenuPreferences;
+  appearance: AppearancePreference;
+  favorites: JobFavorite[];
+  warning: string | null;
+  onFavoritesChange: (favorites: JobFavorite[]) => void;
+  onPreferencesChange: (preferences: Partial<SideMenuPreferences>) => void;
+  onAppearanceChange: (appearance: Partial<AppearancePreference>) => void;
+  onCustomize: (payload: SidebarCustomizationPayload) => void;
+  panelPersistence: React.ComponentProps<typeof PanelPersistenceProvider>["port"];
 };
 
-export function TriggerShell({ applicationName, brandMark, environmentLabel, capabilities }: TriggerShellProps) {
+export function TriggerShell({ applicationName, brandMark, environmentLabel, capabilities, preferences, appearance, favorites, warning, onFavoritesChange, onPreferencesChange, onAppearanceChange, onCustomize, panelPersistence }: TriggerShellProps) {
   return (
-    <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
-      <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
-        <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} jobsPath="/jobs" runsPath="/runs" queuesPath="/queues" errorsPath="/errors" logsPath="/logs" />
-        <main className="min-w-0 overflow-hidden"><Outlet /></main>
-      </div>
-    </AppContainer>
+    <PanelPersistenceProvider port={panelPersistence}>
+      <FavoritesProvider favorites={favorites} onChange={onFavoritesChange}>
+      <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
+        <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
+          <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} preferences={preferences} appearance={appearance} warning={warning} onPreferencesChange={onPreferencesChange} onAppearanceChange={onAppearanceChange} onCustomize={onCustomize} />
+          <main className="min-w-0 overflow-hidden"><Outlet /></main>
+        </div>
+      </AppContainer>
+      </FavoritesProvider>
+    </PanelPersistenceProvider>
   );
 }

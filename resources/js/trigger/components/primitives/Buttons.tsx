@@ -47,6 +47,14 @@ const sizes = {
 type Size = keyof typeof sizes;
 
 const theme = {
+  primary: {
+    textColor: "text-white transition group-disabled/button:text-white/60",
+    button:
+      "bg-indigo-600 border border-indigo-500 group-hover/button:bg-indigo-500 group-hover/button:border-indigo-400 group-disabled/button:opacity-50 group-disabled/button:bg-indigo-600 group-disabled/button:border-indigo-500 group-disabled/button:pointer-events-none",
+    shortcut:
+      "border-white/40 text-white group-hover/button:border-white/60 group-hover/button:text-white",
+    icon: "text-white",
+  },
   secondary: {
     textColor: "text-text-bright transition group-disabled/button:text-text-dimmed/80",
     button:
@@ -94,6 +102,7 @@ function createVariant(sizeName: Size, themeName: Theme) {
 }
 
 const variant = {
+  "primary/medium": createVariant("medium", "primary"),
   "secondary/small": createVariant("small", "secondary"),
   "secondary/small-icon": createVariant("small-icon", "secondary"),
   "secondary/medium": createVariant("medium", "secondary"),

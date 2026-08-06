@@ -1,28 +1,39 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/navigation/FavoritePageButton.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * User/server preference writes are replaced by local, Job-only browser persistence.
+ * Server mutations are replaced by an injected external preference port.
  */
 import { StarIcon as StarIconSolid } from "@heroicons/react/20/solid";
 import { StarIcon as StarIconOutline } from "@heroicons/react/24/outline";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
 
-export type JobFavorite = { id: string; label: string; path: string };
+export type JobFavorite = { id: string; label: string; path: string; icon?: string };
 
-const storageKey = "skyline.job-favorites.v1";
-const changeEvent = "skyline-job-favorites-change";
+const FavoritesContext = createContext<{
+  favorites: JobFavorite[];
+  onChange: (favorites: JobFavorite[]) => void;
+}>({ favorites: [], onChange: () => {} });
+
+export function FavoritesProvider({
+  favorites,
+  onChange,
+  children,
+}: {
+  favorites: JobFavorite[];
+  onChange: (favorites: JobFavorite[]) => void;
+  children: React.ReactNode;
+}) {
+  return <FavoritesContext.Provider value={{ favorites, onChange }}>{children}</FavoritesContext.Provider>;
+}
 
 export function JobFavoriteButton({ id, label, path }: JobFavorite) {
-  const favorites = useJobFavorites();
+  const { favorites, onChange } = useContext(FavoritesContext);
   const favorite = favorites.some((candidate) => candidate.id === id);
   const action = favorite ? "Remove" : "Add";
 
-  const toggle = () => {
-    const next = favorite
-      ? favorites.filter((candidate) => candidate.id !== id)
-      : [{ id, label, path }, ...favorites];
-    writeFavorites(next);
-  };
+  const toggle = () => onChange(favorite
+    ? favorites.filter((candidate) => candidate.id !== id)
+    : [{ id, label, path }, ...favorites]);
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -49,41 +60,5 @@ export function JobFavoriteButton({ id, label, path }: JobFavorite) {
 }
 
 export function useJobFavorites() {
-  const [favorites, setFavorites] = useState<JobFavorite[]>(readFavorites);
-
-  useEffect(() => {
-    const refresh = () => setFavorites(readFavorites());
-    window.addEventListener(changeEvent, refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener(changeEvent, refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, []);
-
-  return favorites;
-}
-
-function readFavorites(): JobFavorite[] {
-  try {
-    const value = JSON.parse(localStorage.getItem(storageKey) ?? "[]");
-    return Array.isArray(value) ? value.filter(isJobFavorite) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeFavorites(favorites: JobFavorite[]) {
-  localStorage.setItem(storageKey, JSON.stringify(favorites));
-  window.dispatchEvent(new Event(changeEvent));
-}
-
-function isJobFavorite(value: unknown): value is JobFavorite {
-  if (typeof value !== "object" || value === null) return false;
-  const favorite = value as Partial<JobFavorite>;
-  return typeof favorite.id === "string"
-    && typeof favorite.label === "string"
-    && typeof favorite.path === "string"
-    && /^\/jobs\/job_[A-Za-z0-9_-]+$/.test(favorite.path)
-    && favorite.path === `/jobs/${favorite.id}`;
+  return useContext(FavoritesContext).favorites;
 }

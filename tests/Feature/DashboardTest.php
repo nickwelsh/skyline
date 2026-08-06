@@ -21,6 +21,14 @@ it('serves the skyline shell and precompiled assets locally', function (): void 
         ->assertSee('Skyline', false);
 });
 
+it('prepaints stored appearance before styles load', function (): void {
+    $html = $this->get('/skyline')->assertOk()->getContent();
+
+    expect($html)->toContain('skyline.ui-preferences.v1:\/skyline')
+        ->and(strpos($html, 'data-skyline-prepaint'))
+        ->toBeLessThan(strpos($html, 'rel="stylesheet"'));
+});
+
 it('serves the shell for client-side routes', function (): void {
     $this->get('/skyline/runs/example')->assertOk()->assertSee('id="skyline"', false);
 });

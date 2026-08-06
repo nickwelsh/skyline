@@ -5,23 +5,27 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { readBootstrap } from "./skyline/bootstrap";
 import { createSkylineRouter } from "./skyline/router";
+import { createUiPreferencesAdapter } from "./skyline/UiPreferencesAdapter";
+import { UiPreferencesProvider } from "./skyline/UiPreferencesProvider";
 import { OperatingSystemContextProvider } from "./trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "./trigger/components/primitives/ShortcutsProvider";
 import "./trigger/tailwind.css";
 
-document.documentElement.dataset.theme = "classic";
 const root = document.getElementById("skyline")!;
 const bootstrap = readBootstrap();
-const router = createSkylineRouter(bootstrap);
+const preferences = createUiPreferencesAdapter({ basePath: bootstrap.basePath });
+const router = createSkylineRouter(bootstrap, undefined, preferences);
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <OperatingSystemContextProvider platform={/windows/i.test(navigator.userAgent) ? "windows" : "mac"}>
       <ShortcutsProvider>
-        <RouterProvider
-          router={router}
-          fallbackElement={<InitialLoadingState />}
-        />
+        <UiPreferencesProvider adapter={preferences}>
+          <RouterProvider
+            router={router}
+            fallbackElement={<InitialLoadingState />}
+          />
+        </UiPreferencesProvider>
       </ShortcutsProvider>
     </OperatingSystemContextProvider>
   </React.StrictMode>,

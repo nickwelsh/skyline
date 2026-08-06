@@ -1,4 +1,4 @@
-import { Navigate, createBrowserRouter, type LoaderFunctionArgs } from "react-router-dom";
+import { Navigate, createBrowserRouter, redirect, type LoaderFunctionArgs } from "react-router-dom";
 import { HttpAdapter } from "./HttpAdapter";
 import { presentRuns, runsQuery } from "./RunListAdapter";
 import { presentRunDetail } from "./RunDetailAdapter";
@@ -9,8 +9,8 @@ import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQue
 import { TelemetryEventDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
 import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
-import { BrandMark } from "./BrandMark";
-import { TriggerShell } from "../trigger/root";
+import { SkylineShell } from "./SkylineShell";
+import type { UiPreferencesAdapter } from "./UiPreferencesAdapter";
 import RunsRoute, { RunsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
 import RunDetailRoute, { RunDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route";
 import JobsRoute, { JobsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route";
@@ -21,8 +21,23 @@ import ErrorsRoute, { ErrorsErrorBoundary } from "../trigger/routes/_app.orgs.$o
 import ErrorDetailRoute, { ErrorDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
 import LogsRoute, { LogsErrorBoundary, type LogsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
 
-export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath)) {
-  const runsLoader = async ({ request }: LoaderFunctionArgs) => presentRuns(await adapter.runs(runsQuery(request)));
+export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath), preferences?: UiPreferencesAdapter) {
+  const runsLoader = async ({ request }: LoaderFunctionArgs) => {
+    const url = new URL(request.url);
+    const rootOnly = url.searchParams.get("rootOnly");
+    const jobFiltered = url.searchParams.has("job");
+    if (!jobFiltered && rootOnly === null && preferences?.read().runs.rootOnly) {
+      url.searchParams.set("rootOnly", "true");
+      const routePath = url.pathname.startsWith(bootstrap.basePath)
+        ? url.pathname.slice(bootstrap.basePath.length) || "/"
+        : url.pathname;
+      throw redirect(`${routePath}${url.search}`);
+    }
+    if (!jobFiltered && rootOnly !== null && preferences) {
+      preferences.update((current) => ({ ...current, runs: { rootOnly: rootOnly === "true" } }));
+    }
+    return presentRuns(await adapter.runs(runsQuery(request)));
+  };
   const jobsLoader = async ({ request }: LoaderFunctionArgs) => presentJobs(await adapter.jobs(jobsQuery(request)));
   const jobLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.jobId) throw new Response("The Job type was not found.", { status: 404 });
@@ -70,7 +85,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
   return createBrowserRouter([
     {
       path: "/",
-      element: <TriggerShell applicationName={bootstrap.applicationName} brandMark={<BrandMark />} environmentLabel={bootstrap.environmentLabel} capabilities={bootstrap.capabilities.navigation} />,
+      element: <SkylineShell bootstrap={bootstrap} />,
       children: [
         { index: true, element: <Navigate to="runs" replace /> },
         { path: "jobs", loader: jobsLoader, element: <JobsRoute />, errorElement: <JobsErrorBoundary /> },

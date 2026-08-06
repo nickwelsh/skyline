@@ -4,19 +4,56 @@
  * Modified for Skyline's client-only browser detection and package-local cn import.
  */
 import { Panel, PanelGroup, PanelResizer } from "@window-splitter/react";
-import React, { useRef } from "react";
+import React, { createContext, useContext, useMemo, useRef } from "react";
 
 import { cn } from "../../utils/cn";
 
-const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeof PanelGroup>) => (
-  <PanelGroup
+type PanelSnapshotPort = {
+  readPanel(id: string): { orientation: "horizontal" | "vertical"; itemIds: string[]; sizes: number[] } | undefined;
+  writePanel(id: string, snapshot: { orientation: "horizontal" | "vertical"; itemIds: string[]; sizes: number[] }): void;
+};
+
+const PanelPersistenceContext = createContext<PanelSnapshotPort | null>(null);
+
+export function PanelPersistenceProvider({ port, children }: { port: PanelSnapshotPort | null; children: React.ReactNode }) {
+  return <PanelPersistenceContext.Provider value={port}>{children}</PanelPersistenceContext.Provider>;
+}
+
+const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "horizontal", ...props }: React.ComponentProps<typeof PanelGroup>) => {
+  const persistence = useContext(PanelPersistenceContext);
+  const itemIds = React.Children.toArray(children).flatMap((child) =>
+    React.isValidElement(child) && child.type === ResizablePanel && typeof child.props.id === "string" ? [child.props.id] : []
+  );
+  const saved = autosaveId ? persistence?.readPanel(autosaveId) : undefined;
+  const compatible = saved?.orientation === orientation && saved.itemIds.length === itemIds.length && saved.itemIds.every((id, index) => id === itemIds[index]);
+  const latestSizes = useRef<Record<string, number>>({});
+  const persistentChildren = useMemo(() => React.Children.map(children, (child) => {
+    if (!React.isValidElement<React.ComponentProps<typeof Panel>>(child) || child.type !== ResizablePanel || typeof child.props.id !== "string") return child;
+    const index = itemIds.indexOf(child.props.id);
+    const originalResize = child.props.onResize;
+    return React.cloneElement(child, {
+      ...(compatible ? { default: `${(saved?.sizes[index] ?? 0) * 100}%` } : {}),
+      onResize: (size: { pixel: number; percentage: number }) => {
+        originalResize?.(size);
+        if (!autosaveId || !persistence) return;
+        latestSizes.current[child.props.id as string] = size.percentage;
+        const sizes = itemIds.map((id) => latestSizes.current[id]);
+        if (sizes.every((value) => typeof value === "number")) {
+          persistence.writePanel(autosaveId, { orientation, itemIds, sizes });
+        }
+      },
+    });
+  }), [autosaveId, children, compatible, itemIds.join("\u0000"), orientation, persistence, saved]);
+
+  return <PanelGroup
     className={cn(
       "flex w-full overflow-hidden data-[panel-group-direction=vertical]:flex-col",
       className
     )}
+    orientation={orientation}
     {...props}
-  />
-);
+  >{persistentChildren}</PanelGroup>;
+};
 
 // react-window-splitter drives the collapse animation through @react-spring/rafz,
 // which has timing/interaction issues with Firefox that produce visual glitches

@@ -38,6 +38,7 @@ export type UiPreferencesAdapter = {
   subscribe(listener: (preferences: UiPreferences) => void): () => void;
   readPanel(id: string): PanelSnapshot | undefined;
   writePanel(id: string, snapshot: PanelSnapshot): void;
+  getWarning(): string | null;
 };
 
 type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -74,12 +75,16 @@ export function createUiPreferencesAdapter({
   let memory = defaults();
   let initialized = false;
   let warned = false;
+  let warning: string | null = null;
   const listeners = new Set<(preferences: UiPreferences) => void>();
+  const notify = () => listeners.forEach((listener) => listener(memory));
 
   const warn = () => {
     if (warned) return;
     warned = true;
-    onWarning(STORAGE_WARNING);
+    warning = STORAGE_WARNING;
+    onWarning(warning);
+    notify();
   };
 
   const selectedStorage = (): PreferenceStorage => {
@@ -101,8 +106,6 @@ export function createUiPreferencesAdapter({
     }
     return memory;
   };
-
-  const notify = () => listeners.forEach((listener) => listener(memory));
 
   const onStorage = (event: StorageEvent) => {
     if (event.key !== storageKey) return;
@@ -164,6 +167,7 @@ export function createUiPreferencesAdapter({
         warn();
       }
     },
+    getWarning: () => warning,
   };
 }
 
