@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import type { FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
@@ -31,17 +31,22 @@ for (const capture of definition.captures) {
         step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
       ]);
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
-      await Promise.all([
-        step(`state:skyline-${scenario.state}`, () => exposeOwnedState(skyline, scenario, "skyline")),
-        step(`state:trigger-${scenario.state}`, () => exposeOwnedState(trigger, scenario, "trigger")),
-      ]);
+      if (scenario.id === "queues-filtering") {
+        await Promise.all([
+          exposeFilteringState(skyline, "skyline", step),
+          exposeFilteringState(trigger, "trigger", step),
+        ]);
+      } else {
+        await Promise.all([
+          step(`state:skyline-${scenario.state}`, () => exposeOwnedState(skyline, scenario, "skyline")),
+          step(`state:trigger-${scenario.state}`, () => exposeOwnedState(trigger, scenario, "trigger")),
+        ]);
+      }
       const connection = skyline.getByLabel("Connection", { exact: true });
       expect(await step("connection:count", () => connection.count())).toBe(1);
       expect(await step("connection:options", () => connection.locator("option").evaluateAll((options) => options.map((option) => ({ value: (option as HTMLOptionElement).value, text: option.textContent })))))
         .toEqual([{ value: "", text: "All" }, { value: "database", text: "database" }, { value: "redis", text: "redis" }, { value: "sqs", text: "sqs" }]);
       if (scenario.id === "queues-filtering") {
-        await step("connection:select", () => connection.selectOption("database"));
-        await step("connection:navigation", () => skyline.waitForURL((url) => url.searchParams.get("connection") === "database"));
         expect(await connection.inputValue()).toBe("database");
       } else {
         expect(await connection.inputValue()).toBe("");
@@ -62,4 +67,17 @@ for (const capture of definition.captures) {
       await context.close();
     }
   });
+}
+
+async function exposeFilteringState(page: Page, application: "skyline" | "trigger", step: ReturnType<typeof createDiscoveryStep>) {
+  if (application === "skyline") {
+    const connection = page.getByLabel("Connection", { exact: true });
+    await step("connection:select", () => connection.selectOption("database"));
+    await step("connection:navigation", () => page.waitForURL((url) => url.searchParams.get("connection") === "database", { timeout: 1_500 }));
+  }
+  const search = page.getByPlaceholder("Search queues…");
+  await step(`filter:${application}:fill`, () => search.fill("reports", { timeout: 1_500 }));
+  await step(`filter:${application}:submit`, () => search.press("Enter", { timeout: 1_500 }));
+  const parameter = application === "trigger" ? "query" : "search";
+  await step(`filter:${application}:navigation`, () => page.waitForURL((url) => url.searchParams.get(parameter) === "reports", { timeout: 1_500 }));
 }

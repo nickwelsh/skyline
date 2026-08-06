@@ -40,6 +40,7 @@ describe("NW-221 Queue Connection framework extension", () => {
     expect(discovery).toContain('expect(await step("connection:count"');
     expect(discovery).toContain('{ value: "", text: "All" }');
     expect(discovery).toContain('connection.selectOption("database")');
+    expect(discovery).toContain('search.press("Enter"');
     expect(discovery).toContain('expect(await connection.inputValue()).toBe("database")');
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
   });
