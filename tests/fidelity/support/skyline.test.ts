@@ -9,6 +9,7 @@ describe("packaged Skyline fidelity fixture", () => {
     ["run-stale-refresh@1440x960-dark", "detail", "/skyline/runs/run-1"],
     ["log-found@390x844-classic", "detail", "/skyline/logs?event=log-1"],
     ["shell-customized@1024x768-classic", "owned", "/skyline/runs"],
+    ["errors-stack-expansion@1440x960-light", "owned", "/skyline/errors/error-1"],
   ])("maps %s to its public packaged route", (capture, kind, path) => {
     const scenario = parseScenario(capture);
     expect(scenario.kind).toBe(kind);

@@ -38,14 +38,27 @@ export function scenarioPath(scenario: FidelityScenario, catalog: FixtureCatalog
     queue: `/skyline/queues/${catalog.queue}`,
   };
   if (scenario.surface === "shell") return "/skyline/runs";
-  if (scenario.kind === "detail") return details[scenario.surface];
+  if (scenario.kind === "detail" || ownedDetailScenarios.has(scenario.id)) return details[singular(scenario.surface)];
   return roots[scenario.surface] ?? roots.runs;
+}
+
+const ownedDetailScenarios = new Set([
+  "jobs-favorite", "jobs-recent-runs", "jobs-absent-optional-data",
+  "runs-successful", "runs-active", "runs-failed", "runs-retried", "runs-parent-child-trace", "runs-multiple-attempts", "runs-long-data", "runs-exception", "runs-inspectors", "runs-timeline-extremes",
+  "errors-single-occurrence", "errors-many-occurrences", "errors-affected-job-types", "errors-application-vendor-frames", "errors-stack-expansion", "errors-linked-runs", "errors-long-exception",
+  "logs-selected-detail",
+  "queues-idle", "queues-busy", "queues-activity-wait-history", "queues-paginated-runs",
+]);
+
+function singular(surface: string) {
+  return ({ jobs: "job", runs: "run", errors: "error", logs: "log", queues: "queue" } as Record<string, string>)[surface] ?? surface;
 }
 
 export async function installSkylineFixture(page: Page, scenario: FidelityScenario, adapter = new FixtureAdapter()) {
   const catalog = await fixtureCatalog(adapter);
-  await page.route("**/skyline/api/**", async (route) => fulfillApi(route, scenario, adapter));
-  return catalog;
+  const active = { ...scenario };
+  await page.route("**/skyline/api/**", async (route) => fulfillApi(route, active, adapter));
+  return { catalog, setState: (state: string) => { active.state = state; } };
 }
 
 async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: FixtureAdapter) {
@@ -59,9 +72,10 @@ async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: Fix
 
   try {
     const response = await responseFor(path, url.searchParams, adapter);
-    const transformed = applies && scenario.kind === "root" && (scenario.state === "initial-empty" || scenario.state === "filtered-empty")
+    const empty = applies && scenario.kind === "root" && (scenario.state === "initial-empty" || scenario.state === "filtered-empty")
       ? emptyRoot(response, scenario.surface, scenario.state === "filtered-empty")
       : response;
+    const transformed = ownedResponse(empty, scenario, path);
     await route.fulfill({ json: transformed });
   } catch (error) {
     await route.fulfill({ status: 404, json: { error: { code: "not_found", message: error instanceof Error ? error.message : "Fixture missing." } } });
@@ -92,6 +106,35 @@ function emptyRoot(response: unknown, surface: string, filtered: boolean) {
   const flags: Record<string, string> = { jobs: "hasAnyJobTypes", runs: "hasAnyRuns", errors: "hasAnyErrorGroups", logs: "hasAnyTelemetryEvents", queues: "hasAnyQueueTargets" };
   clone[collections[surface]] = [];
   clone[flags[surface]] = filtered;
-  if (filtered && typeof clone.filters === "object" && clone.filters) (clone.filters as Record<string, unknown>).search = "missing";
+  if (filtered && typeof clone.filters === "object" && clone.filters) {
+    const filters = clone.filters as Record<string, unknown>;
+    if (surface === "errors") filters.jobType = "App\\Jobs\\Missing";
+    else if (surface === "logs") filters.levels = ["ERROR"];
+    else filters.search = "missing";
+  }
   return clone;
+}
+
+function ownedResponse(response: unknown, scenario: FidelityScenario, path: string) {
+  if (scenario.kind !== "owned") return response;
+  const clone = structuredClone(response) as Record<string, any>;
+  if (scenario.id === "logs-capture-disabled" && clone.capture) clone.capture.enabled = false;
+  if (["runs-mixed-pagination", "logs-pagination", "queues-paginated-runs"].includes(scenario.id) && clone.pagination) clone.pagination.next = "fixture-next";
+  if (scenario.id === "queues-idle" && clone.queueTarget?.recordedRunCounts) clone.queueTarget.recordedRunCounts = { queued: 0, running: 0, retrying: 0, completed: 4, failed: 0 };
+  if (scenario.id === "queues-busy" && clone.queueTarget?.recordedRunCounts) clone.queueTarget.recordedRunCounts = { queued: 2, running: 3, retrying: 1, completed: 4, failed: 1 };
+  if (scenario.id === "runs-active") setRunStatus(clone, "running");
+  if (scenario.id === "runs-successful") setRunStatus(clone, "completed");
+  if (scenario.id === "runs-failed") setRunStatus(clone, "failed");
+  if (scenario.id === "runs-retried" && clone.run) clone.run.attemptCount = Math.max(2, clone.run.attemptCount ?? 0);
+  if (scenario.id === "logs-long-content") {
+    const event = path === "logs" ? clone.telemetryEvents?.[0] : clone.telemetryEvent;
+    if (event?.variant === "log") event.message = `${event.message} ${"long-value ".repeat(80)}`;
+  }
+  return clone;
+}
+
+function setRunStatus(response: Record<string, any>, status: string) {
+  if (response.run) response.run.status = status;
+  if (response.trace) response.trace.status = status;
+  if (Array.isArray(response.runs) && response.runs[0]) response.runs[0].status = status;
 }

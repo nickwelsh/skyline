@@ -17,7 +17,8 @@ export function captureEnvironment(capture: string): CaptureEnvironment {
 export async function prepareCapture(page: Page, capture: string, basePath: string) {
   const environment = captureEnvironment(capture);
   await page.setViewportSize({ width: environment.width, height: environment.height });
-  await page.emulateMedia({ colorScheme: environment.colorScheme, reducedMotion: "reduce" });
+  const initialScheme = capture.includes("shell-live-change") ? opposite(environment.colorScheme) : environment.colorScheme;
+  await page.emulateMedia({ colorScheme: initialScheme, reducedMotion: "reduce" });
   await page.clock.install({ time: new Date("2026-08-05T12:00:00.000Z") });
   await page.addInitScript(({ key, theme }) => {
     localStorage.setItem(key, JSON.stringify({ version: 1, theme, contrast: 70 }));
@@ -25,8 +26,14 @@ export async function prepareCapture(page: Page, capture: string, basePath: stri
   return environment;
 }
 
+export async function applyLiveSystemChange(page: Page, capture: string) {
+  if (!capture.includes("shell-live-change")) return;
+  const environment = captureEnvironment(capture);
+  await page.emulateMedia({ colorScheme: environment.colorScheme, reducedMotion: "reduce" });
+}
+
 export async function settleCapture(page: Page) {
-  await page.evaluate(async () => {
+  const settled = page.evaluate(async () => {
     await document.fonts.ready;
     await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     for (const element of document.querySelectorAll<HTMLElement>("*")) {
@@ -34,6 +41,12 @@ export async function settleCapture(page: Page) {
       element.style.setProperty("transition", "none", "important");
     }
   });
+  await page.clock.runFor(50);
+  await settled;
+}
+
+function opposite(scheme: "light" | "dark") {
+  return scheme === "light" ? "dark" : "light";
 }
 
 export async function assertFixedCanvas(page: Page, capture: string) {

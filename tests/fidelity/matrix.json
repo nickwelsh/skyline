@@ -5,7 +5,7 @@
   "rootStates": ["loading", "populated", "initial-empty", "filtered-empty", "api-error"],
   "detailStates": ["loading", "found", "stale-refresh", "api-error", "not-found"],
   "ownedStates": {
-    "shell": ["expanded", "collapsed", "custom-width", "customized", "favorites", "appearance", "customization-dialog", "shortcuts-dialog", "storage-warning", "capabilities-hidden"],
+    "shell": ["expanded", "collapsed", "custom-width", "customized", "favorites", "appearance", "customization-dialog", "shortcuts-dialog", "storage-warning", "capabilities-hidden", "live-change"],
     "jobs": ["contrasting-activity", "filtering", "favorite", "long-labels", "recent-runs", "absent-optional-data"],
     "runs": ["mixed-pagination", "successful", "active", "failed", "retried", "parent-child-trace", "multiple-attempts", "long-data", "exception", "inspectors", "timeline-extremes", "polling"],
     "errors": ["fingerprints-counts", "filters", "single-occurrence", "many-occurrences", "affected-job-types", "application-vendor-frames", "stack-expansion", "linked-runs", "long-exception"],
