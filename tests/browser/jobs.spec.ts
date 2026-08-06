@@ -31,7 +31,8 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);
   await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("fill", /run-completed-successfully/);
   await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
-  await expect(page.getByRole("link", { name: "billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
   await expect(page.getByLabel("Run status")).toHaveCount(0);
   await expect(page.getByLabel("Time range")).toHaveValue("7d");
   await page.getByLabel("Time range").selectOption("7d");
@@ -75,7 +76,8 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   const sidebar = page.getByLabel("Job details");
   await expect.poll(async () => (await activity.boundingBox())?.height).toBeCloseTo(baseline.contract.detail.activityDefaultHeight, 0);
   await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeCloseTo(baseline.contract.detail.sidebarDefaultWidth, 0);
-  await expect(page.getByRole("link", { name: "billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(page.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
   const favoriteButton = page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" });
   await favoriteButton.focus();
   await expect(favoriteButton).toBeFocused();
@@ -230,7 +232,10 @@ function jobDetail(): JobDetailDto {
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: capabilities(),
     job: jobSummary(),
-    queueTargets: [{ id: "queue_billing", connection: "redis", queue: "billing", runCount: 3, href: "/skyline/queues/queue_billing" }],
+    queueTargets: [
+      { id: "queue_billing", connection: "redis", queue: "billing", runCount: 2, href: "/skyline/queues/queue_billing" },
+      { id: "queue_default", connection: "database", queue: "default", runCount: 1, href: "/skyline/queues/queue_default" },
+    ],
     activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 3, statusCounts: counts() }],
     runs: [{
       id: "run-1", traceId: "trace-1", isRoot: true, name: "App\\Jobs\\GenerateMonthlyInvoices", status: "failed", connection: "redis", queue: "billing",

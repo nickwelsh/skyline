@@ -121,7 +121,6 @@ function ActivityChart({ activity }: { activity: JobDetailRouteData["activity"] 
 }
 
 function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
-  const queue = data.queueTargets[0];
   return (
     <aside className="grid h-full grid-rows-[auto_1fr] overflow-hidden bg-background-bright" aria-label="Job details">
       <div className="flex min-w-0 items-center gap-2 border-b border-grid-dimmed py-2 pl-3 pr-2">
@@ -130,7 +129,7 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
           <Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item>
-          {queue ? <Property.Item><Property.Label>Queue</Property.Label><Property.Value><Link to={queue.path} className="text-text-link hover:underline focus-custom">{queue.queue}</Link></Property.Value></Property.Item> : null}
+          {data.queueTargets.length > 0 ? <Property.Item><Property.Label>Queue</Property.Label><Property.Value><div className="flex flex-col gap-0.5">{data.queueTargets.map((queue) => <Link key={queue.id} to={queue.path} className="text-text-link hover:underline focus-custom">{data.queueTargets.length === 1 ? queue.queue : `${queue.connection} / ${queue.queue}`}</Link>)}</div></Property.Value></Property.Item> : null}
           <Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item>
         </Property.Table>
       </div>

@@ -26,6 +26,10 @@ describe("Job detail source chrome", () => {
     const adapter = new FixtureAdapter();
     const page = await adapter.jobs();
     const data = presentJobDetail(await adapter.job(page.jobs[0].id));
+    data.queueTargets = [
+      { id: "queue_redis", connection: "redis", queue: "default", runCount: 2, path: "/queues/queue_redis" },
+      { id: "queue_database", connection: "database", queue: "default", runCount: 1, path: "/queues/queue_database" },
+    ];
     const router = createMemoryRouter([
       { path: "/jobs/:jobId", loader: () => data, element: <JobDetailRoute /> },
     ], { initialEntries: [`/jobs/${data.job.id}`] });
@@ -43,6 +47,8 @@ describe("Job detail source chrome", () => {
     expect(detail.textContent).toContain("Identifier");
     expect(detail.textContent).toContain("Queue");
     expect(detail.textContent).toContain("Created");
+    expect(detail.querySelector('a[href="/queues/queue_redis"]')?.textContent).toBe("redis / default");
+    expect(detail.querySelector('a[href="/queues/queue_database"]')?.textContent).toBe("database / default");
     expect(detail.textContent).not.toContain("File path");
     expect(detail.textContent).not.toContain("Type");
     expect(detail.textContent).not.toContain("Version");
