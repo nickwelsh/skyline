@@ -104,7 +104,7 @@ export default function Page() {
             <ResizablePanel id="log-detail" min="430px" default="430px" max="600px" className="overflow-hidden" collapsible collapsed={!selectedId} onCollapseChange={() => {}} collapsedSize="0px" collapseAnimation={RESIZABLE_PANEL_ANIMATION}>
               <div className="h-full" style={{ minWidth: 430 }}>
                 {selectedId && (detail?.state === "found"
-                  ? <div className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
+                  ? <div data-testid="telemetry-event-detail" className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
                   : detail?.state === "not-found" || detail?.state === "error"
                     ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
                     : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />)}

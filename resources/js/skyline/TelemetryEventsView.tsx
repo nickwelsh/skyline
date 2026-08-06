@@ -36,17 +36,10 @@ export function TelemetryEventsTable({ events, selectedId, onSelect, loading, ha
 export function TelemetryEventDetailView({ event, onClose }: { event: PresentedTelemetryEventDetail; onClose: () => void }) {
   if (event.variant === "operation") return <OperationDetail event={event} onClose={onClose} />;
 
-  return <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
-    <div className="min-h-0"><LogDetailView logId={event.id} initialLog={toTriggerLog(event)} onClose={onClose} /></div>
-    <div className="border-t border-grid-dimmed px-3 py-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {event.attemptNumber !== null && (event.attemptPath ? <LinkButton to={event.attemptPath} variant="secondary/small">Attempt {event.attemptNumber}</LinkButton> : <span className="text-xs text-text-dimmed">Attempt {event.attemptNumber}</span>)}
-        <LinkButton to={event.jobPath} variant="secondary/small">View Job</LinkButton>
-        {event.errorPath && <LinkButton to={event.errorPath} variant="secondary/small">View Error group</LinkButton>}
-      </div>
-      {event.capture.isTruncated && <Callout variant="warning" className="mt-2">Captured log detail was truncated at the recorded presentation boundary.</Callout>}
-    </div>
-  </section>;
+  const detail = <LogDetailView logId={event.id} initialLog={toTriggerLog(event)} onClose={onClose} />;
+  if (!event.capture.isTruncated) return detail;
+
+  return <div className="grid h-full grid-rows-[minmax(0,1fr)_auto] overflow-hidden"><div className="min-h-0">{detail}</div><Callout variant="warning" className="m-3">Captured log detail was truncated at the recorded presentation boundary.</Callout></div>;
 }
 
 export function toTriggerLog(event: PresentedTelemetryEvent | PresentedTelemetryEventDetail): LogEntry {

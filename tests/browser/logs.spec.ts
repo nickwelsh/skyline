@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { SkylineCapabilities, TelemetryEventDetailDto, TelemetryEventsPageDto } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-225-trigger-logs-baseline.json" with { type: "json" };
@@ -54,7 +54,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await reference.keyboard.press("Enter");
   await expect(reference).toHaveURL(/log=log_error/);
   await expect(reference.getByRole("region", { name: "Pinned log detail" })).toBeVisible();
-  const referenceDetail = await detailVisuals(reference, "Pinned log detail");
+  const referenceDetail = await detailVisuals(reference.getByRole("region", { name: "Pinned log detail" }));
 
   await routeLogs(page);
   await page.goto("/skyline/logs");
@@ -87,14 +87,12 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await page.locator("tbody tr").nth(1).getByRole("button").first().focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`event=${logId}`));
-  const detail = page.getByRole("region", { name: "Telemetry-event detail" });
+  const detail = page.getByTestId("telemetry-event-detail");
   await expect(detail).toContainText("Application log context");
   await expect(detail).toContainText("trace_invoice");
   await expect(detail).toContainText("parent_job");
   await expect(detail.getByRole("link", { name: "View full run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
-  await expect(detail.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=attempt_2");
-  await expect(detail.getByRole("link", { name: "View Job" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
-  expect(await detailVisuals(page, "Telemetry-event detail")).toEqual(referenceDetail);
+  expect(await detailVisuals(detail)).toEqual(referenceDetail);
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/event=/);
   await expect(detail).toHaveCount(0);
@@ -103,6 +101,8 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await page.locator("tbody tr").first().getByRole("button").first().focus();
   await page.keyboard.press("Enter");
   const operationDetail = page.getByRole("region", { name: "Telemetry-event detail" });
+  await expect(operationDetail.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=attempt_2");
+  await expect(operationDetail.getByRole("link", { name: "View Job" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(operationDetail.getByRole("link", { name: "Inspect operation" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=span_operation");
   await expect(operationDetail.getByRole("link", { name: "View Error group" })).toHaveAttribute("href", "/skyline/errors/error_invoice");
   await expect(operationDetail).toContainText("Captured operation detail was truncated");
@@ -200,7 +200,7 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
   delay = false;
   detailDelay = true;
   await page.goto(`/skyline/logs?event=${logId}`);
-  const logDetail = page.getByRole("region", { name: "Telemetry-event detail" });
+  const logDetail = page.getByTestId("telemetry-event-detail");
   await expect(logDetail).toContainText("Application log context ");
   await expect(page.getByLabel("Loading Telemetry-event detail")).toBeVisible();
   await expect(logDetail).toContainText("Application log context ");
@@ -292,8 +292,8 @@ async function visuals(page: Page) {
   });
 }
 
-async function detailVisuals(page: Page, label: string) {
-  return page.getByRole("region", { name: label }).evaluate((detail) => {
+async function detailVisuals(detail: Locator) {
+  return detail.evaluate((detail) => {
     let panel = detail.parentElement!;
     while (panel.previousElementSibling?.getAttribute("role") !== "separator" && panel.parentElement) panel = panel.parentElement;
     const handle = panel.previousElementSibling!;
