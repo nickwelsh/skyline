@@ -187,6 +187,7 @@ function parsePreferences(value: unknown): UiPreferences {
   const runs = record(input.runs);
   const jobs = record(input.jobs);
   const appearance = window.__skylineUiPreferences.parseAppearance(input);
+  const parsedFavorites = favorites(input.favorites);
 
   return {
     version: 1,
@@ -197,10 +198,10 @@ function parsePreferences(value: unknown): UiPreferences {
       width: integer(sidebar.width, 134, 400) ?? fallback.sidebar.width,
       sectionOrder: Array.isArray(sidebar.sectionOrder) ? stringList(sidebar.sectionOrder, sectionIds) : fallback.sidebar.sectionOrder,
       collapsedSections: booleanRecord(sidebar.collapsedSections, sectionIds),
-      hiddenItems: booleanRecord(sidebar.hiddenItems, itemIds),
+      hiddenItems: booleanRecord(sidebar.hiddenItems, [...itemIds, ...parsedFavorites.map((favorite) => favorite.id)]),
       sectionItemOrder: listRecord(sidebar.sectionItemOrder, sectionIds, itemIds),
     },
-    favorites: favorites(input.favorites),
+    favorites: parsedFavorites,
     runs: { rootOnly: boolean(runs.rootOnly) ?? fallback.runs.rootOnly },
     jobs: { usefulLinks: boolean(jobs.usefulLinks) ?? fallback.jobs.usefulLinks },
     panels: panels(input.panels),

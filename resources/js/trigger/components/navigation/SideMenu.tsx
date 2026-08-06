@@ -108,6 +108,7 @@ type MenuItem = {
 export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, preferences, appearance, warning, onPreferencesChange, onAppearanceChange, onCustomize }: SideMenuProps) {
   const location = useLocation();
   const favorites = useJobFavorites();
+  const visibleFavorites = favorites.filter((favorite) => !preferences.hiddenItems[favorite.id]);
   const [width, setWidth] = useState(preferences.isCollapsed ? COLLAPSED_WIDTH : preferences.width);
   const widthRef = useRef(width);
   const [customizeOpen, setCustomizeOpen] = useState(false);
@@ -224,7 +225,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           <div className="space-y-4">
           {sections.map((section) => section.id === "favorites" ? (
             <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.favorites)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.favorites} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, favorites: value } })}>
-              <div role="navigation" aria-label="Favorites">{favorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
+              <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
             <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.metrics)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.metrics} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, metrics: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>

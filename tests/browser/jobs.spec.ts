@@ -118,6 +118,31 @@ test("Job detail can be favorited to a persistent valid sidebar destination", as
   await expect(favorite).toHaveCount(0);
 });
 
+test("sidebar customization hides a favorite persistently", async ({ page }) => {
+  await routeJobs(page);
+  await page.goto("/skyline/jobs/job_invoice");
+
+  await page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" }).click();
+  const favorite = page.getByRole("navigation", { name: "Favorites" }).getByRole("link", { name: "GenerateMonthlyInvoices" });
+  await expect(favorite).toBeVisible();
+
+  const observability = page.getByRole("button", { name: "Observability", exact: true });
+  await observability.hover();
+  await observability.locator("..").getByRole("button", { name: "Sidebar options" }).click();
+  await page.getByText("Customize sidebar", { exact: true }).click();
+  const hideFavorite = page.getByRole("button", { name: "Hide GenerateMonthlyInvoices" });
+  await hideFavorite.click();
+  await expect(page.getByRole("button", { name: "Show GenerateMonthlyInvoices" })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Confirm" }).click();
+
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline") ?? "{}"))).toMatchObject({
+    sidebar: { hiddenItems: { job_invoice: true } },
+  });
+  await expect(favorite).toHaveCount(0);
+  await page.reload();
+  await expect(favorite).toHaveCount(0);
+});
+
 test("capability-enabled Job guidance retains its useful-links preference", async ({ page }) => {
   await page.route("**/skyline/api/jobs**", async (route) => {
     const response = jobsPage();

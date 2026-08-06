@@ -179,4 +179,24 @@ describe("UiPreferencesAdapter", () => {
     expect(visibleFavorites(favorites, { runs: true, query: false })).toEqual([favorites[0]]);
     expect(visibleFavorites(favorites, { runs: true, query: true })).toEqual(favorites);
   });
+
+  it("retains hidden state only for registered routes and saved favorites", () => {
+    localStorage.setItem("skyline.ui-preferences.v1:/monitoring", JSON.stringify({
+      sidebar: {
+        hiddenItems: {
+          logs: true,
+          job_invoice: true,
+          orphaned_favorite: true,
+        },
+      },
+      favorites: [
+        { id: "job_invoice", label: "GenerateMonthlyInvoices", url: "/jobs/job_invoice" },
+      ],
+    }));
+
+    expect(createUiPreferencesAdapter({ basePath: "/monitoring" }).read().sidebar.hiddenItems).toEqual({
+      logs: true,
+      job_invoice: true,
+    });
+  });
 });
