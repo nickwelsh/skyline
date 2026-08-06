@@ -39,12 +39,14 @@ export async function capturePartitionedAxe(page: Page, presenterSelector: strin
       let root: Document | ShadowRoot = document;
       let target: Element | null = null;
       for (const [index, segment] of path.entries()) {
-        const matches = root.querySelectorAll(segment);
+        const matches: NodeListOf<Element> = root.querySelectorAll(segment);
         if (matches.length !== 1) throw new Error(`Axe target segment must resolve uniquely: ${JSON.stringify({ path, segment, count: matches.length })}.`);
-        target = matches[0];
+        const match = matches.item(0);
+        if (!match) throw new Error(`Axe target segment missing after unique resolution: ${JSON.stringify({ path, segment })}.`);
+        target = match;
         if (index < path.length - 1) {
-          if (target instanceof HTMLIFrameElement && target.contentDocument) root = target.contentDocument;
-          else if (target.shadowRoot) root = target.shadowRoot;
+          if (match instanceof HTMLIFrameElement && match.contentDocument) root = match.contentDocument;
+          else if (match.shadowRoot) root = match.shadowRoot;
           else throw new Error(`Axe target traversal root missing: ${JSON.stringify({ path, segment })}.`);
         }
       }
@@ -79,12 +81,14 @@ export function resolveUniqueAxeTarget(root: Document | ShadowRoot, path: string
   let queryRoot = root;
   let target: Element | null = null;
   for (const [index, segment] of path.entries()) {
-    const matches = queryRoot.querySelectorAll(segment);
+    const matches: NodeListOf<Element> = queryRoot.querySelectorAll(segment);
     if (matches.length !== 1) throw new Error(`Axe target segment must resolve uniquely: ${JSON.stringify({ path, segment, count: matches.length })}.`);
-    target = matches[0];
+    const match = matches.item(0);
+    if (!match) throw new Error(`Axe target segment missing after unique resolution: ${JSON.stringify({ path, segment })}.`);
+    target = match;
     if (index < path.length - 1) {
-      if (target instanceof HTMLIFrameElement && target.contentDocument) queryRoot = target.contentDocument;
-      else if (target.shadowRoot) queryRoot = target.shadowRoot;
+      if (match instanceof HTMLIFrameElement && match.contentDocument) queryRoot = match.contentDocument;
+      else if (match.shadowRoot) queryRoot = match.shadowRoot;
       else throw new Error(`Axe target traversal root missing: ${JSON.stringify({ path, segment })}.`);
     }
   }
