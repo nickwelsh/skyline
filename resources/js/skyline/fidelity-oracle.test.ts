@@ -84,6 +84,10 @@ describe("source-fidelity oracle", () => {
     const discovery = readFileSync(join(root, "tests/fidelity/framework-extension.discovery.ts"), "utf8");
     expect(discovery).toContain("discoverFrameworkExtensionObservation(trigger, skyline, definition)");
     expect(discovery).toContain("expect(captures).toHaveLength(28)");
+    expect(discovery).toContain('test(`discover exact NW-224 ${capture}`');
+    expect(discovery.indexOf("for (const capture of captures)")).toBeLessThan(discovery.indexOf('test(`discover exact NW-224 ${capture}`'));
+    expect(discovery).toContain("FRAMEWORK_EXTENSION_MEASUREMENT=");
+    expect(discovery).not.toContain("const measurements:");
     expect(discovery).not.toContain("writeFile");
   });
 

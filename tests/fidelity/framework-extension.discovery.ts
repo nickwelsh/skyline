@@ -25,11 +25,11 @@ const definition: FrameworkExtensionDefinition = {
   measurements: {},
 };
 
-test("discover exact NW-224 framework-extension measurements", async ({ browser }) => {
-  expect(captures).toHaveLength(28);
-  const referenceFixture = await createReferenceFixture();
-  const measurements: Record<string, unknown> = {};
-  for (const capture of captures) {
+expect(captures).toHaveLength(28);
+const referenceFixture = createReferenceFixture();
+
+for (const capture of captures) {
+  test(`discover exact NW-224 ${capture}`, async ({ browser }) => {
     const context = await browser.newContext({ locale: "en-US", timezoneId: "UTC", deviceScaleFactor: 1 });
     const skyline = await context.newPage();
     const trigger = await context.newPage();
@@ -37,7 +37,7 @@ test("discover exact NW-224 framework-extension measurements", async ({ browser 
       const scenario = parseScenario(capture);
       await Promise.all([prepareCapture(skyline, capture, "/skyline"), prepareCapture(trigger, capture, "/reference")]);
       await Promise.all([seedOwnedState(skyline, scenario), seedOwnedState(trigger, scenario, "/reference")]);
-      await installReferenceFixture(trigger, referenceFixture);
+      await installReferenceFixture(trigger, await referenceFixture);
       const fixture = await installSkylineFixture(skyline, scenario);
       await Promise.all([
         skyline.goto(scenarioPath(scenario, fixture.catalog)),
@@ -49,15 +49,15 @@ test("discover exact NW-224 framework-extension measurements", async ({ browser 
       await Promise.all([settleCapture(skyline), settleCapture(trigger)]);
       await Promise.all([assertFixedCanvas(skyline, capture), assertFixedCanvas(trigger, capture)]);
       const observation = await discoverFrameworkExtensionObservation(trigger, skyline, definition);
-      measurements[capture] = {
+      const measurement = {
         relativeRect: observation.relativeRect,
         computedStyleSha256: observation.computedStyleSha256,
         anchorRect: observation.anchorRect,
         anchorComputedStyleSha256: observation.anchorComputedStyleSha256,
       };
+      process.stdout.write(`\nFRAMEWORK_EXTENSION_MEASUREMENT=${JSON.stringify({ [capture]: measurement })}\n`);
     } finally {
       await context.close();
     }
-  }
-  process.stdout.write(`\nFRAMEWORK_EXTENSION_MEASUREMENTS=${JSON.stringify(measurements, null, 2)}\n`);
-});
+  });
+}
