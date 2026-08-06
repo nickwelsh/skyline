@@ -42,7 +42,7 @@ export function telemetryEventsQuery(request: Request): TelemetryEventsQuery {
     levels: levels.length > 0 ? levels : undefined,
     jobType: queryValue(params, "jobType"),
     runId: queryValue(params, "runId"),
-    period: period(params.get("period")),
+    period: period(params.get("period")) ?? "1h",
     cursor: queryValue(params, "cursor"),
   });
 }

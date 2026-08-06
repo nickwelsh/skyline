@@ -5,6 +5,7 @@ import type { TelemetryEventDetailDto, TelemetryEventsPageDto } from "./dto";
 
 describe("TelemetryEventsAdapter", () => {
   it("maps URL-backed filters and external list links into presenter data", () => {
+    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs"))).toEqual({ period: "1h" });
     expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs?levels=ERROR&levels=WARN&jobType=App%5CJobs%5CInvoice&runId=run_1&period=7d&cursor=opaque"))).toEqual({
       levels: ["ERROR", "WARN"],
       jobType: "App\\Jobs\\Invoice",

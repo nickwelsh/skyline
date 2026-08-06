@@ -59,6 +59,11 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await routeLogs(page);
   await page.goto("/skyline/logs");
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Logs" })).toHaveAttribute("href", "/skyline/logs");
+  await expect(page.getByPlaceholder("Search logs…")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Tasks/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Run ID/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Created: 1hr/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Level/ })).toBeVisible();
   await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
@@ -138,15 +143,18 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await routeLogs(page, { paginate: true });
   await page.goto("/skyline/logs");
   await expect(page.getByText("Showing all 2 logs")).toHaveCount(0);
-  await page.getByLabel("ERROR", { exact: true }).click();
+  await toggleLevel(page, "ERROR");
   await expect(page).toHaveURL(/levels=ERROR/);
-  await page.getByLabel("WARN", { exact: true }).click();
+  await toggleLevel(page, "WARN");
   await expect(page).toHaveURL(/levels=ERROR&levels=WARN/);
-  await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
-  await page.getByLabel("Run ID").fill("run_invoice");
-  await page.getByLabel("Run ID").press("Enter");
+  await page.getByRole("button", { name: /^Tasks$/ }).click();
+  await page.getByRole("menuitemcheckbox", { name: "App\\Jobs\\GenerateMonthlyInvoices" }).click();
+  await page.getByRole("button", { name: /^Run ID$/ }).click();
+  await page.getByLabel("Run ID value").fill("run_invoice");
+  await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(/runId=run_invoice/);
-  await page.getByLabel("Time range").selectOption("7d");
+  await page.getByRole("button", { name: /Created:/ }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Last 7 days" }).click();
   await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/runId=run_invoice/);
   await expect(page).toHaveURL(/period=7d/);
@@ -187,7 +195,7 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
 
   await page.goto("/skyline/logs");
   delay = true;
-  await page.getByLabel("TRACE", { exact: true }).click();
+  await toggleLevel(page, "TRACE");
   await expect(page.getByLabel("Loading Telemetry events")).toBeVisible();
   delay = false;
   detailDelay = true;
@@ -198,7 +206,7 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
   await expect(logDetail).toContainText("Application log context ");
   await expect(logDetail).toContainText("stack");
   await expect(logDetail).not.toContainText("Captured operation detail was truncated");
-  await page.getByLabel("TRACE", { exact: true }).click();
+  await toggleLevel(page, "TRACE");
   await expect(page.getByLabel("Refreshing Telemetry-event detail")).toBeVisible();
   await expect(logDetail).toContainText("Application log context ");
   await expect(page.getByLabel("Refreshing Telemetry-event detail")).toHaveCount(0);
@@ -235,6 +243,12 @@ async function routeLogs(page: Page, options: { paginate?: boolean } = {}) {
     if (options.paginate) response.pagination = url.searchParams.has("cursor") ? { previous: "opaque-previous", next: null } : { previous: null, next: "opaque-next" };
     await route.fulfill({ json: response });
   });
+}
+
+async function toggleLevel(page: Page, level: string) {
+  const option = page.getByRole("menuitemcheckbox", { name: level });
+  if (!await option.isVisible()) await page.getByRole("button", { name: /Level/ }).click();
+  await option.click();
 }
 
 function listResponse(url = new URL("https://example.test")): TelemetryEventsPageDto {

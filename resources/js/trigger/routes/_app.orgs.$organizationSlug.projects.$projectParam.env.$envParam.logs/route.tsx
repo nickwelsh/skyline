@@ -4,15 +4,18 @@
  * Preserves the source Logs table/detail split, filters, pagination, and selection geometry;
  * tenant context, streaming, and server fetching remain external adapter concerns.
  */
-import { XMarkIcon } from "@heroicons/react/20/solid";
+import { CalendarDaysIcon, FingerPrintIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import { IconListTree } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
-import { LogsIcon } from "~/assets/icons/LogsIcon";
+import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { Button } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
+import { Input } from "~/components/primitives/Input";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/primitives/Popover";
 import {
   RESIZABLE_PANEL_ANIMATION,
   ResizableHandle,
@@ -20,6 +23,7 @@ import {
   ResizablePanelGroup,
   collapsibleHandleClassName,
 } from "~/components/primitives/Resizable";
+import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
 
 export type LogsRouteData = {
@@ -85,25 +89,27 @@ export default function Page() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={<><LogsIcon className="size-4 text-text-dimmed" />Logs</>} /></NavBar>
-      <PageBody scrollable={false} className="p-0">
-        <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+      <NavBar><PageTitle title="Logs" /></NavBar>
+      <PageBody scrollable={false}>
+        <div className="grid h-full max-h-full grid-rows-[2.5rem_1fr] overflow-hidden">
           <FiltersBar data={data} />
           <ResizablePanelGroup orientation="horizontal" className="max-h-full">
-            <ResizablePanel id="logs-list" min="420px">
+            <ResizablePanel id="logs-main" min="200px">
               <div className="relative h-full overflow-hidden">
                 {data.renderTable({ selectedId, onSelect: setSelected, loading: navigation.state !== "idle" })}
                 {navigation.state !== "idle" && <div aria-label="Loading Telemetry events" className="pointer-events-none absolute inset-0 grid place-items-center bg-background-dimmed/70"><Spinner /></div>}
               </div>
             </ResizablePanel>
-            <ResizableHandle id="logs-detail-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
-            {selectedId && <ResizablePanel id="logs-detail" min="430px" default="430px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
-              {detail?.state === "found"
-                ? <div className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
-                : detail?.state === "not-found" || detail?.state === "error"
-                  ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
-                  : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />}
-            </ResizablePanel>}
+            <ResizableHandle id="logs-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
+            <ResizablePanel id="log-detail" min="430px" default="430px" max="600px" className="overflow-hidden" collapsible collapsed={!selectedId} onCollapseChange={() => {}} collapsedSize="0px" collapseAnimation={RESIZABLE_PANEL_ANIMATION}>
+              <div className="h-full" style={{ minWidth: 430 }}>
+                {selectedId && (detail?.state === "found"
+                  ? <div className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
+                  : detail?.state === "not-found" || detail?.state === "error"
+                    ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
+                    : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />)}
+              </div>
+            </ResizablePanel>
           </ResizablePanelGroup>
         </div>
       </PageBody>
@@ -141,22 +147,47 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
     setSearchParams(next);
   };
 
-  return <div className="border-b border-grid-bright bg-background-bright">
-    <div aria-label="Telemetry-event filters" className="flex min-h-10 items-center justify-between gap-2 px-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <fieldset aria-label="Levels" className="flex items-center gap-1">
-          {data.filterOptions.levels.map((level) => <label key={level} className="flex h-6 cursor-pointer items-center gap-1 rounded border border-border-bright/50 px-1.5 font-mono text-[0.6875rem] text-text-dimmed"><input type="checkbox" checked={data.filters.levels.includes(level)} onChange={() => toggleLevel(level)} className="size-3 accent-indigo-500" />{level}</label>)}
-        </fieldset>
-        <select aria-label="Job type" className="h-6 max-w-48 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom" value={data.filters.jobType ?? ""} onChange={(event) => update("jobType", event.currentTarget.value)}><option value="">All Job types</option>{data.filterOptions.jobTypes.map((job) => <option key={job} value={job}>{job}</option>)}</select>
-        <form onSubmit={(event) => { event.preventDefault(); update("runId", new FormData(event.currentTarget).get("runId")?.toString().trim()); }}><input key={data.filters.runId ?? ""} name="runId" aria-label="Run ID" defaultValue={data.filters.runId ?? ""} placeholder="Run ID" className="h-6 w-28 rounded border border-border-bright/50 bg-input-bg px-2 font-mono text-xs text-text-bright focus-custom" /></form>
-        <select aria-label="Time range" className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom" value={data.filters.period} onChange={(event) => update("period", event.currentTarget.value)}>{data.filterOptions.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+  return <div className="flex items-start justify-between gap-x-2 border-b border-grid-bright p-2">
+      <div aria-label="Telemetry-event filters" className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
+        <SearchInput />
+        <FilterMenu label={data.filters.jobType ? `Task: ${data.filters.jobType}` : "Tasks"} icon={<TasksIcon className="size-4" />}>
+          {data.filterOptions.jobTypes.map((job) => <FilterOption key={job} checked={data.filters.jobType === job} onClick={() => update("jobType", data.filters.jobType === job ? undefined : job)}>{job}</FilterOption>)}
+        </FilterMenu>
+        <RunIdFilter value={data.filters.runId} onApply={(value) => update("runId", value)} />
+        <FilterMenu label={`Created: ${periodLabel(data.filters.period)}`} icon={<CalendarDaysIcon className="size-4" />}>
+          {data.filterOptions.timeRanges.map((option) => <FilterOption key={option.value} checked={data.filters.period === option.value} onClick={() => update("period", option.value)}>{option.label}</FilterOption>)}
+        </FilterMenu>
+        <FilterMenu label={data.filters.levels.length > 0 ? `Level: ${data.filters.levels.join(", ")}` : "Level"} icon={<IconListTree className="size-4" />}>
+          {data.filterOptions.levels.map((level) => <FilterOption key={level} checked={data.filters.levels.includes(level)} onClick={() => toggleLevel(level)}>{level}</FilterOption>)}
+        </FilterMenu>
         {data.hasFilters && <Button variant="minimal/small" LeadingIcon={XMarkIcon} tooltip="Clear all filters" onClick={clear}>Clear filters</Button>}
       </div>
       <ListPagination list={data} />
-    </div>
-    {!data.capture.enabled && <div aria-label="Application-log capture disabled"><Callout variant="warning" className="m-2">Application-log capture is disabled. Recorded operations and previously captured logs remain available.</Callout></div>}
+    {!data.capture.enabled && <div aria-label="Application-log capture disabled" className="absolute mt-8"><Callout variant="warning" className="m-2">Application-log capture is disabled. Recorded operations and previously captured logs remain available.</Callout></div>}
     {data.capture.enabled && <p aria-label="Application-log capture" className="sr-only">Captures {data.capture.supportedLevels.join(", ")} with a limit of {data.capture.perAttemptLimit} logs per Attempt.</p>}
   </div>;
+}
+
+function FilterMenu({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return <Popover><PopoverTrigger asChild><button type="button" className={filterButtonClassName}>{icon}<span className="ml-1 max-w-52 truncate">{label}</span></button></PopoverTrigger><PopoverContent align="start" className="max-h-80 min-w-48 overflow-y-auto p-1">{children}</PopoverContent></Popover>;
+}
+
+function FilterOption({ checked, onClick, children }: { checked: boolean; onClick: () => void; children: React.ReactNode }) {
+  return <button type="button" role="menuitemcheckbox" aria-checked={checked} onClick={onClick} className="flex min-h-8 w-full items-center justify-between gap-3 rounded px-2 text-left text-xs text-text-dimmed hover:bg-background-hover hover:text-text-bright"><span>{children}</span><span aria-hidden>{checked ? "✓" : ""}</span></button>;
+}
+
+function RunIdFilter({ value, onApply }: { value: string | null; onApply: (value?: string) => void }) {
+  const [draft, setDraft] = useState(value ?? "");
+  const [open, setOpen] = useState(false);
+  useEffect(() => setDraft(value ?? ""), [value]);
+  const apply = () => { onApply(draft.trim() || undefined); setOpen(false); };
+  return <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><button type="button" className={filterButtonClassName}><FingerPrintIcon className="size-4" /><span className="ml-1 max-w-40 truncate">{value ? `Run ID: ${value}` : "Run ID"}</span></button></PopoverTrigger><PopoverContent align="start" className="w-80 p-3"><form onSubmit={(event) => { event.preventDefault(); apply(); }} className="flex flex-col gap-3"><label className="text-sm text-text-bright">Run ID<Input aria-label="Run ID value" placeholder="run_" value={draft} onChange={(event) => setDraft(event.currentTarget.value)} variant="small" className="mt-1 font-mono" /></label><div className="flex justify-end gap-1 border-t border-grid-dimmed pt-3"><Button type="button" variant="minimal/small" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" variant="secondary/small" disabled={!draft.trim()}>Apply</Button></div></form></PopoverContent></Popover>;
+}
+
+const filterButtonClassName = "group flex h-6 items-center gap-1 rounded border border-border-bright/50 bg-secondary px-2 text-xs text-text-bright shadow-xs transition hover:bg-background-raised focus-custom";
+
+function periodLabel(period: string) {
+  return ({ "1h": "1hr", "24h": "24hrs", "7d": "7 days", "30d": "30 days", all: "All time" } as Record<string, string>)[period] ?? period;
 }
 
 function DetailFailure({ state, message, onClose }: { state: "not-found" | "error"; message: string; onClose: () => void }) {
