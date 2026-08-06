@@ -27,9 +27,27 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
       anchorAccessibleName: "Period: 1hr",
       measurements: {},
     });
-    expect(definition.captures).toHaveLength(19);
-    expect(definition.captures.every((capture) => capture.startsWith("queue-found@") || capture.startsWith("queues-"))).toBe(true);
-    expect(definition.captures.some((capture) => capture.startsWith("queues-populated@"))).toBe(false);
+    expect(definition.captures).toEqual([
+      "queue-found@1024x768-classic",
+      "queue-found@1440x960-classic",
+      "queue-found@1440x960-dark",
+      "queue-found@1440x960-light",
+      "queue-found@1440x960-system-dark",
+      "queue-found@1440x960-system-light",
+      "queue-found@390x844-classic",
+      "queues-activity-wait-history@1440x960-classic",
+      "queues-activity-wait-history@1440x960-dark",
+      "queues-activity-wait-history@1440x960-light",
+      "queues-busy@1440x960-classic",
+      "queues-busy@1440x960-dark",
+      "queues-busy@1440x960-light",
+      "queues-idle@1440x960-classic",
+      "queues-idle@1440x960-dark",
+      "queues-idle@1440x960-light",
+      "queues-paginated-runs@1440x960-classic",
+      "queues-paginated-runs@1440x960-dark",
+      "queues-paginated-runs@1440x960-light",
+    ]);
   });
 
   test("coexists with root Connection and Queue capability omissions", () => {

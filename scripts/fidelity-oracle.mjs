@@ -132,7 +132,7 @@ export function validateAllowedDifferences(differences) {
       for (const measurement of Object.values(region.measurements)) {
         const valid = /^[a-f0-9]{64}$/.test(measurement.computedStyleSha256 ?? "")
           && /^[a-f0-9]{64}$/.test(measurement.anchorComputedStyleSha256 ?? "")
-          && (region.id !== "queue-connection-filter" || /^[a-f0-9]{64}$/.test(measurement.accessibilitySha256 ?? ""))
+          && (!["queue-connection-filter", "queue-recorded-runs"].includes(region.id) || /^[a-f0-9]{64}$/.test(measurement.accessibilitySha256 ?? ""))
           && [measurement.relativeRect, measurement.anchorRect].every((rect) => ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])));
         if (!valid) fail(`Invalid framework-extension measurement: ${region.id}`);
       }
