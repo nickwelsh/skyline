@@ -85,6 +85,35 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page).not.toHaveURL(/node=/);
 });
 
+test("Run panel layout persists through the external preference adapter", async ({ page }) => {
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  await routeDetail(page, detail, (nodeId) => adapter.inspector(nodeId, runId));
+  await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}`);
+
+  const tree = page.locator('[data-splitter-id="tree"]');
+  const handle = page.locator('[data-splitter-id="tree-handle"]');
+  await expect(tree).toBeVisible();
+  const before = await tree.boundingBox();
+  const handleBox = await handle.boundingBox();
+  expect(before).not.toBeNull();
+  expect(handleBox).not.toBeNull();
+  await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(handleBox!.x + 120, handleBox!.y + 20, { steps: 5 });
+  await page.mouse.up();
+
+  const resized = await tree.boundingBox();
+  expect(resized!.width).toBeGreaterThan(before!.width + 80);
+  await expect.poll(() => page.evaluate(() => {
+    const value = localStorage.getItem("skyline.ui-preferences.v1:/skyline");
+    return value ? JSON.parse(value).panels?.["panel-run-tree"] : null;
+  })).not.toBeNull();
+  await page.reload();
+  await expect(tree).toBeVisible();
+  await expect.poll(async () => (await tree.boundingBox())?.width).toBeGreaterThan(before!.width + 80);
+});
+
 test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   for (const source of Object.values(triggerFailureBaseline.sourceFiles)) {

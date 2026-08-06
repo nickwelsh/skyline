@@ -18,11 +18,13 @@ const bootstrap = JSON.stringify({
     runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },
     jobs: { view: true, testJob: false, configure: false, schedule: false },
     errors: { view: true, assign: false, ignore: false, resolve: false, alerts: false, replay: false, cancel: false, versions: false, bulkActions: false },
-    shell: { appearance: false, sidebarCustomization: false, favorites: true, shortcuts: true },
+    shell: { appearance: true, sidebarCustomization: true, favorites: true, panelPersistence: true, shortcuts: true, account: false, notifications: false, jobGuidance: false, organizationSwitching: false, projectSwitching: false, environmentSwitching: false, accountOpening: false },
+    help: { menu: true, shortcuts: true, askAi: false, documentation: false, status: false, suggestFeature: false, contact: false, changelog: false },
   },
 }).replaceAll("<", "\\u003c");
 
-const html = `<!doctype html><html lang="en" data-theme="classic"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skyline</title>${entry.css.map((file) => `<link rel="stylesheet" href="/skyline/assets/${file}">`).join("")}</head><body><div id="skyline"></div><script id="skyline-bootstrap" type="application/json">${bootstrap}</script><script type="module" src="/skyline/assets/${entry.file}"></script></body></html>`;
+const prepaint = `<script data-skyline-prepaint>(()=>{const f={theme:"classic",contrast:50};try{const p=JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline")||"null")||f;const t=["classic","system","dark","light"].includes(p.theme)?p.theme:f.theme;document.documentElement.dataset.theme=t==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):t;const c=Number.isInteger(p.contrast)&&p.contrast>=0&&p.contrast<=100?p.contrast:f.contrast;document.documentElement.style.setProperty("--theme-contrast",String(c/100))}catch{document.documentElement.dataset.theme=f.theme}})()</script>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Skyline</title>${prepaint}${entry.css.map((file) => `<link rel="stylesheet" href="/skyline/assets/${file}">`).join("")}</head><body><div id="skyline"></div><script id="skyline-bootstrap" type="application/json">${bootstrap}</script><script type="module" src="/skyline/assets/${entry.file}"></script></body></html>`;
 
 createServer((request, response) => {
   const asset = new URL(request.url ?? "/", "http://127.0.0.1").pathname.match(/^\/skyline\/assets\/([^/]+)$/)?.[1];
