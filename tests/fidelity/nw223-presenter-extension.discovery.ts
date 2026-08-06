@@ -33,12 +33,12 @@ const definition: PresenterExtensionDefinition = {
   captures,
   triggerSelector: "div[translate='no']",
   skylineSelector: "[data-skyline-extension='database-state-operation-inspector']",
-  triggerAnchorSelector: "[role='tree'][aria-label='Run trace']",
-  skylineAnchorSelector: "[role='tree'][aria-label='Run trace']",
+  triggerAnchorSelector: "[data-node-id='run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C'] p",
+  skylineAnchorSelector: "[data-node-id='run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C'] p",
   skylineAccessibleRole: "region",
   skylineAccessibleName: "Database and state operation inspector",
-  anchorAccessibleRole: "tree",
-  anchorAccessibleName: "Run trace",
+  anchorAccessibleRole: "paragraph",
+  anchorAccessibleName: "",
   measurements: {},
 };
 
