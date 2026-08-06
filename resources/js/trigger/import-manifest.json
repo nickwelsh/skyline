@@ -3,7 +3,7 @@
   "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
   "license": "Apache-2.0",
   "adaptedTargets": {
-    "resources/js/trigger/root.tsx": "1dd4068c63cf5b360c21faac84323af82fd076b9bba79b2e9ff57c0e3fc35dd6",
+    "resources/js/trigger/root.tsx": "2d4497110a22fb610bea6ccfb6c5acf24440cc9875f302f58bfc78cc7183f3e0",
     "resources/js/trigger/components/navigation/SideMenu.tsx": "8f526be7beb51c70d7dc8b8b159fd4ace8e4696d49143c9b98784e230cbb69b5",
     "resources/js/trigger/components/navigation/AppearanceMenu.tsx": "490e2a23c9089923ecac85f31cd9fd7842450c45034a6b94c6ad7fb135b9e1a8",
     "resources/js/trigger/components/navigation/HelpMenu.tsx": "b380b4f1165bf769f1b0b9e15d7c6c7f8bd8dc04036da13651d2314028fb698c",
@@ -60,7 +60,7 @@
   "files": [
     { "source": "LICENSE", "sha256": "9e9e22db5ae77f7ce1119294d0386cbbab2791cc77fb68d97c90627d7d96c5e1", "target": "licenses/trigger.dev-APACHE-2.0.txt", "mode": "exact" },
     { "source": "patches/@window-splitter__state@1.1.3.patch", "sha256": "ecf02927f78361c14d8f8347604fd355ba36f2fc4f9ba9a08cd63adc101b7327", "target": "patches/@window-splitter__state@1.1.3.patch", "mode": "exact" },
-    { "source": "apps/webapp/app/root.tsx", "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089", "target": "resources/js/trigger/root.tsx", "mode": "adapted", "modifications": "Removed document, server, auth, analytics, and toast providers; retained root shell composition around external static-router inputs." },
+    { "source": "apps/webapp/app/root.tsx", "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089", "target": "resources/js/trigger/root.tsx", "mode": "adapted", "modifications": "Removed document, server, auth, analytics, and toast providers; retained pinned font inheritance and root shell composition around external static-router inputs." },
     { "source": "apps/webapp/app/components/layout/AppLayout.tsx", "sha256": "a0d88fc2e144b5455bd2c2ec44da172d926d41302f0b72ea8a642cc301dc835c", "target": "resources/js/trigger/components/layout/AppLayout.tsx", "mode": "exact" },
     { "source": "apps/webapp/app/components/navigation/SideMenu.tsx", "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f", "target": "resources/js/trigger/components/navigation/SideMenu.tsx", "mode": "adapted", "modifications": "Retained source sidebar geometry, resizing, navigation, favorites, and dormant shell branches; gated every visible destination through host capabilities." },
     { "source": "apps/webapp/app/routes/account._index/route.tsx", "sha256": "d86a94891947ffb2f5f68b3535a4798336fe396be0960b3f3983fc4b32a5da17", "target": "resources/js/trigger/components/navigation/AppearanceMenu.tsx", "mode": "adapted", "modifications": "Retained source theme selector, active icons, and conditional contrast; replaced server account preferences with an injected external preference port." },

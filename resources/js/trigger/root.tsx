@@ -26,11 +26,13 @@ type TriggerShellProps = {
   panelPersistence: React.ComponentProps<typeof PanelPersistenceProvider>["port"];
 };
 
+export const TRIGGER_SHELL_CLASS_NAME = "isolate h-screen min-w-[1024px] bg-background-dimmed text-text-dimmed antialiased";
+
 export function TriggerShell({ applicationName, brandMark, environmentLabel, capabilities, preferences, appearance, favorites, warning, onFavoritesChange, onPreferencesChange, onAppearanceChange, onCustomize, panelPersistence }: TriggerShellProps) {
   return (
     <PanelPersistenceProvider port={panelPersistence}>
       <FavoritesProvider favorites={favorites} onChange={onFavoritesChange}>
-      <AppContainer className="isolate h-screen min-w-[1024px] bg-background-dimmed text-[0.8125rem] text-text-dimmed antialiased">
+      <AppContainer className={TRIGGER_SHELL_CLASS_NAME}>
         <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
           <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} preferences={preferences} appearance={appearance} warning={warning} onPreferencesChange={onPreferencesChange} onAppearanceChange={onAppearanceChange} onCustomize={onCustomize} />
           <main className="min-w-0 overflow-hidden"><Outlet /></main>
