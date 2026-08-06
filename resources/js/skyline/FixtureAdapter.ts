@@ -107,11 +107,12 @@ export class FixtureAdapter implements SkylineDtoAdapter {
 
   async errorGroups(query: ErrorGroupsQuery = {}): Promise<ErrorGroupsPageDto> {
     const source = fixtureErrorOccurrences();
-    const groups = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
-      .filter((occurrences) => (!query.jobType || occurrences[0].jobType === query.jobType)
-        && (!query.exceptionClass || occurrences[0].exception.class === query.exceptionClass)
-        && (!query.search || JSON.stringify(occurrences).toLowerCase().includes(query.search.toLowerCase()))
-        && occurrences.some((occurrence) => withinErrorPeriod(occurrence, query.period)))
+    const search = query.search?.toLowerCase();
+    const filtered = source.filter((occurrence) => (!query.jobType || occurrence.jobType === query.jobType)
+      && (!query.exceptionClass || occurrence.exception.class === query.exceptionClass)
+      && (!search || fixtureErrorMatchesSearch(occurrence, search))
+      && withinErrorPeriod(occurrence, query.period));
+    const groups = [...Map.groupBy(filtered, (occurrence) => fixtureErrorId(occurrence)).values()]
       .map(fixtureErrorSummary)
       .sort((left, right) => right.lastObservedAt.localeCompare(left.lastObservedAt));
     const offset = fixtureOffset(query.cursor);
@@ -729,6 +730,19 @@ function fixtureErrorId(occurrence: ErrorGroupOccurrence) {
   const frame = occurrence.exception.frames.find((candidate) => !candidate.isVendor);
   const material = [occurrence.jobType, occurrence.exception.class, frame?.file ?? occurrence.exception.location?.file ?? "", frame?.function ?? ""].join("\0");
   return `error_${fixtureHash(material).repeat(8)}`;
+}
+
+function fixtureErrorMatchesSearch(occurrence: ErrorGroupOccurrence, search: string): boolean {
+  const trace = occurrence.exception.frames.map((frame) => [
+    frame.file,
+    frame.line,
+    frame.class,
+    frame.type,
+    frame.function,
+  ].filter((value) => value !== null).join(" ")).join("\n");
+
+  return [occurrence.exception.message, occurrence.exception.class, trace, occurrence.runId]
+    .some((value) => value.toLowerCase().includes(search));
 }
 
 function withinErrorPeriod(occurrence: ErrorGroupOccurrence, period: ErrorGroupsQuery["period"]): boolean {

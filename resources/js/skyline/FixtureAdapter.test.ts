@@ -46,6 +46,20 @@ describe("FixtureAdapter", () => {
     expect(detail.activity.reduce((total, point) => total + point.occurrences, 0)).toBe(2);
   });
 
+  it("filters mixed Error groups at the occurrence evidence seam", async () => {
+    const adapter = new FixtureAdapter();
+    const matched = await adapter.errorGroups({ search: "victim selected" });
+
+    expect(matched.errorGroups).toHaveLength(1);
+    expect(matched.errorGroups[0]).toMatchObject({
+      representativeMessage: "Deadlock victim selected for invoice batch 42",
+      occurrenceCount: 1,
+      latest: { runId: "run_fixture_repeated_deadlock" },
+    });
+    expect(matched.errorGroups[0].activity.reduce((total, point) => total + point.occurrences, 0)).toBe(1);
+    await expect(adapter.errorGroups({ search: "billing" })).resolves.toMatchObject({ errorGroups: [] });
+  });
+
   it("adapts representative Runs into the pinned 25-row cursor contract", async () => {
     const page = await new FixtureAdapter().runs({ status: ["completed", "failed"] });
 
