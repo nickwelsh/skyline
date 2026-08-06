@@ -73,7 +73,6 @@ type Inspector = TraceNode & {
   detailSections: Array<{ label: string; value: unknown }>;
 };
 type InspectorDetailsRenderer = ComponentType<{ inspector: Inspector }>;
-type PanelHandle = NonNullable<React.ComponentProps<typeof ResizablePanel>["handle"]> extends React.Ref<infer Handle> ? Handle : never;
 type RouteData = {
   generatedAt: string;
   run: {
@@ -139,7 +138,6 @@ export default function RunDetailRoute() {
   const [params, setParams] = useSearchParams();
   const rootNodeId = data.trace.nodes[0]?.id;
   const selectedParam = params.get("node") ?? undefined;
-  const inspectorPanelHandle = useRef<PanelHandle>(null);
   const rememberedSelection = useRef<{ runId: string; nodeId?: string }>({ runId: data.run.id, nodeId: selectedParam });
 
   if (rememberedSelection.current.runId !== data.run.id) {
@@ -151,10 +149,6 @@ export default function RunDetailRoute() {
   useEffect(() => {
     if (selectedParam) rememberedSelection.current.nodeId = selectedParam;
   }, [selectedParam]);
-
-  useEffect(() => {
-    void (selectedId ? inspectorPanelHandle.current?.expand() : inspectorPanelHandle.current?.collapse());
-  }, [selectedId]);
 
   useEffect(() => {
     if (selectedParam || rememberedSelection.current.nodeId || !rootNodeId) return;
@@ -223,7 +217,7 @@ export default function RunDetailRoute() {
             Refreshing Run…
           </div>
         )}
-        <ResizablePanelGroup autosaveId="panel-run-parent-v3">
+        <ResizablePanelGroup autosaveId="panel-run-parent-v3" className="h-full max-h-full">
           <ResizablePanel id={panels.parent.main} min="100px">
             <TraceView key={data.run.id} data={data} selectedId={selectedId} onSelect={select} />
           </ResizablePanel>
@@ -233,17 +227,16 @@ export default function RunDetailRoute() {
           />
           <ResizablePanel
             id={panels.parent.inspector}
-            handle={inspectorPanelHandle}
             default="500px"
             min="250px"
+            className="overflow-hidden"
             collapsible
-            defaultCollapsed={!selectedId}
+            collapsed={!selectedId}
+            onCollapseChange={() => {}}
             collapsedSize="0px"
             collapseAnimation={RESIZABLE_PANEL_ANIMATION}
-            isStaticAtRest
             aria-hidden={!selectedId}
             {...(!selectedId ? { inert: "" } : {})}
-            className={cn("max-w-full overflow-hidden transition-[max-width] duration-300 ease-in-out", !selectedId && "max-w-0")}
           >
             <InspectorPanel data={data} selectedId={selectedId} onClose={() => select(undefined)} />
           </ResizablePanel>

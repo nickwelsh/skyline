@@ -64,6 +64,14 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
+  it("preserves the pinned Run panel group sizing classes", async () => {
+    const { container, root } = await renderRoute();
+    const group = container.querySelector('[data-group-id="panel-run-parent-v3"]');
+
+    expect(group?.className).toContain("h-full max-h-full");
+    await act(async () => root.unmount());
+  });
+
   it("closes the inspector through the source Button and ExitIcon seam", async () => {
     const { container, root, router } = await renderRoute();
     const inspector = container.querySelector('[aria-label="Run inspector"]');
