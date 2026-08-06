@@ -10,7 +10,9 @@ import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
 import { getRunStatusChartColor, TaskRunStatusCombo } from "~/components/runs/v3/TaskRunStatus";
+import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
+import { CodeBlock } from "~/CodeBlock";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 type PresentedJob = {
@@ -29,6 +31,8 @@ type JobsRouteData = {
   hasAnyJobs: boolean;
   hasFilters: boolean;
   jobGuidance: boolean;
+  showJobGuidance: boolean;
+  onJobGuidanceChange: (show: boolean) => void;
   testJob: boolean;
 };
 
@@ -46,26 +50,56 @@ export default function JobsRoute() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={<><TaskIcon className="size-4 text-tasks" />Jobs</>} />{data.jobGuidance && <button type="button" className="rounded px-2 py-1 text-xs text-text-dimmed hover:bg-background-hover focus-custom">Job guidance</button>}{data.testJob && <button type="button" className="rounded px-2 py-1 text-xs text-tests hover:bg-background-hover focus-custom">Test</button>}</NavBar>
-      <PageBody scrollable={false} className="grid min-h-0 grid-rows-[auto_1fr] p-0">
-        <div aria-label="Job filters" className="flex h-12 items-center justify-between gap-2 border-b border-grid-bright p-2">
-          <SearchInput placeholder="Search Jobs…" />
-          <select
-            aria-label="Time range"
-            className="h-8 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright"
-            value={searchParams.get("period") ?? "all"}
-            onChange={(event) => updatePeriod(event.currentTarget.value)}
-          >
-            {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+      <NavBar><PageTitle title={<><TaskIcon className="size-4 text-tasks" />Jobs</>} />{data.jobGuidance && !data.showJobGuidance && <button type="button" onClick={() => data.onJobGuidanceChange(true)} className="rounded px-2 py-1 text-xs text-text-dimmed hover:bg-background-hover focus-custom">New Job…</button>}{data.testJob && <button type="button" className="rounded px-2 py-1 text-xs text-tests hover:bg-background-hover focus-custom">Test</button>}</NavBar>
+      <PageBody scrollable={false} className="flex min-h-0 p-0">
+        <div className="grid min-w-0 flex-1 grid-rows-[auto_1fr]">
+          <div aria-label="Job filters" className="flex h-12 items-center justify-between gap-2 border-b border-grid-bright p-2">
+            <SearchInput placeholder="Search Jobs…" />
+            <select
+              aria-label="Time range"
+              className="h-8 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright"
+              value={searchParams.get("period") ?? "all"}
+              onChange={(event) => updatePeriod(event.currentTarget.value)}
+            >
+              {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+          <div className="relative min-h-0 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+            {data.jobs.length > 0 ? <JobsTable jobs={data.jobs} /> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
+            {isLoading && data.jobs.length === 0 ? <LoadingState /> : null}
+          </div>
         </div>
-        <div className="relative min-h-0 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-          {data.jobs.length > 0 ? <JobsTable jobs={data.jobs} /> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
-          {isLoading && data.jobs.length === 0 ? <LoadingState /> : null}
-        </div>
+        {data.jobGuidance && data.showJobGuidance && <JobGuidancePanel onClose={() => data.onJobGuidanceChange(false)} />}
       </PageBody>
     </PageContainer>
   );
+}
+
+const JOB_EXAMPLE = `<?php
+
+namespace App\\Jobs;
+
+final class ProcessInvoice implements ShouldQueue
+{
+    public function handle(): void
+    {
+        // Process the invoice.
+    }
+}`;
+
+function JobGuidancePanel({ onClose }: { onClose: () => void }) {
+  return <aside aria-label="Job guidance" className="grid h-full w-[400px] shrink-0 grid-rows-[auto_1fr] overflow-hidden border-l border-grid-bright bg-background-bright">
+    <div className="flex items-center justify-between gap-2 border-b border-grid-dimmed px-3 py-2">
+      <h2 className="text-sm font-semibold text-text-bright">Create a new Job</h2>
+      <button type="button" onClick={onClose} aria-label="Close Job guidance" className="rounded p-1 text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom"><ExitIcon className="size-4" /></button>
+    </div>
+    <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+      <p className="mb-6 text-sm text-text-dimmed">Copy this example into your Application's <code className="rounded bg-background-dimmed px-1 py-0.5 font-mono text-xs">app/Jobs</code> directory and customize it.</p>
+      <div className="mb-2 flex items-center gap-1.5"><TaskIcon className="size-4 text-tasks" /><h3 className="text-sm font-semibold text-text-bright">Queued Job</h3></div>
+      <p className="mb-2 text-sm text-text-dimmed">A durable background operation handled by your configured Laravel Queue.</p>
+      <CodeBlock code={JOB_EXAMPLE} language="php" showCopyButton showLineNumbers={false} />
+    </div>
+  </aside>;
 }
 
 function JobsTable({ jobs }: { jobs: PresentedJob[] }) {

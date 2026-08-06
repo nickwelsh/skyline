@@ -27,6 +27,7 @@ export type UiPreferences = {
   };
   favorites: FavoritePreference[];
   runs: { rootOnly: boolean };
+  jobs: { usefulLinks: boolean };
   panels: Record<string, PanelSnapshot>;
 };
 
@@ -184,6 +185,7 @@ function parsePreferences(value: unknown): UiPreferences {
   const input = record(value);
   const sidebar = record(input.sidebar);
   const runs = record(input.runs);
+  const jobs = record(input.jobs);
   const appearance = window.__skylineUiPreferences.parseAppearance(input);
 
   return {
@@ -200,6 +202,7 @@ function parsePreferences(value: unknown): UiPreferences {
     },
     favorites: favorites(input.favorites),
     runs: { rootOnly: boolean(runs.rootOnly) ?? fallback.runs.rootOnly },
+    jobs: { usefulLinks: boolean(jobs.usefulLinks) ?? fallback.jobs.usefulLinks },
     panels: panels(input.panels),
   };
 }
@@ -297,6 +300,7 @@ function defaults(): UiPreferences {
     },
     favorites: [],
     runs: { rootOnly: false },
+    jobs: { usefulLinks: true },
     panels: {},
   };
 }

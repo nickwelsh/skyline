@@ -118,6 +118,25 @@ test("Job detail can be favorited to a persistent valid sidebar destination", as
   await expect(favorite).toHaveCount(0);
 });
 
+test("capability-enabled Job guidance retains its useful-links preference", async ({ page }) => {
+  await page.route("**/skyline/api/jobs**", async (route) => {
+    const response = jobsPage();
+    response.capabilities = {
+      ...fixtureCapabilities,
+      shell: { ...fixtureCapabilities.shell, jobGuidance: true },
+    };
+    return route.fulfill({ json: response });
+  });
+
+  await page.goto("/skyline/jobs");
+  await expect(page.getByRole("complementary", { name: "Job guidance" })).toBeVisible();
+  await page.getByRole("button", { name: "Close Job guidance" }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline") ?? "{}").jobs?.usefulLinks)).toBe(false);
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Job guidance" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "New Job…" })).toBeVisible();
+});
+
 test("Jobs covers empty, filtered-empty, API-error, and not-found states", async ({ page }) => {
   let mode: "empty" | "filtered" | "error" | "not-found" = "empty";
   await page.route("**/skyline/api/jobs**", async (route) => {

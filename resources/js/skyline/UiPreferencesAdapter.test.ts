@@ -38,6 +38,7 @@ describe("UiPreferencesAdapter", () => {
       },
       favorites: [],
       runs: { rootOnly: false },
+      jobs: { usefulLinks: true },
       panels: {},
     });
   });
@@ -62,6 +63,7 @@ describe("UiPreferencesAdapter", () => {
         { id: "external", label: "External", url: "https://example.test" },
       ],
       runs: { rootOnly: "yes" },
+      jobs: { usefulLinks: false },
       panels: {},
     }));
 
@@ -81,6 +83,7 @@ describe("UiPreferencesAdapter", () => {
         { id: "future-query", label: "Query", url: "/query" },
       ],
       runs: { rootOnly: false },
+      jobs: { usefulLinks: false },
     });
   });
 
@@ -94,7 +97,7 @@ describe("UiPreferencesAdapter", () => {
 
     first.update((current) => ({ ...current, theme: "dark", runs: { rootOnly: false } }));
 
-    expect(first.read()).toMatchObject({ theme: "dark", runs: { rootOnly: false } });
+    expect(first.read()).toMatchObject({ theme: "dark", runs: { rootOnly: false }, jobs: { usefulLinks: true } });
     expect(firstListener).toHaveBeenLastCalledWith(expect.objectContaining({ theme: "dark" }));
     window.dispatchEvent(new StorageEvent("storage", {
       key: first.storageKey,
@@ -105,7 +108,7 @@ describe("UiPreferencesAdapter", () => {
     expect(secondListener).toHaveBeenLastCalledWith(expect.objectContaining({ theme: "dark" }));
 
     first.clear();
-    expect(first.read()).toMatchObject({ theme: "classic", runs: { rootOnly: false } });
+    expect(first.read()).toMatchObject({ theme: "classic", runs: { rootOnly: false }, jobs: { usefulLinks: true } });
     expect(localStorage.getItem(first.storageKey)).toBeNull();
 
     stopFirst();

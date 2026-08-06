@@ -40,7 +40,11 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
     }
     return presentRuns(await adapter.runs(runsQuery(request)));
   };
-  const jobsLoader = async ({ request }: LoaderFunctionArgs) => presentJobs(await adapter.jobs(jobsQuery(request)));
+  const jobsLoader = async ({ request }: LoaderFunctionArgs) => ({
+    ...presentJobs(await adapter.jobs(jobsQuery(request))),
+    showJobGuidance: preferences?.read().jobs.usefulLinks ?? true,
+    onJobGuidanceChange: (show: boolean) => preferences?.update((current) => ({ ...current, jobs: { usefulLinks: show } })),
+  });
   const jobLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.jobId) throw new Response("The Job type was not found.", { status: 404 });
     return presentJobDetail(await adapter.job(params.jobId, jobRunsQuery(request)));
