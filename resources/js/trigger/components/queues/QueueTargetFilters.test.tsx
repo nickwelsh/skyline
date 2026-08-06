@@ -2,7 +2,38 @@ import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { QueueConnectionFilter, QueuePeriodFilter } from "./QueueTargetFilters";
+import { OperatingSystemContextProvider } from "../primitives/OperatingSystemProvider";
+import { QueueConnectionFilter, QueuePeriodFilter, QueueSearchFilter } from "./QueueTargetFilters";
+
+describe("QueueSearchFilter", () => {
+  afterEach(() => { document.body.innerHTML = ""; });
+
+  it("names the source clear-field control and keeps Escape as its keyboard equivalent", () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(
+      <OperatingSystemContextProvider platform="mac">
+        <MemoryRouter initialEntries={["/queues?search=billing"]}>
+          <QueueSearchFilter />
+          <LocationProbe />
+        </MemoryRouter>
+      </OperatingSystemContextProvider>,
+    ));
+
+    const input = container.querySelector<HTMLInputElement>('[placeholder="Search queues…"]')!;
+    const clear = container.querySelector<HTMLButtonElement>('button[aria-label="Clear field"]');
+    expect(clear).not.toBeNull();
+    input.focus();
+    flushSync(() => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("");
+    expect(container.querySelector("output")!.textContent).toBe("");
+
+    flushSync(() => root.unmount());
+  });
+});
 
 describe("QueuePeriodFilter", () => {
   afterEach(() => { document.body.innerHTML = ""; });

@@ -132,6 +132,24 @@ test("Queue Period Select preserves keyboard and browser history semantics", asy
   await expect(page.getByRole("combobox", { name: "Period: 24 hours" })).toBeVisible();
 });
 
+test("Queue search clear control is named and Escape remains its keyboard equivalent", async ({ page }) => {
+  await routeQueues(page);
+  await page.goto("/skyline/queues?search=billing");
+
+  const search = page.getByRole("textbox", { name: "Search queues…" });
+  await expect(page.getByRole("button", { name: "Clear field" })).toBeVisible();
+  await search.focus();
+  await search.press("Escape");
+  await expect(search).toBeFocused();
+  await expect(page).not.toHaveURL(/search=/);
+
+  await search.fill("billing");
+  const violations = (await new AxeBuilder({ page }).analyze()).violations
+    .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
+    .map((violation) => ({ id: violation.id, targets: violation.nodes.map((node) => node.target) }));
+  expect(violations).toEqual([]);
+});
+
 test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found, idle, busy, and insufficient samples", async ({ page }) => {
   let mode: "populated" | "initial-empty" | "filtered-empty" | "error" = "populated";
   let detailMode: "populated" | "filtered-empty" | "error" | "idle" = "populated";

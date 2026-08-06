@@ -157,6 +157,7 @@ export function SearchInput({
                     <TooltipTrigger asChild tabIndex={-1}>
                       <button
                         type="button"
+                        aria-label="Clear field"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleClear()}
                         className="flex size-4.5 items-center justify-center rounded-[2px] border border-text-dimmed/40 text-text-dimmed transition hover:bg-surface-control hover:text-text-bright"
