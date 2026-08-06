@@ -109,8 +109,39 @@ function presentInspector(inspector: InspectorDto): RunDetailInspector {
 
   return {
     ...inspector,
+    context: inspectorContext(inspector),
     detailSections: candidates
       .filter((entry) => entry[1] !== undefined && entry[1] !== null)
       .map(([label, value]) => ({ label, value })),
   };
+}
+
+function inspectorContext(inspector: InspectorDto): RunDetailInspector["context"] {
+  const presentation = inspector.presentation;
+  if (!presentation) return undefined;
+
+  if (presentation.type === "http") {
+    return Object.keys(inspector.overview).length
+      ? { value: inspector.overview, isTruncated: false }
+      : undefined;
+  }
+
+  if (presentation.type === "breadcrumb") {
+    return { value: presentation.breadcrumb.context, isTruncated: false };
+  }
+
+  if (presentation.type !== "delivery") return undefined;
+  const delivery = presentation.delivery;
+  const captures = [delivery.recipientIdentity, delivery.messageData, delivery.operationData];
+  const value = Object.fromEntries(
+    [
+      ["recipients", delivery.recipients],
+      ["recipientIdentity", delivery.recipientIdentity?.value],
+      ["messageData", delivery.messageData?.value],
+      ["operationData", delivery.operationData?.value],
+    ].filter((entry): entry is [string, unknown] => entry[1] !== null && entry[1] !== undefined),
+  );
+  return Object.keys(value).length
+    ? { value, isTruncated: captures.some((capture) => capture?.truncated === true) }
+    : undefined;
 }

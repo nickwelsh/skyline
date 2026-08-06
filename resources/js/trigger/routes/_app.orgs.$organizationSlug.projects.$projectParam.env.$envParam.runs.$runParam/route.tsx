@@ -61,6 +61,7 @@ type TraceNode = {
 };
 type Inspector = TraceNode & {
   overview: Record<string, string | number | null>;
+  context?: { value: unknown; isTruncated: boolean };
   exception?: ExceptionPreviewData | null;
   source?: { file: string; line: number; href: string | null } | null;
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
@@ -552,6 +553,13 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
     return () => { active = false; controller.abort(); };
   }, [data.generatedAt, data.trace.revision, selectedId]);
 
+  useEffect(() => {
+    if (tab !== "context" || !inspector || inspector.context) return;
+    const next = new URLSearchParams(params);
+    next.delete("tab");
+    setParams(next, { replace: true });
+  }, [inspector, params, setParams, tab]);
+
   if (!frozenId) return null;
 
   const setTab = (nextTab: string) => {
@@ -573,7 +581,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
         </button>
       </div>
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
-        {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "context", label: "Context", key: "x" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
+        {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, ...(inspector?.context ? [{ id: "context", label: "Context", key: "x" }] : []), { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
           <InspectorTab key={item.id} active={tab === item.id} enabled={Boolean(selectedId)} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
         ))}
       </div>
@@ -582,8 +590,11 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
         {error && <div role="alert" className="text-error">{error.message}</div>}
         {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />}
         {inspector && tab === "detail" && <InspectorDetails inspector={inspector} renderDetails={data.renderInspectorDetails} />}
-        {inspector && tab === "context" && (
-          <div className="py-3 text-sm text-text-dimmed">Context was not captured for this Run.</div>
+        {inspector?.context && tab === "context" && (
+          <div className="py-3">
+            {inspector.context.isTruncated && <p role="status" className="mb-2 text-xs text-warning">Context was truncated when captured.</p>}
+            <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.context.value, null, 2)}</pre>
+          </div>
         )}
         {inspector && tab === "metadata" && (
           <pre className="my-3 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>

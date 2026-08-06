@@ -490,9 +490,22 @@ test("paired external and custom inspectors preserve visible, interaction, focus
   for (const scenario of inspectorOracle.cases) {
     activeCase = scenario.key;
     await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}&tab=detail&fixture=${scenario.key}`);
+    const detailTab = page.getByRole("tab", { name: "Detail", exact: true });
     const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
     await expect(detailRegion).toBeVisible();
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
+
+    const contextExpectation = { http: runId, delivery: "billing", breadcrumb: "429" }[scenario.key];
+    const contextTab = page.getByRole("tab", { name: "Context", exact: true });
+    if (contextExpectation) {
+      await expect(contextTab).toBeVisible();
+      await contextTab.click();
+      await expect(page.getByRole("tabpanel", { name: "Context" })).toContainText(contextExpectation);
+      await detailTab.click();
+      await expect(detailRegion).toBeVisible();
+    } else {
+      await expect(contextTab).toHaveCount(0);
+    }
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
     await wrap.focus();

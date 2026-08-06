@@ -19,6 +19,7 @@ import type {
 
 export type ExternalInspector = InspectorDto & {
   detailSections: Array<{ label: string; value: unknown }>;
+  context?: { value: unknown; isTruncated: boolean };
 };
 
 type PresentationOf<Type extends InspectorPresentation["type"]> = Extract<InspectorPresentation, { type: Type }>;
