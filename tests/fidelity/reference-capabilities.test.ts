@@ -99,6 +99,7 @@ describe("pinned shell capability adapters", () => {
     const source = readFileSync(sharedFilters, "utf8");
     const adapted = conditionQueueTimeFilterAnchor(source);
     expect(adapted).toContain('data-trigger-anchor="queue-period-filter"');
+    expect(adapted).toContain('aria-label={`${constrained.label}: ${constrained.valueLabel}`}');
     expect(adapted).toContain('className="group cursor-pointer focus-custom"');
     expect(adapted.match(/data-trigger-anchor="queue-period-filter"/g)).toHaveLength(1);
     expect(() => conditionQueueTimeFilterAnchor(source.replace('className="group cursor-pointer focus-custom"', 'className="changed"'))).toThrow(/must be reviewed/i);

@@ -116,8 +116,14 @@ export function conditionQueueDetailMarkers(code: string) {
 }
 
 export function conditionQueueTimeFilterAnchor(code: string) {
-  return replaceMarker(
+  const adapted = replaceMarker(
     code,
+    "                  <Ariakit.Select\n                    ref={triggerRef}",
+    "                  <Ariakit.Select\n                    aria-label={`${constrained.label}: ${constrained.valueLabel}`}\n                    ref={triggerRef}",
+    "Period filter accessible name",
+  );
+  return replaceMarker(
+    adapted,
     '<div className="group cursor-pointer focus-custom" />',
     '<div data-trigger-anchor="queue-period-filter" className="group cursor-pointer focus-custom" />',
     "Period filter anchor",
