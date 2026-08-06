@@ -67,6 +67,9 @@ describe("ResizablePanelGroup persistence", () => {
     const nextRoot = createRoot(container);
     flushSync(() => nextRoot.render(panels()));
     expect(defaults(container)).toEqual(["25%", "75%"]);
+    expect(container.firstElementChild?.getAttribute("data-snapshot")).toBe("absent");
+    expect(container.firstElementChild?.getAttribute("data-autosave-id")).toBe("panel-run-tree");
+    expect(container.firstElementChild?.getAttribute("data-autosave-strategy")).toBe("external");
     flushSync(() => nextRoot.unmount());
   });
 
