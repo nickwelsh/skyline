@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "decision": "NW-216",
+  "categories": [
+    "branding-terminology",
+    "equivalent-fixture-data",
+    "capability-omission",
+    "react-router-url",
+    "invisible-integration"
+  ],
+  "regions": [
+    {
+      "id": "application-identity",
+      "category": "branding-terminology",
+      "triggerSelector": "[data-oracle-region='application-identity']",
+      "skylineSelector": "[data-oracle-region='application-identity']",
+      "accessibleName": "Application identity",
+      "decision": "NW-216"
+    },
+    {
+      "id": "fixture-values",
+      "category": "equivalent-fixture-data",
+      "triggerSelector": "[data-oracle-region='fixture-values']",
+      "skylineSelector": "[data-oracle-region='fixture-values']",
+      "accessibleName": "Semantically matched fixture values",
+      "decision": "NW-216"
+    },
+    {
+      "id": "supported-navigation",
+      "category": "capability-omission",
+      "triggerSelector": "[data-oracle-region='supported-navigation']",
+      "skylineSelector": "[data-oracle-region='supported-navigation']",
+      "accessibleName": "Supported observability navigation",
+      "decision": "NW-216"
+    }
+  ]
+}

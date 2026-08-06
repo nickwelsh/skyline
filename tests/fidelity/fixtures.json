@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "version": "nw-227-v1",
+  "generatedAt": "2026-08-05T12:00:00.000Z",
+  "ids": {
+    "job": "job_fixture_invoice",
+    "run": "run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+    "error": "error_fixture_deadlock",
+    "event": "event_fixture_query",
+    "queue": "queue_fixture_redis_default"
+  },
+  "values": {
+    "jobType": "App\\Jobs\\GenerateMonthlyInvoices",
+    "runStatus": "failed",
+    "exceptionClass": "Illuminate\\Database\\DeadlockException",
+    "logLevel": "ERROR",
+    "connection": "redis",
+    "queue": "default"
+  }
+}

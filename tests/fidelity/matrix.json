@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "roots": ["jobs", "runs", "errors", "logs", "queues"],
+  "details": ["job", "run", "error", "log", "queue"],
+  "rootStates": ["loading", "populated", "initial-empty", "filtered-empty", "api-error"],
+  "detailStates": ["loading", "found", "stale-refresh", "api-error", "not-found"],
+  "ownedStates": {
+    "shell": ["expanded", "collapsed", "custom-width", "customized", "favorites", "appearance", "customization-dialog", "shortcuts-dialog", "storage-warning", "capabilities-hidden"],
+    "jobs": ["contrasting-activity", "filtering", "favorite", "long-labels", "recent-runs", "absent-optional-data"],
+    "runs": ["mixed-pagination", "successful", "active", "failed", "retried", "parent-child-trace", "multiple-attempts", "long-data", "exception", "inspectors", "timeline-extremes", "polling"],
+    "errors": ["fingerprints-counts", "filters", "single-occurrence", "many-occurrences", "affected-job-types", "application-vendor-frames", "stack-expansion", "linked-runs", "long-exception"],
+    "logs": ["operation", "application-log", "error", "supported-levels", "job-run-filters", "capture-disabled", "selected-detail", "long-content", "pagination"],
+    "queues": ["multiple-targets", "filtering", "idle", "busy", "activity-wait-history", "paginated-runs", "long-labels", "hidden-controls"]
+  },
+  "primary": { "viewport": [1440, 960], "themes": ["classic", "dark", "light"] },
+  "core": { "viewports": [[1024, 768], [390, 844]], "theme": "classic", "shellStates": ["expanded", "collapsed", "custom-width", "customized"] },
+  "system": { "viewport": [1440, 960], "schemes": ["light", "dark"], "states": ["populated-roots", "found-details", "appearance", "live-change"] }
+}

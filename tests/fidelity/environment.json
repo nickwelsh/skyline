@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "triggerCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "playwrightVersion": "1.58.2",
+  "chromiumRevision": "1208",
+  "chromiumVersion": "145.0.7632.6",
+  "linuxImage": "mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d",
+  "nodeVersion": "24.18.0",
+  "pnpmVersion": "10.33.2",
+  "fonts": {
+    "GeistVariableVF.woff2": "60e11d985314d4843c7a741d67bc7744c4bf519e50ce08e1d5e74e43414aaff0",
+    "GeistMonoVariableVF.woff2": "35b975ebbcd7e79e2cc7b2008fabe8343372a86610c959c1f58b510e2a281aed"
+  },
+  "fixtureVersion": "nw-227-v1",
+  "locale": "en-US",
+  "timezone": "UTC",
+  "deviceScaleFactor": 1,
+  "reducedMotion": "reduce",
+  "frozenClock": "2026-08-05T12:00:00.000Z"
+}
