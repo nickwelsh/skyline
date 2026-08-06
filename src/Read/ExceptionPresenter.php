@@ -173,7 +173,17 @@ final readonly class ExceptionPresenter
 
     private function safeEditorHref(string $file, ?int $line): ?string
     {
-        if (! is_file($file) || ! is_readable($file)) {
+        $resolvedFile = realpath($file);
+        $resolvedBase = realpath(base_path());
+
+        if ($resolvedFile === false || $resolvedBase === false || ! is_readable($resolvedFile)) {
+            return null;
+        }
+
+        $normalizedFile = str_replace('\\', '/', $resolvedFile);
+        $normalizedBase = rtrim(str_replace('\\', '/', $resolvedBase), '/').'/';
+
+        if (! str_starts_with($normalizedFile, $normalizedBase)) {
             return null;
         }
 
@@ -186,7 +196,7 @@ final readonly class ExceptionPresenter
             return null;
         }
 
-        return $this->editorLink->href($file, $line);
+        return $this->editorLink->href($resolvedFile, $line);
     }
 
     /** @param list<array<string, mixed>> $frames */

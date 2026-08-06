@@ -634,6 +634,19 @@ it('returns curated relative exception details without raw stack metadata', func
     expect($linked['frames'][0]['href'])
         ->toStartWith('vscode://file//workspace/skyline/')
         ->not->toContain(base_path());
+
+    $outsideAttempt = (object) [
+        ...(array) $attempt,
+        'exception_file' => __FILE__,
+        'exception_line' => 1,
+        'exception_trace' => '#0 '.__FILE__.'(1): App\\Jobs\\FailingJob->handle()',
+    ];
+    $outside = (new ExceptionPresenter(app(EditorLink::class)))
+        ->present($outsideAttempt, FailingJob::class);
+
+    expect($outside['frames'][0]['file'])
+        ->toBe('tests/Persistence/ReadApiTest.php')
+        ->and($outside['frames'][0]['href'])->toBeNull();
 });
 
 it('keeps failed Attempt evidence distinct without inventing uncaptured metadata', function (): void {
