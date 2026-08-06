@@ -92,7 +92,7 @@ function FiltersBar({ list }: { list: ErrorsListData }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const update = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
-    value && value !== "all" ? next.set(key, value) : next.delete(key);
+    value && (key === "period" || value !== "all") ? next.set(key, value) : next.delete(key);
     next.delete("cursor");
     next.delete("direction");
     setSearchParams(next);
@@ -223,29 +223,35 @@ function ErrorsList({
 }
 
 function ErrorGroupRow({ errorGroup }: { errorGroup: ErrorGroup }) {
+  const [searchParams] = useSearchParams();
+  const period = searchParams.get("period");
+  const errorPath = period
+    ? `${errorGroup.path}?${new URLSearchParams({ period })}`
+    : errorGroup.path;
+
   return (
     <TableRow>
-      <TableCell to={errorGroup.path} isTabbableCell className="font-mono">
+      <TableCell to={errorPath} isTabbableCell className="font-mono">
         {errorGroup.fingerprint.slice(-8)}
       </TableCell>
       <TableCell to={errorGroup.jobPath}>{errorGroup.jobType}</TableCell>
-      <TableCell to={errorGroup.path} className="max-w-96 font-mono">
+      <TableCell to={errorPath} className="max-w-96 font-mono">
         <span title={errorGroup.representativeMessage}>
           {errorGroup.representativeMessage.length > 128
             ? `${errorGroup.representativeMessage.slice(0, 128)}…`
             : errorGroup.representativeMessage}
         </span>
       </TableCell>
-      <TableCell to={errorGroup.path}>
+      <TableCell to={errorPath}>
         <span className="tabular-nums">{errorGroup.occurrenceCount.toLocaleString()}</span>
       </TableCell>
-      <TableCell to={errorGroup.path} actionClassName="py-1.5">
+      <TableCell to={errorPath} actionClassName="py-1.5">
         <ErrorActivityGraph activity={errorGroup.activity} />
       </TableCell>
-      <TableCell to={errorGroup.path} className="tabular-nums">
+      <TableCell to={errorPath} className="tabular-nums">
         <RelativeDateTime date={errorGroup.firstObservedAt} />
       </TableCell>
-      <TableCell to={errorGroup.path} className="tabular-nums">
+      <TableCell to={errorPath} className="tabular-nums">
         <RelativeDateTime date={errorGroup.lastObservedAt} />
       </TableCell>
     </TableRow>

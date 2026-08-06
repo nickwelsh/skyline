@@ -62,12 +62,15 @@ type ErrorGroupDetailData = {
 
 export default function Page() {
   const data = useLoaderData() as ErrorGroupDetailData;
+  const [searchParams] = useSearchParams();
+  const period = searchParams.get("period");
+  const errorsPath = period ? `/errors?${new URLSearchParams({ period })}` : "/errors";
 
   return (
     <PageContainer>
       <NavBar>
         <PageTitle
-          backButton={{ to: "/errors", text: "Errors" }}
+          backButton={{ to: errorsPath, text: "Errors" }}
           title={<span className="font-mono text-xs">{data.errorGroup.friendlyId}</span>}
         />
       </NavBar>
@@ -83,7 +86,7 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const updatePeriod = (period: string) => {
     const next = new URLSearchParams(searchParams);
-    period && period !== "all" ? next.set("period", period) : next.delete("period");
+    next.set("period", period);
     next.delete("cursor");
     next.delete("direction");
     setSearchParams(next);

@@ -32,7 +32,7 @@ describe("Error-group detail source chrome", () => {
     const data = presentErrorGroupDetail(await adapter.errorGroup(group.id, { period: "7d" }));
     const router = createMemoryRouter([
       { path: "/errors/:errorId", loader: () => data, element: <ErrorGroupDetailRoute /> },
-    ], { initialEntries: [`/errors/${group.id}`] });
+    ], { initialEntries: [`/errors/${group.id}?period=7d`] });
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
@@ -44,6 +44,8 @@ describe("Error-group detail source chrome", () => {
     ));
 
     expect(container.textContent).toContain(data.errorGroup.friendlyId);
+    expect(Array.from(container.querySelectorAll("a")).find((link) => link.textContent?.includes("Errors"))?.getAttribute("href"))
+      .toBe("/errors?period=7d");
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Occurred range"]')?.textContent)
       .toContain("Occurred:7 days");
     expect(container.textContent).not.toContain("Versions");
@@ -62,6 +64,14 @@ describe("Error-group detail source chrome", () => {
     expect(sidebar.textContent).toContain("About 16 hours ago");
     expect(sidebar.querySelector('[aria-label="Code"]')).not.toBeNull();
     expect(sidebar.querySelector('[aria-label="Error"]')).toBeNull();
+
+    const occurred = container.querySelector<HTMLButtonElement>('[aria-label="Occurred range"]')!;
+    await act(async () => occurred.click());
+    const allTime = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
+      .find((button) => button.textContent?.trim() === "All time")!;
+    expect(allTime).toBeDefined();
+    await act(async () => allTime.click());
+    expect(router.state.location.search).toBe("?period=all");
 
     await act(async () => root.unmount());
   });
