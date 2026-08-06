@@ -13,9 +13,8 @@ describe("QueueEnvironmentCharts", () => {
 
     flushSync(() => root.render(<QueueEnvironmentCharts />));
 
-    expect(container.querySelectorAll("figure")).toHaveLength(4);
-    expect(container.querySelectorAll('svg[role="img"]')).toHaveLength(4);
-    expect(container.querySelectorAll("polyline")).toHaveLength(0);
+    expect(container.querySelectorAll('[role="img"]')).toHaveLength(4);
+    expect(container.querySelectorAll(".recharts-responsive-container")).toHaveLength(0);
     expect(container.textContent?.match(/No activity/g)).toHaveLength(4);
 
     flushSync(() => root.unmount());
