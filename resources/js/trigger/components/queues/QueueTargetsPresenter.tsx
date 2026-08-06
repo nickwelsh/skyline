@@ -68,9 +68,9 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
         <QueueBigNumber title="Queued" value={data.environment.queued} />
-        <QueueBigNumber title="Running" value={data.environment.running} />
+        <QueueBigNumber title="Running" value={data.environment.running} capabilityMarker="queue-root-running" />
         <QueueBigNumber title="Allocated" value={data.environment.allocated} />
-        <QueueBigNumber title="Environment limit" value={data.environment.limit} />
+        <QueueBigNumber title="Environment limit" value={data.environment.limit} capabilityMarker="queue-root-environment-limit" />
       </MetricsLayout.Grid>
       {(data.hasFilters || data.hasAnyQueueTargets) && (
         <MetricsLayout.Grid kind="charts" columns={{ base: 2, lg: 4 }}>
@@ -108,17 +108,22 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
       <TableBody aria-busy={loading} className={loading ? "opacity-50" : undefined}>
         {targets.map((target) => (
           <TableRow key={target.id}>
-            <TableCell to={target.path} isTabbableCell leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}>
+            <TableCell
+              to={target.path}
+              isTabbableCell
+              leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}
+              trailingContent={target.health === "Backlogged" ? <span aria-hidden="true" data-skyline-capability={`queue-target-${target.id}-warning`} className="block size-4" /> : undefined}
+            >
               {target.queue}
             </TableCell>
             <MetricCell target={target} value={target.queued} />
             <MetricCell target={target} value={target.running} bright={target.running > 0} />
-            <MetricCell target={target} value={target.limit ?? "–"} />
-            <MetricCell target={target} value={target.limitedBy ?? "–"} />
-            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} /></TableCell>
+            <MetricCell target={target} value={target.limit ?? "–"} capabilityMarker={`queue-target-${target.id}-limit`} />
+            <MetricCell target={target} value={target.limitedBy ?? "–"} capabilityMarker={`queue-target-${target.id}-limited-by`} />
+            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} capabilityMarker={target.health === "Backlogged" ? `queue-target-${target.id}-health` : undefined} /></TableCell>
             <MetricCell target={target} value={target.queueTimeSampleCount > 0 ? target.delayP95 : "–"} bright={target.queueTimeSampleCount > 0} />
-            <TableCell to={target.path} alignment="right"><BacklogSparkline values={target.backlog} /></TableCell>
-            <TableCell />
+            <TableCell to={target.path} alignment="right"><BacklogSparkline values={target.backlog} capabilityMarker={`queue-target-${target.id}-backlog`} /></TableCell>
+            <TableCell capabilityMarker={`queue-target-${target.id}-pause-resume`} />
           </TableRow>
         ))}
       </TableBody>
@@ -126,23 +131,23 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
   );
 }
 
-function MetricCell({ target, value, bright = false }: { target: PresentedQueueTarget; value: string | number; bright?: boolean }) {
-  return <TableCell to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
+function MetricCell({ target, value, bright = false, capabilityMarker }: { target: PresentedQueueTarget; value: string | number; bright?: boolean; capabilityMarker?: string }) {
+  return <TableCell capabilityMarker={capabilityMarker} to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
 }
 
-function QueueHealthBadge({ health }: { health: PresentedQueueTarget["health"] }) {
+function QueueHealthBadge({ health, capabilityMarker }: { health: PresentedQueueTarget["health"]; capabilityMarker?: string }) {
   const styles = health === "Backlogged"
     ? "bg-blue-500/10 text-blue-500"
     : health === "Active" ? "bg-success/10 text-success" : "bg-charcoal-500/10 text-text-dimmed";
-  return <span className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
+  return <span data-skyline-capability={capabilityMarker} className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
 }
 
-function BacklogSparkline({ values }: { values: number[] }) {
-  if (values.length === 0) return <span className="text-text-dimmed">–</span>;
+function BacklogSparkline({ values, capabilityMarker }: { values: number[]; capabilityMarker?: string }) {
+  if (values.length === 0) return <span data-skyline-capability={capabilityMarker} className="text-text-dimmed">–</span>;
   const maximum = Math.max(...values, 1);
   const points = values.map((value, index) => `${values.length === 1 ? 67 : index / (values.length - 1) * 134},${22 - value / maximum * 18}`).join(" ");
   return (
-    <svg aria-hidden="true" viewBox="0 0 134 24" className="h-6 w-[134px]">
+    <svg aria-hidden="true" data-skyline-capability={capabilityMarker} viewBox="0 0 134 24" className="h-6 w-[134px]">
       <line x1="0" x2="134" y1="23" y2="23" stroke="var(--color-border-bright)" />
       <polyline points={points} fill="none" stroke="var(--color-queues-chart)" strokeWidth="1" />
       {values.length === 1 && <circle cx="67" cy={22 - values[0] / maximum * 18} r="2.5" fill="var(--color-queues-chart)" />}

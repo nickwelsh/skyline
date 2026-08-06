@@ -108,7 +108,7 @@ function ConcurrencyBlock({ running, limit }: { running: number; limit: number |
   return (
     <div className="flex flex-col justify-between gap-4 rounded-lg border border-grid-bright bg-background-bright p-4">
       <Header3 className="leading-6">Concurrency</Header3>
-      <div className="flex flex-wrap items-baseline gap-2">
+      <div data-skyline-capability="queue-detail-concurrency" className="flex flex-wrap items-baseline gap-2">
         <span className="text-[3.75rem] font-normal leading-none tabular-nums text-text-bright">{running.toLocaleString()}</span>
         <span className="text-xl tabular-nums text-text-dimmed">/ {limit === null ? "∞" : limit.toLocaleString()}</span>
       </div>

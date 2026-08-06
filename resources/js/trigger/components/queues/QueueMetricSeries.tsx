@@ -21,6 +21,7 @@ export function QueueMetricSeries({
   valueFormat,
   warningOverlay,
   thresholdStroke,
+  capabilityMarker,
 }: {
   title: string;
   points: QueueMetricPoint[];
@@ -28,6 +29,7 @@ export function QueueMetricSeries({
   valueFormat?: (value: number) => string;
   warningOverlay?: ChartLineRendererProps["warningOverlay"];
   thresholdStroke?: ChartLineRendererProps["thresholdStroke"];
+  capabilityMarker?: string;
 }) {
   const data = useMemo(() => queueMetricSeriesData(points), [points]);
   const config = useMemo<ChartConfig>(() => Object.fromEntries(
@@ -36,7 +38,7 @@ export function QueueMetricSeries({
   const { tickFormatter, tooltipLabelFormatter } = useMemo(() => buildActivityTimeAxis(data), [data]);
 
   return (
-    <div role="img" aria-label={`${title} chart`} className="h-full">
+    <div role="img" aria-label={`${title} chart`} data-skyline-capability={capabilityMarker} className="h-full">
       <Chart.Root config={config} data={data} dataKey="bucket" series={series.map((item) => item.key)} fillContainer>
         <Chart.Line
           lineType="monotone"
