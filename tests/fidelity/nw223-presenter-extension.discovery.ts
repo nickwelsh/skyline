@@ -198,8 +198,8 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
   const trigger = await context.newPage();
   try {
     await preparePair(skyline, trigger, capture, scenario, observationStep(capture));
-    await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false);
-    await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true);
+    await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false, scenario);
+    await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true, scenario);
   } finally {
     await context.close();
   }
@@ -223,7 +223,7 @@ function observationStep(capture: string): PresenterObservationStep {
   };
 }
 
-async function exerciseCapture(page: Page, region: Locator, named: boolean) {
+async function exerciseCapture(page: Page, region: Locator, named: boolean, scenario: FidelityScenario) {
   const buttons = region.locator("button");
   const wrap = named ? region.getByRole("button", { name: /^Wrap / }).first() : buttons.nth(0);
   const copy = named ? region.getByRole("button", { name: /^Copy / }).first() : buttons.nth(1);
@@ -233,6 +233,8 @@ async function exerciseCapture(page: Page, region: Locator, named: boolean) {
   expect((await page.evaluate(() => navigator.clipboard.readText())).length).toBeGreaterThan(0);
   await expand.click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  if (named && scenario.state === "inspectors-sql-applied") await page.getByRole("tab", { name: "With bindings" }).click();
+  if (named && scenario.state === "inspectors-sql-result") await page.getByRole("tab", { name: "Tree" }).click();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 }

@@ -54,11 +54,6 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario, a
   }
   if (scenario.surface === "runs" && isNw223State(scenario.state)) {
     await page.getByRole("treeitem", { name: /(?:SQL query|Database transaction|Cache operation|Redis command)/ }).first().click();
-    if (application === "skyline") {
-      await page.getByRole("tab", { name: "Detail", exact: true }).click();
-      if (scenario.state === "inspectors-sql-applied") await page.getByRole("tab", { name: "With bindings" }).click();
-      if (scenario.state === "inspectors-sql-result") await page.getByRole("tab", { name: "Tree" }).click();
-    }
   }
   if (scenario.id === "runs-exception-expanded" && options.expandException !== false) {
     if (application === "skyline") {
