@@ -11,6 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
-    include: ["resources/js/**/*.test.ts", "resources/js/**/*.test.tsx"],
+    include: ["resources/js/**/*.test.ts", "resources/js/**/*.test.tsx", "tests/fidelity/**/*.test.ts"],
   },
 });

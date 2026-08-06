@@ -15,4 +15,5 @@
   "primary": { "viewport": [1440, 960], "themes": ["classic", "dark", "light"] },
   "core": { "viewports": [[1024, 768], [390, 844]], "theme": "classic", "shellStates": ["expanded", "collapsed", "custom-width", "customized"] },
   "system": { "viewport": [1440, 960], "schemes": ["light", "dark"], "states": ["populated-roots", "found-details", "appearance", "live-change"] }
+  ,"actions": ["navigation-history", "dialogs-menus", "filters-pagination", "selection-inspector-timeline-copy", "preferences", "live-error-recovery", "keyboard-focus-shortcuts"]
 }
