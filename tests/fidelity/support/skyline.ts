@@ -1,6 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import fixture from "../fixtures.json" with { type: "json" };
+import { isNw222State, nw222InspectorState, nw222TraceState } from "./nw222";
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
@@ -50,7 +51,7 @@ export function scenarioPath(scenario: FidelityScenario, catalog: FixtureCatalog
 
 const ownedDetailScenarios = new Set([
   "jobs-favorite", "jobs-recent-runs", "jobs-absent-optional-data",
-  "runs-successful", "runs-active", "runs-failed", "runs-retried", "runs-parent-child-trace", "runs-multiple-attempts", "runs-long-data", "runs-exception", "runs-inspectors", "runs-timeline-extremes",
+  "runs-successful", "runs-active", "runs-failed", "runs-retried", "runs-parent-child-trace", "runs-multiple-attempts", "runs-long-data", "runs-exception", "runs-exception-expanded", "runs-exception-long", "runs-exception-retry", "runs-exception-loading", "runs-exception-error", "runs-exception-unavailable", "runs-inspectors", "runs-timeline-extremes",
   "errors-single-occurrence", "errors-many-occurrences", "errors-affected-job-types", "errors-application-vendor-frames", "errors-stack-expansion", "errors-linked-runs", "errors-long-exception",
   "logs-selected-detail",
   "queues-idle", "queues-busy", "queues-activity-wait-history", "queues-paginated-runs",
@@ -70,6 +71,14 @@ export async function installSkylineFixture(page: Page, scenario: FidelityScenar
 async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: FixtureAdapter) {
   const url = new URL(route.request().url());
   const path = url.pathname.replace(/^\/skyline\/api\//, "");
+  const inspectorRequest = path.match(/^runs\/([^/]+)\/nodes\/([^/]+)$/);
+  if (scenario.surface === "runs" && isNw222State(scenario.state) && inspectorRequest) {
+    if (scenario.state === "exception-loading") return;
+    if (scenario.state === "exception-error") {
+      await route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Exception evidence unavailable." } } });
+      return;
+    }
+  }
   const detailRequest = /^(jobs|errors|logs|queues)\/[^/]+$/.test(path) || /^runs\/[^/]+(?:\/nodes\/[^/]+)?$/.test(path);
   const applies = scenario.kind === "root" ? !detailRequest && path !== "runs/updates" : scenario.kind === "detail" ? detailRequest : false;
   if (applies && scenario.state === "loading") return;
@@ -136,6 +145,14 @@ function period(search: URLSearchParams) {
 function ownedResponse(response: unknown, scenario: FidelityScenario, path: string) {
   if (scenario.kind !== "owned") return response;
   const clone = structuredClone(response) as Record<string, any>;
+  if (scenario.surface === "runs" && isNw222State(scenario.state)) {
+    if (/^runs\/[^/]+$/.test(path)) return nw222TraceState(clone as never, scenario.state);
+    const inspector = path.match(/^runs\/[^/]+\/nodes\/(.+)$/);
+    if (inspector && clone.node) {
+      clone.node = nw222InspectorState(clone.node, decodeURIComponent(inspector[1]), scenario.state);
+      return clone;
+    }
+  }
   if (scenario.id === "logs-capture-disabled" && clone.capture) clone.capture.enabled = false;
   if (["runs-mixed-pagination", "logs-pagination", "queues-paginated-runs"].includes(scenario.id) && clone.pagination) clone.pagination.next = "fixture-next";
   if (scenario.id === "queues-idle" && clone.queueTarget?.recordedRunCounts) clone.queueTarget.recordedRunCounts = { queued: 0, running: 0, retrying: 0, completed: 4, failed: 0 };

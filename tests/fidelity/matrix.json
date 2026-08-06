@@ -7,7 +7,7 @@
   "ownedStates": {
     "shell": ["expanded", "collapsed", "custom-width", "customized", "favorites", "appearance", "customization-dialog", "shortcuts-dialog", "storage-warning", "capabilities-hidden", "live-change"],
     "jobs": ["contrasting-activity", "filtering", "favorite", "long-labels", "recent-runs", "absent-optional-data"],
-    "runs": ["mixed-pagination", "successful", "active", "failed", "retried", "parent-child-trace", "multiple-attempts", "long-data", "exception", "inspectors", "timeline-extremes", "polling"],
+    "runs": ["mixed-pagination", "successful", "active", "failed", "retried", "parent-child-trace", "multiple-attempts", "long-data", "exception", "exception-expanded", "exception-long", "exception-retry", "exception-loading", "exception-error", "exception-unavailable", "inspectors", "timeline-extremes", "polling"],
     "errors": ["fingerprints-counts", "filters", "single-occurrence", "many-occurrences", "affected-job-types", "application-vendor-frames", "stack-expansion", "linked-runs", "long-exception"],
     "logs": ["operation", "application-log", "error", "supported-levels", "job-run-filters", "capture-disabled", "selected-detail", "long-content", "pagination"],
     "queues": ["multiple-targets", "filtering", "idle", "busy", "activity-wait-history", "paginated-runs", "long-labels", "hidden-controls"]
