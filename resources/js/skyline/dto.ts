@@ -252,6 +252,7 @@ export type ErrorGroupSummary = {
   firstObservedAt: string;
   lastObservedAt: string;
   occurrenceCount: number;
+  activity: Array<{ timestamp: string; occurrences: number }>;
   latest: {
     runId: string;
     attemptNumber: number;

@@ -124,6 +124,7 @@ final readonly class ErrorGroupsQuery
             'firstObservedAt' => Nanoseconds::toRfc3339((int) $occurrences->min(fn (array $occurrence): int => $this->observedAt($occurrence['row']))),
             'lastObservedAt' => Nanoseconds::toRfc3339((int) $occurrences->max(fn (array $occurrence): int => $this->observedAt($occurrence['row']))),
             'occurrenceCount' => $occurrences->count(),
+            'activity' => $this->activity($occurrences),
             'latest' => [
                 'runId' => $row->run_id,
                 'attemptNumber' => (int) $row->attempt_number,

@@ -32,6 +32,7 @@ it('groups failed Attempts by stable message-free relative exception fingerprint
         ->and($group['latest']['attemptNumber'])->toBe(1)
         ->and($group['latest']['runHref'])->toBe('/skyline/runs/error-run-02')
         ->and($group['latest']['attemptHref'])->toBe('/skyline/runs/error-run-02?node=attempt_error-run-02_1')
+        ->and(collect($group['activity'])->sum('occurrences'))->toBe(2)
         ->and($group['firstObservedAt'])->toEndWith('Z')
         ->and($group['lastObservedAt'])->toEndWith('Z');
 });

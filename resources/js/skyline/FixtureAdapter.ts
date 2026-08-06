@@ -628,6 +628,8 @@ function fixtureErrorSummary(occurrences: ErrorGroupOccurrence[]) {
     firstObservedAt: occurrences.at(-1)?.observedAt ?? latest.observedAt,
     lastObservedAt: latest.observedAt,
     occurrenceCount: occurrences.length,
+    activity: [...Map.groupBy(occurrences, (occurrence) => occurrence.observedAt.slice(0, 10)).entries()]
+      .map(([date, entries]) => ({ timestamp: `${date}T00:00:00Z`, occurrences: entries.length })),
     latest: {
       runId: latest.runId,
       attemptNumber: latest.attemptNumber,

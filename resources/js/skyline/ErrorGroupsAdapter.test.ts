@@ -14,6 +14,7 @@ const summary = {
   firstObservedAt: "2026-08-04T10:00:00.000000000Z",
   lastObservedAt: "2026-08-04T12:00:00.000000000Z",
   occurrenceCount: 2,
+  activity: [{ timestamp: "2026-08-04T00:00:00Z", occurrences: 2 }],
   latest: {
     runId: "run_latest",
     attemptNumber: 2,
