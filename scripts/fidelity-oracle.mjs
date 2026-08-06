@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,11 +16,16 @@ export function verifyFidelityBundle(root = scriptRoot) {
   const fixtures = readJson(fixturesPath);
   const differences = readJson(join(fidelity, "allowed-differences.json"));
   const matrix = readJson(join(fidelity, "matrix.json"));
+  const actions = readJson(join(fidelity, "actions.json"));
   const bundle = readJson(join(fidelity, "oracle/bundle.json"));
 
   enforceEnvironment(root, environment, fixtures, fixturesPath);
+  execFileSync(process.execPath, [join(root, "scripts/import-fidelity-reference.mjs"), "--check"], { stdio: "pipe" });
+  const actualInputs = inputHashes(root);
+  if (JSON.stringify(bundle.inputs) !== JSON.stringify(actualInputs)) fail("Oracle input hashes drifted.");
   validateAllowedDifferences(differences);
   enforceMatrix(matrix, bundle);
+  if (JSON.stringify(actions.scripts?.map(({ id }) => id)) !== JSON.stringify(matrix.actions)) fail("Oracle action-script coverage drifted.");
   enforceArtifacts(root, bundle);
 
   return {
@@ -37,7 +43,7 @@ export function recordFidelityBundle(root = scriptRoot, decision) {
   const environment = readJson(join(fidelity, "environment.json"));
   const matrix = readJson(join(fidelity, "matrix.json"));
   const captures = expectedCaptureIds(matrix);
-  const artifacts = captures.flatMap((capture) => expectedArtifactDescriptors(capture)).map((artifact) => {
+  const artifacts = [...captures.flatMap((capture) => expectedArtifactDescriptors(capture)), ...matrix.actions.map(expectedActionDescriptor)].map((artifact) => {
     const path = join(root, artifact.path);
     if (!existsSync(path)) fail(`Missing oracle artifact while recording: ${artifact.path}`);
     return { ...artifact, sha256: digest(readFileSync(path)) };
@@ -53,7 +59,7 @@ export function recordFidelityBundle(root = scriptRoot, decision) {
   }
   const bundle = {
     schemaVersion: 1,
-    environment: { triggerCommit: environment.triggerCommit, fixtureVersion: environment.fixtureVersion, linuxImage: environment.linuxImage },
+    environment,
     inputs,
     captures,
     artifacts,
@@ -70,8 +76,10 @@ function enforceEnvironment(root, environment, fixtures, fixturesPath) {
     chromiumRevision: "1208",
     chromiumVersion: "145.0.7632.6",
     linuxImage: "mcr.microsoft.com/playwright:v1.58.2-noble@sha256:6446946a1d9fd62d9ae501312a2d76a43ee688542b21622056a372959b65d63d",
+    nodeImage: "node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d",
     nodeVersion: "24.18.0",
     pnpmVersion: "10.33.2",
+    architecture: "x64",
     fixtureVersion: "nw-227-v1",
     locale: "en-US",
     timezone: "UTC",
@@ -157,6 +165,11 @@ function enforceArtifacts(root, bundle) {
     const expected = expectedArtifactDescriptors(capture).map(({ path: _path, ...artifact }) => artifact);
     if (JSON.stringify(actual) !== JSON.stringify(expected)) fail(`Oracle artifact set mismatched for ${capture}`);
   }
+  const matrix = readJson(join(root, "tests/fidelity/matrix.json"));
+  for (const action of matrix.actions ?? []) {
+    const expected = expectedActionDescriptor(action);
+    if (!(bundle.artifacts ?? []).some((artifact) => artifact.path === expected.path && artifact.type === expected.type && artifact.action === action)) fail(`Missing interaction transcript for ${action}`);
+  }
   if (bundle.regeneration?.basis !== "upstream-pin" && bundle.regeneration?.basis !== "accepted-difference") fail("Oracle regeneration lacks an accepted basis.");
   if (bundle.regeneration?.decision !== "NW-216") fail("Oracle regeneration lacks an accepted decision.");
 }
@@ -172,16 +185,54 @@ function expectedArtifactDescriptors(capture) {
   ];
 }
 
+function expectedActionDescriptor(action) {
+  return { path: `tests/fidelity/oracle/actions/${action}.json`, type: "interaction-transcript", action };
+}
+
 function inputHashes(root) {
   const paths = {
     environmentSha256: "tests/fidelity/environment.json",
     fixturesSha256: "tests/fidelity/fixtures.json",
     matrixSha256: "tests/fidelity/matrix.json",
     differencesSha256: "tests/fidelity/allowed-differences.json",
+    actionsSha256: "tests/fidelity/actions.json",
     importManifestSha256: "resources/js/trigger/import-manifest.json",
+    referenceManifestSha256: "tests/fidelity/reference-import-manifest.json",
+    referenceCapabilitiesSha256: "tests/fidelity/reference-capabilities.json",
+    oracleConfigSha256: "playwright.oracle.config.ts",
+    globalSetupSha256: "tests/fidelity/global-setup.ts",
+    fidelitySpecSha256: "tests/fidelity/fidelity.spec.ts",
+    actionsSpecSha256: "tests/fidelity/actions.spec.ts",
+    verifierSha256: "scripts/fidelity-oracle.mjs",
+    packageSha256: "package.json",
+    dockerfileSha256: "tests/fidelity/Dockerfile",
+    ciSha256: ".github/workflows/ci.yml",
+    fixtureAdapterSha256: "resources/js/skyline/FixtureAdapter.ts",
+    fixtureDataSha256: "resources/js/skyline/fixtures.ts",
+    dtoSha256: "resources/js/skyline/dto.ts",
     lockfileSha256: "pnpm-lock.yaml",
   };
-  return Object.fromEntries(Object.entries(paths).map(([key, path]) => [key, digest(readFileSync(join(root, path)))]));
+  return {
+    ...Object.fromEntries(Object.entries(paths).map(([key, path]) => [key, digest(readFileSync(join(root, path)))])),
+    skylineDistSha256: treeDigest(join(root, "dist")),
+    referenceDistSha256: treeDigest(join(root, "tests/fidelity/reference/dist")),
+    fidelitySupportSha256: treeDigest(join(root, "tests/fidelity/support")),
+    referenceHostSha256: treeDigest(join(root, "tests/fidelity/reference"), (path) => !path.includes("/dist/") && !path.includes("/vendor/")),
+  };
+}
+
+function treeDigest(directory, include = () => true) {
+  if (!existsSync(directory)) fail(`Oracle input directory missing: ${relative(scriptRoot, directory)}`);
+  const entries = [];
+  const visit = (path) => {
+    for (const name of readdirSync(path).sort()) {
+      const child = join(path, name);
+      if (statSync(child).isDirectory()) visit(child);
+      else if (include(child)) entries.push(`${relative(directory, child)}\0${digest(readFileSync(child))}`);
+    }
+  };
+  visit(directory);
+  return digest(entries.join("\n"));
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

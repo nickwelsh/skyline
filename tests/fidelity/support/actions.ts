@@ -13,10 +13,11 @@ export async function observeAction(page: Page, step: string, visibleSelectors: 
   return page.evaluate(async ({ currentStep, selectors }) => {
     const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const clipboard = await navigator.clipboard?.readText().catch(() => null) ?? null;
+    const oracleWindow = window as typeof window & { __oracleCanonicalUrl?: string };
     return {
       step: currentStep,
-      url: typeof (window as Window & { __oracleCanonicalUrl?: unknown }).__oracleCanonicalUrl === "string"
-        ? (window as Window & { __oracleCanonicalUrl: string }).__oracleCanonicalUrl
+      url: typeof oracleWindow.__oracleCanonicalUrl === "string"
+        ? oracleWindow.__oracleCanonicalUrl
         : `${location.pathname}${location.search}${location.hash}`,
       activeElement: active ? { tag: active.tagName, role: active.getAttribute("role"), name: active.getAttribute("aria-label") ?? active.textContent?.trim() ?? "" } : null,
       visible: selectors.filter((selector) => {
