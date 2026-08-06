@@ -35,7 +35,9 @@ describe("Queue capability markers", () => {
     ]);
     expect(new Set(markers).size).toBe(markers.length);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);
-    expect(container.querySelectorAll('select[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-skyline-anchor="queue-period-filter"]')).toHaveLength(1);
+    expect(container.querySelectorAll('label[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
+    expect(container.querySelector('label[data-skyline-extension="queue-connection-filter"] > select')?.hasAttribute("data-skyline-extension")).toBe(false);
   });
 
   it("reserves source chart geometry for unavailable backlog data", () => {

@@ -105,7 +105,12 @@ describe("QueueConnectionFilter", () => {
       </MemoryRouter>,
     ));
 
-    const select = container.querySelector<HTMLSelectElement>('select[data-skyline-extension="queue-connection-filter"]')!;
+    const extension = container.querySelector<HTMLLabelElement>('label[data-skyline-extension="queue-connection-filter"]')!;
+    const select = extension.querySelector<HTMLSelectElement>("select")!;
+    expect(container.querySelectorAll('[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
+    expect(extension.control).toBe(select);
+    expect(extension.textContent).toContain("Connection");
+    expect(select.hasAttribute("data-skyline-extension")).toBe(false);
     expect(select.getAttribute("aria-label")).toBe("Connection");
     expect([...select.options].map(({ value }) => value)).toEqual(["", "database", "redis", "sqs"]);
 
@@ -132,7 +137,8 @@ describe("QueueConnectionFilter", () => {
         <QueueConnectionFilter connections={["database", "redis", "sqs"]} />
       </MemoryRouter>,
     ));
-    expect(container.querySelector<HTMLSelectElement>('[aria-label="Connection"]')!.value).toBe("database");
+    const reloadExtension = container.querySelector<HTMLLabelElement>('[data-skyline-extension="queue-connection-filter"]')!;
+    expect((reloadExtension.control as HTMLSelectElement).value).toBe("database");
 
     flushSync(() => reloadRoot.unmount());
   });

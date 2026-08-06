@@ -26,10 +26,9 @@ export function QueueConnectionFilter({ connections }: { connections: string[] }
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   return (
-    <label className="flex items-center gap-1 text-xs text-text-dimmed">
+    <label data-skyline-extension="queue-connection-filter" className="flex items-center gap-1 text-xs text-text-dimmed">
       <span>Connection</span>
       <select
-        data-skyline-extension="queue-connection-filter"
         aria-label="Connection"
         value={params.get("connection") ?? ""}
         onChange={(event) => {
