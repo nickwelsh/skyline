@@ -14,7 +14,7 @@ type PanelSnapshotPort = {
 };
 
 const PanelPersistenceContext = createContext<PanelSnapshotPort | null>(null);
-const PanelResizeIntentContext = createContext<React.MutableRefObject<boolean> | null>(null);
+const PanelResizeIntentContext = createContext<{ active: React.MutableRefObject<boolean>; commit: () => void } | null>(null);
 
 export function PanelPersistenceProvider({ port, children }: { port: PanelSnapshotPort | null; children: React.ReactNode }) {
   return <PanelPersistenceContext.Provider value={port}>{children}</PanelPersistenceContext.Provider>;
@@ -29,6 +29,16 @@ const ResizablePanelGroup = ({ className, autosaveId, autosaveStrategy, snapshot
   const compatible = saved?.orientation === orientation && saved.itemIds.length === itemIds.length && saved.itemIds.every((id, index) => id === itemIds[index]);
   const latestSizes = useRef<Record<string, number>>({});
   const userResize = useRef(false);
+  const resizeIntent = useMemo(() => ({
+    active: userResize,
+    commit: () => {
+      if (!autosaveId || !persistence) return;
+      const sizes = itemIds.map((id) => latestSizes.current[id]);
+      if (sizes.every((value) => typeof value === "number")) {
+        persistence.writePanel(autosaveId, { orientation, itemIds, sizes });
+      }
+    },
+  }), [autosaveId, itemIds.join("\u0000"), orientation, persistence]);
   const persistentChildren = useMemo(() => React.Children.map(children, (child) => {
     if (!React.isValidElement<React.ComponentProps<typeof Panel>>(child) || child.type !== ResizablePanel || typeof child.props.id !== "string") return child;
     const index = itemIds.indexOf(child.props.id);
@@ -39,16 +49,12 @@ const ResizablePanelGroup = ({ className, autosaveId, autosaveStrategy, snapshot
         originalResize?.(size);
         if (!autosaveId || !persistence || !userResize.current) return;
         latestSizes.current[child.props.id as string] = size.percentage;
-        const sizes = itemIds.map((id) => latestSizes.current[id]);
-        if (sizes.every((value) => typeof value === "number")) {
-          persistence.writePanel(autosaveId, { orientation, itemIds, sizes });
-        }
       },
     });
   }), [autosaveId, children, compatible, itemIds.join("\u0000"), orientation, persistence, saved]);
 
   return (
-    <PanelResizeIntentContext.Provider value={userResize}>
+    <PanelResizeIntentContext.Provider value={resizeIntent}>
       <PanelGroup
         className={cn(
           "flex w-full overflow-hidden data-[panel-group-direction=vertical]:flex-col",
@@ -97,12 +103,16 @@ const ResizableHandle = ({
       e.preventDefault();
     }}
     onDragStart={() => {
-      if (userResize) userResize.current = true;
+      if (userResize) userResize.active.current = true;
       onDragStart?.();
     }}
     onDragEnd={() => {
-      onDragEnd?.();
-      if (userResize) userResize.current = false;
+      try {
+        onDragEnd?.();
+      } finally {
+        userResize?.commit();
+        if (userResize) userResize.active.current = false;
+      }
     }}
     className={cn(
       "group relative flex items-center justify-center focus-custom",

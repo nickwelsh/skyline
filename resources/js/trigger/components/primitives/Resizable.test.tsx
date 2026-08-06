@@ -96,7 +96,9 @@ describe("ResizablePanelGroup persistence", () => {
     const resizer = container.querySelector<HTMLButtonElement>("[data-resizer]")!;
     resizer.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     container.querySelectorAll<HTMLButtonElement>("[data-panel-id]").forEach((panel) => panel.click());
+    expect(port.writePanel).not.toHaveBeenCalled();
     resizer.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+    expect(port.writePanel).toHaveBeenCalledTimes(1);
     expect(port.writePanel).toHaveBeenLastCalledWith("panel-run-tree", {
       orientation: "horizontal",
       itemIds: ["tree", "timeline"],
@@ -105,6 +107,7 @@ describe("ResizablePanelGroup persistence", () => {
 
     port.writePanel.mockClear();
     resizer.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(port.writePanel).toHaveBeenCalledTimes(1);
     expect(port.writePanel).toHaveBeenLastCalledWith("panel-run-tree", {
       orientation: "horizontal",
       itemIds: ["tree", "timeline"],
