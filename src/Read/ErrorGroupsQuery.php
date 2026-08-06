@@ -64,7 +64,7 @@ final readonly class ErrorGroupsQuery
 
         $filtered = $group->filter(fn (array $occurrence): bool => $filters->from === null
             || $this->observedAt($occurrence['row']) >= $filters->from)->values();
-        $page = $this->occurrencePage($request, $filtered);
+        $page = $this->occurrencePage($request, $filtered, $filters);
 
         return [
             ...$this->metadata->at($observedAt),
@@ -194,7 +194,7 @@ final readonly class ErrorGroupsQuery
     }
 
     /** @param Collection<int, array<string, mixed>> $occurrences @return array{occurrences: Collection<int, array<string, mixed>>, pagination: array{next: ?string, previous: ?string}} */
-    private function occurrencePage(Request $request, Collection $occurrences): array
+    private function occurrencePage(Request $request, Collection $occurrences, ErrorGroupsFilters $filters): array
     {
         $all = $occurrences;
         $cursor = $request->query('cursor');
@@ -210,6 +210,7 @@ final readonly class ErrorGroupsQuery
                 || ! is_int($decoded['observedAt'] ?? null)
                 || ! is_string($decoded['runId'] ?? null)
                 || ! is_int($decoded['attemptNumber'] ?? null)
+                || ($decoded['filters'] ?? null) !== $this->filterKey($filters)
             ) {
                 throw new InvalidQuery('The cursor is invalid.');
             }
@@ -232,10 +233,10 @@ final readonly class ErrorGroupsQuery
             'occurrences' => $rows,
             'pagination' => [
                 'previous' => $first !== null && $all->contains(fn (array $occurrence): bool => $this->compare($occurrence, $first) < 0)
-                    ? $this->occurrenceCursor('previous', $first)
+                    ? $this->occurrenceCursor('previous', $first, $filters)
                     : null,
                 'next' => $last !== null && $all->contains(fn (array $occurrence): bool => $this->compare($occurrence, $last) > 0)
-                    ? $this->occurrenceCursor('next', $last)
+                    ? $this->occurrenceCursor('next', $last, $filters)
                     : null,
             ],
         ];
@@ -338,7 +339,7 @@ final readonly class ErrorGroupsQuery
     }
 
     /** @param array<string, mixed> $occurrence */
-    private function occurrenceCursor(string $direction, array $occurrence): string
+    private function occurrenceCursor(string $direction, array $occurrence, ErrorGroupsFilters $filters): string
     {
         $row = $occurrence['row'];
 
@@ -347,6 +348,7 @@ final readonly class ErrorGroupsQuery
             'observedAt' => $this->observedAt($row),
             'runId' => $row->run_id,
             'attemptNumber' => (int) $row->attempt_number,
+            'filters' => $this->filterKey($filters),
         ]);
     }
 

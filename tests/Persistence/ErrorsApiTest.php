@@ -127,6 +127,10 @@ it('shows representative frames activity and cursor-paginated original occurrenc
     $next = $first->json('pagination.next');
     expect($next)->toBeString()->not->toContain('error-run');
 
+    $this->getJson('/skyline/api/errors/'.$group['id'].'?'.http_build_query(['period' => '7d', 'cursor' => $next]))
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+
     $this->getJson('/skyline/api/errors/'.$group['id'].'?'.http_build_query(['period' => 'all', 'cursor' => $next]))
         ->assertOk()
         ->assertJsonCount(2, 'failedAttempts')
