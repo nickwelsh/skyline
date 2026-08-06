@@ -376,19 +376,33 @@ async function observeElement(page: Page, id: string, selector: string, label: s
   return observeElementAccessibility(page, selector, await observeElementDom(page, id, selector, label));
 }
 
-async function observeElementDom(page: Page, id: string, selector: string, label: string) {
-  const locator = page.locator(selector);
-  await locator.first().waitFor({ state: "attached" });
-  requireSingleMatch(await locator.count(), id, label);
-  const observation = await locator.evaluate((element) => {
+export async function observeElementDom(page: Page, id: string, selector: string, label: string) {
+  const result = await page.evaluate((target) => {
+    const matches = document.querySelectorAll(target);
+    if (matches.length !== 1) return { count: matches.length, observation: null };
+    const element = matches[0];
+    const identity = {
+      tagName: element.tagName.toLowerCase(),
+      id: element.id,
+      className: element.getAttribute("class") ?? "",
+      role: element.getAttribute("role"),
+      ariaLabel: element.getAttribute("aria-label"),
+    };
     const box = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as [string, string, string]);
     return {
-      rect: { x: box.x, y: box.y, width: box.width, height: box.height },
-      computedStyle,
+      count: matches.length,
+      observation: {
+        identity,
+        rect: { x: box.x, y: box.y, width: box.width, height: box.height },
+        computedStyle,
+      },
     };
-  });
+  }, selector);
+  requireSingleMatch(result.count, id, label);
+  if (!result.observation) throw new Error(`Allowed region ${id} ${label} must match exactly one element.`);
+  const observation = result.observation;
   const computedStyle = standardComputedStyleEntries(observation.computedStyle);
   return { ...observation, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle) };
 }

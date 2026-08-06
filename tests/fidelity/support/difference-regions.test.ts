@@ -7,6 +7,7 @@ import {
   accessibilityOmissionSelectors,
   fingerprintComputedStyle,
   omitFrameworkExtensionAccessibility,
+  observeElementDom,
   requireSingleMatch,
   validateFrameworkExtensionObservation,
   validateCapabilityOmissionObservation,
@@ -47,6 +48,48 @@ describe("framework-extension fidelity regions", () => {
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, rect: { ...anchor.rect, x: 11 } }, expected.captures[0])).toThrow(/geometry/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, computedStyleSha256: "c".repeat(64) }, expected.captures[0])).toThrow(/computed style/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, accessibleName: "Changed" }, expected.captures[0])).toThrow(/accessible identity/i);
+  });
+
+  test("captures one exact DOM match in one page task", async () => {
+    document.body.innerHTML = `<section id="evidence" class="panel" role="region" aria-label="Exception" style="color: rgb(1, 2, 3)"></section>`;
+    const element = document.querySelector("#evidence") as HTMLElement;
+    element.getBoundingClientRect = () => ({ x: 10, y: 20, width: 30, height: 40 } as DOMRect);
+    const page = evaluatingPage();
+
+    const observation = await observeElementDom(page.page, "php-exception-evidence", "#evidence", "Skyline extension");
+
+    expect(page.evaluate).toHaveBeenCalledTimes(1);
+    expect(observation).toMatchObject({
+      rect: { x: 10, y: 20, width: 30, height: 40 },
+      identity: { tagName: "section", id: "evidence", className: "panel", role: "region", ariaLabel: "Exception" },
+    });
+    expect(observation.computedStyle).toContainEqual(["color", "rgb(1, 2, 3)", ""]);
+  });
+
+  test("fails closed when the atomic DOM task finds missing or duplicate matches", async () => {
+    const page = evaluatingPage();
+    document.body.innerHTML = "";
+    await expect(observeElementDom(page.page, "php-exception-evidence", ".evidence", "Skyline extension")).rejects.toThrow(/exactly one/i);
+
+    document.body.innerHTML = `<div class="evidence"></div><div class="evidence"></div>`;
+    await expect(observeElementDom(page.page, "php-exception-evidence", ".evidence", "Skyline extension")).rejects.toThrow(/exactly one/i);
+  });
+
+  test("keeps the selected element identity when it is replaced during observation", async () => {
+    document.body.innerHTML = `<section id="original" class="evidence"></section>`;
+    const original = document.querySelector(".evidence") as HTMLElement;
+    original.getBoundingClientRect = () => {
+      const replacement = document.createElement("aside");
+      replacement.id = "replacement";
+      replacement.className = "evidence";
+      original.replaceWith(replacement);
+      return { x: 1, y: 2, width: 3, height: 4 } as DOMRect;
+    };
+
+    const observation = await observeElementDom(evaluatingPage().page, "php-exception-evidence", ".evidence", "Skyline extension");
+
+    expect(observation.identity).toMatchObject({ tagName: "section", id: "original", className: "evidence" });
+    expect(document.querySelector(".evidence")?.id).toBe("replacement");
   });
 
   test("ignores only non-rendered custom-property inventory", () => {
@@ -236,4 +279,9 @@ function waitingPage() {
   const wait = vi.fn((_options: { state: string }) => Promise.resolve());
   const locator = vi.fn((_selector: string) => ({ first: () => ({ waitFor: wait }) }));
   return { page: { locator } as unknown as Page, locator, wait };
+}
+
+function evaluatingPage() {
+  const evaluate = vi.fn(async (operation: (selector: string) => unknown, selector: string) => operation(selector));
+  return { page: { evaluate } as unknown as Page, evaluate };
 }
