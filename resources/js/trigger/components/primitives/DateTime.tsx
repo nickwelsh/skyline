@@ -1,7 +1,7 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/primitives/DateTime.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: retained DateTimeShort only and replaced provider data with browser Intl.
+ * Skyline adaptation: retained reached short and accurate presenters; replaced provider data with browser Intl.
  */
 
 type DateTimeShortProps = {
@@ -23,6 +23,16 @@ export const DateTimeShort = ({ date, hour12 = true }: DateTimeShortProps) => {
       {formattedDateTime.replace(/\s/g, String.fromCharCode(32))}
     </span>
   );
+};
+
+export const DateTimeAccurate = ({ date, hour12 = true }: DateTimeShortProps) => {
+  const realDate = typeof date === "string" ? new Date(date) : date;
+  const locales = browserLocales();
+  const timeZone = browserTimeZone();
+  const datePart = new Intl.DateTimeFormat(locales, { month: "short", day: "numeric", timeZone }).format(realDate);
+  const timePart = formatDateTimeShort(realDate, timeZone, locales, hour12);
+
+  return <span suppressHydrationWarning>{`${datePart} ${timePart}`.replace(/\s/g, String.fromCharCode(32))}</span>;
 };
 
 function browserTimeZone(): string | undefined {

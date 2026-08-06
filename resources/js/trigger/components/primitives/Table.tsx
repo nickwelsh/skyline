@@ -6,7 +6,7 @@ import { InfoIconTooltip } from "./Tooltip";
 
 /*!
  * Trigger.dev Table presenter at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Unreached copy, chevron, blank-row, and action-menu exports are omitted.
+ * Unreached copy, chevron, and popover-menu branches are omitted.
  */
 
 const variants = {
@@ -459,3 +459,25 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
     );
   }
 );
+
+export const TableCellMenu = forwardRef<
+  HTMLTableCellElement,
+  Pick<TableCellProps, "className"> & { hiddenButtons: ReactNode }
+>(({ className, hiddenButtons }, ref) => {
+  const { variant } = useContext(TableContext);
+
+  return (
+    <td
+      ref={ref}
+      className={cn(
+        "sticky right-0 w-px bg-background-dimmed px-2",
+        variants[variant].stickyCell,
+        className
+      )}
+    >
+      <div data-hidden-buttons className="invisible flex justify-end group-hover/table-row:visible group-focus-within/table-row:visible">
+        {hiddenButtons}
+      </div>
+    </td>
+  );
+});

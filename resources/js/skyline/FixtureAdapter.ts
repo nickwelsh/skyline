@@ -76,17 +76,22 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       generatedAt: fixtureGeneratedAt,
       capabilities,
       capture: fixtureTelemetryCapture,
-      telemetryEvent: {
+      telemetryEvent: event.variant === "operation" ? {
         ...event,
         relationships: { traceId: event.traceId, spanId: event.spanId, parentSpanId: event.parentSpanId },
-        ...(event.variant === "operation" ? {
-          attributes: { "db.namespace": "testing" },
-          events: [{ name: "query.completed", timestamp: event.timestamp, attributes: {} }],
-          links: [],
-          resource: { "service.name": "fixture-worker" },
-          instrumentation: { name: "nickwelsh/skyline", version: null },
-          capture: { isTruncated: false, truncated: [] },
-        } : { channel: "stack" }),
+        attributes: { "db.namespace": "testing" },
+        events: [{ name: "query.completed", timestamp: event.timestamp, attributes: {} }],
+        links: [],
+        resource: { "service.name": "fixture-worker" },
+        instrumentation: { name: "nickwelsh/skyline", version: null },
+        capture: { isTruncated: false, truncated: [] },
+        errorHref: null,
+      } : {
+        ...event,
+        relationships: { traceId: event.traceId, spanId: event.spanId, parentSpanId: event.parentSpanId },
+        channel: "stack",
+        attributes: { "log.level": event.level.toLowerCase(), "log.message": event.message, "log.context": event.context },
+        capture: { isTruncated: false, truncated: [] },
         errorHref: null,
       },
     };

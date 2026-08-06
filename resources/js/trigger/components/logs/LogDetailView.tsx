@@ -7,15 +7,14 @@ import { XMarkIcon } from "@heroicons/react/20/solid";
 import { Button, LinkButton } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
 import { CopyableText } from "~/components/primitives/CopyableText";
-import { DateTimeShort } from "~/components/primitives/DateTime";
-import { Header2 } from "~/components/primitives/Headers";
+import { DateTimeAccurate } from "~/components/primitives/DateTime";
+import { Header2, Header3 } from "~/components/primitives/Headers";
 import * as Property from "~/components/primitives/PropertyTable";
 import { CodeBlock } from "~/CodeBlock";
 import { LogLevel, type LogLevelValue } from "./LogLevel";
 
-export type LogDetailEntry = {
+type LogDetailShared = {
   id: string;
-  variant: "operation" | "log";
   runId: string;
   runPath: string;
   attemptNumber: number | null;
@@ -24,27 +23,17 @@ export type LogDetailEntry = {
   jobPath: string;
   timestamp: string;
   level: LogLevelValue;
-  message?: string;
-  context?: Record<string, unknown>;
-  channel?: string | null;
-  name?: string;
-  role?: string | null;
-  kind?: number;
-  status?: "completed" | "failed";
-  durationUs?: number;
-  operationPath?: string;
   errorPath: string | null;
   relationships: { traceId: string; spanId: string; parentSpanId: string | null };
-  attributes?: Record<string, unknown>;
-  events?: unknown[];
-  links?: unknown[];
-  resource?: Record<string, unknown>;
-  instrumentation?: Record<string, unknown>;
-  capture?: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
+  attributes: Record<string, unknown>;
+  capture: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
 };
+type OperationLogDetailEntry = LogDetailShared & { variant: "operation"; name: string; role: string | null; kind: number; status: "completed" | "failed"; durationUs: number; operationPath: string; events: unknown[]; links: unknown[]; resource: Record<string, unknown>; instrumentation: Record<string, unknown> };
+type ApplicationLogDetailEntry = LogDetailShared & { variant: "log"; message: string; context: Record<string, unknown>; channel: string | null };
+export type LogDetailEntry = OperationLogDetailEntry | ApplicationLogDetailEntry;
 
 export function LogDetailView({ log, onClose }: { log: LogDetailEntry; onClose: () => void }) {
-  const title = log.variant === "operation" ? log.name ?? "Operation" : log.message ?? "Application log";
+  const title = log.variant === "operation" ? log.name : log.message;
 
   return (
     <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
@@ -55,34 +44,41 @@ export function LogDetailView({ log, onClose }: { log: LogDetailEntry; onClose: 
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
           <Item label="Run ID"><CopyableText value={log.runId} copyValue={log.runId} asChild /><LinkButton to={log.runPath} variant="secondary/small" shortcut={{ key: "v" }} className="mt-2">View full Run</LinkButton></Item>
-          {log.attemptNumber !== null && <Item label="Attempt">{log.attemptPath ? <LinkButton to={log.attemptPath} variant="secondary/small">Attempt {log.attemptNumber}</LinkButton> : `Attempt ${log.attemptNumber}`}</Item>}
-          <Item label="Job type"><LinkButton to={log.jobPath} variant="secondary/small">{log.jobType}</LinkButton></Item>
+          {log.variant === "operation" && <Item label="Status">{log.status}</Item>}
+          <Item label="Job type"><CopyableText value={log.jobType} copyValue={log.jobType} asChild /><LinkButton to={log.jobPath} variant="secondary/small" className="mt-2">View Job</LinkButton></Item>
           <Item label="Level"><LogLevel level={log.level} /></Item>
-          <Item label="Timestamp"><DateTimeShort date={log.timestamp} /></Item>
+          <Item label="Timestamp"><DateTimeAccurate date={log.timestamp} /></Item>
+        </Property.Table>
+
+        {log.variant === "log" && <Capture title="Message" value={log.message} language="text" />}
+        {log.variant === "log" && Object.keys(log.attributes).length > 0 && <Capture title="Attributes" value={log.attributes} />}
+
+        <Header3 className="mb-2 mt-6">Telemetry</Header3>
+        <Property.Table>
+          {log.attemptNumber !== null && <Item label="Attempt">{log.attemptPath ? <LinkButton to={log.attemptPath} variant="secondary/small">Attempt {log.attemptNumber}</LinkButton> : `Attempt ${log.attemptNumber}`}</Item>}
           <Item label="Trace ID"><CopyableText value={log.relationships.traceId} /></Item>
           <Item label="Span ID"><CopyableText value={log.relationships.spanId} /></Item>
           <Item label="Parent span ID">{log.relationships.parentSpanId ?? "—"}</Item>
           {log.variant === "operation" && <>
-            <Item label="Role">{log.role ?? "—"}</Item><Item label="Kind">{log.kind ?? "—"}</Item><Item label="Status">{log.status ?? "—"}</Item><Item label="Duration">{log.durationUs === undefined ? "—" : `${log.durationUs.toLocaleString()}µs`}</Item>
+            <Item label="Role">{log.role ?? "—"}</Item><Item label="Kind">{log.kind}</Item><Item label="Duration">{`${log.durationUs.toLocaleString()}µs`}</Item>
           </>}
           {log.variant === "log" && <Item label="Channel">{log.channel ?? "—"}</Item>}
         </Property.Table>
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {log.operationPath && <LinkButton to={log.operationPath} variant="secondary/small">Inspect operation</LinkButton>}
+          {log.variant === "operation" && <LinkButton to={log.operationPath} variant="secondary/small">Inspect operation</LinkButton>}
           {log.errorPath && <LinkButton to={log.errorPath} variant="secondary/small">View Error group</LinkButton>}
         </div>
 
-        {log.variant === "log" && <Capture title="Message" value={log.message ?? ""} language="text" />}
-        {log.variant === "log" && log.context && Object.keys(log.context).length > 0 && <Capture title="Context" value={log.context} />}
+        {log.variant === "log" && Object.keys(log.context).length > 0 && <Capture title="Context" value={log.context} />}
         {log.variant === "operation" && <>
-          <Capture title="Attributes" value={log.attributes ?? {}} />
-          <Capture title="Events" value={log.events ?? []} />
-          <Capture title="Links" value={log.links ?? []} />
-          <Capture title="Resource" value={log.resource ?? {}} />
-          <Capture title="Instrumentation" value={log.instrumentation ?? {}} />
-          {log.capture?.isTruncated && <Callout variant="warning" className="mt-4">Captured operation detail was truncated at the recorded presentation boundary.</Callout>}
+          <Capture title="Attributes" value={log.attributes} />
+          <Capture title="Events" value={log.events} />
+          <Capture title="Links" value={log.links} />
+          <Capture title="Resource" value={log.resource} />
+          <Capture title="Instrumentation" value={log.instrumentation} />
         </>}
+        {log.capture.isTruncated && <Callout variant="warning" className="mt-4">Captured {log.variant === "operation" ? "operation" : "log"} detail was truncated at the recorded presentation boundary.</Callout>}
       </div>
     </section>
   );

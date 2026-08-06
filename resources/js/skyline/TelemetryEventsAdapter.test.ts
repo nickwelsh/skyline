@@ -27,10 +27,12 @@ describe("TelemetryEventsAdapter", () => {
 
   it("preserves the discriminated detail contract and working causal paths", () => {
     const page = pageFixture();
+    const operation = page.telemetryEvents[0];
+    if (operation.variant !== "operation") throw new Error("Expected operation fixture");
     const detail: TelemetryEventDetailDto = {
       ...page,
       telemetryEvent: {
-        ...page.telemetryEvents[0],
+        ...operation,
         relationships: { traceId: "trace_1", spanId: "span_1", parentSpanId: "parent_1" },
         attributes: { "db.namespace": "testing" },
         events: [{ name: "query.completed", timestamp: "2026-08-05T12:00:00.001000000Z", attributes: {} }],

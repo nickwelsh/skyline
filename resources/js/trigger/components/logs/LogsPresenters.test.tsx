@@ -12,7 +12,7 @@ describe("Logs presenters", () => {
 
   it("keeps source table selection and distinguishes initial and filtered empty states", () => {
     const select = vi.fn();
-    const { container, root } = render(<LogsTable logs={[summary()]} selectedLogId="event_operation" onLogSelect={select} loading={false} hasAnyTelemetryEvents hasFilters={false} />);
+    const { container, root } = render(<MemoryRouter><LogsTable logs={[summary()]} selectedLogId="event_operation" onLogSelect={select} loading={false} hasAnyTelemetryEvents hasFilters={false} /></MemoryRouter>);
 
     expect(container.querySelector('tr[aria-selected="true"]')).not.toBeNull();
     flushSync(() => container.querySelector<HTMLButtonElement>("tbody button")!.click());
@@ -45,6 +45,15 @@ describe("Logs presenters", () => {
     expect(complete.container.textContent).not.toContain("truncated");
     flushSync(() => complete.root.unmount());
   });
+
+  it("shows captured log attributes and proven log truncation", () => {
+    const { container, root } = render(<MemoryRouter><LogDetailView log={logDetail()} onClose={() => {}} /></MemoryRouter>);
+
+    expect(container.textContent).toContain("Application failed");
+    expect(container.textContent).toContain("log.channel");
+    expect(container.textContent).toContain("Captured log detail was truncated");
+    flushSync(() => root.unmount());
+  });
 });
 
 function render(children: React.ReactNode) {
@@ -56,7 +65,7 @@ function render(children: React.ReactNode) {
 }
 
 function summary() {
-  return { id: "event_operation", variant: "operation" as const, timestamp: "2026-08-05T12:00:00Z", runId: "run_1", jobType: "App\\Jobs\\Invoice", level: "TRACE" as const, name: "SELECT invoices" };
+  return { id: "event_operation", variant: "operation" as const, timestamp: "2026-08-05T12:00:00Z", runId: "run_1", runPath: "/runs/run_1", jobType: "App\\Jobs\\Invoice", level: "TRACE" as const, name: "SELECT invoices" };
 }
 
 function detail(isTruncated: boolean): LogDetailEntry {
@@ -79,5 +88,27 @@ function detail(isTruncated: boolean): LogDetailEntry {
     resource: { "service.name": "worker" },
     instrumentation: { name: "nickwelsh/skyline" },
     capture: { isTruncated, truncated: isTruncated ? [{ path: "attributes.db.namespace", originalBytes: 100 }] : [] },
+  };
+}
+
+function logDetail(): LogDetailEntry {
+  return {
+    id: "event_log",
+    variant: "log",
+    timestamp: "2026-08-05T12:00:01Z",
+    runId: "run_1",
+    runPath: "/runs/run_1",
+    attemptNumber: 1,
+    attemptPath: "/runs/run_1?node=attempt_1",
+    jobType: "App\\Jobs\\Invoice",
+    jobPath: "/jobs/job_invoice",
+    level: "ERROR",
+    message: "Application failed",
+    context: { status: "failed" },
+    channel: "stack",
+    errorPath: null,
+    relationships: { traceId: "trace_1", spanId: "span_1", parentSpanId: null },
+    attributes: { "log.channel": "stack", "log.level": "error", "log.message": "Application failed" },
+    capture: { isTruncated: true, truncated: [{ path: "message", originalBytes: 100 }] },
   };
 }

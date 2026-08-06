@@ -17,7 +17,10 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await reference.goto("http://127.0.0.1:4175/logs");
   await expect(reference.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   const referenceList = await visuals(reference);
-  await reference.locator("tbody tr").first().getByRole("button").first().click();
+  await reference.locator("tbody tr").first().hover();
+  await expect(reference.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/runs/run_invoice?span=span_job");
+  await reference.locator("tbody tr").first().getByRole("button").first().focus();
+  await reference.keyboard.press("Enter");
   await expect(reference).toHaveURL(/log=log_info/);
   await expect(reference.getByRole("region", { name: "Pinned log detail" })).toBeVisible();
   const referenceDetail = await detailVisuals(reference, "Pinned log detail");
@@ -29,8 +32,11 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
   await expect(page.getByLabel("Application-log capture")).toContainText("warning, error");
+  await page.locator("tbody tr").first().hover();
+  await expect(page.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
 
-  await page.locator("tbody tr").first().getByRole("button").first().click();
+  await page.locator("tbody tr").first().getByRole("button").first().focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(new RegExp(`event=${operationId}`));
   const detail = page.getByRole("region", { name: "Telemetry-event detail" });
   await expect(detail).toContainText("SELECT invoices");
@@ -38,7 +44,7 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(detail).toContainText("parent_job");
   await expect(detail.getByRole("link", { name: "View full Run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
   await expect(detail.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=attempt_2");
-  await expect(detail.getByRole("link", { name: "App\\Jobs\\GenerateMonthlyInvoices" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
+  await expect(detail.getByRole("link", { name: "View Job" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(detail.getByRole("link", { name: "Inspect operation" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=span_operation");
   await expect(detail.getByRole("link", { name: "View Error group" })).toHaveAttribute("href", "/skyline/errors/error_invoice");
   await expect(detail).toContainText("Captured operation detail was truncated");
@@ -151,13 +157,15 @@ function listResponse(url = new URL("https://example.test")): TelemetryEventsPag
 }
 
 function detailResponse(id: string): TelemetryEventDetailDto {
-  const base = id === logId ? log() : operation();
-  return {
-    ...listResponse(), telemetryEvent: {
-      ...base, relationships: { traceId: base.traceId, spanId: base.spanId, parentSpanId: base.parentSpanId }, errorHref: id === operationId ? "/skyline/errors/error_invoice" : null,
-      ...(id === operationId ? { attributes: { statement: "select " + "invoice ".repeat(120) }, events: [{ name: "query.completed", timestamp: "2026-08-05T12:00:00.001Z", attributes: { rows: 1 } }], links: [{ traceId: "trace_parent", spanId: "span_parent", traceFlags: 1, remote: false, attributes: {} }], resource: { "service.name": "fixture-worker" }, instrumentation: { name: "nickwelsh/skyline", version: "1.0" }, capture: { isTruncated: true, truncated: [{ path: "attributes.statement", originalBytes: 2048 }] } } : { channel: "stack" }),
-    },
-  };
+  if (id === logId) {
+    const base = log();
+    if (base.variant !== "log") throw new Error("Expected log fixture");
+    return { ...listResponse(), telemetryEvent: { ...base, relationships: { traceId: base.traceId, spanId: base.spanId, parentSpanId: base.parentSpanId }, errorHref: null, channel: "stack", attributes: { "log.level": "error", "log.message": base.message, "log.context": base.context }, capture: { isTruncated: false, truncated: [] } } };
+  }
+
+  const base = operation();
+  if (base.variant !== "operation") throw new Error("Expected operation fixture");
+  return { ...listResponse(), telemetryEvent: { ...base, relationships: { traceId: base.traceId, spanId: base.spanId, parentSpanId: base.parentSpanId }, errorHref: "/skyline/errors/error_invoice", attributes: { statement: "select " + "invoice ".repeat(120) }, events: [{ name: "query.completed", timestamp: "2026-08-05T12:00:00.001Z", attributes: { rows: 1 } }], links: [{ traceId: "trace_parent", spanId: "span_parent", traceFlags: 1, remote: false, attributes: {} }], resource: { "service.name": "fixture-worker" }, instrumentation: { name: "nickwelsh/skyline", version: "1.0" }, capture: { isTruncated: true, truncated: [{ path: "attributes.statement", originalBytes: 2048 }] } } };
 }
 
 function operation(): TelemetryEventsPageDto["telemetryEvents"][number] {

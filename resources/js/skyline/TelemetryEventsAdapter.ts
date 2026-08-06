@@ -14,8 +14,12 @@ type PresentedLinks = {
   jobPath: string;
   operationPath?: string;
 };
-export type PresentedTelemetryEvent = Omit<TelemetryEventSummary, "href" | "runHref" | "attemptHref" | "jobHref" | "operationHref"> & PresentedLinks;
-export type PresentedTelemetryEventDetail = Omit<TelemetryEventDetail, "href" | "runHref" | "attemptHref" | "jobHref" | "operationHref" | "errorHref"> & PresentedLinks & { errorPath: string | null };
+type PresentedOperation = Omit<Extract<TelemetryEventSummary, { variant: "operation" }>, "href" | "runHref" | "attemptHref" | "jobHref" | "operationHref"> & PresentedLinks & { operationPath: string };
+type PresentedLog = Omit<Extract<TelemetryEventSummary, { variant: "log" }>, "href" | "runHref" | "attemptHref" | "jobHref"> & Omit<PresentedLinks, "operationPath">;
+export type PresentedTelemetryEvent = PresentedOperation | PresentedLog;
+type PresentedOperationDetail = Omit<Extract<TelemetryEventDetail, { variant: "operation" }>, "href" | "runHref" | "attemptHref" | "jobHref" | "operationHref" | "errorHref"> & PresentedLinks & { operationPath: string; errorPath: string | null };
+type PresentedLogDetail = Omit<Extract<TelemetryEventDetail, { variant: "log" }>, "href" | "runHref" | "attemptHref" | "jobHref" | "errorHref"> & Omit<PresentedLinks, "operationPath"> & { errorPath: string | null };
+export type PresentedTelemetryEventDetail = PresentedOperationDetail | PresentedLogDetail;
 
 export type TelemetryEventsRouteData = Omit<TelemetryEventsPageDto, "telemetryEvents" | "pagination" | "options"> & {
   telemetryEvents: PresentedTelemetryEvent[];
@@ -54,27 +58,42 @@ export function presentTelemetryEvents(page: TelemetryEventsPageDto): TelemetryE
 }
 
 export function presentTelemetryEventDetail(page: TelemetryEventDetailDto): TelemetryEventDetailRouteData {
-  const { errorHref, href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, ...event } = page.telemetryEvent;
-  const detail = event.variant === "operation"
-    ? (({ operationHref: _operationHref, ...value }) => value)(event)
-    : event;
+  const event = page.telemetryEvent;
+  const errorPath = event.errorHref ? routePath(event.errorHref, "errors") : null;
 
   return {
     generatedAt: page.generatedAt,
-    telemetryEvent: {
-      ...detail,
-      ...presentSummary(page.telemetryEvent),
-      errorPath: errorHref ? routePath(errorHref, "errors") : null,
-    },
+    telemetryEvent: event.variant === "operation"
+      ? { ...stripOperationLinks(event), ...presentOperationSummary(event), errorPath }
+      : { ...stripLogLinks(event), ...presentLogSummary(event), errorPath },
     capture: page.capture,
   };
 }
 
-function presentSummary(event: TelemetryEventSummary): PresentedTelemetryEvent {
-  const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, ...summary } = event;
-  const operation = event.variant === "operation" ? { operationPath: routePath(event.operationHref, "runs") } : {};
+function stripOperationLinks(event: Extract<TelemetryEventDetail, { variant: "operation" }>) {
+  const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, operationHref: _operationHref, errorHref: _errorHref, ...detail } = event;
+  return detail;
+}
 
-  return { ...summary, ...presentPaths(event), ...operation };
+function stripLogLinks(event: Extract<TelemetryEventDetail, { variant: "log" }>) {
+  const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, errorHref: _errorHref, ...detail } = event;
+  return detail;
+}
+
+function presentSummary(event: TelemetryEventSummary): PresentedTelemetryEvent {
+  return event.variant === "operation"
+    ? presentOperationSummary(event)
+    : presentLogSummary(event);
+}
+
+function presentOperationSummary(event: Extract<TelemetryEventSummary, { variant: "operation" }>): PresentedOperation {
+  const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, operationHref, ...summary } = event;
+  return { ...summary, ...presentPaths(event), operationPath: routePath(operationHref, "runs") };
+}
+
+function presentLogSummary(event: Extract<TelemetryEventSummary, { variant: "log" }>): PresentedLog {
+  const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, ...summary } = event;
+  return { ...summary, ...presentPaths(event) };
 }
 
 function presentPaths(event: Pick<TelemetryEventSummary, "href" | "runHref" | "attemptHref" | "jobHref">): Omit<PresentedLinks, "operationPath"> {

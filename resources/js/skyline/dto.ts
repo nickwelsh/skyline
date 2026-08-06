@@ -350,17 +350,20 @@ export type TelemetryEventsPageDto = {
   capture: TelemetryCapture;
   hasAnyTelemetryEvents: boolean;
 };
-export type TelemetryEventDetail = TelemetryEventSummary & {
+type TelemetryEventDetailShared = {
   relationships: { traceId: string; spanId: string; parentSpanId: string | null };
-  channel?: string | null;
-  attributes?: Record<string, unknown>;
-  events?: Array<{ name: string; timestamp: string | null; attributes: Record<string, unknown> }>;
-  links?: Array<{ traceId: string | null; spanId: string | null; traceFlags: number | null; remote: boolean | null; attributes: Record<string, unknown> }>;
-  resource?: Record<string, unknown>;
-  instrumentation?: Record<string, unknown>;
-  capture?: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
+  attributes: Record<string, unknown>;
+  capture: { isTruncated: boolean; truncated: Array<{ path: string; originalBytes: number }> };
   errorHref: string | null;
 };
+export type OperationTelemetryEventDetail = OperationTelemetryEvent & TelemetryEventDetailShared & {
+  events: Array<{ name: string; timestamp: string | null; attributes: Record<string, unknown> }>;
+  links: Array<{ traceId: string | null; spanId: string | null; traceFlags: number | null; remote: boolean | null; attributes: Record<string, unknown> }>;
+  resource: Record<string, unknown>;
+  instrumentation: Record<string, unknown>;
+};
+export type LogTelemetryEventDetail = LogTelemetryEvent & TelemetryEventDetailShared & { channel: string | null };
+export type TelemetryEventDetail = OperationTelemetryEventDetail | LogTelemetryEventDetail;
 export type TelemetryEventDetailDto = {
   schemaVersion: 1;
   packageVersion: string;

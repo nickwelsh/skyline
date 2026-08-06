@@ -25,7 +25,14 @@ declare module "virtual:pinned-trigger-state-inspector" {
   }): React.JSX.Element;
 }
 
-declare module "virtual:pinned-trigger-logs" {
+declare module "virtual:pinned-trigger-logs-table" {
   import type { ComponentType } from "react";
-  export const PinnedTriggerLogs: ComponentType<{ logs: Array<{ id: string; runId: string; taskIdentifier: string; spanId: string; triggeredTimestamp: string; level: string; message: string; attributes: Record<string, unknown> }> }>;
+  type Log = { id: string; runId: string; taskIdentifier: string; spanId: string; triggeredTimestamp: string; level: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR"; message: string; attributes: Record<string, unknown> };
+  export const PinnedTriggerLogsTable: ComponentType<{ logs: Log[]; selectedLogId?: string; onLogSelect: (id: string) => void }>;
+}
+
+declare module "virtual:pinned-trigger-log-detail" {
+  import type { ComponentType } from "react";
+  type Log = { id: string; runId: string; taskIdentifier: string; spanId: string; triggeredTimestamp: string; level: "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR"; message: string; attributes: Record<string, unknown> };
+  export const PinnedTriggerLogDetail: ComponentType<{ log: Log; onClose: () => void }>;
 }
