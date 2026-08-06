@@ -1,5 +1,7 @@
 import type { Page } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import { nw222InspectorState, nw222States, nw222TraceState } from "./nw222";
+import { triggerRunInspectorResources } from "./reference-run-inspectors";
 import { fixtureCatalog } from "./skyline";
 
 type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentLive" | "live";
@@ -27,6 +29,7 @@ export type ReferenceFixture = {
   loaders: Record<string, unknown>;
   resources?: {
     spans?: Record<string, unknown>;
+    spanStates?: Record<string, Record<string, unknown>>;
     queueMetrics?: Record<string, Array<Record<string, unknown>>>;
   };
   queueMetricMatchers: typeof referenceQueueMetricMatchers;
@@ -51,6 +54,19 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
   ]);
   const runList = triggerRunList(runs);
   const runDetail = triggerRun(run);
+  const inspectors = Object.fromEntries(await Promise.all(run.trace.nodes.map(async (node) => [
+    node.id,
+    await adapter.inspector(node.id, run.run.id),
+  ])));
+  const baseRunResource = triggerSpanRun(run);
+  const spanStates = Object.fromEntries(nw222States.map((state) => {
+    const detail = nw222TraceState(run, state);
+    const stateInspectors = Object.fromEntries(detail.trace.nodes.map((node) => [
+      node.id,
+      nw222InspectorState(inspectors[node.id], node.id, state),
+    ]));
+    return [state, triggerRunInspectorResources(detail, stateInspectors, baseRunResource)];
+  }));
   const errorLayout = {
     alertData: { channels: [], emailEnabled: false, slackEnabled: false },
     projectRef: "proj_fixture", projectId: "project", environmentType: "PRODUCTION",
@@ -65,6 +81,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       runs: { data: runList, rootOnlyDefault: false, filters: runList.filters, canCancelRuns: false, canReplayRuns: false },
       shell: { data: runList, rootOnlyDefault: false, filters: runList.filters, canCancelRuns: false, canReplayRuns: false },
       run: runDetail,
+      ...Object.fromEntries(nw222States.map((state) => [`runs-${state}`, triggerRun(nw222TraceState(run, state))])),
       "errors:layout": errorLayout,
       errors: triggerErrors(errors, errorLayout),
       "error:layout": errorLayout,
@@ -75,7 +92,8 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       queue: triggerQueue(queue),
     },
     resources: {
-      spans: { [runDetail.run.spanId]: triggerSpanRun(run) },
+      spans: spanStates.exception,
+      spanStates,
       queueMetrics: triggerQueueMetricRows(queue, queues),
     },
     canonicalUrls: {
@@ -95,7 +113,9 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       "jobs-favorite": "job", "jobs-recent-runs": "job", "jobs-absent-optional-data": "job",
       "runs-successful": "run", "runs-active": "run", "runs-failed": "run", "runs-retried": "run",
       "runs-parent-child-trace": "run", "runs-multiple-attempts": "run", "runs-long-data": "run",
-      "runs-exception": "run", "runs-inspectors": "run", "runs-timeline-extremes": "run",
+      "runs-exception": "run", "runs-exception-expanded": "run", "runs-exception-long": "run",
+      "runs-exception-retry": "run", "runs-exception-loading": "run", "runs-exception-error": "run",
+      "runs-exception-unavailable": "run", "runs-inspectors": "run", "runs-timeline-extremes": "run",
       "errors-single-occurrence": "error", "errors-many-occurrences": "error", "errors-affected-job-types": "error",
       "errors-application-vendor-frames": "error", "errors-stack-expansion": "error", "errors-linked-runs": "error",
       "errors-long-exception": "error", "logs-selected-detail": "log", "queues-idle": "queue", "queues-busy": "queue",
@@ -217,7 +237,13 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
           return structuredClone(rows);
         }
         if (kind !== "span") throw new Error(`Unsupported Trigger reference resource: ${kind}`);
-        const value = input.resources?.spans?.[params.spanParam ?? ""];
+        const captureId = decodeURIComponent(location.pathname.replace(/^\/oracle\//, "").split("@")[0] ?? "");
+        const captureState = captureId.startsWith("runs-") ? captureId.slice("runs-".length) : "";
+        const state = sessionStorage.getItem(fixtureStateKey) ?? captureState;
+        if (state === "exception-loading") return new Promise(() => {});
+        if (state === "exception-error") throw new Error("Exception evidence unavailable.");
+        const value = input.resources?.spanStates?.[state]?.[params.spanParam ?? ""]
+          ?? input.resources?.spans?.[params.spanParam ?? ""];
         if (value === undefined) {
           throw new Response("Deterministic telemetry evidence was not found.", {
             status: 404,
@@ -333,7 +359,7 @@ function triggerSpanRun(detail: any) {
   const completedAt = detail.run.finishedAt ?? null;
 
   return {
-    type: "run",
+    type: "run" as const,
     run: {
       id: summary.id,
       friendlyId: summary.friendlyId,

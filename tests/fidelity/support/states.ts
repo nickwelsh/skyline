@@ -33,7 +33,11 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario) {
   }
   if (scenario.id === "shell-storage-warning") await page.getByRole("button", { name: "Collapse side menu" }).click();
   if (scenario.id === "errors-stack-expansion") await page.getByRole("button", { name: /vendor frame/i }).first().click();
-  if (scenario.id === "runs-inspectors" || scenario.id === "runs-exception") await page.locator("[data-node-id]").nth(1).click();
+  if (scenario.id === "runs-inspectors" || scenario.id.startsWith("runs-exception")) {
+    const runId = fixture.ids.run;
+    const attempt = scenario.id === "runs-exception-retry" ? 2 : 1;
+    await page.locator(`[data-node-id="attempt_${runId}_${attempt}"]`).click();
+  }
   if (scenario.id === "runs-timeline-extremes") await page.getByRole("switch", { name: "Queue time" }).click();
   if (scenario.id === "jobs-filtering") await page.getByPlaceholder(/Search (?:Jobs|tasks)/i).fill("invoice");
   if (scenario.id === "errors-filters") await page.getByLabel("Job type").selectOption({ index: 1 });

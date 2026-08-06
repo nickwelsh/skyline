@@ -46,6 +46,28 @@ describe("pinned Trigger Logs fixture", () => {
   });
 });
 
+describe("pinned Trigger failed-Attempt fixture", () => {
+  test("maps exact Attempt and query resources for every exception state", async () => {
+    const fixture = await createReferenceFixture();
+    const resources = fixture.resources as any;
+    const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
+    const failedAttempt = `attempt_${runId}_1`;
+    const retryAttempt = `attempt_${runId}_2`;
+
+    expect(resources.spans[failedAttempt]).toMatchObject({
+      type: "run",
+      run: { error: { type: "BUILT_IN_ERROR", name: "Illuminate\\Database\\DeadlockException" } },
+    });
+    expect(resources.spans.span_4f24adb545b26d31).toMatchObject({ type: "span" });
+    expect(resources.spanStates["exception-long"][failedAttempt].run.error.stackTrace.split("\n").length).toBeGreaterThan(20);
+    expect(resources.spanStates["exception-retry"][retryAttempt]).toMatchObject({
+      type: "run",
+      run: { error: { name: "LogicException", message: "Retry failed differently." } },
+    });
+    expect(resources.spanStates["exception-unavailable"][failedAttempt]).toMatchObject({ type: "span" });
+  });
+});
+
 describe("pinned Trigger Queues fixture", () => {
   test("classifies exact environment live query separately from broker-only live data", () => {
     expect(referenceQueueMetricKey("SELECT timeBucket() AS t, max(max_env_queued) AS env_queued, max(max_env_running) AS env_running FROM env_metrics GROUP BY t ORDER BY t")).toBe("environmentLive");

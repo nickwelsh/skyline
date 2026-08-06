@@ -10,7 +10,7 @@ export type Nw222State =
   | "exception-error"
   | "exception-unavailable";
 
-const states = new Set<Nw222State>([
+export const nw222States: Nw222State[] = [
   "exception",
   "exception-expanded",
   "exception-long",
@@ -18,7 +18,9 @@ const states = new Set<Nw222State>([
   "exception-loading",
   "exception-error",
   "exception-unavailable",
-]);
+];
+
+const states = new Set<Nw222State>(nw222States);
 
 export function isNw222State(value: string): value is Nw222State {
   return states.has(value as Nw222State);
