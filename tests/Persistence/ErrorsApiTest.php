@@ -111,6 +111,53 @@ it('shows representative frames activity and cursor-paginated original occurrenc
         ->assertJsonPath('pagination.next', null);
 });
 
+it('cursor-paginates Error groups in stable order and binds cursors to filters', function (): void {
+    $startedAt = 1_786_000_000_000_000_000;
+    for ($index = 100; $index < 127; $index++) {
+        seedErrorOccurrence(
+            $index,
+            'App\\Jobs\\Invoice',
+            'RuntimeException',
+            "Invoice {$index} failed",
+            "/srv/product/app/Jobs/Invoice{$index}.php",
+            42,
+            "App\\Jobs\\Invoice{$index}->handle",
+            $startedAt,
+        );
+    }
+
+    $first = $this->getJson('/skyline/api/errors?'.http_build_query(['jobType' => 'App\\Jobs\\Invoice']))
+        ->assertOk()
+        ->assertJsonCount(25, 'errorGroups')
+        ->assertJsonPath('pagination.previous', null);
+    $firstIds = $first->json('errorGroups.*.id');
+    $nextCursor = $first->json('pagination.next');
+
+    expect($nextCursor)->toBeString()->not->toContain('error_');
+
+    $second = $this->getJson('/skyline/api/errors?'.http_build_query([
+        'jobType' => 'App\\Jobs\\Invoice',
+        'cursor' => $nextCursor,
+    ]))->assertOk()
+        ->assertJsonCount(2, 'errorGroups')
+        ->assertJsonPath('pagination.next', null);
+
+    expect(array_intersect($second->json('errorGroups.*.id'), $firstIds))->toBeEmpty()
+        ->and($second->json('pagination.previous'))->toBeString();
+
+    $previous = $this->getJson('/skyline/api/errors?'.http_build_query([
+        'jobType' => 'App\\Jobs\\Invoice',
+        'cursor' => $second->json('pagination.previous'),
+    ]))->assertOk()->assertJsonCount(25, 'errorGroups');
+
+    expect($previous->json('errorGroups.*.id'))->toBe($firstIds);
+
+    $this->getJson('/skyline/api/errors?'.http_build_query([
+        'exceptionClass' => 'RuntimeException',
+        'cursor' => $nextCursor,
+    ]))->assertStatus(422)->assertJsonPath('error.code', 'invalid_query');
+});
+
 it('falls back to a relative origin file and distinguishes empty filtered and missing Error groups', function (): void {
     seedErrorOccurrence(50, 'App\\Jobs\\Import', 'RuntimeException', 'First dynamic message', '/private/root/Import.php', 10, 'Vendor\\Runner->process');
     seedErrorOccurrence(51, 'App\\Jobs\\Import', 'RuntimeException', 'Second dynamic message', '/another/root/Import.php', 90, 'Vendor\\Runner->process');

@@ -30,12 +30,15 @@ final readonly class ErrorGroupsQuery
             ->orderByDesc('skyline_attempts.run_id')
             ->orderByDesc('skyline_attempts.attempt_number')
             ->get();
-        $groups = $this->groups($rows);
+        $groups = $this->groups($rows)
+            ->sort($this->compareGroups(...))
+            ->values();
+        $page = $this->groupPage($request, $groups, $filters);
 
         return [
             ...$this->metadata->at($observedAt),
-            'errorGroups' => $groups->map($this->summary(...))->values()->all(),
-            'pagination' => ['next' => null, 'previous' => null],
+            'errorGroups' => $page['groups']->map($this->summary(...))->values()->all(),
+            'pagination' => $page['pagination'],
             'filters' => $filters->toArray(),
             'options' => $this->options(),
             'hasAnyErrorGroups' => $this->baseQuery()->exists(),
@@ -134,6 +137,54 @@ final readonly class ErrorGroupsQuery
     private function observedAt(object $row): int
     {
         return (int) ($row->finished_at ?? $row->started_at);
+    }
+
+    /** @param Collection<int, Collection<int, array<string, mixed>>> $groups @return array{groups: Collection<int, Collection<int, array<string, mixed>>>, pagination: array{next: ?string, previous: ?string}} */
+    private function groupPage(Request $request, Collection $groups, ErrorGroupsFilters $filters): array
+    {
+        $all = $groups;
+        $cursor = $request->query('cursor');
+        $direction = 'next';
+
+        if ($cursor !== null) {
+            if (! is_string($cursor)) {
+                throw new InvalidQuery('The cursor is invalid.');
+            }
+            $decoded = $this->cursors->decode($cursor, 'error-groups');
+            $direction = $decoded['direction'] ?? null;
+            if (! in_array($direction, ['next', 'previous'], true)
+                || ! is_int($decoded['lastObservedAt'] ?? null)
+                || ! is_string($decoded['fingerprint'] ?? null)
+                || ($decoded['filters'] ?? null) !== $this->filterKey($filters)
+            ) {
+                throw new InvalidQuery('The cursor is invalid.');
+            }
+
+            $groups = $groups->filter(function (Collection $group) use ($decoded, $direction): bool {
+                $comparison = $this->compareGroupToCursor($group, $decoded);
+
+                return $direction === 'previous' ? $comparison < 0 : $comparison > 0;
+            })->values();
+            if ($direction === 'previous') {
+                $groups = $groups->take(-self::PAGE_SIZE)->values();
+            }
+        }
+
+        $page = $direction === 'previous' ? $groups : $groups->take(self::PAGE_SIZE)->values();
+        $first = $page->first();
+        $last = $page->last();
+
+        return [
+            'groups' => $page,
+            'pagination' => [
+                'previous' => $first !== null && $all->contains(fn (Collection $group): bool => $this->compareGroups($group, $first) < 0)
+                    ? $this->groupCursor('previous', $first, $filters)
+                    : null,
+                'next' => $last !== null && $all->contains(fn (Collection $group): bool => $this->compareGroups($group, $last) > 0)
+                    ? $this->groupCursor('next', $last, $filters)
+                    : null,
+            ],
+        ];
     }
 
     /** @param Collection<int, array<string, mixed>> $occurrences @return array{occurrences: Collection<int, array<string, mixed>>, pagination: array{next: ?string, previous: ?string}} */
@@ -238,6 +289,44 @@ final readonly class ErrorGroupsQuery
     private function compareTuple(array $left, array $right): int
     {
         return [$right['observedAt'], $right['runId'], $right['attemptNumber']] <=> [$left['observedAt'], $left['runId'], $left['attemptNumber']];
+    }
+
+    /** @param Collection<int, array<string, mixed>> $left @param Collection<int, array<string, mixed>> $right */
+    private function compareGroups(Collection $left, Collection $right): int
+    {
+        $time = $this->groupObservedAt($right) <=> $this->groupObservedAt($left);
+
+        return $time !== 0 ? $time : strcmp($left->first()['fingerprint'], $right->first()['fingerprint']);
+    }
+
+    /** @param Collection<int, array<string, mixed>> $group @param array<string, mixed> $cursor */
+    private function compareGroupToCursor(Collection $group, array $cursor): int
+    {
+        $time = $cursor['lastObservedAt'] <=> $this->groupObservedAt($group);
+
+        return $time !== 0 ? $time : strcmp($group->first()['fingerprint'], $cursor['fingerprint']);
+    }
+
+    /** @param Collection<int, array<string, mixed>> $group */
+    private function groupObservedAt(Collection $group): int
+    {
+        return (int) $group->max(fn (array $occurrence): int => $this->observedAt($occurrence['row']));
+    }
+
+    /** @param Collection<int, array<string, mixed>> $group */
+    private function groupCursor(string $direction, Collection $group, ErrorGroupsFilters $filters): string
+    {
+        return $this->cursors->encode('error-groups', [
+            'direction' => $direction,
+            'lastObservedAt' => $this->groupObservedAt($group),
+            'fingerprint' => $group->first()['fingerprint'],
+            'filters' => $this->filterKey($filters),
+        ]);
+    }
+
+    private function filterKey(ErrorGroupsFilters $filters): string
+    {
+        return hash('sha256', json_encode($filters->toArray(), JSON_THROW_ON_ERROR));
     }
 
     /** @param array<string, mixed> $occurrence */
