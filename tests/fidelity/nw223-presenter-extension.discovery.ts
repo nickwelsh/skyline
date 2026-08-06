@@ -3,7 +3,7 @@ import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
-import { nw223NodeId, nw223States } from "./support/nw223";
+import { isNw223State, nw223Presentation, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -33,8 +33,8 @@ const definition: PresenterExtensionDefinition = {
   captures,
   triggerSelector: "div[translate='no']",
   skylineSelector: "[data-skyline-extension='database-state-operation-inspector']",
-  triggerAnchorSelector: `[data-node-id='${nw223NodeId}'] p`,
-  skylineAnchorSelector: `[data-node-id='${nw223NodeId}'] p`,
+  triggerAnchorSelector: "#tree [role='treeitem'][data-index='5'] p",
+  skylineAnchorSelector: "#tree [role='treeitem'][data-index='5'] p",
   skylineAccessibleRole: "region",
   skylineAccessibleName: "Database and state operation inspector",
   anchorAccessibleRole: "paragraph",
@@ -105,6 +105,23 @@ async function preparePair(skyline: Page, trigger: Page, capture: string, scenar
   await step("settle:trigger", () => settleCapture(trigger));
   await step("presenter-ready:trigger", () => trigger.locator(definition.triggerSelector).waitFor());
   await step("presenter-ready:skyline", () => skyline.locator(definition.skylineSelector).waitFor());
+  const expectedLabel = operationLabel(scenario.state);
+  await Promise.all([
+    step("anchor-label:trigger", () => expectSelectedOperationLabel(trigger, expectedLabel)),
+    step("anchor-label:skyline", () => expectSelectedOperationLabel(skyline, expectedLabel)),
+  ]);
+}
+
+async function expectSelectedOperationLabel(page: Page, expectedLabel: string) {
+  const anchor = page.locator(definition.triggerAnchorSelector);
+  await expect(anchor).toHaveCount(1);
+  await expect(anchor).toHaveText(expectedLabel);
+}
+
+function operationLabel(state: string) {
+  if (!isNw223State(state)) throw new Error(`Unexpected NW-223 state: ${state}`);
+  const type = nw223Presentation(state).type;
+  return ({ sql: "SQL query", transaction: "Database transaction", cache: "Cache operation", redis: "Redis command" } as const)[type];
 }
 
 async function proveCaptureInteraction(browser: Browser, capture: string, scenario: FidelityScenario) {
