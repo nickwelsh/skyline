@@ -78,6 +78,7 @@ async function exposeQueueFilteringState(page: Page, application: "skyline" | "t
   await step(`filter:${application}:fill`, () => filter.fill("reports", { timeout: 1_500 }));
   const value = await step(`filter:${application}:value`, () => filter.inputValue());
   if (value !== "reports") throw new Error(`${application} Queue search filter did not retain its value.`);
+  await step(`filter:${application}:submit`, () => filter.press("Enter", { timeout: 1_500 }));
   const parameter = application === "trigger" ? "query" : "search";
   await step(`filter:${application}:navigation`, () => page.waitForURL((url) => url.searchParams.get(parameter) === "reports", { timeout: 1_500 }));
   const marker = `[data-${application === "trigger" ? "trigger" : "skyline"}-capability="queue-target-queue_3ac9ae5d-limit"]`;
