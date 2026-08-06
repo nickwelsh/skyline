@@ -14,12 +14,15 @@ import {
 import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { Badge } from "~/components/primitives/Badge";
+import { Button } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { Popover, PopoverArrowTrigger, PopoverContent } from "~/components/primitives/Popover";
+import { Paragraph } from "~/components/primitives/Paragraph";
 import {
   RESIZABLE_PANEL_ANIMATION,
   ResizableHandle,
@@ -34,6 +37,7 @@ import { Spinner } from "~/components/primitives/Spinner";
 import { Switch } from "~/components/primitives/Switch";
 import * as Timeline from "~/components/primitives/Timeline";
 import { RunIcon, type NodeKind } from "~/components/runs/v3/RunIcon";
+import { SpanTitle, type SpanLevel } from "~/components/runs/v3/SpanTitle";
 import { TaskRunStatusCombo, TaskRunStatusIcon, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { TreeView, type FlatTree, useTree } from "~/primitives/TreeView/TreeView";
 import { cn } from "~/utils/cn";
@@ -56,6 +60,7 @@ type TraceNode = {
   children: string[];
   hasChildren: boolean;
   timelineEvents: Array<{ name: string; offsetUs: number }>;
+  logLevel?: string;
   inspectorHref: string;
   telemetryEventHref: string | null;
 };
@@ -422,13 +427,26 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
       <span className="ml-1 flex min-w-0 flex-1 items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-1.5">
           <RunIcon kind={node.kind} className="size-5 min-h-5 min-w-5" />
-          <span className={cn("truncate", node.isError ? "text-error" : node.kind === "attempt" ? "text-text-dimmed group-hover/spannode:text-text-bright" : "text-text-link")}>{node.label}</span>
+          <Paragraph variant="small" className="truncate">
+            <SpanTitle
+              message={node.label}
+              kind={node.kind}
+              isError={node.isError}
+              level={spanLevel(node.logLevel)}
+              isPartial={node.isPartial}
+              size="small"
+            />
+          </Paragraph>
           {node.kind === "run" && node.level === 0 && <Badge variant="extra-small">Root</Badge>}
         </span>
         <TaskRunStatusIcon status={nodeStatus(node)} className="size-4 shrink-0" />
       </span>
     </div>
   );
+}
+
+function spanLevel(value: string | undefined): SpanLevel {
+  return value === "LOG" || value === "INFO" || value === "DEBUG" || value === "WARN" || value === "ERROR" ? value : "TRACE";
 }
 
 function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, timelineScrollRef }: {
@@ -576,9 +594,14 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
           <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
           <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>
         </div>
-        <button type="button" aria-label="Close inspector" title="Close inspector (Esc)" className="flex h-6 shrink-0 items-center gap-1 rounded px-1 text-xxs text-text-faint hover:bg-background-raised hover:text-text-bright" onClick={onClose}>
-          <kbd className="rounded-sm border border-border-bright px-1 font-mono">Esc</kbd><span>→</span>
-        </button>
+        <Button
+          onClick={onClose}
+          variant="minimal/small"
+          TrailingIcon={ExitIcon}
+          shortcut={{ key: "esc" }}
+          shortcutPosition="before-trailing-icon"
+          className="pl-1"
+        />
       </div>
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
         {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, ...(inspector?.context ? [{ id: "context", label: "Context", key: "x" }] : []), { id: "metadata", label: "Metadata", key: "m" }].map((item) => (

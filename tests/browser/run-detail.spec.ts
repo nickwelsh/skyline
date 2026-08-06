@@ -35,6 +35,10 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(tree).toBeVisible();
   await expect(tree).toBeFocused();
   await expect(page).toHaveURL(new RegExp(`node=${oracle.expected.selectedNode}`));
+  await expect(page.locator(`[data-node-id="${rootNodeId}"] p > span.flex > span.truncate`)).toHaveText("GenerateMonthlyInvoices");
+  const closeInspector = page.getByRole("button", { name: "Esc", exact: true });
+  await expect(closeInspector).toBeVisible();
+  await expect(closeInspector.locator("svg")).toHaveCount(1);
   for (const tab of oracle.expected.inspectorTabs) {
     await expect(page.getByRole("tab", { name: tab, exact: true })).toBeVisible();
   }
@@ -86,7 +90,7 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.getByRole("tab", { name: "Detail" }).click();
   await expect(page.getByRole("region", { name: "SQL" })).toContainText("insert into `invoices`");
   await expect(page.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
-  await page.getByRole("button", { name: "Close inspector" }).click();
+  await page.getByRole("button", { name: "Esc", exact: true }).click();
   await expect(page).not.toHaveURL(/node=/);
 });
 
