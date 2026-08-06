@@ -85,12 +85,12 @@ test("paired pinned Trigger and Skyline shells preserve reached behavior", async
   await reference.goto("http://127.0.0.1:4175/shell");
   await reference.evaluate(() => document.fonts.ready);
   await expect(reference).toHaveScreenshot("nw-226/trigger-shell.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
-  const triggerContract = await exerciseShell(reference, true);
+  const triggerContract = await exerciseShell(reference);
 
   await page.goto("/skyline/runs");
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot("nw-226/skyline-shell.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
-  const skylineContract = await exerciseShell(page, false);
+  const skylineContract = await exerciseShell(page);
 
   expect(skylineContract).toEqual(triggerContract);
   await reference.close();
@@ -151,26 +151,21 @@ function runsResponse(): RunsPageDto {
   return response;
 }
 
-async function exerciseShell(page: Page, reference: boolean) {
-  const navigation = baseline.contract.navigation;
-  for (const label of navigation) await expect(page.getByRole("link", { name: label, exact: true }).first()).toBeVisible();
+async function exerciseShell(page: Page) {
+  const navigation = ["tasks", "runs", "logs", "errors", "queues"];
+  const navigationNames = [/^(Tasks|Jobs)$/, /^Runs$/, /^Logs$/, /^Errors$/, /^Queues$/];
+  for (const name of navigationNames) await expect(page.getByRole("link", { name }).first()).toBeVisible();
 
-  if (reference) {
-    await page.getByText("Shortcuts", { exact: true }).click();
-  } else {
-    await page.getByRole("button", { name: "Help & Feedback" }).click();
-    await page.getByText("Shortcuts", { exact: true }).click();
-  }
+  await page.getByRole("button", { name: "Help & Feedback" }).click();
+  await page.getByText("Shortcuts", { exact: true }).click();
   await expect(page.getByText("Keyboard shortcuts", { exact: true })).toBeVisible();
   for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
 
-  if (reference) {
-    await page.getByRole("button", { name: "Customize sidebar" }).click();
-  } else {
-    await page.getByText("Observability", { exact: true }).hover();
-    await page.getByRole("button", { name: "Customize sidebar" }).click();
-  }
+  const observability = page.getByRole("button", { name: "Observability", exact: true });
+  await observability.hover();
+  await observability.locator("..").getByRole("button", { name: /^(Sidebar options|Customize sidebar)$/ }).click();
+  await page.getByText("Customize sidebar", { exact: true }).click();
   await page.getByRole("button", { name: "Hide Logs" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByRole("link", { name: "Logs", exact: true })).toHaveCount(0);

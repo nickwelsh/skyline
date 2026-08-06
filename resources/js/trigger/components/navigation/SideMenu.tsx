@@ -20,6 +20,7 @@ import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
 import { cn } from "~/utils/cn";
 import { Dialog } from "../primitives/Dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "../primitives/Popover";
 import {
   CustomizeSidebarDialog,
   type CustomizeSidebarSection,
@@ -226,7 +227,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
               <div role="navigation" aria-label="Favorites">{favorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TaskIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
-            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.metrics)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.metrics} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, metrics: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <button type="button" aria-label="Customize sidebar" onClick={() => setCustomizeOpen(true)} className="rounded p-1 text-text-dimmed hover:bg-background-hover hover:text-text-bright"><AdjustmentsHorizontalIcon className="size-4" /></button> : undefined}>
+            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.metrics)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.metrics} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, metrics: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
               {visibleObservability.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}
@@ -255,10 +256,14 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
 
 function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active: boolean; labelOpacity: number }) {
   const ItemIcon = item.icon;
-  return <Link to={item.to} aria-current={active ? "page" : undefined} className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-[0.90625rem] font-medium tracking-[-0.01em] focus-custom", active ? "bg-background-raised text-text-bright" : "text-text-dimmed hover:bg-background-hover hover:text-text-bright")}>
+  return <Link to={item.to} data-action={item.id === "jobs" ? "tasks" : item.id} aria-current={active ? "page" : undefined} className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-[0.90625rem] font-medium tracking-[-0.01em] focus-custom", active ? "bg-background-raised text-text-bright" : "text-text-dimmed hover:bg-background-hover hover:text-text-bright")}>
     <ItemIcon className={cn("size-5 min-w-5 shrink-0", active ? item.activeIconColor : "text-text-dimmed")} />
     <span className="min-w-0 truncate" style={{ opacity: labelOpacity }}>{item.name}</span>
   </Link>;
+}
+
+function SidebarCustomizationMenu({ onCustomize }: { onCustomize: () => void }) {
+  return <Popover><PopoverTrigger asChild><button type="button" aria-label="Sidebar options" className="rounded p-1 text-text-dimmed hover:bg-background-hover hover:text-text-bright"><AdjustmentsHorizontalIcon className="size-4" /></button></PopoverTrigger><PopoverContent align="start" sideOffset={4} className="p-1"><button type="button" onClick={onCustomize} className="flex h-8 w-full items-center gap-2 rounded px-2 text-left text-[0.90625rem] font-medium text-text-dimmed hover:bg-background-hover hover:text-text-bright"><AdjustmentsHorizontalIcon className="size-4" />Customize sidebar</button></PopoverContent></Popover>;
 }
 
 function DormantShellActions({ capabilities }: { capabilities: ShellCapabilities }) {
