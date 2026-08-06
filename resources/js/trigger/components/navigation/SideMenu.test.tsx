@@ -114,6 +114,7 @@ describe("SideMenu capabilities", () => {
     expect(help.querySelector("span > span")?.className).toBe("min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright");
     expect(appearance.className).toContain("min-w-0 flex-1");
     expect(collapse.className).toBe("group/button outline-hidden focus-custom");
+    expect(collapse.parentElement?.parentElement?.parentElement).toBe(controls);
   });
 
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
