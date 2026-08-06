@@ -110,6 +110,26 @@ test("Errors URL-cursor paginate groups and failed Attempts", async ({ page }) =
   await expect(page).toHaveURL(/cursor=previous-attempts&direction=backward/);
 });
 
+test("Errors preserve All time and return matching evidence search results", async ({ page }) => {
+  await routeErrors(page);
+  await page.goto("/skyline/errors?period=24h");
+
+  await page.getByLabel("Time range").selectOption("all");
+  await expect(page).toHaveURL(/period=all/);
+  await page.reload();
+  await expect(page.getByLabel("Time range")).toHaveValue("all");
+
+  const search = page.getByPlaceholder("Search errors…");
+  await search.fill("Receipt destination");
+  await search.press("Enter");
+
+  await expect(page).toHaveURL(/period=all/);
+  await expect(page).toHaveURL(/search=Receipt(?:\+|%20)destination/);
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator(`[title=${JSON.stringify(secondaryError.errorMessage)}]`)).toBeVisible();
+  await expect(page.locator(`[title=${JSON.stringify(primaryError.errorMessage)}]`)).toHaveCount(0);
+});
+
 test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and not-found states", async ({ page }) => {
   let mode: "populated" | "initial-empty" | "filtered-empty" | "error" = "populated";
   let detailMode: "populated" | "filtered-empty" | "error" = "populated";
@@ -245,6 +265,14 @@ function listResponse(url?: URL): ErrorGroupsPageDto {
     response.filters.jobType = url.searchParams.get("jobType");
     response.filters.exceptionClass = url.searchParams.get("exceptionClass");
     response.filters.period = (url.searchParams.get("period") as ErrorGroupsPageDto["filters"]["period"]) ?? "all";
+    const search = url.searchParams.get("search")?.toLowerCase();
+    if (search) {
+      response.errorGroups = response.errorGroups.filter((group) => [
+        group.representativeMessage,
+        group.exceptionClass,
+        group.latest.runId,
+      ].some((value) => value.toLowerCase().includes(search)));
+    }
   }
   return response;
 }
