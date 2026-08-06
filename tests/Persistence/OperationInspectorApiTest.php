@@ -15,6 +15,7 @@ it('projects SQL evidence through a discriminated privacy-bounded contract', fun
 
     $uncaptured = $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id)
         ->assertOk()
+        ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('node.presentation.type', 'sql')
         ->assertJsonPath('node.presentation.sql.statement.value', 'select ? as private_value')
         ->assertJsonPath('node.presentation.sql.bindings', null)
