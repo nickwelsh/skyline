@@ -31,9 +31,9 @@ it('lists only confirmed named asynchronous Queue targets with recorded aggregat
 
     expect($response->json('queueTargets.1.firstObservedAt'))->toEndWith('Z')
         ->and($response->json('queueTargets.1.lastObservedAt'))->toEndWith('Z')
-        ->and($response->getContent())->not->toContain('brokerDepth')
-        ->not->toContain('workers')
-        ->not->toContain('concurrency');
+        ->and($response->json('capabilities.queues.workers'))->toBeFalse()
+        ->and($response->json('capabilities.queues.concurrency'))->toBeFalse()
+        ->and($response->getContent())->not->toContain('brokerDepth');
 });
 
 it('filters Queue targets with server supplied URL options and explicit invalid queries', function (): void {
