@@ -7,6 +7,7 @@ import { prepareCapture, settleCapture } from "./support/capture";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { seedOwnedState } from "./support/states";
+import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
 
 const root = resolve(import.meta.dirname, "../..");
 const record = process.env.SKYLINE_ORACLE_RECORD === "1";
@@ -38,7 +39,7 @@ for (const script of actionFile.scripts as ActionScript[]) {
       }),
       runActionScript(page, script, { basePath: "/skyline", fixtureState: async (state) => fixture.setState(state) }),
     ]);
-    expect(skyline).toEqual(trigger);
+    assertNoFidelityDifferences(collectFidelityDifferences({ triggerInteractions: trigger, skylineInteractions: skyline }));
     proof(resolve(root, "tests/fidelity/oracle/actions", `${script.id}.json`), `${JSON.stringify({ trigger, skyline }, null, 2)}\n`);
     await reference.close();
   });

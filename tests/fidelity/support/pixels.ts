@@ -6,6 +6,12 @@ type Observation = { selector: string; rect: Rect; computedStyle: Record<string,
 export type DifferenceRegion = { id: string; trigger: Observation; skyline: Observation };
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
+  const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
+  if (comparison.differingPixels > 0) throw new Error(`${comparison.differingPixels} unclassified pixel${comparison.differingPixels === 1 ? "" : "s"} differ outside accepted regions.`);
+  return comparison;
+}
+
+export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const trigger = PNG.sync.read(triggerBuffer);
   const skyline = PNG.sync.read(skylineBuffer);
   if (trigger.width !== skyline.width || trigger.height !== skyline.height) throw new Error("Paired screenshots have different dimensions.");
@@ -24,7 +30,6 @@ export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
   }
 
   const differingPixels = pixelmatch(trigger.data, skyline.data, undefined, trigger.width, trigger.height, { threshold: 0, includeAA: true });
-  if (differingPixels > 0) throw new Error(`${differingPixels} unclassified pixel${differingPixels === 1 ? "" : "s"} differ outside accepted regions.`);
   return { differingPixels, maskedPixels, regions: regions.map(({ id }) => id) };
 }
 

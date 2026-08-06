@@ -7,7 +7,8 @@ import { captureAccessibilityTree } from "./support/accessibility";
 import { observeAction } from "./support/actions";
 import { captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
-import { comparePixels } from "./support/pixels";
+import { measurePixels } from "./support/pixels";
+import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -59,9 +60,15 @@ for (const capture of captures) {
       observeAction(reference, "captured"),
       observeAction(page, "captured"),
     ]);
-    expect.soft(skylineTree, "Accessibility tree drifted from Trigger.").toEqual(triggerTree);
-    expect.soft(additionalAxeViolations(triggerAxe, skylineAxe), "Skyline added Axe violations.").toEqual([]);
-    const comparison = comparePixels(triggerPng, skylinePng, []);
+    const comparison = measurePixels(triggerPng, skylinePng, []);
+    assertNoFidelityDifferences(collectFidelityDifferences({
+      differingPixels: comparison.differingPixels,
+      triggerTree,
+      skylineTree,
+      additionalAxeViolations: additionalAxeViolations(triggerAxe, skylineAxe),
+      triggerInteractions: [triggerInteraction],
+      skylineInteractions: [skylineInteraction],
+    }));
 
     const directory = resolve(root, "tests/fidelity/oracle/artifacts", capture);
     proof(`${directory}/trigger.png`, triggerPng);
