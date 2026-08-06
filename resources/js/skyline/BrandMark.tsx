@@ -1,3 +1,3 @@
-export function BrandMark() {
-  return <span className="flex size-6 shrink-0 items-center justify-center rounded bg-amber-400 font-bold text-charcoal-950">S</span>;
+export function BrandMark({ name }: { name: string }) {
+  return <span className="grid size-5 shrink-0 place-items-center overflow-hidden rounded-[10%] bg-amber-400 text-xs font-bold leading-none text-charcoal-950">{name.slice(0, 2)}</span>;
 }

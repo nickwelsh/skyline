@@ -27,7 +27,7 @@ export function SkylineShell({ bootstrap }: { bootstrap: SkylineBootstrap }) {
 
   return <TriggerShell
     applicationName={bootstrap.applicationName}
-    brandMark={<BrandMark />}
+    brandMark={<BrandMark name={bootstrap.applicationName} />}
     environmentLabel={bootstrap.environmentLabel}
     capabilities={{
       navigation,

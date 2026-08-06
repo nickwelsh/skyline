@@ -15,7 +15,7 @@ const bootstrap = JSON.stringify({
   schemaVersion: 1,
   basePath: "/skyline",
   applicationName: "Fixture Laravel",
-  environmentLabel: "testing",
+  environmentLabel: "Production",
   capabilities: {
     navigation: { jobs: true, runs: true, errors: true, logs: true, queues: true, query: false, dashboards: false },
     runs: { view: true, cancel: false, replay: false, bulkCancel: false, bulkReplay: false },

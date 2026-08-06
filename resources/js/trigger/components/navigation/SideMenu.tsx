@@ -278,13 +278,17 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   const style = { width, "--sm-collapse": progress, "--sm-label-opacity": labelOpacity } as CSSProperties;
   return (
     <aside data-testid="side-menu" className="relative grid h-full min-w-0 grid-cols-[100%] grid-rows-[2.5rem_auto_1fr_auto] overflow-hidden border-r border-grid-bright bg-background-bright" style={style}>
-      <div className="flex min-w-0 items-center gap-2 overflow-hidden border-b border-transparent px-1 py-1">
-        <div className="flex size-8 shrink-0 items-center justify-center">{brandMark}</div>
-        <span className="min-w-0 truncate text-[0.90625rem] font-semibold text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
+      <div className="flex min-w-0 items-center overflow-hidden border-b border-transparent px-1 py-1">
+        <div className="flex h-8 w-full items-center rounded pl-1.75 pr-1">
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
+            {brandMark}
+            <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
+          </span>
+        </div>
       </div>
       <div data-testid="side-menu-project" className="border-b border-grid-bright px-2 pb-2.5 pt-1">
         <div className="w-full space-y-1">
-          <div className="flex h-4 items-center overflow-hidden pl-1.5 text-xs text-text-faint">
+          <div className="flex h-4 items-center overflow-hidden pl-1.5 text-xs">
             <span className="whitespace-nowrap">Proj<span style={{ opacity: labelOpacity }}>ect</span></span>
           </div>
           <div className="space-y-1">
