@@ -245,9 +245,7 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
               <Property.Value><RelativeDateTime date={data.errorGroup.lastObservedAt} /></Property.Value>
             </Property.Item>
           </Property.Table>
-          <div data-skyline-extension="error-exception-evidence">
-            <ExceptionPreview exception={data.representative} />
-          </div>
+          <ExceptionPreview exception={data.representative} />
         </div>
       </div>
     </aside>

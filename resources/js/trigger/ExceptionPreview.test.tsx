@@ -12,6 +12,8 @@ describe("ExceptionPreview", () => {
   it("preserves Trigger's failure composition with related frame disclosures", () => {
     const { container, root } = render(exception());
 
+    expect(container.querySelectorAll('[data-skyline-extension="error-exception-evidence"][role="region"][aria-label="Exception"]')).toHaveLength(1);
+
     expect(container.textContent).toContain("RuntimeException");
     expect(container.textContent).toContain("Payment failed.");
     expect(container.textContent).toContain("app/Jobs/ChargeCard.php:42");
