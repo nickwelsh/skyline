@@ -1,11 +1,19 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { SqlCapturePreview } from "./CapturePreview";
 import { CodeBlock } from "./CodeBlock";
+
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
 
 describe("CodeBlock", () => {
   afterEach(() => {
     document.body.innerHTML = "";
+    vi.restoreAllMocks();
   });
 
   it("keeps Trigger's titleless three-icon code viewer", () => {
@@ -34,6 +42,42 @@ describe("CodeBlock", () => {
 
     flushSync(() => expand.click());
     expect(document.querySelector('[role="dialog"]')?.textContent).not.toContain("Context");
+
+    flushSync(() => root.unmount());
+  });
+
+  it("closes its dialog on Escape while nested modal content is focused", async () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(
+      <CodeBlock
+        label="Properties"
+        code="select * from users"
+        showTextWrapping
+        modalContent={<SqlCapturePreview sql="select * from users where id = ?" bindings={[{ position: 0, column: null, value: 1 }]} />}
+      />,
+    ));
+
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn() } });
+    const viewer = container.querySelector<HTMLElement>('[aria-label="Properties"]')!;
+    flushSync(() => viewer.querySelector<HTMLButtonElement>('button[aria-label="Wrap Properties"]')!.click());
+    flushSync(() => viewer.querySelector<HTMLButtonElement>('button[aria-label="Copy Properties"]')!.click());
+    expect(document.body.textContent).toContain("Copied");
+    flushSync(() => viewer.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!.click());
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    const parameterized = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"][aria-selected="true"]')!;
+    parameterized.focus();
+    flushSync(() => parameterized.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
+    const bindings = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"][aria-selected="true"]')!;
+    expect(bindings.textContent).toBe("With bindings");
+    expect(document.activeElement).toBe(bindings);
+    await new Promise((resolve) => window.setTimeout(resolve, 1_600));
+    expect(document.body.textContent).not.toContain("Copied");
+    flushSync(() => bindings.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
 
     flushSync(() => root.unmount());
   });
