@@ -6,6 +6,7 @@ import {
   TextCapturePreview,
 } from "../trigger/CapturePreview";
 import { Header3 } from "../trigger/components/primitives/Headers";
+import { DateTimeAccurate } from "../trigger/components/primitives/DateTime";
 import * as Property from "../trigger/components/primitives/PropertyTable";
 import type {
   CapturedValue,
@@ -61,7 +62,7 @@ function SqlInspector({ presentation }: { presentation: PresentationOf<"sql"> })
   const { statement, bindings, result } = presentation.sql;
 
   return (
-    <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure}>
+    <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
       <SqlCapturePreview
         sql={statement.value}
         bindings={bindings?.items}
@@ -80,7 +81,7 @@ function TransactionInspector({ presentation }: { presentation: PresentationOf<"
   const { transaction } = presentation;
 
   return (
-    <InspectorLayout title="Database transaction" timing={presentation.timing} failure={presentation.failure}>
+    <InspectorLayout title="Database transaction" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
       <Property.Table>
         <Item label="Connection" value={transaction.connection} />
         <Item label="Driver" value={transaction.driver} />
@@ -96,7 +97,7 @@ function CacheInspector({ presentation }: { presentation: PresentationOf<"cache"
   const { cache } = presentation;
 
   return (
-    <InspectorLayout title="Cache operation" timing={presentation.timing} failure={presentation.failure}>
+    <InspectorLayout title="Cache operation" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
       <Property.Table>
         <Item label="Operation" value={cache.operation} />
         <Item label="Store" value={cache.store} />
@@ -118,7 +119,7 @@ function RedisInspector({ presentation }: { presentation: PresentationOf<"redis"
   const { redis } = presentation;
 
   return (
-    <InspectorLayout title="Redis command" timing={presentation.timing} failure={presentation.failure}>
+    <InspectorLayout title="Redis command" timing={presentation.timing} failure={presentation.failure} extensionId="database-state-operation-inspector">
       <Property.Table>
         <Item label="Command" value={redis.command} />
         <Item label="Connection" value={redis.connection} />
@@ -270,14 +271,14 @@ function GenericInspector({ inspector, presentation }: { inspector: ExternalInsp
   );
 }
 
-function InspectorLayout({ title, timing, failure, children }: { title: string; timing?: InspectorTiming; failure?: InspectorFailure; children: ReactNode }) {
+function InspectorLayout({ title, timing, failure, extensionId, children }: { title: string; timing?: InspectorTiming; failure?: InspectorFailure; extensionId?: string; children: ReactNode }) {
   return (
-    <section aria-label={`${title} detail`} className="flex min-w-0 flex-col gap-4">
+    <section aria-label={`${title} detail`} data-skyline-extension={extensionId} className="flex min-w-0 flex-col gap-4">
       <Header3>{title}</Header3>
       {timing && (
         <Property.Table>
-          <Item label="Started" value={timing.startedAt} />
-          <Item label="Finished" value={timing.endedAt} />
+          <Item label="Started" value={timing.startedAt ? <time dateTime={timing.startedAt}><DateTimeAccurate date={timing.startedAt} /></time> : null} />
+          <Item label="Finished" value={timing.endedAt ? <time dateTime={timing.endedAt}><DateTimeAccurate date={timing.endedAt} /></time> : null} />
           <Item label="Duration" value={formatMicroseconds(timing.durationUs)} />
         </Property.Table>
       )}
@@ -324,7 +325,7 @@ function Unavailable({ children }: { children: ReactNode }) {
   return <p className="text-sm text-text-faint">{children}</p>;
 }
 
-function Item({ label, value, breakWords = false }: { label: string; value: unknown; breakWords?: boolean }) {
+function Item({ label, value, breakWords = false }: { label: string; value: ReactNode; breakWords?: boolean }) {
   return (
     <Property.Item>
       <Property.Label>{label}</Property.Label>
@@ -345,8 +346,8 @@ function LinkItem({ label, href, value }: { label: string; href: string | null; 
   );
 }
 
-function display(value: unknown): string {
-  return value === null || value === undefined || value === "" ? "–" : String(value);
+function display(value: ReactNode): ReactNode {
+  return value === null || value === undefined || value === "" ? "–" : value;
 }
 
 function formatMicroseconds(value: number | null): string {
