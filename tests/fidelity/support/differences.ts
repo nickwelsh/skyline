@@ -1,5 +1,6 @@
 import { isDeepStrictEqual } from "node:util";
 import type { ActionObservation } from "./actions";
+import { normalizeQueueFilterUrl, type QueueUrlApplication } from "./queue-url-semantics";
 
 export type FidelityAxis = "pixels" | "accessibility" | "axe" | "url" | "history" | "focus" | "persistence" | "action";
 export type FidelityDifference = { axis: FidelityAxis; detail: string };
@@ -23,8 +24,8 @@ export function collectFidelityDifferences(evidence: FidelityEvidence): Fidelity
   const skyline = evidence.skylineInteractions ?? [];
   if (trigger.length !== skyline.length) differences.push({ axis: "action", detail: `transcript length ${trigger.length} != ${skyline.length}` });
   for (let index = 0; index < Math.min(trigger.length, skyline.length); index += 1) {
-    const expected = normalizeObservation(trigger[index]);
-    const actual = normalizeObservation(skyline[index]);
+    const expected = normalizeObservation(trigger[index], "trigger");
+    const actual = normalizeObservation(skyline[index], "skyline");
     const prefix = `${expected.step}: `;
     add(differences, expected.step.includes("history") ? "history" : "url", expected.url, actual.url, prefix);
     add(differences, "focus", expected.activeElement, actual.activeElement, prefix);
@@ -34,14 +35,14 @@ export function collectFidelityDifferences(evidence: FidelityEvidence): Fidelity
   return differences;
 }
 
-function normalizeObservation(observation: ActionObservation): ActionObservation {
-  const url = normalizeRouterUrl(observation.url);
+function normalizeObservation(observation: ActionObservation, application: QueueUrlApplication): ActionObservation {
+  const url = normalizeRouterUrl(observation.url, application);
   const storage = normalizeStorage(observation.storage);
   const activeElement = observation.activeElement?.tag === "BODY" ? { ...observation.activeElement, name: "" } : observation.activeElement;
   return { ...observation, url, storage, activeElement };
 }
 
-function normalizeRouterUrl(value: string) {
+function normalizeRouterUrl(value: string, application: QueueUrlApplication) {
   const prefixed = value.replace(/^\/(?:skyline|reference|oracle)(?=\/|$)/, "") || "/";
   const url = new URL(prefixed, "https://fidelity.invalid");
   const span = url.searchParams.get("span");
@@ -53,7 +54,7 @@ function normalizeRouterUrl(value: string) {
     url.searchParams.set("attempt-selection", selection);
   }
   url.searchParams.sort();
-  return `${url.pathname}${url.search}${url.hash}`;
+  return normalizeQueueFilterUrl(`${url.pathname}${url.search}${url.hash}`, application);
 }
 
 function normalizeStorage(storage: Record<string, string>) {
