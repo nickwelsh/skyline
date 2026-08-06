@@ -54,6 +54,20 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [overlapping])).toThrow(/overlap/i);
     expect(() => comparePixels(trigger, skyline, [{ ...omission, omissions: omission.omissions.map((pair, index) => index ? pair : { ...pair, triggerComputedStyleSha256: "0".repeat(64) }) }])).toThrow(/triggerComputedStyleSha256/i);
   });
+
+  test("unions quantized masks for touching fractional regions but rejects true overlap", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [
+      [0, 0, [0, 0, 0, 255]],
+      [1, 0, [0, 0, 0, 255]],
+      [2, 0, [0, 0, 0, 255]],
+    ]);
+
+    expect(comparePixels(trigger, skyline, [fractionalCapabilityOmissionRegion(1.75)]))
+      .toMatchObject({ differingPixels: 0, maskedPixels: 3 });
+    expect(() => comparePixels(trigger, skyline, [fractionalCapabilityOmissionRegion(1.5)]))
+      .toThrow(/overlap/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
@@ -106,4 +120,13 @@ function capabilityOmissionRegion(): Extract<DifferenceRegion, { kind: "capabili
     ...hashes,
   }));
   return { kind: "capability-omission", id: "queue-unavailable-capabilities", omissions, expected: Object.fromEntries(omissions.map(({ id, triggerRect, skylineRect, ...measurement }) => [id, { triggerRect, skylineRect, ...measurement }])) };
+}
+
+function fractionalCapabilityOmissionRegion(secondX: number): Extract<DifferenceRegion, { kind: "capability-omission" }> {
+  const region = capabilityOmissionRegion();
+  const omissions = [
+    { ...region.omissions[0], triggerRect: { x: 0.25, y: 0, width: 1.5, height: 1 }, skylineRect: { x: 0.25, y: 0, width: 1.5, height: 1 } },
+    { ...region.omissions[1], triggerRect: { x: secondX, y: 0, width: 1.5, height: 1 }, skylineRect: { x: secondX, y: 0, width: 1.5, height: 1 } },
+  ];
+  return { ...region, omissions, expected: Object.fromEntries(omissions.map(({ id, triggerRect, skylineRect, ...measurement }) => [id, { triggerRect, skylineRect, ...measurement }])) };
 }
