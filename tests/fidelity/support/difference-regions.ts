@@ -415,7 +415,7 @@ async function observeElementAccessibility(page: Page, selector: string, observa
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {
-  if (count !== 1) throw new Error(`Allowed region ${id} ${label} must match exactly one element.`);
+  if (count !== 1) throw new Error(`Allowed region ${id} ${label} must match exactly one element; observed ${count}.`);
 }
 
 /** Separate bundles expose different inherited, unused `--*` inventories; lock every resolved standard property instead. */

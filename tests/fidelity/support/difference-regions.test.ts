@@ -44,7 +44,9 @@ describe("framework-extension fidelity regions", () => {
     const measurement = expected.measurements[expected.captures[0]];
     const anchor = { rect: measurement.anchorRect, accessibleRole: "heading", accessibleName: "Details", computedStyleSha256: measurement.anchorComputedStyleSha256, accessibilitySha256: "c".repeat(64) };
 
-    expect(() => requireSingleMatch(2, expected.id, "Skyline extension")).toThrow(/exactly one/i);
+    expect(() => requireSingleMatch(2, expected.id, "Skyline extension")).toThrow(
+      "Allowed region php-exception-evidence Skyline extension must match exactly one element; observed 2.",
+    );
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, rect: { ...anchor.rect, x: 11 } }, expected.captures[0])).toThrow(/geometry/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, computedStyleSha256: "c".repeat(64) }, expected.captures[0])).toThrow(/computed style/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, accessibleName: "Changed" }, expected.captures[0])).toThrow(/accessible identity/i);
