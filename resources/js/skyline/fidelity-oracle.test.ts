@@ -149,7 +149,7 @@ describe("source-fidelity oracle", () => {
 
   test("measurement discovery is read-only and uses the strict paired observer", () => {
     const discovery = readFileSync(join(root, "tests/fidelity/framework-extension.discovery.ts"), "utf8");
-    expect(discovery).toContain("discoverFrameworkExtensionObservation(trigger, skyline, definition)");
+    expect(discovery).toContain("discoverFrameworkExtensionObservation(trigger, skyline, definition, step)");
     expect(discovery).toContain("expect(captures).toHaveLength(28)");
     expect(discovery).toContain('test(`discover exact NW-224 ${capture}`');
     expect(discovery.indexOf("for (const capture of captures)")).toBeLessThan(discovery.indexOf('test(`discover exact NW-224 ${capture}`'));
