@@ -35,7 +35,7 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
 
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Errors" })).toHaveAttribute("href", "/skyline/errors");
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Task", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Job type", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
   await expect(page.locator("thead th[scope=col]")).toHaveCount(7);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   await expect(page.getByText(primaryError.errorMessage, { exact: true })).toBeVisible();

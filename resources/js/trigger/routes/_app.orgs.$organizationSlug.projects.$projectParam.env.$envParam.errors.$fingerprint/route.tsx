@@ -255,7 +255,7 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
               <Property.Value><span className="break-all font-mono text-xs">{data.errorGroup.fingerprint}</span></Property.Value>
             </Property.Item>
             <Property.Item>
-              <Property.Label>Task</Property.Label>
+              <Property.Label>Job type</Property.Label>
               <Property.Value>
                 <Link
                   to={data.errorGroup.jobPath}

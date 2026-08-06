@@ -200,7 +200,7 @@ function ErrorsList({
       <TableHeader>
         <TableRow>
           <TableHeaderCell>ID</TableHeaderCell>
-          <TableHeaderCell>Task</TableHeaderCell>
+          <TableHeaderCell>Job type</TableHeaderCell>
           <TableHeaderCell>Error</TableHeaderCell>
           <TableHeaderCell>Occurrences</TableHeaderCell>
           <TableHeaderCell>Activity</TableHeaderCell>
