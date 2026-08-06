@@ -39,7 +39,10 @@ final readonly class ErrorGroupsFilters
             })
             ->when($this->jobType !== null, fn (Builder $query) => $query->where('skyline_runs.job_name', $this->jobType))
             ->when($this->exceptionClass !== null, fn (Builder $query) => $query->where('skyline_attempts.exception_class', $this->exceptionClass))
-            ->when($this->from !== null, fn (Builder $query) => $query->where('skyline_attempts.started_at', '>=', $this->from));
+            ->when($this->from !== null, fn (Builder $query) => $query->whereRaw(
+                'COALESCE(skyline_attempts.finished_at, skyline_attempts.started_at) >= ?',
+                [$this->from],
+            ));
     }
 
     /** @return array{search: ?string, jobType: ?string, exceptionClass: ?string, period: string} */

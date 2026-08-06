@@ -108,6 +108,27 @@ it('defaults Error-group and occurrence evidence to the source time ranges', fun
         ->assertJsonPath('failedAttempts.1.exception.message', 'Two-day failure');
 });
 
+it('filters and orders Error occurrences by their observed completion time', function (): void {
+    $now = Nanoseconds::now();
+    seedErrorOccurrence(80, 'App\\Jobs\\Invoice', 'RuntimeException', 'Latest observed failure', '/srv/app/Jobs/Invoice.php', 10, 'App\\Jobs\\Invoice->handle', $now - 2 * 3_600_000_000_000, $now - 10 * 60_000_000_000);
+    seedErrorOccurrence(81, 'App\\Jobs\\Invoice', 'RuntimeException', 'Earlier observed failure', '/srv/app/Jobs/Invoice.php', 20, 'App\\Jobs\\Invoice->handle', $now - 20 * 60_000_000_000, $now - 15 * 60_000_000_000);
+    seedErrorOccurrence(82, 'App\\Jobs\\Digest', 'LogicException', 'Outside boundary', '/srv/app/Jobs/Digest.php', 30, 'App\\Jobs\\Digest->handle', $now - 2 * 3_600_000_000_000, $now - 61 * 60_000_000_000);
+
+    $page = $this->getJson('/skyline/api/errors?period=1h')
+        ->assertOk()
+        ->assertJsonCount(1, 'errorGroups')
+        ->assertJsonPath('errorGroups.0.occurrenceCount', 2)
+        ->assertJsonPath('errorGroups.0.representativeMessage', 'Latest observed failure')
+        ->assertJsonPath('errorGroups.0.latest.runId', 'error-run-80');
+
+    $this->getJson('/skyline/api/errors/'.$page->json('errorGroups.0.id').'?period=1h')
+        ->assertOk()
+        ->assertJsonCount(2, 'failedAttempts')
+        ->assertJsonPath('representative.message', 'Latest observed failure')
+        ->assertJsonPath('failedAttempts.0.runId', 'error-run-80')
+        ->assertJsonPath('failedAttempts.1.runId', 'error-run-81');
+});
+
 it('shows representative frames activity and cursor-paginated original occurrences', function (): void {
     for ($index = 20; $index < 47; $index++) {
         seedErrorOccurrence(
@@ -246,10 +267,12 @@ function seedErrorOccurrence(
     int $line,
     string $callable,
     ?int $startedAt = null,
+    ?int $finishedAt = null,
 ): void {
     $traceId = sprintf('%032x', $index + 20_000);
     $runId = sprintf('error-run-%02d', $index);
     $startedAt ??= 1_786_000_000_000_000_000 + ($index * 1_000_000_000);
+    $finishedAt ??= $startedAt + 500_000_000;
 
     DB::table('skyline_traces')->insert([
         'trace_id' => $traceId,
@@ -269,8 +292,8 @@ function seedErrorOccurrence(
         'triggered_at' => $startedAt - 1_000,
         'queued_at' => $startedAt - 500,
         'started_at' => $startedAt,
-        'finished_at' => $startedAt + 500_000_000,
-        'confirmed_at' => $startedAt + 500_000_000,
+        'finished_at' => $finishedAt,
+        'confirmed_at' => $finishedAt,
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -279,7 +302,7 @@ function seedErrorOccurrence(
         'attempt_number' => 1,
         'status' => 'failed',
         'started_at' => $startedAt,
-        'finished_at' => $startedAt + 500_000_000,
+        'finished_at' => $finishedAt,
         'exception_class' => $exceptionClass,
         'exception_message' => $message,
         'exception_code' => '500',

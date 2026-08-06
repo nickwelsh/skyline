@@ -25,11 +25,7 @@ final readonly class ErrorGroupsQuery
     {
         $observedAt = Nanoseconds::now();
         $filters = ErrorGroupsFilters::fromRequest($request, $observedAt, '24h');
-        $rows = $filters->apply($this->baseQuery())
-            ->orderByDesc('skyline_attempts.started_at')
-            ->orderByDesc('skyline_attempts.run_id')
-            ->orderByDesc('skyline_attempts.attempt_number')
-            ->get();
+        $rows = $this->observedFirst($filters->apply($this->baseQuery()))->get();
         $groups = $this->groups($rows)
             ->sort($this->compareGroups(...))
             ->values();
@@ -51,11 +47,7 @@ final readonly class ErrorGroupsQuery
         $observedAt = Nanoseconds::now();
         $filters = ErrorGroupsFilters::fromRequest($request, $observedAt, '7d');
         $group = $this->groups(
-            $this->baseQuery()
-                ->orderByDesc('skyline_attempts.started_at')
-                ->orderByDesc('skyline_attempts.run_id')
-                ->orderByDesc('skyline_attempts.attempt_number')
-                ->get(),
+            $this->observedFirst($this->baseQuery())->get(),
         )->first(fn (Collection $occurrences): bool => $occurrences->first()['id'] === $errorId);
 
         if (! $group instanceof Collection) {
@@ -92,6 +84,14 @@ final readonly class ErrorGroupsQuery
                 'skyline_runs.connection',
                 'skyline_runs.queue',
             ]);
+    }
+
+    private function observedFirst(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('COALESCE(skyline_attempts.finished_at, skyline_attempts.started_at) DESC')
+            ->orderByDesc('skyline_attempts.run_id')
+            ->orderByDesc('skyline_attempts.attempt_number');
     }
 
     /** @param Collection<int, object> $rows @return Collection<string, Collection<int, array<string, mixed>>> */
