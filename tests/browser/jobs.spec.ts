@@ -145,7 +145,7 @@ test("Jobs covers empty, filtered-empty, API-error, and not-found states", async
 
 async function routeJobs(page: Page) {
   await page.route("**/skyline/api/jobs**", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await new Promise((resolve) => setTimeout(resolve, 350));
     const pathname = new URL(route.request().url()).pathname;
     return route.fulfill({ json: pathname.endsWith("/api/jobs") ? jobsPage() : jobDetail() });
   });
