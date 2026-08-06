@@ -3,8 +3,8 @@
   "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
   "license": "Apache-2.0",
   "adaptedTargets": {
-    "resources/js/trigger/root.tsx": "864342bd788af6f466b33f2ebd3d10e5f49914bb6c72e09755c7e2e008ac3014",
-    "resources/js/trigger/components/navigation/SideMenu.tsx": "12626ccda835820a1186ec417c4fd9a3c6658d97e0fa39affab436d9d3c9920a",
+    "resources/js/trigger/root.tsx": "eb11f36146689be244c77e29c853d22652d86d758e6e5711dde07b83c6d77cae",
+    "resources/js/trigger/components/navigation/SideMenu.tsx": "a4118f2981e42dcd3fcd05edb308fb3186bddaebc14afaef318f74e8f847a0fe",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx": "f8bad210b59a5f1c822e07a9a5911eb932856f6bda5c8593bdd88210274b3c34",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx": "de5f65fb188bf0c682a9292c5d7c805fac9b112c04af09836282c361fa855ef4",
     "resources/js/trigger/components/queues/QueueTargetCharts.tsx": "095feb7ab51dcd3773991ac9c3af549c805f9f2873297da27396efe467adf9f1",

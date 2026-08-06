@@ -7,6 +7,7 @@ import { PlayIcon, Squares2X2Icon } from "@heroicons/react/20/solid";
 import { Link, useLocation } from "@remix-run/react";
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useCallback, useRef, useState } from "react";
 import { cn } from "~/utils/cn";
+import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 
 type SideMenuProps = {
@@ -14,11 +15,12 @@ type SideMenuProps = {
   brandMark: React.ReactNode;
   environmentLabel: string;
   capabilities: Record<string, boolean>;
+  jobsPath: string;
   runsPath: string;
   queuesPath: string;
 };
 
-export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, runsPath, queuesPath }: SideMenuProps) {
+export function SideMenu({ applicationName, brandMark, environmentLabel, capabilities, jobsPath, runsPath, queuesPath }: SideMenuProps) {
   const location = useLocation();
   const [width, setWidth] = useState(224);
   const widthRef = useRef(width);
@@ -70,6 +72,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         </div>
       </div>
       <nav aria-label="Application" className="px-2">
+        {capabilities.jobs ? <NavigationLink to={jobsPath} active={location.pathname.startsWith(jobsPath)} label="Jobs" labelOpacity={labelOpacity}><TaskIcon className="size-5 shrink-0 text-tasks" /></NavigationLink> : null}
         {capabilities.runs ? <NavigationLink to={runsPath} active={location.pathname.startsWith(runsPath)} label="Runs" labelOpacity={labelOpacity}><PlayIcon className="size-5 shrink-0 text-runs" /></NavigationLink> : null}
         {capabilities.queues ? <NavigationLink to={queuesPath} active={location.pathname.startsWith(queuesPath)} label="Queues" labelOpacity={labelOpacity}><QueuesIcon className="size-5 shrink-0 text-queues" /></NavigationLink> : null}
       </nav>
