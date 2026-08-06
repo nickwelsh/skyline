@@ -1,0 +1,2548 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/triggerdotdev/trigger.dev.git",
+  "commit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourcePrefix": "apps/webapp/app/",
+  "entrypoints": [
+    "components/primitives/LocaleProvider.tsx",
+    "components/primitives/OperatingSystemProvider.tsx",
+    "components/primitives/ShortcutsProvider.tsx",
+    "root.tsx",
+    "routes/account._index/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
+    "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx",
+    "tailwind.css"
+  ],
+  "files": [
+    {
+      "source": "apps/webapp/app/assets/icons/AIChatIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AIChatIcon.tsx",
+      "gitBlob": "e17bfce0d95eac9c9a1ba8646c261377fc945d59",
+      "sha256": "8c5af0ed2ae1317b9635f5277319801ea12f01dff53351d85d9db331e8939395"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AIMetricsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AIMetricsIcon.tsx",
+      "gitBlob": "90e61bdbe54a177b14343ee522971d22b1cdbebd",
+      "sha256": "87fb1a54ec38a502c229625ac4ce64f2f0dffef87ccaa814ea401a1b61311d8a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AIPenIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AIPenIcon.tsx",
+      "gitBlob": "146edd0e6d26b1e66916253b38cdd89c72c5c69d",
+      "sha256": "3167186223b43586616317b86b2321e4f8fb9162450707dfe612ed44ea977391"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AISparkleIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AISparkleIcon.tsx",
+      "gitBlob": "46f7429e77a3ebd3dbc793faedc492e4325028c3",
+      "sha256": "3303071402b1b7601e0578c4aa9d39e7fff3f36520e84078187b2cec26a87f11"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AiProviderIcons.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AiProviderIcons.tsx",
+      "gitBlob": "418cdeff56957a8338dfd0d66ec3a48d63e1a541",
+      "sha256": "868c21a2dbead33289bb0ce521c2c32d0aeea14af134acb676f2575b2a1ceac9"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AnimatedHourglassIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AnimatedHourglassIcon.tsx",
+      "gitBlob": "3c94426fa031103fb78cca834ac19c07d6fb6005",
+      "sha256": "0ab40f12240da054615c9eed23ec39d55955b2f674962e6a764fc558e5d26e4d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ArrowLeftRightIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ArrowLeftRightIcon.tsx",
+      "gitBlob": "10d7cb0c359950eaa89f3eeb2187a6d9beff7d4e",
+      "sha256": "27cb6c96a044124688c66d442f9dd6d97dd22d4d4ef2f24690433ae7e1196002"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ArrowRightSquareIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ArrowRightSquareIcon.tsx",
+      "gitBlob": "f70482090519e3103342112ac47661c09bb887ec",
+      "sha256": "345d1752a4ad9ad912db96066b00e1bdbccac8660a588476fc18ea6b6235155a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AttemptIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AttemptIcon.tsx",
+      "gitBlob": "4b6c7f03698e408708da704221ad117b86186bc2",
+      "sha256": "055908c69d259ea4dbf3db2d024675251a5c1280f1e0b3f2d32a63b2550d5eb0"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/AvatarCircleIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/AvatarCircleIcon.tsx",
+      "gitBlob": "30240b51c9a294a44e4b827aa63f4f370271f219",
+      "sha256": "9f4132d2b4e1a87b6c33d04def2eb3ea73bc7e9c88da25b5bcfecf81978cb7c1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BatchesIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BatchesIcon.tsx",
+      "gitBlob": "b38a0085d5e749b6f8180aaa855b93ecaf9e53be",
+      "sha256": "18cd9ff24483117c983f39a79bb120121256009d62d06d9ad309d2351865a630"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BeakerIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BeakerIcon.tsx",
+      "gitBlob": "cd8f8635e56d7303bd93630bfe18a078aa66559c",
+      "sha256": "027b1a0c1950d2c84eb215ee6e228c8c92f46a05a224fac34667b76659c1142c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BellIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BellIcon.tsx",
+      "gitBlob": "0cee1b400363d0170c36b015d9f82dbc8998142a",
+      "sha256": "dbc838a26418c9df2a265b0d60a0995864e257d8b133d5eea9e87cfb5d08e81c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BookIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BookIcon.tsx",
+      "gitBlob": "79775fbd0eb8f02abfadc5b6430087efb2a0df70",
+      "sha256": "ec3f69e114baf7f377b0523000a9670e10a0b1f6d9918e7411ddfc804016a4ea"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/Box3DIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/Box3DIcon.tsx",
+      "gitBlob": "ebf53a9b09130b6579e9395fad16a945b0e312fa",
+      "sha256": "425c0c5166bc144aa2eddde3f3a58167928e9b1bc5cdce1ccbcd6bc855b5c90d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BugIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BugIcon.tsx",
+      "gitBlob": "64125f3d325aa1cc6bd95c54a9d0a12f2412b6d8",
+      "sha256": "158d0c055a70a1d2138cc53ae35b290b54f1d554a33956f9379e810428497b35"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BulbIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BulbIcon.tsx",
+      "gitBlob": "c0e293fe1767a45ac5ea9e9fb6cc10a54e0c5da4",
+      "sha256": "311ec928aa6af96b4b2e9b7281c3e640a3ebf49c44fda06852560204ffb4f993"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/BunLogoIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/BunLogoIcon.tsx",
+      "gitBlob": "b7357189f7c70fb0b8349f6c87ceecf21485adc6",
+      "sha256": "49abfbfbadb1074863033e049c23c3f49923583ccc59d26635eb0056f357dd3e"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ChainLinkIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ChainLinkIcon.tsx",
+      "gitBlob": "f2e00245479e4dce053212f385b0aef02550b65e",
+      "sha256": "91fac1419ea86eee635a1af5867bd6f9de618a1b39c555fef388337c020ddf61"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ChartArrowIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ChartArrowIcon.tsx",
+      "gitBlob": "f3b6a08f12011d91a06ca169ae922f25a77e7b6d",
+      "sha256": "4c448d1c1b3900d62bec053608eecce19f1eaad66e21f00cb3bcc980d290ea9a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ChartBarIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ChartBarIcon.tsx",
+      "gitBlob": "966616e45c4d5f94117b3b642178cfff95553caa",
+      "sha256": "5f97ef7559859266761b141ea5d74f317cfd3ee9124ff49fcf242391113d137c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ChevronExtraSmallDown.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ChevronExtraSmallDown.tsx",
+      "gitBlob": "134cbe4dfdaff10d140db3b68cd83ab1d63e77b9",
+      "sha256": "2ea359babd50a5a71da3b3f8e7220b1dc65d4837fae3147e092dcf3fa82233a1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ChevronExtraSmallUp.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ChevronExtraSmallUp.tsx",
+      "gitBlob": "710eeccdf20a382db5da5aa31d710393ca250667",
+      "sha256": "1a28d468cf556104a700f4531f612533089b1e5ab3df1a10ddb25712b658a8d3"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ClockIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ClockIcon.tsx",
+      "gitBlob": "808a0271a922c5acaadb094de5b7239346e9a616",
+      "sha256": "d36bd38bf4c94d697edef161c0792dab1c4f1d99c754ae3b45b18485378d9a48"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/CodeSquareIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/CodeSquareIcon.tsx",
+      "gitBlob": "6975c96efbe431e1651e38cd66349a014d87d427",
+      "sha256": "32a8cbf97b4390dec7d99ba633ab81bd7fd826e94bf7a50287d841f2ed941516"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ConcurrencyIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ConcurrencyIcon.tsx",
+      "gitBlob": "710ba4e6fa9bf6d0e3745c70871ec6a5925eaac9",
+      "sha256": "5658401b8f15bc261bfeede8fbe4e2f6f98e9836f04b483ab48891893d1d5b95"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ConnectionIcons.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ConnectionIcons.tsx",
+      "gitBlob": "beb0e9bab63d5ef1508a65929a127f30a84526ae",
+      "sha256": "cdca516eeab721dc9d1a7bdb807e034143a5e3c4f71ee1b82ef9600c4b3afa23"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/CreditCardIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/CreditCardIcon.tsx",
+      "gitBlob": "5109ce6d602c7aef0f234eb69ca807d0920e0d0c",
+      "sha256": "def49386979689b5efba5c2fbf5603feb77349b96754cee322485c3544c6b79c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/CrossIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/CrossIcon.tsx",
+      "gitBlob": "fa0c714602fb913f253964883dcb285debb1e743",
+      "sha256": "8edc2c4cfc45c63c9a1e3fc1e1e13b3b792f86fbe6935e5a735954c21b997ea2"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/CubeSparkleIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/CubeSparkleIcon.tsx",
+      "gitBlob": "896e7217ca2367fa3ae0a7b605c0338baae58c10",
+      "sha256": "598bafe56bb544f9a34ede65ceabde77698b70fda068b960d0cc36780797524a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/DeploymentsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/DeploymentsIcon.tsx",
+      "gitBlob": "2eb98ba28e7e3963155d31db1202c1eb58e810a1",
+      "sha256": "f370e22ba2a48759d57f405f847e1e2a5a6bca9dbcc5a35a8ddb9f5b017ea4a9"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/DialIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/DialIcon.tsx",
+      "gitBlob": "3f49ce3de4c979e4622f036fbb21f13444020c49",
+      "sha256": "f99302e3697027e0ae55baf30a6c68a3a757016324543ab32d7798a1730f665f"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/DropdownIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/DropdownIcon.tsx",
+      "gitBlob": "4a869ec8f6217e98f05b3b6f79a3cab3c114f5be",
+      "sha256": "0786a6bd293bc2f0c6e7c63d8335971bebac743f3f4b8c1aa83abf8aff3a540b"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/EnvelopeIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/EnvelopeIcon.tsx",
+      "gitBlob": "e5888009d4c29de8e63ac57f5d992158c531b9f6",
+      "sha256": "063aebd3c7beb3a2c26bb50252dbeee1ee44abe2fab96f955d165f1d49dc3eca"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/EnvironmentIcons.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/EnvironmentIcons.tsx",
+      "gitBlob": "bc74ab10bcfbfda593c1627ee2ef574bc99d68d3",
+      "sha256": "c4ccc4a0dd2c8b8b96c4d212e191522a0f770640ab79f2930a9c25a8cbc6c89b"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ErrorIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ErrorIcon.tsx",
+      "gitBlob": "85a08236f4a9493ef72663a9d3c5681254d7ea33",
+      "sha256": "b3dc53dbc9ed093adc8774a440a003862399fed2844ed01b7dbf09683a4df0ea"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ExitIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ExitIcon.tsx",
+      "gitBlob": "29d52609cdda53c20d13196fae62d6dc8bc10242",
+      "sha256": "4091717df30e0f2b5846781af6a5a1afb407c2450cd613174a3ead313070401e"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/EyeClosedIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/EyeClosedIcon.tsx",
+      "gitBlob": "c83d2499267df8871e00d5484293335481d655c6",
+      "sha256": "fbf6976cf6f12b962d690884900934e2dab5b57fe61ac5b5f8ea26d58d6b3b76"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/EyeOpenIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/EyeOpenIcon.tsx",
+      "gitBlob": "e00cfa0fcf55efb670f9c50251fbe8b9957432c4",
+      "sha256": "74e45e7314bd1c1a3ddd16fce29b250e93d93fb8ba687494a23f60b6649f3c1e"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/FolderClosedIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/FolderClosedIcon.tsx",
+      "gitBlob": "a75962fef85e14bbcb013b11e3d733c73f1a1e86",
+      "sha256": "76e91ab7c459f761445a76ccec3ef72e1ac236244090025f0110ecdbac34c44a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/FolderOpenIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/FolderOpenIcon.tsx",
+      "gitBlob": "9bfccadef82cf4cd98bb497bb61e13d5a2c5b029",
+      "sha256": "85db4664584a9d7d1738680070e5b4a9137fd1e9d2bfa462768949039a3497b7"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/FunctionIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/FunctionIcon.tsx",
+      "gitBlob": "11b630ac2fa4e8f2c6253b7a7bbaf67d3b7a0f17",
+      "sha256": "723a2338d416bd6a4e604a0c167e5ca84bf6692755b3e5787bd63d4b3ad633ae"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/GlobeLinesIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/GlobeLinesIcon.tsx",
+      "gitBlob": "592cbaddd783f8e0fdde9294012e1f8d62774eaa",
+      "sha256": "c018ac4d49de102dff06c181d42f60fa4592f6dc50d0fbfbc31852d7fa7893b1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/HomeIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/HomeIcon.tsx",
+      "gitBlob": "b62fc527989ff08050da4cb7e2e5b3b2e6c9f2d4",
+      "sha256": "3819f60846dbdd44b6be452808816c4d9fe5e54bc664a23cc7f57aa38c576afe"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/IDIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/IDIcon.tsx",
+      "gitBlob": "254fb74f55bfee145b4a847e8171dddd50774872",
+      "sha256": "c347e35a6f1109d7aef76fad185d85257f5e9bc2fe7138f2598f1df54fc10c1a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/InfoIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/InfoIcon.tsx",
+      "gitBlob": "e42dc424f63b6fdf7ad447b3e36ec13348b97555",
+      "sha256": "a0d02665b70a97fdd2feb6d031c5dead1975ccf8fbb1c180cdee59b0832e3966"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/IntegrationsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/IntegrationsIcon.tsx",
+      "gitBlob": "b2b8b43869539a8074e05d1babed4f58f7a087be",
+      "sha256": "8bb6ded845b43c4ce000a843833e3a77506050b212e8f4b37ec8457f66e2726b"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyIcon.tsx",
+      "gitBlob": "d0c8213d262a402a78be93879e34641f71ee802b",
+      "sha256": "aca718abdcdc5a9a40b44816ab36d9173bc4671d43b08853283a1e42d52fdf94"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardDownIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardDownIcon.tsx",
+      "gitBlob": "1ef015d900a1b9bb3f12b1c050c224d8ed1b5637",
+      "sha256": "82f402f461f3d22ea00fa6b2982cdc83a71ade4bf8dfaeebf5461c6c4e96d737"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardEnterIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardEnterIcon.tsx",
+      "gitBlob": "b6341912724b009d80d451b5841804e951dff81a",
+      "sha256": "6f642acc31cda208bc81082a9e0e8abd4a7267584b43fe1ce05c355229be944e"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardIcon.tsx",
+      "gitBlob": "59f86d1579bd5650dd996a629bbc38502d96ba49",
+      "sha256": "dc3f6a8412f18cee45b3d418836c57fb8ad14d6be5141af1be1d42f0e69359d1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardLeftIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardLeftIcon.tsx",
+      "gitBlob": "6b6999e6830ed495167a3a14f2ff30e806e48847",
+      "sha256": "195e593b3c8df1507382f1ed32dc11fada16c8fd4a2fd78a80700422de80112d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardRightIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardRightIcon.tsx",
+      "gitBlob": "879e7e183ca8abbc0e1027b972fd8461c4691f16",
+      "sha256": "d6519bc5d02794b673fbf3ebb71ec637325a302ec0939dbb593cf0ee56a26d32"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardUpIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardUpIcon.tsx",
+      "gitBlob": "d87f26488d8100dd4237ab4e89cc879a2956f04d",
+      "sha256": "e0592a39680eaa41dc5ad6ae71caffc4b3b1ff331378048d625717daa596dab0"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/KeyboardWindowsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/KeyboardWindowsIcon.tsx",
+      "gitBlob": "859a633a3057d9b57154b8564eb66527ec811b23",
+      "sha256": "b792fc5774135836102e3578b08f33b458a58a2a3837be1157e5886fc4e74a16"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/LeftSideMenuCollapsedIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/LeftSideMenuCollapsedIcon.tsx",
+      "gitBlob": "aa229af92a45a4edc5eaf24911475ec66786afa6",
+      "sha256": "c17fb87dd2092bc6f98c04bbc06718cfc25002fdb900be4cf153cc50bdd1064c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/LeftSideMenuIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/LeftSideMenuIcon.tsx",
+      "gitBlob": "759ff962ba4b3d16d604dc8598f80fcff2a56a12",
+      "sha256": "9c5485ce9c82f620ec349eb32de64274ee6833003660ec9a92295ef728b53e0d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ListBulletIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ListBulletIcon.tsx",
+      "gitBlob": "3ca7636a900b57c796cae62412f2f77e20dcdbc6",
+      "sha256": "cd042bfb9eb03ce34fe0969916c21b27af6a0f8547e99a295ad8bb2c8c118009"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ListCheckedIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ListCheckedIcon.tsx",
+      "gitBlob": "29cb828f5dd8706e5c0351ff60501119fd80b18b",
+      "sha256": "7526670ab7f81a97f442aed1f61edad94edcb6c09906c3084cf011067f0282f2"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/LogsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/LogsIcon.tsx",
+      "gitBlob": "160c5b6e815f024e0c0a019facd9982e6cc19f4d",
+      "sha256": "c8c5bc2f91a2eeae6df0498e1235b8a766e154b987d0e04d8e293fe2ea558d82"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/MachineIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/MachineIcon.tsx",
+      "gitBlob": "896ccdfbc5f247c1ee4dd6b4e4c30be4fef2c89a",
+      "sha256": "1156d03f4c3ca4362de751388213ffd4d14ea273111cf8de25de41cda5c7d5a1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/MiddlewareIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/MiddlewareIcon.tsx",
+      "gitBlob": "c9802f68c0536bddca9164138dcb9001fbbe0ed9",
+      "sha256": "f46134e29c9e2d74b266ca187a7408f34ff486bb9fc6085b9793e510282a9634"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/MoveToBottomIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/MoveToBottomIcon.tsx",
+      "gitBlob": "997550e92658235c74ceea252d5b6d0c0b0d38c0",
+      "sha256": "7ff3ae32ea1619cf831e47ef3d4cee62bc5a0eb00d3db895562f7701d1061e02"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/MoveToTopIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/MoveToTopIcon.tsx",
+      "gitBlob": "46938fd391addcf123e507708b0ce6b602834ab2",
+      "sha256": "c20cba5ec732a7a13284281fc71f107b422758906dc111fa79a2e32a0e14552a"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/MoveUpIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/MoveUpIcon.tsx",
+      "gitBlob": "6e5d8a84ba9478e3495fdcd9f7ed7322a62a849b",
+      "sha256": "e1e80d3f966c81b74154aaf80cf1b7090d431885c0bdba473ee8c136a62bdb1d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/NodejsLogoIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/NodejsLogoIcon.tsx",
+      "gitBlob": "234dd079e1ce427e4126aa735fb3c41208c43b35",
+      "sha256": "412686b8936cd5d3e1f73e19ca9f2ff317e81fa92af68fc3af814d924bb84dbe"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/NotificationIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/NotificationIcon.tsx",
+      "gitBlob": "eb7ad5e0ace198a4ab94f9235ab5d587382d48dc",
+      "sha256": "471a0350e86138e4220089b223f4e0fb1701d1dad07f0a49ca19ae2395bfbf68"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/PadlockIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/PadlockIcon.tsx",
+      "gitBlob": "0d7047dbbbb89b0f28c302c90c82536e9829f8ea",
+      "sha256": "49f05c0563eb7986c2622b1caf7d596134f957543b578261a3b203c5b8c2a8e3"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/PauseIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/PauseIcon.tsx",
+      "gitBlob": "9da4b7f885b5e106bb5954f4f5849163eb009a24",
+      "sha256": "0a4e82c20bb3c94008a897e06e0eb5771d3777a653d9af184854edcbb14023b5"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/PlusIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/PlusIcon.tsx",
+      "gitBlob": "9b302f46b3a6b53f5d9eafd7dc863253742b9e07",
+      "sha256": "32543a12fe3d0249da2c2300ecb670e30ee4873dc1167ece97c41cba549be1ec"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/PythonLogoIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/PythonLogoIcon.tsx",
+      "gitBlob": "e0fbc6fc0ecd169e9a9b0b0641881f06f477ba56",
+      "sha256": "f38972e71d8b2ad100a1b6eaae67f7e2dd177ed98aea29a82e727fd6059d63be"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/QuestionMarkIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/QuestionMarkIcon.tsx",
+      "gitBlob": "e4f064e9c90f2627c1f393fac69c17d2f082afc2",
+      "sha256": "70412acb66e32308966b1363c7bbcae9d72cca0665dbabc7ddef8755d54c2f05"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/QueuesIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/QueuesIcon.tsx",
+      "gitBlob": "51038053e9b0cef45d1ca07b08aed67a5a987312",
+      "sha256": "8b835549469e11521d4ddfca8889a6fbe66759335f50473c587a5f8659292a02"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RadarPulseIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RadarPulseIcon.tsx",
+      "gitBlob": "b7c6fe3ca5ed6598f939a7a4480a494ccd3df0e3",
+      "sha256": "69c878f5b5024f40cebaa6831328eba18de313852d2eeaf831879e44da05d974"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RegionIcons.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RegionIcons.tsx",
+      "gitBlob": "098d5bc98ce81b567f88731c2f5ab02863c0ff88",
+      "sha256": "8df84028bb81f47aade61062049d80ec00c8726813740ef3c1fb14213f29853c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RenameIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RenameIcon.tsx",
+      "gitBlob": "6514e0b09cdbb6462dda9cac21e299a6b4a19bf5",
+      "sha256": "770f2c2a068734d066d21301758eb16664eba4435a1d56cf67fd453b5f6edcbc"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RolesIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RolesIcon.tsx",
+      "gitBlob": "ae73fde80b2db90e575715829d6f14ef8f529738",
+      "sha256": "52c2cda09d2c228146ce75bbf79678709469b099ba18c8c9cdd1156552bc387f"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RunFunctionIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RunFunctionIcon.tsx",
+      "gitBlob": "06c6cb55fa97dcea556faf84f4f3fa58f1c0beef",
+      "sha256": "b5cd66f72957e91f3845a6ed981d78e4b1123e6607f4118cf4364bc787bb1327"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/RunsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/RunsIcon.tsx",
+      "gitBlob": "a053d04528746eae2a5f37cc5b2f1470f2b01685",
+      "sha256": "1b87b27d8c6ef5a883b86c7bbbb1b5aa22c66e2333f49b31ca82b781f7da8004"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ShieldIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ShieldIcon.tsx",
+      "gitBlob": "5616e0380f9d09c53b4c54eb82914a43d00f8051",
+      "sha256": "6fa3694ed4c1d05774df35026a0771cb7eadcb80cd9cbcb2be8cd01334379b83"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/SidebarCustomizeIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/SidebarCustomizeIcon.tsx",
+      "gitBlob": "0960e4a201106e3e973580b8d76bc5f852ad861b",
+      "sha256": "c09019b4ff99a6c8361221ac453e7f14657c3926e3d4ccfc6b43a12c1a0fe1bf"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/SlackIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/SlackIcon.tsx",
+      "gitBlob": "dd706fb34d3e6946e871b4816abd329269cb9715",
+      "sha256": "676b5519e8b10305c2374d2493cd4c4be182e50d03e694e92050c1e9e4cb19d1"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/SlidersIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/SlidersIcon.tsx",
+      "gitBlob": "7a859fd1d656c9b715e93d157bfe9ec8b858c837",
+      "sha256": "d6f1d1de9d72061fac243fbdc3df4e283f9b5dafa8d6987244ccbf650c72c245"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/SnakedArrowIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/SnakedArrowIcon.tsx",
+      "gitBlob": "0766cce1b4626c89409bf5fc48e4b4b8168b681d",
+      "sha256": "7e291570b5cce943ca4796ee45538f2686aef9c17201ec4dfdeb5b2924a1672d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/SparkleListIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/SparkleListIcon.tsx",
+      "gitBlob": "264fc227c84f0fe133c94cbb0c8a2494771d3c43",
+      "sha256": "9ddfe05a3d8ba2ce5cf1a66851b21128e4c66db9d0166ff3e215bf4db9fa3d79"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/StarIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/StarIcon.tsx",
+      "gitBlob": "ea21f278477b47aac194f28f2477bb9d6aab4ce3",
+      "sha256": "84603451f1849294ce6e52fa5797cddde3d241a03aabbe43c4f8a6dd8dbbfd5c"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/StatusIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/StatusIcon.tsx",
+      "gitBlob": "9499b50d5750abf4886d75d72dbe81c6bc6fcb4e",
+      "sha256": "8205fa1eca075d708de47e6d9b97b74135a47f3bbe85935831a30e54073d5c2d"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/StreamsIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/StreamsIcon.tsx",
+      "gitBlob": "8deb7a19c9ebaae2a8447d5b98a72e6a635558d3",
+      "sha256": "a51b86287ca0c7fafc7048e56bd97d16b6636a820342cfcca2410c8d40a5382b"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TaskIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TaskIcon.tsx",
+      "gitBlob": "c0cdc3fd44058c470f1a1f9e68ab5ec8dd510048",
+      "sha256": "52e46fa0bfc21ec1d4575c6d491bcec9048577827e948e647b3809b7b8fb5a95"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TasksIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TasksIcon.tsx",
+      "gitBlob": "1a31ba65804875af7dfc31f2c8c7d233dc3e9fe7",
+      "sha256": "dd0414ae3b683cd5768f5b4b12377360a3e81135b3a360ce412214a8bb10f220"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TextInlineIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TextInlineIcon.tsx",
+      "gitBlob": "538d9768d0344215a310e49b6aaf5b35c55fab9f",
+      "sha256": "f846be7b43729e4402b025ba2838c68c8b8596c621a431c2aa63e3428e810e55"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TextSquareIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TextSquareIcon.tsx",
+      "gitBlob": "cffb0aa9d2ee1fbfb3fa49ac9c40278fbdd159f1",
+      "sha256": "029e0e1569a5e61f7486b853065d882c59299bfdc33a8d1d8e5ee7b5c89a4d9b"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TextWrapIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TextWrapIcon.tsx",
+      "gitBlob": "ac37867e829d9c77d76c7c371d32f541546370b2",
+      "sha256": "047c309156a5d4fa41e46722da3234ceb37e6bc31372c0347be550e0ce3031da"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TimedOutIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TimedOutIcon.tsx",
+      "gitBlob": "3ad34e698c886039f452a0009cfa667ec3ddf395",
+      "sha256": "7082fad3f50e764f956bda4d49487f7e16b4c0a2fa61b925b240982940276b78"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/ToggleArrowIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/ToggleArrowIcon.tsx",
+      "gitBlob": "7bcb261c4ddd13ad982982c1db44528fbf14d5fb",
+      "sha256": "d7086b1d278929bdef503d809b141a845c0d516b769407f8546c0090e0607c90"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TraceIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TraceIcon.tsx",
+      "gitBlob": "20eb1078483d8a4bfdfa5c4e4cf823f0effc6efc",
+      "sha256": "0018dc6dcb56d2e1af05a43a5c57c8d35b85069d3ad45de4796c86698d5db38e"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/TriggerIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/TriggerIcon.tsx",
+      "gitBlob": "da73b84291148859d6cb5921fa6b59565e41314f",
+      "sha256": "19764f18d75716404d01c337808c223dae916649e15f2d7bfdf845034017f501"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/UsageIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/UsageIcon.tsx",
+      "gitBlob": "56215bb34902b7e1d1e23b5ef5d12bcb7261a837",
+      "sha256": "f6c697233b13085cbfd199292ecea11438cd9d747c55940a93584b9cf104b75f"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/UserCrossIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/UserCrossIcon.tsx",
+      "gitBlob": "84a999cd691ec31409e38532f374a93b754a0db9",
+      "sha256": "7425f561b521f8190fbfad91ae5460b2cda8ecd4b840f1402eba79d9feb2a3fa"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/UserGroupIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/UserGroupIcon.tsx",
+      "gitBlob": "d7b49db993c49f9d15f5c2afc0085d406ee2a36c",
+      "sha256": "1ccbe2ce146292620ce96407c8af224883cd4893534f82c2f044e904a0ddb443"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/WaitpointTokenIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/WaitpointTokenIcon.tsx",
+      "gitBlob": "4438fd0bfde2373fa047d0cd191c85d3ed02bb15",
+      "sha256": "7de06de371c222d97186683efee592f0a8a3158682da788162fef7ab77aedec9"
+    },
+    {
+      "source": "apps/webapp/app/assets/icons/WarmStartIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/assets/icons/WarmStartIcon.tsx",
+      "gitBlob": "211b27a98f21c8d8cf8bb767d9859f158d2fbb5e",
+      "sha256": "62d6691f135092f39bad41d445489983244774c7b41b0b5ded2f59bae7280d2e"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/cli-connected.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/cli-connected.png",
+      "gitBlob": "cd6b4e37fe1d35e65cd7e7ec64e3bb25bc56e338",
+      "sha256": "0a02279f7a5f50eaa311b2991dd3636d6ecd1eff5a990ca7feda3782b891b2a6"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/cli-disconnected.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/cli-disconnected.png",
+      "gitBlob": "dff3ecc106a629b2b74f5f71699cd156bab10361",
+      "sha256": "7e8b3e40a012f425ea1332166154eafbe8d6126dc21eccf83f96f7af762a8f71"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/error-banner-tile@2x.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/error-banner-tile@2x.png",
+      "gitBlob": "2d601bfced71586c33d929a53d03a0b7ab5362e1",
+      "sha256": "bc593f92eef97f89b2793b0317b22a6b8f23f54285e85f931b1c61b75e9f8b7c"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/open-bulk-actions-panel.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/open-bulk-actions-panel.png",
+      "gitBlob": "a1b48f386465f0fd7f3205aae68e51237ba3a32e",
+      "sha256": "9312fbcc38d68c6c9b56f72c5d6eeec8f1b197c724cfc7e3984c6d82599057d7"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/queues-dashboard.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/queues-dashboard.png",
+      "gitBlob": "321c79e6290abd1dd4ae133225c1e77b6f34ee48",
+      "sha256": "33cec162d02a93b391989c6bec8e2f6a58823152cc15a55f6a0ba31fc4a666ac"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/select-runs-individually.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/select-runs-individually.png",
+      "gitBlob": "31a5d048a8a35cc58b93e686be50c0749afbce7b",
+      "sha256": "8ae078f16150b67678e507bb4ef3ebe2b534104ba1ecb69cd5eb4f1a970183ff"
+    },
+    {
+      "source": "apps/webapp/app/assets/images/select-runs-using-filters.png",
+      "target": "tests/fidelity/reference/vendor/assets/images/select-runs-using-filters.png",
+      "gitBlob": "78ce487d0fcd2d43964ce0895c2b8444fa96f45a",
+      "sha256": "a0a9272c5e1d8d0e5e509cdae49eb5ab4304d0125792e8b62b99d3ae8cb69743"
+    },
+    {
+      "source": "apps/webapp/app/components/AskAI.tsx",
+      "target": "tests/fidelity/reference/vendor/components/AskAI.tsx",
+      "gitBlob": "d61ea0055fa4888df0391afe40a9dc84873cfba7",
+      "sha256": "e41e41556908ffda502df2a792dc41d3a5f279030c1db2d5dd7478f4b2ce3c3e"
+    },
+    {
+      "source": "apps/webapp/app/components/BlankStatePanels.tsx",
+      "target": "tests/fidelity/reference/vendor/components/BlankStatePanels.tsx",
+      "gitBlob": "53b552155be23d98e0309804a511635e03ff1efb",
+      "sha256": "110f0124ac601fa8d047338f46550cce343863fe97897e65379cc9e940dd10b8"
+    },
+    {
+      "source": "apps/webapp/app/components/BulkActionFilterSummary.tsx",
+      "target": "tests/fidelity/reference/vendor/components/BulkActionFilterSummary.tsx",
+      "gitBlob": "53a20395f44e82aeeea98b7f39c2b2f902f34449",
+      "sha256": "e66d4aff3265ca6615fab7905d08f8d9ed34adfcabf3d1fe49c4fbeb10a1dc8b"
+    },
+    {
+      "source": "apps/webapp/app/components/DevPresence.tsx",
+      "target": "tests/fidelity/reference/vendor/components/DevPresence.tsx",
+      "gitBlob": "4ce4a480cb8cd39545ebbd0a21dc4f164b3ac5ed",
+      "sha256": "84354c170a044671139ad8f1440d29b0c7413bac5add1b0ddf8dde82420168bf"
+    },
+    {
+      "source": "apps/webapp/app/components/ErrorDisplay.tsx",
+      "target": "tests/fidelity/reference/vendor/components/ErrorDisplay.tsx",
+      "gitBlob": "4a1e28048070c226412b9fd3ae4b765107a213f3",
+      "sha256": "456250ddaa78f5ded76455473bbfb1e78c34b3caa8dfeb2cbc603fc640b6bc9e"
+    },
+    {
+      "source": "apps/webapp/app/components/FeatureBadges.tsx",
+      "target": "tests/fidelity/reference/vendor/components/FeatureBadges.tsx",
+      "gitBlob": "706719dc9e70026a07103beb47f6b026b0736a72",
+      "sha256": "2b4d38ccf840a4fe914219f1027670320f4d60b943aba109048778b1bdffb067"
+    },
+    {
+      "source": "apps/webapp/app/components/Feedback.tsx",
+      "target": "tests/fidelity/reference/vendor/components/Feedback.tsx",
+      "gitBlob": "b679b042da17f72de29045774f08682a13b47c2c",
+      "sha256": "264daf98a7ea6081c9359e5865f1db0565cc861d4f5b872ec3c8aa4876f74ec0"
+    },
+    {
+      "source": "apps/webapp/app/components/GlobalShortcuts.tsx",
+      "target": "tests/fidelity/reference/vendor/components/GlobalShortcuts.tsx",
+      "gitBlob": "4bc210631a6f4fcd7207b3800b1993cf3aaec04e",
+      "sha256": "dad5304767f6b6905a6ca59539bbb7c022ed9a780752e920337c6ebd5074dbe6"
+    },
+    {
+      "source": "apps/webapp/app/components/ListPagination.tsx",
+      "target": "tests/fidelity/reference/vendor/components/ListPagination.tsx",
+      "gitBlob": "32d73d683226bf60d1af0c21222cc48a18798a04",
+      "sha256": "8188a2e2ff4c79d4567bc7512b46fd7683c1082a72c4f2848dea4332656e7071"
+    },
+    {
+      "source": "apps/webapp/app/components/LogLevelTooltipInfo.tsx",
+      "target": "tests/fidelity/reference/vendor/components/LogLevelTooltipInfo.tsx",
+      "gitBlob": "2a8093af066844411b7b51420b7bfa379197b60c",
+      "sha256": "51f33cce6c30af26e2635d511af7c74736bfe59ff574fb590c39de5d174a512c"
+    },
+    {
+      "source": "apps/webapp/app/components/MachineLabelCombo.tsx",
+      "target": "tests/fidelity/reference/vendor/components/MachineLabelCombo.tsx",
+      "gitBlob": "485f6094cf0834f7eec347cfa292afab74193041",
+      "sha256": "0fda8e0dcf99f04d4fce1323faf2eb037ce3a5e5df1a46d68825d231c8d1579a"
+    },
+    {
+      "source": "apps/webapp/app/components/MachineTooltipInfo.tsx",
+      "target": "tests/fidelity/reference/vendor/components/MachineTooltipInfo.tsx",
+      "gitBlob": "3b3616288bde1983879137fc2a0b1d6a1589f76b",
+      "sha256": "b3a31ec923961acb62a5be20be008c7c76c312264f05d89a9ec7c7f190f3166d"
+    },
+    {
+      "source": "apps/webapp/app/components/PermissionDenied.tsx",
+      "target": "tests/fidelity/reference/vendor/components/PermissionDenied.tsx",
+      "gitBlob": "b00e70789b9cffc4b0110132b4cacd45d2b8cd68",
+      "sha256": "d3e31f0232aa7869e22b5ecff99a509a6a371a69289d506a33756a2c25ef1da7"
+    },
+    {
+      "source": "apps/webapp/app/components/RuntimeIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/components/RuntimeIcon.tsx",
+      "gitBlob": "f0626e97a38d20e91717540e79ff9b391973d7fa",
+      "sha256": "71842be63de39e71ff73b6d0f25c1b513902a14b9774b68394236da1b1e312cf"
+    },
+    {
+      "source": "apps/webapp/app/components/SetupCommands.tsx",
+      "target": "tests/fidelity/reference/vendor/components/SetupCommands.tsx",
+      "gitBlob": "d219b0be7217389773f49f3c7c753749aa0aa0bc",
+      "sha256": "7b8c98c0a64b2d6b5d35e725682bf159953f10e96268c57313dc2d7352803a59"
+    },
+    {
+      "source": "apps/webapp/app/components/Shortcuts.tsx",
+      "target": "tests/fidelity/reference/vendor/components/Shortcuts.tsx",
+      "gitBlob": "c4ce2db6d0fd290e1f530fc4ae69153078d972b1",
+      "sha256": "296e1139cb6ad6d45dec932f3e62a08fb63dc4ddf1ac395febb05eadd5bf8930"
+    },
+    {
+      "source": "apps/webapp/app/components/StaleAssetRecovery.tsx",
+      "target": "tests/fidelity/reference/vendor/components/StaleAssetRecovery.tsx",
+      "gitBlob": "32b7923921f1f27daf8f95335beb51bf85d0ca71",
+      "sha256": "142450e0a54bdcf544863ee21d391d9bb1bc873469e21bde13174c3cad70a7ca"
+    },
+    {
+      "source": "apps/webapp/app/components/StepContentContainer.tsx",
+      "target": "tests/fidelity/reference/vendor/components/StepContentContainer.tsx",
+      "gitBlob": "46af24f391b6750fedc4a9e5a864ed31141f9f8f",
+      "sha256": "49fe337e268dd33f0e37cd2065bfea2a1acd9f696738977ff0be5c705803e57c"
+    },
+    {
+      "source": "apps/webapp/app/components/TimezoneSetter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/TimezoneSetter.tsx",
+      "gitBlob": "3481af6571d0299fb5183460fa02b6626ecbca48",
+      "sha256": "bd49cea25076a57067b553edc8c488870fc885be4509cf42aa2772cf2d3bc7d3"
+    },
+    {
+      "source": "apps/webapp/app/components/TriggerRotatingLogo.tsx",
+      "target": "tests/fidelity/reference/vendor/components/TriggerRotatingLogo.tsx",
+      "gitBlob": "878c203a3ca6f98eead157708d6537eb07bdd911",
+      "sha256": "007d0a01b95b73ad6de715cc23967f6d0efe85b89996a5dd273580080688525b"
+    },
+    {
+      "source": "apps/webapp/app/components/UserProfilePhoto.tsx",
+      "target": "tests/fidelity/reference/vendor/components/UserProfilePhoto.tsx",
+      "gitBlob": "92c435aa1094258192c4062e5d916bc4c7ce7e3e",
+      "sha256": "4c085925b894755ee53b770dea180d619a3deb0b4aae072e46fcc562943569a9"
+    },
+    {
+      "source": "apps/webapp/app/components/V4Badge.tsx",
+      "target": "tests/fidelity/reference/vendor/components/V4Badge.tsx",
+      "gitBlob": "c92baabac8199b315321452bea7a3bbb7b106dac",
+      "sha256": "7453173ec3d803abdbf5c723185e8a555405937b23bd9d68f18f79d4faee6166"
+    },
+    {
+      "source": "apps/webapp/app/components/WarmStarts.tsx",
+      "target": "tests/fidelity/reference/vendor/components/WarmStarts.tsx",
+      "gitBlob": "50ffeee7997ab4ec7f06f1a3d0f8af82ce892f31",
+      "sha256": "55a188589c2e946cdbe7f03ece9d51b9076a7af98bacb93e6f19816cdc8261b1"
+    },
+    {
+      "source": "apps/webapp/app/components/admin/debugRun.tsx",
+      "target": "tests/fidelity/reference/vendor/components/admin/debugRun.tsx",
+      "gitBlob": "049c5cd08c3286393d0252bee4f1dec6b2fd3b8c",
+      "sha256": "a7673e1068be7a3f6d86c2ddf0a0a9b13e7302dbb25f79f804d0cc060a6365cf"
+    },
+    {
+      "source": "apps/webapp/app/components/admin/debugTooltip.tsx",
+      "target": "tests/fidelity/reference/vendor/components/admin/debugTooltip.tsx",
+      "gitBlob": "8e7d6b77b714c28ab1e5b1568a523249a3b4add5",
+      "sha256": "9dcd01b90dd6cba4136406d391be6256359a66f6fca274c807ac812eaf6cbc35"
+    },
+    {
+      "source": "apps/webapp/app/components/billing/AnimatedOrgBannerBar.tsx",
+      "target": "tests/fidelity/reference/vendor/components/billing/AnimatedOrgBannerBar.tsx",
+      "gitBlob": "17eef91ad5c59e9e98d75c289dea48dde000d583",
+      "sha256": "1734195f3480fae94a38cca00fa721c0aaee5ef6ddc0cf3b7d9d74091618ccbd"
+    },
+    {
+      "source": "apps/webapp/app/components/billing/FreePlanUsage.tsx",
+      "target": "tests/fidelity/reference/vendor/components/billing/FreePlanUsage.tsx",
+      "gitBlob": "d1f0716567cf2fd333c46aef092d4d29f1e836b9",
+      "sha256": "845040b8a8ccb16866c2638cb2dd74f5a29b9d02f1462b8cfd9301b39643c247"
+    },
+    {
+      "source": "apps/webapp/app/components/billing/OrgBanner.tsx",
+      "target": "tests/fidelity/reference/vendor/components/billing/OrgBanner.tsx",
+      "gitBlob": "03214bab7ece653c040961b209ba9ea537d9e9f0",
+      "sha256": "b8963a53ffac812ca175c85a673f67f88fb04af19ab0820ff9c56fe1b9bb8b47"
+    },
+    {
+      "source": "apps/webapp/app/components/billing/selectOrgBanner.ts",
+      "target": "tests/fidelity/reference/vendor/components/billing/selectOrgBanner.ts",
+      "gitBlob": "c31c6de77957da79f02dae20494c0902e85d0844",
+      "sha256": "5b77c41c6edb9fe8927551d207be4a4591a0d425bcea4eb42f5c253a72c4cf14"
+    },
+    {
+      "source": "apps/webapp/app/components/code/CodeBlock.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/CodeBlock.tsx",
+      "gitBlob": "1eb2828c99370298210fd1d41a8f6baaa03f4177",
+      "sha256": "dcde4f986fe25fd44668d5efb8659f24eace2bbf70c2fede58445ba5018c7b37"
+    },
+    {
+      "source": "apps/webapp/app/components/code/InlineCode.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/InlineCode.tsx",
+      "gitBlob": "1150e8d5b8e0a1d13959eec8196217f209dabe1e",
+      "sha256": "4ce0af557cdccb00bc627f44bce1a87bbc6d94c0f7ecc487df34135323cc8608"
+    },
+    {
+      "source": "apps/webapp/app/components/code/JSONEditor.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/JSONEditor.tsx",
+      "gitBlob": "b4c3f7a6ed31dfc4047bec0ef5e049ccbbf245fb",
+      "sha256": "57437e1c9bfc7f7c94da511b970da72a281ce47ec7c22971eec8537b923d267f"
+    },
+    {
+      "source": "apps/webapp/app/components/code/QueryResultsChart.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/QueryResultsChart.tsx",
+      "gitBlob": "48b2d8f9f6d812b20254a3c710fde7c104213dcc",
+      "sha256": "000c9ab7da1319e86640b341e2119be1e96b66b165998307cf871748cd7a3d84"
+    },
+    {
+      "source": "apps/webapp/app/components/code/StreamdownRenderer.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/StreamdownRenderer.tsx",
+      "gitBlob": "48d9d5997d9f112716e9a09aff9cc4cce6494762",
+      "sha256": "9f18931ce8150f0b9ec12c465e25ac806393e0bdbcbc2482c2632b7d1a79dba8"
+    },
+    {
+      "source": "apps/webapp/app/components/code/TSQLResultsTable.tsx",
+      "target": "tests/fidelity/reference/vendor/components/code/TSQLResultsTable.tsx",
+      "gitBlob": "87d2003d3850402f02b82514236ea7b8068179e3",
+      "sha256": "531d0f9c45131dc7238670a1f58b0da4702e43642e081ec271648a55821676c2"
+    },
+    {
+      "source": "apps/webapp/app/components/code/chartColors.ts",
+      "target": "tests/fidelity/reference/vendor/components/code/chartColors.ts",
+      "gitBlob": "05e53f9a194c3f391e14256423350b4a8134497e",
+      "sha256": "005d51d954075a2241180a5731bc2433109decc08c9544fe7b799f059496350b"
+    },
+    {
+      "source": "apps/webapp/app/components/code/codeMirrorSetup.ts",
+      "target": "tests/fidelity/reference/vendor/components/code/codeMirrorSetup.ts",
+      "gitBlob": "52a8e12a4d8f6e88934103cda47d501a781bdc17",
+      "sha256": "1a0c64e36395334f36f4dfbb4f1eb599379435028031c3540387b8592067c2a5"
+    },
+    {
+      "source": "apps/webapp/app/components/code/codeMirrorTheme.ts",
+      "target": "tests/fidelity/reference/vendor/components/code/codeMirrorTheme.ts",
+      "gitBlob": "783d28f1fc0e806fd1565ced60c221c5f8fc632d",
+      "sha256": "55a780a22e4f95d3b7a70cc3940f50fe4aab6265da1e0d2d940c4135e1187164"
+    },
+    {
+      "source": "apps/webapp/app/components/code/shikiTheme.ts",
+      "target": "tests/fidelity/reference/vendor/components/code/shikiTheme.ts",
+      "gitBlob": "e9d45c9fbd1e435e96c8a76e8b1da275386d5070",
+      "sha256": "da5625a28499b02ef33d434e5d4996a2537d7326c6535a3783479a10828a73d2"
+    },
+    {
+      "source": "apps/webapp/app/components/dashboard-agent/dashboardAgentLauncher.tsx",
+      "target": "tests/fidelity/reference/vendor/components/dashboard-agent/dashboardAgentLauncher.tsx",
+      "gitBlob": "41b87ae3b89311d9c3bc29b1e8874677d86b6621",
+      "sha256": "7f64b260eac948cc6d8c0dd25580fe0cbce7f8509a525ccdd66dfcf88c243108"
+    },
+    {
+      "source": "apps/webapp/app/components/environments/EnvironmentLabel.tsx",
+      "target": "tests/fidelity/reference/vendor/components/environments/EnvironmentLabel.tsx",
+      "gitBlob": "1d34121403cc06494b52f3aab3e9eb2ec98a9ed0",
+      "sha256": "649a696bf772b3d2d84b3ce588b41041df7b88663827e5eef78063d4a8e83add"
+    },
+    {
+      "source": "apps/webapp/app/components/errors/ConfigureErrorAlerts.tsx",
+      "target": "tests/fidelity/reference/vendor/components/errors/ConfigureErrorAlerts.tsx",
+      "gitBlob": "b126e77b34b72186d0193fdaa2893ea5a174088e",
+      "sha256": "d512f9d4755b33eb2f41f5208abc0547b07db25ebbcd95b07f18f2b35f421975"
+    },
+    {
+      "source": "apps/webapp/app/components/errors/ErrorStatusBadge.tsx",
+      "target": "tests/fidelity/reference/vendor/components/errors/ErrorStatusBadge.tsx",
+      "gitBlob": "aad2bb2f1f21773fcbca421c1f87163509f0995c",
+      "sha256": "c571c62f2f6f118181ee2593f2750872c0d8bf16ef7d14ce2aaf78c0265cb810"
+    },
+    {
+      "source": "apps/webapp/app/components/errors/ErrorStatusMenu.tsx",
+      "target": "tests/fidelity/reference/vendor/components/errors/ErrorStatusMenu.tsx",
+      "gitBlob": "a981c8eee52761f3e5fd2acf869b8208b66e19b1",
+      "sha256": "283de9e857b6817c175dfb6fd8b0e6662921e8be6ff7fa5da2bc768be83e6bc0"
+    },
+    {
+      "source": "apps/webapp/app/components/integrations/VercelLogo.tsx",
+      "target": "tests/fidelity/reference/vendor/components/integrations/VercelLogo.tsx",
+      "gitBlob": "856b74ebada6a5048fcef7aa340329d61d4f48aa",
+      "sha256": "b14783e3203bf114c74fd0ca9f4d3ea693bb4688f22474ce53558da575a283d8"
+    },
+    {
+      "source": "apps/webapp/app/components/layout/AppLayout.tsx",
+      "target": "tests/fidelity/reference/vendor/components/layout/AppLayout.tsx",
+      "gitBlob": "e0bb94179bda4e584552456b7b8732d95a256946",
+      "sha256": "a0d88fc2e144b5455bd2c2ec44da172d926d41302f0b72ea8a642cc301dc835c"
+    },
+    {
+      "source": "apps/webapp/app/components/layout/MetricsLayout.tsx",
+      "target": "tests/fidelity/reference/vendor/components/layout/MetricsLayout.tsx",
+      "gitBlob": "9a41c4b2613ff6f2d552dc8bca49e07ebd53a290",
+      "sha256": "c1d0f0d75bf8becbfba8ac122db51b1363a972dff653400f513ba67af9a4f209"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogDetailView.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogDetailView.tsx",
+      "gitBlob": "c0f52b76a460c6a193926f78edaf61da5a4aeea5",
+      "sha256": "a1d0f5b4602b0cd05286bbea58b7d7816a10650256856be4124a02a7fa0f65af"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogLevel.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogLevel.tsx",
+      "gitBlob": "3c2c38301ff588c5287647322693f9952896b1d6",
+      "sha256": "4c74a8272de5bd0f94cece74d2932b4ce84f5e07302c106836e3b7bd5d044735"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogsLevelFilter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogsLevelFilter.tsx",
+      "gitBlob": "fdd96ad034002f93874ad5c619e7f925cccdb342",
+      "sha256": "1fec554f13ea0f69b91a9b85df1322a2de0bb27e3900605d3fa25ccb3c33d472"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogsRunIdFilter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogsRunIdFilter.tsx",
+      "gitBlob": "a2e52a1a0f78ea6676a05ab399069973a7f0221f",
+      "sha256": "f4ee1e6062dc74f179e123794c2013cdd8ccb283dbf0c98d5b5be54cf70ac58b"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogsTable.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogsTable.tsx",
+      "gitBlob": "9034ce906ea5c30cfe9bf4c0ed956774a122edff",
+      "sha256": "346a3e636f701be009fc61d11de2b25076a41ae64bb1783f03e5c4cb03a91942"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogsTaskFilter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogsTaskFilter.tsx",
+      "gitBlob": "a2173c7560c564b0b58c715c17985d56fa13c60d",
+      "sha256": "e63cdf7175a63c6f5c52615dba1ff254821d39c2722ddf1ca2e26f40f914cebc"
+    },
+    {
+      "source": "apps/webapp/app/components/logs/LogsVersionFilter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/logs/LogsVersionFilter.tsx",
+      "gitBlob": "a5a83f6eda4b83604dea40ed3157847d6121e4c4",
+      "sha256": "f488635a7405e7e2d30d92979fa96865c1bfb90f75f3a40675317c2ff9f7cfb6"
+    },
+    {
+      "source": "apps/webapp/app/components/metrics/ActivityBarChart.tsx",
+      "target": "tests/fidelity/reference/vendor/components/metrics/ActivityBarChart.tsx",
+      "gitBlob": "4e361b224b8fbde1e8848a79e8eff59f5c21e3c3",
+      "sha256": "ccf71c3874bf4a5b43e933ac5a94a083804c20faead6a810c2d5069f057aa49a"
+    },
+    {
+      "source": "apps/webapp/app/components/metrics/BigNumber.tsx",
+      "target": "tests/fidelity/reference/vendor/components/metrics/BigNumber.tsx",
+      "gitBlob": "5843e6229dba31b4786e235461cd1c3154e27111",
+      "sha256": "dd0a0510d86eea084af046b437724082f9a9f5705e02bcdf675895f2a5bc0967"
+    },
+    {
+      "source": "apps/webapp/app/components/metrics/MiniLineChart.tsx",
+      "target": "tests/fidelity/reference/vendor/components/metrics/MiniLineChart.tsx",
+      "gitBlob": "c36e91d0b90e408e8091aaeebbb7ddcb02b169f9",
+      "sha256": "7ce07bc068324cb99feacf35ec6e9173a9ab1895366fe2ffbc4e74ca8c863c3c"
+    },
+    {
+      "source": "apps/webapp/app/components/metrics/QueryWidget.tsx",
+      "target": "tests/fidelity/reference/vendor/components/metrics/QueryWidget.tsx",
+      "gitBlob": "9f82181604637b6c6e9182d808900c4e0a9e50be",
+      "sha256": "a6b479f3c37f9dfd366b56db3e3f7539c0337ec932c67bc184ff502912ee3ab2"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/CustomizeSidebarDialog.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/CustomizeSidebarDialog.tsx",
+      "gitBlob": "d2c18442e3be2a0fb2cb254089c849ea57c4da57",
+      "sha256": "9ddad993754a3f2fb62ee4ae7d32ea0c15d847c6c1583c5de949021ae1af919d"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/DashboardDialogs.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/DashboardDialogs.tsx",
+      "gitBlob": "85fcf4c4278d26e82d6d28965374fb1ee97a1457",
+      "sha256": "558214e5f8f9fdfdbd757e16da585c765f11779d35ded9a460f5f775f5aed232"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/DashboardList.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/DashboardList.tsx",
+      "gitBlob": "39a7de00c1d7ec8123ad10a4675130308fbd07b1",
+      "sha256": "d77cfcc39feaa54a22c770defeb5b6bab20c5e1c1ad29eb9eb29400a43acf02f"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/EnvironmentSelector.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/EnvironmentSelector.tsx",
+      "gitBlob": "b2c1d593a0d29651adb604152fac801c3d136aae",
+      "sha256": "779258ea7db904c0ee9644d0357562b9e1fe7f4e87ae2907713e2f470d00b374"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/FavoritePageButton.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/FavoritePageButton.tsx",
+      "gitBlob": "c0d03453b38f3fca7747a3a3639b368961d7ffb8",
+      "sha256": "e46696bb445d182e53101698b4ba085fe0de281b620e04e61c0ce1d05d78c119"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/FavoritesSection.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/FavoritesSection.tsx",
+      "gitBlob": "835289243f10a20b56b613122935bef029204523",
+      "sha256": "26c263bb26c03d7bc9873c5b73e36eb1045529812f66b4fbe276f8dcdfe89a9d"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/HelpAndFeedbackPopover.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/HelpAndFeedbackPopover.tsx",
+      "gitBlob": "c7276dd5bc68c5e6f9fd7e6527dab26d5f9af3d9",
+      "sha256": "ee6f4703179ceb7aaeac1fc18c92633be9fd620ae07f8488d54c5927ea736a2b"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/NotificationCard.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/NotificationCard.tsx",
+      "gitBlob": "e9ad1e07e652935300c832a4e213ce69b430b6e8",
+      "sha256": "14b24ee3f06703f7bbba3c3f5262541edc23db2a97b022b34a7bb2ffa9bc6221"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/NotificationPanel.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/NotificationPanel.tsx",
+      "gitBlob": "78cb52ca59149e2f6995ac3646d15153eff29efe",
+      "sha256": "db8d93d566b294f6d6b54274cd67bae707ce8ea5ea503ae1443126f39da4cc17"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/SideMenu.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/SideMenu.tsx",
+      "gitBlob": "ebedc77fc6ee2899767a6fa204f8290164076d31",
+      "sha256": "571e822e2ef50ed0682e1eb57b148cce6382698927137fe0c241cdd2ae20413f"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/SideMenuHeader.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/SideMenuHeader.tsx",
+      "gitBlob": "698ab1a232692911572156dc8240135074631dd6",
+      "sha256": "064ae284ac3af3c4f27ade44352d97fbe2878594de28f10899b1476116eaae43"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/SideMenuItem.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/SideMenuItem.tsx",
+      "gitBlob": "9a06c933d97c1959c3563ed0c4fe307b60e72bae",
+      "sha256": "f04b8b9199acdba8dd7828d27c3b422e46bfa942b3ead2996bb49507801e38fe"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/SideMenuSection.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/SideMenuSection.tsx",
+      "gitBlob": "4f0d37e271674d21d781b0d7ade1ca2d6c980907",
+      "sha256": "d528b77a6018cbee3e995ff56f4d9940e5e181943a889988b8836efe54c01838"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/TreeConnectors.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/TreeConnectors.tsx",
+      "gitBlob": "25e8212b899b4c67b5e93ba6f3e76d0c836a1515",
+      "sha256": "f725b35d5f354c3a3dcae01ff235f56658335a4024ca567962ff1d53432ecd45"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/favoritePages.tsx",
+      "target": "tests/fidelity/reference/vendor/components/navigation/favoritePages.tsx",
+      "gitBlob": "4439aadedfd19cb7a9a03c53074518c1db7dc90c",
+      "sha256": "60738f27c44feedea96f1de221a6bd40ecc32e506e6b1abd9ffa92959ae7396d"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/sideMenuTypes.ts",
+      "target": "tests/fidelity/reference/vendor/components/navigation/sideMenuTypes.ts",
+      "gitBlob": "508c4121175e07dfb30666828461d9b8cc311ef2",
+      "sha256": "c62afdf375c0abcda2aa62883020e88c9cb56dcb66edf5cbaa430a9b66126a25"
+    },
+    {
+      "source": "apps/webapp/app/components/navigation/useReorderableList.ts",
+      "target": "tests/fidelity/reference/vendor/components/navigation/useReorderableList.ts",
+      "gitBlob": "b98d9b551bf1db36d9dc3f974a668eda178dd78c",
+      "sha256": "5e542ea4c6e38d2ecf54d09b1df9c50016eda5250289a362dba7c58f3a417fc6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Accordion.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Accordion.tsx",
+      "gitBlob": "c39a245b98d975f1a29264a00f33e679d0f5b5c6",
+      "sha256": "800c66b710c3cb2073e837a0135a74aadc01a9ae817b1f8886c609352999b1b2"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/AgentDotMatrix.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/AgentDotMatrix.tsx",
+      "gitBlob": "dd4484c29bbdfc24793c38d1fb7098d0c47bc6d3",
+      "sha256": "b596ff883d4e3c040eb7b4500ca304a2bb5c4b43f285d4e5bf9c1aed60e79361"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/AnimatedNumber.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/AnimatedNumber.tsx",
+      "gitBlob": "fea0f9d8900f9e74fa755f868103f7c61b50a9f8",
+      "sha256": "88764672aff408cf1926ece47fb155afc9c1aafe2f96bae9dfaec6d9e462dc1c"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/AppliedFilter.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/AppliedFilter.tsx",
+      "gitBlob": "6390a5826d633e859efcb98322af0825e9f7e62f",
+      "sha256": "55cb1fdb7093e724bfe99b4e29cf804273fb41d14d258590b4f997e12420f160"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Avatar.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Avatar.tsx",
+      "gitBlob": "728626271f4575cc3e6e0c3b383226a73ea7774a",
+      "sha256": "53db864775316384b1f01bedc91a33c735932328fa8384d5b4dd70ca02761b6f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Badge.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Badge.tsx",
+      "gitBlob": "15733bcc647e876d5de5085a25215445f2881237",
+      "sha256": "6d358289190f1014fe8623c34f06b37f01e0ff7793bb257884779e88e70b693c"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/BreadcrumbIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/BreadcrumbIcon.tsx",
+      "gitBlob": "7d7fae46be03f1686ee7f8198c560aa7ce21149e",
+      "sha256": "95a04cdb374e80e5c9f9d04d7c7887fcb8de35769442551c392a341bb7b42a6e"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Buttons.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Buttons.tsx",
+      "gitBlob": "78b201b90e045da256170b0c06c8d67c1178bc2b",
+      "sha256": "ad6e5c75e1967dfd60d332337bc5e128b8a455cebc2466614c7757072f70ae27"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Calendar.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Calendar.tsx",
+      "gitBlob": "22ddc7d41496f8ecf25f86ed09d1e086d01d8510",
+      "sha256": "68509f03b011186b1273c3ec0208592c9982969cca3ceb165d4170eb1e9fe4f8"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Callout.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Callout.tsx",
+      "gitBlob": "6c772fb6e52831098b7bc0fc94a0b75616182e4c",
+      "sha256": "4a0c56e35558292a8b8913c4fe291a0c73ee820381c632078612349ed108059d"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Checkbox.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Checkbox.tsx",
+      "gitBlob": "da63e2ed9935a6d7a4fd6c754ac35f92f19c6a3f",
+      "sha256": "e41de13b5bcfe70b545006d0b62f5a9d41fef6c28d14d61a4f8a5597062e80a6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/CheckboxIndicator.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/CheckboxIndicator.tsx",
+      "gitBlob": "1d4c59e2549679e1ba62fe87175f6e05bd267de5",
+      "sha256": "bc44638424a6ae04fb404d709b4488c8d31c5a4895c9e2bd81121e2febd39ea7"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ClientTabs.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/ClientTabs.tsx",
+      "gitBlob": "48757676d6108127647e191b597e7931b8b416ec",
+      "sha256": "80a7c10839e8c6af1179ee0c46a900ed6fa00ddd9932e97dcb628dd70032588a"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ClipboardField.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/ClipboardField.tsx",
+      "gitBlob": "ca5df717d34c05f597a22caae1535598edcf4b45",
+      "sha256": "aab26ccd655641578cddd7bb837e7c5eebc6a02bb8fb7c1806abae0cbe9e4beb"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/CopyButton.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/CopyButton.tsx",
+      "gitBlob": "91d47c2966875d785fb72a947a5d39226f14fc41",
+      "sha256": "f363476f6e3d7a13d960699049b7163dd501d78db4609d6e2725d4c327be7b58"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/CopyTextLink.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/CopyTextLink.tsx",
+      "gitBlob": "2c117af9b864f49ebad1c03ad085568bb0134669",
+      "sha256": "afbf82a91e70af3a11ebcb25d0aca3bed56ee148de3068c49ae630f385d5d62f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/CopyableText.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/CopyableText.tsx",
+      "gitBlob": "9634ad1ac0189c8e2ab3088539e7ad750e67f304",
+      "sha256": "6c18b06abb178457e23fcf2926a50d6d459a7981a4e00caa6176cd086188895a"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/DateTime.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/DateTime.tsx",
+      "gitBlob": "3c1227e0c9ae8dae3bc2097b1966c392b58c90f4",
+      "sha256": "f7b4ce83810c33baa084abfa0dc2a2c9541e76d4a521782c33dfc63a330245dd"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/DateTimePicker.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/DateTimePicker.tsx",
+      "gitBlob": "ec2e3375dbff5551612fb87c3b6c83469a81513f",
+      "sha256": "9b81a101978aad2fa40b1aeef83a4ad43ad697dc4a907b64ae73da032e51cbaf"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Dialog.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Dialog.tsx",
+      "gitBlob": "3a7666eb80b7348d1dca4965ebea38cf40c27126",
+      "sha256": "c7f3db37aa900cafcd8008eecfb47d35620d73f93315d3fd8f0c395fcc4c723b"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/DurationPicker.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/DurationPicker.tsx",
+      "gitBlob": "e4f5af6520db0c126dc5f83573f264fefe130688",
+      "sha256": "1e00882976b9970574b4fb692ff9cf42ab44d1d406e984e6c9ed99643d5dd9ae"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Fieldset.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Fieldset.tsx",
+      "gitBlob": "6266bd5da81106c4a06550c856d45e8874ace8a1",
+      "sha256": "31bb380dd6d56978b224a57cb32cde2b5c758e2a95485518c4c779673fcf15ed"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/FormButtons.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/FormButtons.tsx",
+      "gitBlob": "ab4e07df455e749ebbeace54978a00d357301329",
+      "sha256": "5e73cad03895da1b75f8052557ffb06a94cd3a3629d75211668f215ec061ec03"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/FormError.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/FormError.tsx",
+      "gitBlob": "218d844998418094ce912708acfae0d09eebeec9",
+      "sha256": "12eccde3c756695de7ca20179990365837b436a93ba8b5266c8a38f1578ca4f3"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Headers.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Headers.tsx",
+      "gitBlob": "5cd3ec8455952d46f2007d4a90e7cb7255e624d7",
+      "sha256": "0cbd405882913615e0c013fbd3db275f7ee7202aa8c0d73fca4716f1cc0b3d66"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Hint.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Hint.tsx",
+      "gitBlob": "dc049ab0b0a79c0cbde88dad61a649423c0f9816",
+      "sha256": "22f9a0ac6b89bcf1374e10dc22eabdedbf29b6eb575252150abce0d8339b91ac"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Icon.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Icon.tsx",
+      "gitBlob": "4b8197f93ce4c801de8a5cfd8a872ae8ed34476e",
+      "sha256": "8b517bdde2ae2b850859955826134d48768ca7b624f04ea11b13e7715a5eaa48"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/InfoPanel.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/InfoPanel.tsx",
+      "gitBlob": "53d2d5eeeb882ccadc967de55fb59fe06303c814",
+      "sha256": "b7f4f14100719d164924ab7f9025a6685dd62fe8e3e6a8d13ad703bbfe960ece"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Input.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Input.tsx",
+      "gitBlob": "5c3235a66c927ebd8a199c06c8a28eda7b28f55f",
+      "sha256": "2274ff25847ed8553a991f9ade8dbbd7f68172343a00e0edb2defe1333145793"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/InputGroup.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/InputGroup.tsx",
+      "gitBlob": "0d18f2115a4577fe193c87a2026bcbedbb4caf9b",
+      "sha256": "7ced79829c8425c1309055b74f18494b9f1ee2193ee82beb8351394dfa9f10d6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Label.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Label.tsx",
+      "gitBlob": "7213d52205c37f75254083ccc4b0442f50f7c9a4",
+      "sha256": "493de07e61fecdc52942c2012f02aa928c48f112c705c323c94fd072ddcf9c62"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/LoadingBarDivider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/LoadingBarDivider.tsx",
+      "gitBlob": "713240177a5e66843c2c627e85372f7d78098708",
+      "sha256": "d54b14f0dc153b06c61bc29ff07cacf35f408f54986af055746de7371cac2975"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/LocaleProvider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/LocaleProvider.tsx",
+      "gitBlob": "cb27a03a9f88848eeca31252cf1422cb16e08bbe",
+      "sha256": "8db8ca87bee583ce509050c00aa4e1139eea34cbb9e7010fb1449b32dd338652"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/MiddleTruncate.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/MiddleTruncate.tsx",
+      "gitBlob": "45915c2521d3244383da3f638e254f6a5feca325",
+      "sha256": "ef1998b9005376674f83f6ffc94fc794f92b2a32f68b62784ab976dcfed7aaae"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/OperatingSystemProvider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/OperatingSystemProvider.tsx",
+      "gitBlob": "7f7f8fc57b67edf168ebf5df80cde625a079e531",
+      "sha256": "9fb0745f86d7f49f604cd0cfe722d5b6b7f251f95fa26d663b9e5c08f58a94db"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PageHeader.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/PageHeader.tsx",
+      "gitBlob": "691b9323bad442fde49bc41e1c3500982513a515",
+      "sha256": "2622cd082abdf67cf37d1abf72086023d9b5a65881341623f6148803fd6c7546"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Pagination.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Pagination.tsx",
+      "gitBlob": "80fce8bdd06b60b6b2f316ed5cd14dec9ac83f8d",
+      "sha256": "dbc112a90b104b3a3cdfaf195472900dde7af6c5b49e3bc4b7926683e66be2d6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Paragraph.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Paragraph.tsx",
+      "gitBlob": "18c40edee38525da01199219bc5c5cea315fb836",
+      "sha256": "d0a245406bcc19221ebc771c0c335a61fb17e06e5a732f417b877620c2f11b4f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PermissionButton.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/PermissionButton.tsx",
+      "gitBlob": "22b6baa354cedd6c5488dc9e40a71f2d614cd25d",
+      "sha256": "7045faf6d34c84e5642939c13a99849dd4cb79e88f64a905f8802ff89e7e3d1f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PermissionLink.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/PermissionLink.tsx",
+      "gitBlob": "da943be0e252671a76bda9ce51ee54ef2b08cd86",
+      "sha256": "f1d3ff734a3e8d17ad1caf63114b8529fc5681f736b202bb3def2e20ff58080f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Popover.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Popover.tsx",
+      "gitBlob": "fccba52a89b9020f337c363a346c603f8348e0eb",
+      "sha256": "3f165f32b1af75952dd7688fd301db9a62423a893c1bbcac0d3111a2f8221397"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PropertyTable.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/PropertyTable.tsx",
+      "gitBlob": "6f3e203ade29108d8c57b7b39b8d849ce6caa0f5",
+      "sha256": "f0b2ce27da084c1313d3b49813f77d706beb0a69d58dbe7fff71a888c207641e"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/PulsingDot.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/PulsingDot.tsx",
+      "gitBlob": "97c2a109306b0bd0d3a073bb0d71774e80225e10",
+      "sha256": "1ad1c0516f187561ad0d361ae513e9526bde1a9558b2a1cf7d0165a73e7ca025"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/RadioButton.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/RadioButton.tsx",
+      "gitBlob": "d936a81b923ac52ac1a5d399695dee1b085dd345",
+      "sha256": "3bd13fc7d79e7f05677b1b8275f6e95a6d1e4b73dd0f28b22cb52eb4acae1968"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Resizable.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Resizable.tsx",
+      "gitBlob": "0bd4f8e86d92101be634d9fd9171a2f1005779e1",
+      "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/SearchInput.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/SearchInput.tsx",
+      "gitBlob": "0c46a3d028613a5928771b016c70889d29d5f6a8",
+      "sha256": "87689b8eb542fdeaea01633f98b6fd51b1f9fe5e258b51f89d657d95a86e8338"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/SegmentedControl.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/SegmentedControl.tsx",
+      "gitBlob": "0fdccdbbc4297ef0692b2254295086c2a0f1a643",
+      "sha256": "d7f933858ab25ec7351aaf78c4c1027294b13b8d933fdcbbaee04302aaf7bd34"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Select.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Select.tsx",
+      "gitBlob": "31921ef9854fb79da5c4dc77d71a54ca1167ce9a",
+      "sha256": "dfe4d8c75b5cacd86fb86d05b0b4b083baedefa7f298c66ed51dac5e031d26e3"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/SelectedItemsProvider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/SelectedItemsProvider.tsx",
+      "gitBlob": "12f4b68f9ef34e7a57037aa8c0162f09654046d1",
+      "sha256": "2d4dbfa1f033038d37c214c544346692ba0cd6af9454887fb9de7793b41c38d9"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/SheetV3.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/SheetV3.tsx",
+      "gitBlob": "922f28d5baf6f059df624e0fdd84c29071b2648d",
+      "sha256": "547ba30022bac790e08ebb9a420374e92fb1c821426c701e4d216e8d12eadaa4"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ShortcutKey.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/ShortcutKey.tsx",
+      "gitBlob": "c3be54c0b17cff1c806e227c7e060f2abca0591a",
+      "sha256": "27171bcb4f85f6525224e906eab80265be65beda909b334d4b8da45bda4ee345"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/ShortcutsProvider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/ShortcutsProvider.tsx",
+      "gitBlob": "bcbed9b562fb500da5a8507efa39435563051c31",
+      "sha256": "0630f1750faaf78edbe353d2be1f2a88b2cb11103ae57d77238fb632d20fd401"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Slider.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Slider.tsx",
+      "gitBlob": "e3ab6cdcd4e6b778e16d5aadd018ba24f6c175c9",
+      "sha256": "cfa0503b5c641cf67328e9f9c6fb9a10fe37fb3279fe2ee90f4cedf6486c7e84"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Spinner.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Spinner.tsx",
+      "gitBlob": "158ea2c998988716cb56ad34b89dc4186194575f",
+      "sha256": "c22befe583f5b4541f31783763c0d0811f6ca14c3e137d867d98963e268aba97"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/StepNumber.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/StepNumber.tsx",
+      "gitBlob": "9172019fbc064a92f7967ff7cc23a751835655f8",
+      "sha256": "31c4fe8084c3c1ae5f3c3e25fff4de339fdbae97c140c5d22c3041afbf38e218"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Switch.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Switch.tsx",
+      "gitBlob": "e07187176a8e400586b812b53a438c9ac6ac34da",
+      "sha256": "a9b90292458dbfa9fa01f2b1b297f775e87680ac65ce7760a06e99932ebacd9a"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Table.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Table.tsx",
+      "gitBlob": "55dd2e4e200350cabb538e8dd7dd4fb7c9497826",
+      "sha256": "98c22b2102bbc395268dd16d2894b24df9ddc6759cb15fc5bfa9510013f1504c"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Tabs.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Tabs.tsx",
+      "gitBlob": "569e271434f9b5778b39f612da753aa46f50a6ce",
+      "sha256": "27dbb5ac828b3910c66a06ba4a25354836151c1d5916de2e6980c7c2b7431886"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TextArea.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TextArea.tsx",
+      "gitBlob": "8cdb96de36152f35875505a4daf27ff3b96b8db9",
+      "sha256": "c36dce3672ff80ba4ad898fcbb58ac6d85207a2602a514e798f2996c0801baa6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TextLink.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TextLink.tsx",
+      "gitBlob": "d0186268c0cd87801f6662d817c3b0912d9a198d",
+      "sha256": "87ea25d2ba6a86d3cf1d408611cd1ff88625d3a842755d19a1a95801ab0bd34b"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Timeline.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Timeline.tsx",
+      "gitBlob": "a5164b47b2bbbb36309162e79f08bef4da3f9195",
+      "sha256": "1bfef56606dbb7b9ae9fcc65a7a05f9ad1898692e6415d8c9069f9f65d2f1e6d"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TitleBar.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TitleBar.tsx",
+      "gitBlob": "8b935093b021b08e012230833890c31b16016eb4",
+      "sha256": "469e50911268cc0b70de7e3e74479c7cc7aee7056d1116a3a6fb19df8ed889f1"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Toast.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Toast.tsx",
+      "gitBlob": "a33d324248eac4a2e451ebc1d455bb5f3eb6932e",
+      "sha256": "ae85c4c3f3180421f652d0d9bb5c0e5518bc62fc13b8132c46eca3616ae5febe"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/Tooltip.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/Tooltip.tsx",
+      "gitBlob": "cb9eaf0364d5f3ceca65eb962ee4ad0f9fd0cc48",
+      "sha256": "3e2a6d447005ad0ca045cd824dce173a627b25444f6c100926281cd5c9f512f8"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TooltipPortal.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TooltipPortal.tsx",
+      "gitBlob": "011c5aae7ef91ee47d248cd72f5015a2bf8c969d",
+      "sha256": "1a91d2c97a2906ca26edc8a8d2969c6ea65581b03332e556b9c1dda770e73e1b"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/TreeView.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TreeView/TreeView.tsx",
+      "gitBlob": "e19a006df6168fc7013910238b80d423aab53515",
+      "sha256": "eb9e7fe5809bd0a7e6f9b231ca10cc038875b8282215f9754d89a506a15f5eab"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/reducer.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TreeView/reducer.ts",
+      "gitBlob": "2c3bbf134e753f7991923bec8a7daa7b616e7210",
+      "sha256": "5098140eef133d482b1b3c0c9067ee57fae47ad69cfba5902d04d2eb322c5ada"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TreeView/utils.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TreeView/utils.ts",
+      "gitBlob": "95fc1b75614c30fc935f43f761c98317f20eb517",
+      "sha256": "2de2e91f3b52a48d96c9fa7f07af2f0f4a2bd4806d877ecba07aa6c41b2e134e"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/TruncatedCopyableValue.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/TruncatedCopyableValue.tsx",
+      "gitBlob": "c2270fd490904fc3589ec952b012af0b0ee0112b",
+      "sha256": "ba2ea0a3fe76790cfec11f200ee68fdbaae0113c7a2cc12d6912f541186348a8"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/UnorderedList.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/UnorderedList.tsx",
+      "gitBlob": "deec1c1a3233fc4fdbdc90f066ceead667d6968e",
+      "sha256": "6cdd32d04461932fea264062a39c9a2a74ad72a579ce8a0d8b209c5f754aafdb"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/BigNumberCard.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/BigNumberCard.tsx",
+      "gitBlob": "d36fe5408982c04b2fcf157859f1fa654cd4ad92",
+      "sha256": "2984849a0f8a4ab13a98492a171b1cfd74a75d45ad786b184a0bb67068a4db60"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/Card.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/Card.tsx",
+      "gitBlob": "d197b109b017ef0be1cb79555fae6aabff326dc5",
+      "sha256": "b696b62ce2c36c69ac21577e4d311180cc1f34cd8c5b1edc40a1b0a5608ee51c"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/Chart.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/Chart.tsx",
+      "gitBlob": "d19452c0bc3bf45457ee969dbdd09107aab3a4c8",
+      "sha256": "26fd0e50b1f248d5cf5540394f51159b5ba817f93af09d6202138cba0b29f5cb"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartBar.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartBar.tsx",
+      "gitBlob": "8f18ff7e13a1b32cdc40d1fc6c0a4c23bdba00a3",
+      "sha256": "4510f04c9acf1b9f343e99d07f1c0bbd32e801557bcde27b1027c8f10584ee74"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartBlankState.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartBlankState.tsx",
+      "gitBlob": "66ba14a92ccb625d06b509aff05282c8616bd25d",
+      "sha256": "57112897aa155beabb0c9c9a08e56ecb0d2aa479ab7070c2bf6851c2f9526a29"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartCard.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartCard.tsx",
+      "gitBlob": "69464cf34061e93b977d9bba6d3f4b47d0819c82",
+      "sha256": "297c46d5b7b1ba7fface15879467d69c32d24ec3a1f45ef00247c97b12e051be"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartCompound.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartCompound.tsx",
+      "gitBlob": "bbd78fc1b327f794bd1d1d3db15732132a7e5dc1",
+      "sha256": "e84087be3293a718a9c0d3c40e4925918f4f4686503df28ad5fb55fbf37bf48b"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartContext.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartContext.tsx",
+      "gitBlob": "10592b3a0880af5342dbfc0a8234ad72666027cc",
+      "sha256": "6a0f011910c94c88ffd672354a8b88bb0a09a5c7ea750bfe2e0187be460e6d07"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartLegendCompound.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartLegendCompound.tsx",
+      "gitBlob": "b5c562e0f70301d74ee12f4acbd9a0a40305bd65",
+      "sha256": "2eac7ceb57d297375ae28ff866ef633181b27763d15c9542baf2cbdb35e97a9f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartLine.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartLine.tsx",
+      "gitBlob": "000d74b91c00eac1071d767f627b8055c9ec52a8",
+      "sha256": "39f36b0544ecbad6e1081b4bbf00c44c2ccfe45fe20ce4d0fef6a89c2a434260"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartLoading.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartLoading.tsx",
+      "gitBlob": "8e7ee031f81e4815994589de947facb326a8314d",
+      "sha256": "6624d4bc233f598ba2bad83aafd8ce1bb5e5c02c0d035a066f60ef34fcc63bd6"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartRoot.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartRoot.tsx",
+      "gitBlob": "2b8f630d87828ad39105919f1670029213af5fbc",
+      "sha256": "c6602109e1a19feb80985f6b3a2e7e508b6cfd8119e12f0d0b7ba157aff63185"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartSyncContext.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartSyncContext.tsx",
+      "gitBlob": "6ef7f073dd0e6b3cfd954e41235056e61348ba24",
+      "sha256": "cb85f44e8d9c8e46a5f0e36ba2503d48cd5bbd3f808941421bd4f541531e56b5"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/ChartZoom.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/ChartZoom.tsx",
+      "gitBlob": "4be839f3f68c7a54b7642ccf16d42039e549c0b6",
+      "sha256": "ac3b95754df7415dafde8a4bdb658217a679d4b43c5c546944eebc9359c2bcc9"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/DateRangeContext.tsx",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/DateRangeContext.tsx",
+      "gitBlob": "4b6d82105965670d2e2bcab2b23d2ccebd850515",
+      "sha256": "d1eaf7b961e2da7a749ae15e154a035a646a83315da5b2bdfa61854431ae1683"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/activityTimeAxis.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/activityTimeAxis.ts",
+      "gitBlob": "452988f44d75bed787b2f6ebd1a98d1380db4878",
+      "sha256": "47144575abacb20a7b5be1a12bba2178bc1bffdcb560fdc0fa8a019bd1f6406c"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/aggregation.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/aggregation.ts",
+      "gitBlob": "48269833d242ecb8a8f1a110dc8f16f396293d48",
+      "sha256": "0d69b3746b36164bd1a13a86cf24f1cf1b15aa7f3814bb5424f3ce95f88dbd28"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/hooks/useHighlightState.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/hooks/useHighlightState.ts",
+      "gitBlob": "02baac0ca8fdeb79b55587c918b4480c6809e3f1",
+      "sha256": "ba0f955f48c034c3b4d068848723b2bbc70b1f3242af42a0c978de80da7e61a5"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/hooks/useZoomSelection.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/hooks/useZoomSelection.ts",
+      "gitBlob": "1d7110fda8ff6fcf75951a14e9db1bfe5ae47cd5",
+      "sha256": "46d7ab67efabbf4f533dfbd735209057768665b7865fd954805a618f1853f559"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/statusColors.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/statusColors.ts",
+      "gitBlob": "8439b4d3285b11cd0b97b2d176fb8becc4f80469",
+      "sha256": "af0bc7e380ffa7e7c5e3135f162fef2160bdb0395429106e6bd508c420af857e"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/useXAxisTicks.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/useXAxisTicks.ts",
+      "gitBlob": "e6e160864389a0d1471330a4ea7525e91724fae0",
+      "sha256": "c1b92b1ccb6aee75af006a34d9a534991c29b722576657d1ddc6c2436a3d7569"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/charts/useYAxisWidth.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/charts/useYAxisWidth.ts",
+      "gitBlob": "fb7d1abcf95bf2c104d9905a73c7e49ec26c7dce",
+      "sha256": "b08f130149cb7c70823cd8f13dd8dedb8efd057204293ce1b8819531c6add3d0"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/labelOverflowFade.ts",
+      "target": "tests/fidelity/reference/vendor/components/primitives/labelOverflowFade.ts",
+      "gitBlob": "199d81a0fb74b23e2cf309bad6f6b71bf9c01597",
+      "sha256": "622afec30c862e9bba61370e7e0691f6db7491073ff7b7d0c3f217874502505f"
+    },
+    {
+      "source": "apps/webapp/app/components/primitives/tabler-sprite.svg",
+      "target": "tests/fidelity/reference/vendor/components/primitives/tabler-sprite.svg",
+      "gitBlob": "1587c16d4cef95597cd65e0a45bc2d9d29c3db39",
+      "sha256": "3eaaea76da696f01b3e3835d48052c50774307cfe0a593b952bef2351f7a7b52"
+    },
+    {
+      "source": "apps/webapp/app/components/queues/QueueControls.tsx",
+      "target": "tests/fidelity/reference/vendor/components/queues/QueueControls.tsx",
+      "gitBlob": "7817749b0cd15f10f0e1f57be2a929cd5b6e186f",
+      "sha256": "cfa0b57f470d4efa97f2156d7253df7ae26f14d4c86934c7434aac8364be519e"
+    },
+    {
+      "source": "apps/webapp/app/components/queues/QueueMetricCards.tsx",
+      "target": "tests/fidelity/reference/vendor/components/queues/QueueMetricCards.tsx",
+      "gitBlob": "294a94b8650033ef121b41f7cd34e16ff070da23",
+      "sha256": "615db4d1b3c0ebfc23a2a3105f8d00286ee3f5e24d87ce98742424a5e33108cd"
+    },
+    {
+      "source": "apps/webapp/app/components/queues/queueMetricsPeriod.ts",
+      "target": "tests/fidelity/reference/vendor/components/queues/queueMetricsPeriod.ts",
+      "gitBlob": "d18bdbc2fce54258ec0f9da43629c77e824820a5",
+      "sha256": "1283f2bdbbdbd820ba436130ab9cfa03ed6e11c3c5d7e49c457fb5bd1b202f56"
+    },
+    {
+      "source": "apps/webapp/app/components/run/RunTimeline.tsx",
+      "target": "tests/fidelity/reference/vendor/components/run/RunTimeline.tsx",
+      "gitBlob": "53ddb321f63052fbb44b7b63a59905ac9c853dc7",
+      "sha256": "7abf99cd6f09bc237e80900f5dccd72685faec8cb4a81137cd46517955705929"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/AIFilterInput.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/AIFilterInput.tsx",
+      "gitBlob": "d6a6b32340b41df3b173a4c8c1a997410e9054be",
+      "sha256": "94377292536a1284cf0deb2c392d79ec1684dc220b5e618c1f6679a613b9cf06"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/BulkAction.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/BulkAction.tsx",
+      "gitBlob": "c472ebdaaefb0aaef4de8b7c5ebb860ee0ede6d5",
+      "sha256": "1d79c453ea30180eec2860058c22a049362c0922970253e2713ce8119ef891f8"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/CancelRunDialog.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/CancelRunDialog.tsx",
+      "gitBlob": "566bc787daa1bb531d5e8064439cb508282c02b0",
+      "sha256": "6b01502f419102b05bb6d06a380fe1a22d9225a1723c228ad3bec45ca05c0bbf"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/LiveTimer.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/LiveTimer.tsx",
+      "gitBlob": "953bfb320b49f0d11bb7eb4cf347c8df41ed384e",
+      "sha256": "37a10f216f7b1a3b3c618e6885677591740b989f963a584f6e331c8578863da3"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/PacketDisplay.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/PacketDisplay.tsx",
+      "gitBlob": "82deae8a1bed37ec9369be703efe3ce2f67498c1",
+      "sha256": "18435c6f7e4cf09871ee78d4473ee827a3958a437008c59bff292cbbc3dac62a"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/PromptSpanDetails.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/PromptSpanDetails.tsx",
+      "gitBlob": "bfafaaf910de62b77a48aa30872589aebbc0d3bd",
+      "sha256": "06c5ab7bdac1dfa3dfd440386c77c45e5630a7a457a097e5cb13bb6ea625dc4f"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/QueueName.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/QueueName.tsx",
+      "gitBlob": "e65b86a220ea2a66a4b9637064ce99a006451afe",
+      "sha256": "aaf4a01bedbfda9e10dcc065603708c43117b80d2975d6940a110027849c5069"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RegionLabel.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RegionLabel.tsx",
+      "gitBlob": "015e8fe91520a18c5a077e8bea71bab09a821bd2",
+      "sha256": "05e0fe40557aa81848907b1f27505ddda33f36e6360ba27718ce1ec9f23240aa"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ReplayRunDialog.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ReplayRunDialog.tsx",
+      "gitBlob": "86747f9e277761c82a3ba951b1505b9040b2b265",
+      "sha256": "a780e40afb34aeb905d1cc9ef0e98800e0af7af56fc6806f8ead8bcf59fa2d2a"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunFilters.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RunFilters.tsx",
+      "gitBlob": "1e4462577b5dc35b9984593d70304b2bd9e6155a",
+      "sha256": "66313d045f6df4c0e2e35f11e52ae550d6910c6a8a3d4da263a8eaaae20f0d6d"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunIcon.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RunIcon.tsx",
+      "gitBlob": "dc6b144691af99ce6c29f0c797ffc685cfcb347e",
+      "sha256": "1919b883442134370bb7f3c4fbe259ca03c8a232566874edba9ce254e4dec3f4"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunStatusCellTooltip.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RunStatusCellTooltip.tsx",
+      "gitBlob": "789572d7d8395fd61289ca53cc9ed1e1b1ca9e1e",
+      "sha256": "12ab101b7248c371e778d4245ec1f9d6a70e016d02d382359b374339a49ac4d3"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunTag.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RunTag.tsx",
+      "gitBlob": "16d2333632ec9b985770f1dd175d18d1b429f785",
+      "sha256": "8c139309fc8224b2bb600243eb421432c88f8465f58ab986d279d027c05900ec"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/RunTagInput.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/RunTagInput.tsx",
+      "gitBlob": "25d818f402e0a73637a04124132d8910d039f217",
+      "sha256": "d83f7405f31265fdb855bc95b61d95236b9a52e402174ab1e0b131615d46f1fa"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/SharedFilters.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/SharedFilters.tsx",
+      "gitBlob": "7069b2a4cc5b8b3a75420e8d971c1db47654f3d9",
+      "sha256": "b4970bee0038f25b88ac895ffd651b82b13397db24f6e6120fe38c8aaad05d1c"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/SpanEvents.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/SpanEvents.tsx",
+      "gitBlob": "069246c89b7976ddb3b105b407d9dddda4b92b57",
+      "sha256": "9a08119ce0b37214270db60aa862d4b4481f297aa85e5390d1a80045629e6dbd"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/SpanHorizontalTimeline.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/SpanHorizontalTimeline.tsx",
+      "gitBlob": "85cee02a1bd885a949fa6b2244cac03baab01cbb",
+      "sha256": "5bf2c370be189a954ab16b84f2667b6d46736cc8b23f955ac576e29a9e41f2a7"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/SpanTitle.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/SpanTitle.tsx",
+      "gitBlob": "be363ca6ab333af4e265daf1af14cac097c09e33",
+      "sha256": "f432b02182c1afdb228c3fba9126db1268ca59ca4c8f2b1511178488cb1ff507"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskPath.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskPath.tsx",
+      "gitBlob": "2ccb01c3688728b956dcf21553e32f28a6d7fcf3",
+      "sha256": "ad58cb00dd6877acd95892e2c928c3e90b3820bd5834f5d5386373a6e3ec4b36"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunAttemptStatus.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskRunAttemptStatus.tsx",
+      "gitBlob": "6358ccecd9a14263c803796a41ca0c779ed587fa",
+      "sha256": "1d0bc0e918c74df86a70f81680c58e740a6e65ec4c4803c0fde0c16c172c2a8a"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunStatus.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskRunStatus.tsx",
+      "gitBlob": "d0a4c74ffbb0b220789af1df40ee9307b755b04f",
+      "sha256": "115bd0ec472d067da965d538ac102d3ccfe7ef0a1b6c41cfd62d4f4276ce2fff"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunsList.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskRunsList.tsx",
+      "gitBlob": "1b9830ec54f0f7386758025ab6c220e7b12cb724",
+      "sha256": "b22b8e2f259c19f2e234513f562997c7fd4d886090d29dc7e651ea4dc78c0317"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskRunsTable.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskRunsTable.tsx",
+      "gitBlob": "00197117853cf9188edffcfc2493362041cff773",
+      "sha256": "d354bfdb3dbe2c19e8a29f307d4e89870ac50fb430344a2bdb84c8c3988b633d"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/TaskTriggerSource.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/TaskTriggerSource.tsx",
+      "gitBlob": "d2cf90f137be6079fe9382c3cb539892c107ccbc",
+      "sha256": "82c3d94284c697422ac0ba5f62b8f580527d736260f24e1447036db486074d35"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/WaitpointDetails.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/WaitpointDetails.tsx",
+      "gitBlob": "7841f5248d990261acb3256e2cb324848cf3703d",
+      "sha256": "d77c9f1c92b0e8074c9f0a4c378391a4e4e16fefc32e84e35f9ef8b584b727b1"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/WaitpointStatus.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/WaitpointStatus.tsx",
+      "gitBlob": "e5825088b3a78c0e4810b4a692352ceb2c85687a",
+      "sha256": "ff8cd6ed01ce0eaf86a00be56067944d716303f02475b26b2e700e4617924b47"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/WaitpointTokenFilters.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/WaitpointTokenFilters.tsx",
+      "gitBlob": "4eb31e617c360aedd9579e8996db951cb8f6fd31",
+      "sha256": "5e28c8ad0b95498d4eb0087f4728a972444f2d305d347a803d614053d9d33a48"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AIChatMessages.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AIChatMessages.tsx",
+      "gitBlob": "ae46cbe867cc6b54fe64e759e7356614ce73eeb6",
+      "sha256": "ff1156bfed69cc945a4d8a2522752c826c48663d51aa59f61af042f257f7217a"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AIEmbedSpanDetails.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AIEmbedSpanDetails.tsx",
+      "gitBlob": "1cac3de503f20b0cabeaf8fa17bc7a09ae0ca3c9",
+      "sha256": "2089d248f0a4ff955a31992e9cab163a63e2342a5f94eaa81e1fe9fbeeb0fe82"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AIModelSummary.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AIModelSummary.tsx",
+      "gitBlob": "775efd7c308cecea4ab57bc330e68352a4490b54",
+      "sha256": "74a0a71f4e67ad406c8beeb19c8887d6ed93f4c5d90b46657ed218a639a741e3"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AISpanDetails.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AISpanDetails.tsx",
+      "gitBlob": "138374173f12aa88fdde815c6660554e1e1c029a",
+      "sha256": "58705c665dcffc595a509eaeefb81583600764a04bd90448d283da72102284f9"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AIToolCallSpanDetails.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AIToolCallSpanDetails.tsx",
+      "gitBlob": "5557f2728c2eaa8a249c3ffc8cf075aa3f3453a0",
+      "sha256": "5bcc8bdd7fc08a5e7545d24f62e099b2674397af49addbe0ec533e862990d668"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/AIToolsInventory.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/AIToolsInventory.tsx",
+      "gitBlob": "f7b09b6daf1f4fe842421fdf23cb940706ccf762",
+      "sha256": "4c8c9b1b300a8161d6be3acedf0f87d3b00ab8dedadbdec6841d51cbcf2cbbfe"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/SpanMetricRow.tsx",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/SpanMetricRow.tsx",
+      "gitBlob": "3faa5a64491680ef840cc512c7e5472ea1cc3fc1",
+      "sha256": "d2c985b54ed518c17baf7c4ae92c3c231cfa75aad2d3c9fc1f278621f0126641"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/aiHelpers.ts",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/aiHelpers.ts",
+      "gitBlob": "2de9ccb68cc090962f2b338d46c20bc330ae06fc",
+      "sha256": "5f1c5efd680919da63a69b247e3f115e79979fae8a5fdd455b0665ea0058a45c"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/extractAISpanData.ts",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/extractAISpanData.ts",
+      "gitBlob": "dcb9b4e2a368c7e861c48d3750dbdcc5e3a4e0d5",
+      "sha256": "cd2731a2fc98688918f73e5a139b58943b6da5c8331a2785214f94f887e0f273"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/extractAISummarySpanData.ts",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/extractAISummarySpanData.ts",
+      "gitBlob": "aa5f7c6a489ec511080651d0db18773e312d431d",
+      "sha256": "4a4fdce0480c80fcec5f03255c80bb3fd7f66ef9fbdbe8e9f78050f2da55a8d5"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/index.ts",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/index.ts",
+      "gitBlob": "5acb9ff17a2ca3329074d0a566266907eecd1e0e",
+      "sha256": "35002716334c5796af506c6bcee04033ec78a112f12c46846b51cf8a75927e2b"
+    },
+    {
+      "source": "apps/webapp/app/components/runs/v3/ai/types.ts",
+      "target": "tests/fidelity/reference/vendor/components/runs/v3/ai/types.ts",
+      "gitBlob": "b1765a2e59cf14192b10c829ceb88e95e9416c75",
+      "sha256": "075e33dd330dbb20390d6d6055c72dbb4fe16b7c25d1f7eae24f8bb051deac87"
+    },
+    {
+      "source": "apps/webapp/app/components/sessions/v1/SessionStatus.tsx",
+      "target": "tests/fidelity/reference/vendor/components/sessions/v1/SessionStatus.tsx",
+      "gitBlob": "69dfdf5092d709d968e6bb3bed8d2281b177e07d",
+      "sha256": "8264466d45c665024b8083cf2f2881faf7a4689e72d425a0dae0d7e4893b6620"
+    },
+    {
+      "source": "apps/webapp/app/consts.ts",
+      "target": "tests/fidelity/reference/vendor/consts.ts",
+      "gitBlob": "e349bc086b6cc20ea78736504cf7cbabc6588d89",
+      "sha256": "6e0613eaf3aa2175caf075abf4ef41854db58fe05af0b850282787615dda1222"
+    },
+    {
+      "source": "apps/webapp/app/database-types.ts",
+      "target": "tests/fidelity/reference/vendor/database-types.ts",
+      "gitBlob": "3305dc67d5779dfe1f524a108af4e6974a0517b3",
+      "sha256": "91619e4103ad0a25f21ef6333495392a4994164c8652d205d443280b34fc28ba"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useAppOrigin.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useAppOrigin.ts",
+      "gitBlob": "fe0cea53035939b4dbd3ddd0c189df33937b50bf",
+      "sha256": "37eb4ece28cefcfcb0a472e35cd1d86d94759cc36e22fdf759793ff3c7e34e1c"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useAutoRevalidate.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useAutoRevalidate.ts",
+      "gitBlob": "4205b03bcc07cbec94008297ba7cb8ff17a38b47",
+      "sha256": "8573a3cfc8823ac938d8586c87c73305ae3a9d18498b5f514898eb8d63d42f27"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useChanged.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useChanged.ts",
+      "gitBlob": "650a6b37814e17795d42e3e82268fb612426e3c0",
+      "sha256": "1224becadfc10f9d170c11479a2fff3976f50fcac8d69db60dde376bf1b189df"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useCopy.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useCopy.ts",
+      "gitBlob": "00d63c51bc56ddbc0dd52b65f89c12de9f291557",
+      "sha256": "cff54bd2b2eadd8e5f46774e5efd1f9837b4319bac2d25fc2d30bdec1c6337e8"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useDebounce.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useDebounce.ts",
+      "gitBlob": "da63330f2a710eb49613334b7a369144877bda76",
+      "sha256": "0333d66e432efb9eeffb9df8c6b19e2dcd00bca4ef80e313a3e2a90fa8dda95a"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useEnvironment.tsx",
+      "target": "tests/fidelity/reference/vendor/hooks/useEnvironment.tsx",
+      "gitBlob": "5b99aeb80cfbbd381d31a79ee852557b44f7ff18",
+      "sha256": "5f447cffc2245bd04a148972b0e8e50c52ccbbf0cc0ffe6ff34b5b1f0dfd7ac8"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useEnvironmentSwitcher.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useEnvironmentSwitcher.ts",
+      "gitBlob": "5c9aa2059b332f47537fffa50eb86dc628ebf782",
+      "sha256": "32e4adb8b98d802300b826c351e7136cc0f0179cdb26feb512ae4a0230cf51dd"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useEventSource.tsx",
+      "target": "tests/fidelity/reference/vendor/hooks/useEventSource.tsx",
+      "gitBlob": "4bcdac6f522103ce5a3276aa6153a2be87ac6aaa",
+      "sha256": "1e1df0257ac7a7d9d818ebcb6597ba033645ce78bdbbdb633f7e72851d6910af"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useFeatureFlags.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useFeatureFlags.ts",
+      "gitBlob": "ea8bde1b26c9f13c811f4d5817957c5db1b99d3c",
+      "sha256": "7e9140bec6a56b997cbc32091d0bf1771d20b1158bea39bf761c450c2e15b093"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useFeatures.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useFeatures.ts",
+      "gitBlob": "b6835e18eca2579739f2b02efc45729332b81807",
+      "sha256": "c400032acf593a00c865b67bcc69c4e259f858e0e97db03e1381a37bd2bafc57"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useFuzzyFilter.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useFuzzyFilter.ts",
+      "gitBlob": "0efff83111419a8b929c2a645c3ca74a02bbae2d",
+      "sha256": "acf5fee2d660c14880c016cc68a58c71146382cdad80b765d6fe6c33dfd65211"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useInitialDimensions.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useInitialDimensions.ts",
+      "gitBlob": "ff007743a057bcc89acc1c0a09283894ded0bbc8",
+      "sha256": "bbeb6d0d2a1ba700d790da986a2dac9923c8fbbdc5634447bbc13b855979a9e9"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useInterval.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useInterval.ts",
+      "gitBlob": "b59884d455a1fd5c451958e3d1c6885dd3eb1c11",
+      "sha256": "4f9a8f627d8c890485de4ae43f86ca004dd3af16d3ce1170fb64474d1481a0fe"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useLazyRef.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useLazyRef.ts",
+      "gitBlob": "c2fc66273bb692a82fab1dfee972b1ed291eff32",
+      "sha256": "c80988754cd5d846a61344898d0de987311d9982054f234e9a977d467a35d01b"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useMetricResourceQuery.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useMetricResourceQuery.ts",
+      "gitBlob": "d219ee73c08956a49c7c4843d326ed79ee5da7bf",
+      "sha256": "04edab9460a6768f050fc040acd5a99d8edf8b6ca7cd7c2e8caf979645a22dff"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useOptimisticLocation.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useOptimisticLocation.ts",
+      "gitBlob": "3a1e0b7aab08d600bce8acbfa2f99ed967042fcd",
+      "sha256": "fb3a017a9a9a885608a850a63eeb47bc7c29df78672637fbc78840e2844523cf"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useOrganizations.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useOrganizations.ts",
+      "gitBlob": "df3ec699633e84b44da4735d8da6c9e07112283c",
+      "sha256": "1d6b4deb88d29fe22a99452150ebfa90403314721cbd120d97d537828bdf6d06"
+    },
+    {
+      "source": "apps/webapp/app/hooks/usePathName.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/usePathName.ts",
+      "gitBlob": "629d736e76a8090d3660108a9db9cc0c8c6b95a4",
+      "sha256": "67329432283763e7b895639aa2447275f46c881ac2d3f263f49079e07775d5e6"
+    },
+    {
+      "source": "apps/webapp/app/hooks/usePostHog.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/usePostHog.ts",
+      "gitBlob": "887151ca3975df35162554c753ffd368e6400830",
+      "sha256": "bd483101bf47ba1d9b02acf0df1ffd4bfabb19708757303e6d626625f49b35d5"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useProject.tsx",
+      "target": "tests/fidelity/reference/vendor/hooks/useProject.tsx",
+      "gitBlob": "2280694c1026ea83990c7729ee6f2f8296d5ca82",
+      "sha256": "144ade7c2b10f9aa9a6bb6dc8c68b8b9eafd85b1679121e572e0cb7bbed31327"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useRegions.tsx",
+      "target": "tests/fidelity/reference/vendor/hooks/useRegions.tsx",
+      "gitBlob": "fe696440473ea37cca8425c8adae574538e36c3f",
+      "sha256": "f376e062f30852c7edebf08f6aa91cd38592a3df59ba0204b827e05bb273bda6"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useReplaceSearchParams.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useReplaceSearchParams.ts",
+      "gitBlob": "822217d963b03b08e4108f300a6ca59225a17a7d",
+      "sha256": "205d0b0f6e8cf4c3e2959a3889cf40bde74de23ae260fbf80584e55874cc92d0"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useSearchParam.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useSearchParam.ts",
+      "gitBlob": "2c7e456bbbb00187f3a3f7d57c189009dac31665",
+      "sha256": "94048319d6058392f1cfca28a247fb66d652728faad8bdb97b59d5fa76537741"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useShortcutKeys.tsx",
+      "target": "tests/fidelity/reference/vendor/hooks/useShortcutKeys.tsx",
+      "gitBlob": "319a91cad84418b41cfc7048332adf34385c0f61",
+      "sha256": "27c93e779d13b6020f0a9605811a2ae9b642f3d812327cd19e02f902ec4f27b3"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useShowSelfServe.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useShowSelfServe.ts",
+      "gitBlob": "594bf7217a528758e48c91a885deea22f8689f41",
+      "sha256": "277e8a5ba3d46bc009eed58fae63bcdc03caf7b3133b0bc2a624b709a3ac1ac5"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useSystemThemeSync.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useSystemThemeSync.ts",
+      "gitBlob": "6b2a678396f554fb2a11ca8955d0f1d1dca281d5",
+      "sha256": "639bf6f9898672763367a147f3d6d327d7e4b76006d4a09227e991fec85c2161"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useThemeColor.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useThemeColor.ts",
+      "gitBlob": "f088d16b52580e238517d599e4c27c8ce73060de",
+      "sha256": "ca39204d7b978cfd297f39f17bc25373c389d1a9935491444cd0a418dbe90930"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useTriggerCliTag.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useTriggerCliTag.ts",
+      "gitBlob": "190a28ef391a91ae466a32ea86e54ebd868624c0",
+      "sha256": "91d29fd2edbe0c19fa5b64d8cfe210a056a0d00e92437e17b22612d406d7e4f9"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useTypedMatchData.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useTypedMatchData.ts",
+      "gitBlob": "d2a1514c59a65f2c4c7b832a8858e6361b1ce3e1",
+      "sha256": "5a5a856f96de2dfadda1301deb73b3f8c53192ab3d617384ca5a08848e6c9379"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useUser.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useUser.ts",
+      "gitBlob": "aa86ba63865941e57f8d58398c732ba8856df870",
+      "sha256": "5e928c968617451cfb40af308351103f4d32b01e3af31cd476ab418238cc38e2"
+    },
+    {
+      "source": "apps/webapp/app/hooks/useZoomToTimeFilter.ts",
+      "target": "tests/fidelity/reference/vendor/hooks/useZoomToTimeFilter.ts",
+      "gitBlob": "b80318f636272179ba876bfdaa0d98e930b321e6",
+      "sha256": "31c2856ff95bef0fd37bf5e5786120ccb1ce8bd1877118f30c001daf880fd9d6"
+    },
+    {
+      "source": "apps/webapp/app/root.tsx",
+      "target": "tests/fidelity/reference/vendor/root.tsx",
+      "gitBlob": "d7ad416af248203b2a106598802f854b42dfc36f",
+      "sha256": "9c3a5870ad53b0877e7bc037eedea4cde09b49af3610e383a72b25bd35091089"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx",
+      "gitBlob": "5a30d931c5217f762d52fe065eb9d77a2e0e2c7b",
+      "sha256": "6268c122475931274f798f75e7fae301cfee3d7e7573ffad54cf21da68b9ccf7"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx",
+      "gitBlob": "6ec1aa7fce175b9c88b4efe28877c66a8d9a9c29",
+      "sha256": "8c399e0c4700d5f9b170bb2a02cb9cac75480709a225ecb75bf6fd68272fd61a"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx",
+      "gitBlob": "5243ab3d46bcb6bf5bfc7b72743e0525d4c89469",
+      "sha256": "cae6ee5c93c8e3c45dcfe1aaa340871eb3f2f653c4c5ae119a2832374923fc18"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors/route.tsx",
+      "gitBlob": "769a486826690303302b8d4df8bf398c6f3e1a74",
+      "sha256": "7857986b910bf79602fc1a04692df9ae22755ab0c095dd05dcccfa4f83272dcb"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx",
+      "gitBlob": "a963fc021003dc65df0ab95ac032dabb606b6336",
+      "sha256": "9b1a6de6af94a68535769caac09dbb3133438350baca293fb9b925a2c1054dc6"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx",
+      "gitBlob": "d128f53a894c2ebd813f2f7c569a665ed63d151b",
+      "sha256": "6886ec6796402be23fdde107696453065aa29074d2cb4a857123fcb73c5dd18d"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route.tsx",
+      "gitBlob": "55494258f7935032cb01c2b32ce8726b63eb7556",
+      "sha256": "7d827e04376bebd0c40fd417faf7247f4f7126fe35cfd4392542e3d7aae4fdbd"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx",
+      "gitBlob": "085fa8f23ac9ca8ce85a7f5a7aca156b119d591a",
+      "sha256": "ab45feb77f15fe0225b96180dc097bb8485b571a77fbc178832f830151503ef5"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx",
+      "gitBlob": "dfb921e2691cf0bb41061f3ed63124be212fd673",
+      "sha256": "f33c21454703fc9023a50cac8194e26710c82587ab99f4ab51797cdb7b82ade2"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/shouldRevalidateRunsList.ts",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/shouldRevalidateRunsList.ts",
+      "gitBlob": "e8c1f19144a56cbd9d4c9d7529d45e443a31d6e9",
+      "sha256": "4c3cda63e6c8ee6b84b218ad1b615ceeb6c07004e1dcb0bc73d03a98b5fdd9ae"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/useRunsLiveReload.ts",
+      "gitBlob": "e443fb84cfb93af6831258daafe83c05531bff2e",
+      "sha256": "b9c316fb0421c73d95164334e66512c0cb1b9995c88bcba15fd850f04186721c"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs/route.tsx",
+      "gitBlob": "f6723ddebaab1634c438e5217f2c1f2038aa4730",
+      "sha256": "58ed03038327a9cdfc780cebe9b5145774d9270b6a8578a70f00da63010e791a"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx",
+      "gitBlob": "15df31370d2f53ceb16530b7d75a92d7047b2aa5",
+      "sha256": "032a95f1f0d2886da87e0da3e4fb9b213114477a06435b7a4ca27acfeaa5930a"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam/route.tsx",
+      "gitBlob": "3f4be602aa714f17ee2897fdcf3bfd97d05985be",
+      "sha256": "057352748190d22b486e1ac45840f0b24540f04f5c4000e7728084a976e4a72c"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug.settings.billing-limits/billingLimitsRevalidation.ts",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.settings.billing-limits/billingLimitsRevalidation.ts",
+      "gitBlob": "dbf35edee5d9ec3a5ca070df76831b6e206a0417",
+      "sha256": "6f546b17468951d8cde5ba94607b676cfeb3bfeb057c829e09a33f81b1c7d094"
+    },
+    {
+      "source": "apps/webapp/app/routes/_app.orgs.$organizationSlug/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug/route.tsx",
+      "gitBlob": "26133675e0d248bdbbee27140b1cab26aaaebbef",
+      "sha256": "f99388bdeaa35b6ed45181a794bb44a0a208929b86121e702b40e14a8f2e1612"
+    },
+    {
+      "source": "apps/webapp/app/routes/account._index/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/account._index/route.tsx",
+      "gitBlob": "4ecccb33d68cd5b15c19614d5d668adf0865bba3",
+      "sha256": "d86a94891947ffb2f5f68b3535a4798336fe396be0960b3f3983fc4b32a5da17"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.idempotencyKey.reset.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.idempotencyKey.reset.tsx",
+      "gitBlob": "dea9ed18e6063413f34f300b98fd382b4a1fd937",
+      "sha256": "73f31d8ad19111f83ad6995ddb6c96ec27421830ac6076b8f769710c0ce687a9"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx",
+      "gitBlob": "ed3e50f27a111f2a77d775896d75f95bf28dfdb4",
+      "sha256": "fa7c2a2645b7f56757c0877db5ab9bb61bac187a1586bf95c7bae6cd9148c968"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.streams.$streamKey/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.streams.$streamKey/route.tsx",
+      "gitBlob": "43381613433f7f085ae8c25e2a5cc74274e669c3",
+      "sha256": "956afe3666977b70b03558b300491ebda411b457b983359d0c723c28db4e0648"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.bulkaction.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.bulkaction.tsx",
+      "gitBlob": "5bef068b9948d5e604553834f18cef8d93a72705",
+      "sha256": "0bad4add2acc488b4b2ba02865f77b4108f9a0ce5d394920e5fed3d676788493"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.live.ts",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.live.ts",
+      "gitBlob": "4c919827835021e97a82d789586dea74a9c4d647",
+      "sha256": "d70df57837148d80bbd280a3141eb8d2d7df283018d277b0a16627b24d15ecdf"
+    },
+    {
+      "source": "apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.waitpoints.$waitpointFriendlyId.complete/route.tsx",
+      "target": "tests/fidelity/reference/vendor/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.waitpoints.$waitpointFriendlyId.complete/route.tsx",
+      "gitBlob": "e1ed1b2cc702f6c0a6c66498b235a78dcfe9358d",
+      "sha256": "0e9c12f59b8475899bc26a0414e2abfc260b2edbada03859d308dac54dc9a2d5"
+    },
+    {
+      "source": "apps/webapp/app/tailwind.css",
+      "target": "tests/fidelity/reference/vendor/tailwind.css",
+      "gitBlob": "174a9a9ff5e4f971784d92be13a26ed1f829ce4b",
+      "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121"
+    },
+    {
+      "source": "apps/webapp/app/utils.ts",
+      "target": "tests/fidelity/reference/vendor/utils.ts",
+      "gitBlob": "680c2a0c9f2ab1b92e073bbd514574d325eaeee1",
+      "sha256": "65cb37a15cad77de34e922dbfa8f7a956e9bd45387130ec68c183ade0aa85cfc"
+    },
+    {
+      "source": "apps/webapp/app/utils/branchableEnvironment.ts",
+      "target": "tests/fidelity/reference/vendor/utils/branchableEnvironment.ts",
+      "gitBlob": "997042c316c64a89ddd791ec05b3a83570932cf0",
+      "sha256": "911fa376098e5bfe63b117d2779abd62106d925fb9968f1bb075fdfac356108c"
+    },
+    {
+      "source": "apps/webapp/app/utils/cn.ts",
+      "target": "tests/fidelity/reference/vendor/utils/cn.ts",
+      "gitBlob": "c72d8b9f621bbb4e111c3980cb33b8086ba5e1be",
+      "sha256": "c3add868cf2ffb9b1ddbfb0f8cf5770bd161ca3fa0c37c806254ed714a35b76a"
+    },
+    {
+      "source": "apps/webapp/app/utils/columnFormat.ts",
+      "target": "tests/fidelity/reference/vendor/utils/columnFormat.ts",
+      "gitBlob": "c11226123abf866bb15b9069cc8df1cf5b39aeea",
+      "sha256": "becb78cce558110a15907ff82141465ee161ab3fbbd17d4424fef32e0dbb67d0"
+    },
+    {
+      "source": "apps/webapp/app/utils/dataExport.ts",
+      "target": "tests/fidelity/reference/vendor/utils/dataExport.ts",
+      "gitBlob": "c58d11a7e5f17f39841ea865ca4aa4f929433400",
+      "sha256": "d40c88f4695bcf6e3fc9c28b965461acd4c13de59b7221a9d1f52c95113cc7ec"
+    },
+    {
+      "source": "apps/webapp/app/utils/emailValidation.ts",
+      "target": "tests/fidelity/reference/vendor/utils/emailValidation.ts",
+      "gitBlob": "2c4d3952db950f8a6f5e35d1afb87322cdde084d",
+      "sha256": "d79cd90a16c69411430ec573f0abeb0f7296a6e5d3e0079e81ae28aa0b104267"
+    },
+    {
+      "source": "apps/webapp/app/utils/environmentPauseSource.ts",
+      "target": "tests/fidelity/reference/vendor/utils/environmentPauseSource.ts",
+      "gitBlob": "c4da2ab29638407f61528357219a36462d828d28",
+      "sha256": "d634c439eb87a08591568cc3ed188c437b6d0dcbb0e027e895c9b34f50aa6c17"
+    },
+    {
+      "source": "apps/webapp/app/utils/friendlyId.ts",
+      "target": "tests/fidelity/reference/vendor/utils/friendlyId.ts",
+      "gitBlob": "2500d685fa51a14b83ac2ad4b5350d52ce4b8a99",
+      "sha256": "970315944578243aa21aa35e6219865c32d3b897a3c973f5a22ec7084f6fc4b9"
+    },
+    {
+      "source": "apps/webapp/app/utils/httpErrors.ts",
+      "target": "tests/fidelity/reference/vendor/utils/httpErrors.ts",
+      "gitBlob": "2e41aa67eff127f096c6dd446e5baff5f48202f4",
+      "sha256": "f9b2de32420d4a9138f47ba7295242541f887c354a137d6e30dc87e7d1ec8e08"
+    },
+    {
+      "source": "apps/webapp/app/utils/lerp.ts",
+      "target": "tests/fidelity/reference/vendor/utils/lerp.ts",
+      "gitBlob": "c2df9a5d2d2be6797911723e7f3b67272f624bb7",
+      "sha256": "7c73d632e97268f7bc0a30c0e5e4c6170db207c0124164596bc0f655c34c62ce"
+    },
+    {
+      "source": "apps/webapp/app/utils/logUtils.ts",
+      "target": "tests/fidelity/reference/vendor/utils/logUtils.ts",
+      "gitBlob": "b5028387b4bf2969f5a3967c2fe3b818f9120361",
+      "sha256": "0717a67bda0afc432e3a25fd410a50cac3c9b207b8bc76a4003af97aacfc837b"
+    },
+    {
+      "source": "apps/webapp/app/utils/numberFormatter.ts",
+      "target": "tests/fidelity/reference/vendor/utils/numberFormatter.ts",
+      "gitBlob": "8cdc2e079318c662de1df6a56e92c73e17ebe8e3",
+      "sha256": "a1f9ef4e8ac54df8c3a64fd926979129b3e8e21ee92fa9dd89aa4a35207f4266"
+    },
+    {
+      "source": "apps/webapp/app/utils/pathBuilder.ts",
+      "target": "tests/fidelity/reference/vendor/utils/pathBuilder.ts",
+      "gitBlob": "d50d9e10f306af7c11570b47b0ac2846727a6117",
+      "sha256": "5af99f5a8c68a80cce9ca4765f0265031fb50d0bcd3ba12c2ec29d0510a3b557"
+    },
+    {
+      "source": "apps/webapp/app/utils/permissionDenied.ts",
+      "target": "tests/fidelity/reference/vendor/utils/permissionDenied.ts",
+      "gitBlob": "b44b6941b1fd3db3d72650665f47ae726a7019be",
+      "sha256": "573352575daa5a91af67c2385c764d048d678469d57d3da5a1b64c26e3211d37"
+    },
+    {
+      "source": "apps/webapp/app/utils/runtime.ts",
+      "target": "tests/fidelity/reference/vendor/utils/runtime.ts",
+      "gitBlob": "73ed6b93e214125f27c3af13a7bf5fce53581ea0",
+      "sha256": "6f86394ebf30899ed1e018371d2dc33e4e8fb48d848bdfd06a9f5d9429f1b481"
+    },
+    {
+      "source": "apps/webapp/app/utils/sanitizeUrl.ts",
+      "target": "tests/fidelity/reference/vendor/utils/sanitizeUrl.ts",
+      "gitBlob": "0ce2b31f415c471a284a0deaa93eca7140c042d6",
+      "sha256": "2ee5ba12f01b03c13dfabff94ed1c5b54325b27efea00397c78639a5b7edeca9"
+    },
+    {
+      "source": "apps/webapp/app/utils/searchParams.ts",
+      "target": "tests/fidelity/reference/vendor/utils/searchParams.ts",
+      "gitBlob": "39f9697176ac8058c47c2845803131613d95c04c",
+      "sha256": "93b8a5296dda9e4d7efcb91b3fb0796f766bbda4aca98384bd74f5c576ef963c"
+    },
+    {
+      "source": "apps/webapp/app/utils/tablerIcons.ts",
+      "target": "tests/fidelity/reference/vendor/utils/tablerIcons.ts",
+      "gitBlob": "e188e779bf73b75ff73b2bc0f3657839b6ddab3a",
+      "sha256": "375f06b1b84e9f9e01720c129f09c080358fa17c150cb5304a109327f74ab580"
+    },
+    {
+      "source": "apps/webapp/app/utils/themePreference.ts",
+      "target": "tests/fidelity/reference/vendor/utils/themePreference.ts",
+      "gitBlob": "2b6408c2abcd7838c2bcbc4b495c9e176c28efa7",
+      "sha256": "363be82ddaf107ae7f29f60656c093076b18a5c84bae6b25a3eb017ec57e0293"
+    },
+    {
+      "source": "apps/webapp/app/utils/timelineSpanEvents.ts",
+      "target": "tests/fidelity/reference/vendor/utils/timelineSpanEvents.ts",
+      "gitBlob": "1b956da376978dc10eb4fa8913dbfa87101e0c6b",
+      "sha256": "da93ea1b10d6c51d0b509f3bc7490c8809d4660c644cfcd569b655b02b1e0431"
+    },
+    {
+      "source": "apps/webapp/app/v3/eventRepository/eventRepository.types.ts",
+      "target": "tests/fidelity/reference/vendor/v3/eventRepository/eventRepository.types.ts",
+      "gitBlob": "d65999a8c2701ba1e41d5c36fb972692a76f0825",
+      "sha256": "96e659ca8d8a60e4dbd4deece055a570301f5ba184e0b90c1f3ca7fa68d56129"
+    },
+    {
+      "source": "apps/webapp/app/v3/featureFlags.ts",
+      "target": "tests/fidelity/reference/vendor/v3/featureFlags.ts",
+      "gitBlob": "f617cab16f35ce3c8c6fb89e82ee6869680ab02d",
+      "sha256": "f886c9f113aeff1253a44f9f8239d5683335f07b9544c8f3d96f4c9319f4edd3"
+    },
+    {
+      "source": "apps/webapp/app/v3/replayTask.ts",
+      "target": "tests/fidelity/reference/vendor/v3/replayTask.ts",
+      "gitBlob": "90897cf7c2503f31098ffd62583d255afa0d8555",
+      "sha256": "c61de2e36ad28fc402b048fac026fbe372ef2d0a98654100167fa242522b9837"
+    },
+    {
+      "source": "apps/webapp/app/v3/taskStatus.ts",
+      "target": "tests/fidelity/reference/vendor/v3/taskStatus.ts",
+      "gitBlob": "8606bcdafce40225bc1fb884e839791d603de4c1",
+      "sha256": "357321f54fcfdaacfbaabef9e6aabda274225b262dac47c4de5a1b4c6d70113d"
+    },
+    {
+      "source": "apps/webapp/app/v3/testTask.ts",
+      "target": "tests/fidelity/reference/vendor/v3/testTask.ts",
+      "gitBlob": "54db301cdef85ea3feef0a4bf965e403c6481ea8",
+      "sha256": "0f0dd7214098e2dca48addc4261f1506c1bb3191e21ae6f2009aa367e6851944"
+    }
+  ],
+  "adapterExternals": [
+    "../taskEventStore.server",
+    "./env.server",
+    "./features.server",
+    "./services/impersonation.server",
+    "./services/preferences/uiPreferences.server",
+    "./services/session.server",
+    "~/components/queues/queueMetricsPeriod.server",
+    "~/db.server",
+    "~/env.server",
+    "~/features.server",
+    "~/models/message.server",
+    "~/models/organization.server",
+    "~/models/project.server",
+    "~/models/queueMutation.server",
+    "~/models/runtimeEnvironment.server",
+    "~/models/user.server",
+    "~/presenters/OrganizationsPresenter.server",
+    "~/presenters/RunFilters.server",
+    "~/presenters/SelectBestEnvironmentPresenter.server",
+    "~/presenters/v3/CreateBulkActionPresenter.server",
+    "~/presenters/v3/EnvironmentQueuePresenter.server",
+    "~/presenters/v3/ErrorAlertChannelPresenter.server",
+    "~/presenters/v3/ErrorGroupPresenter.server",
+    "~/presenters/v3/ErrorsListPresenter.server",
+    "~/presenters/v3/LogsListPresenter.server",
+    "~/presenters/v3/NextRunListPresenter.server",
+    "~/presenters/v3/QueueAllocationPresenter.server",
+    "~/presenters/v3/QueueListPresenter.server",
+    "~/presenters/v3/QueueMetricsPresenter.server",
+    "~/presenters/v3/QueueRetrievePresenter.server",
+    "~/presenters/v3/RegionsPresenter.server",
+    "~/presenters/v3/RunPresenter.server",
+    "~/presenters/v3/RunQueueMetricsPresenter.server",
+    "~/presenters/v3/SpanPresenter.server",
+    "~/presenters/v3/TaskDetailPresenter.server",
+    "~/presenters/v3/UnifiedTaskListPresenter.server",
+    "~/presenters/v3/WaitpointPresenter.server",
+    "~/presenters/v3/mapRunToLiveFields.server",
+    "~/routes/resources.branches.create",
+    "~/routes/resources.environments.$envId.runs.tags",
+    "~/routes/resources.feedback",
+    "~/routes/resources.incidents",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.github",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs.$logId",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.children-statuses",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.versions",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.waitpoints.$waitpointFriendlyId.complete/route",
+    "~/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.waitpoints.tags",
+    "~/routes/resources.platform-changelogs",
+    "~/routes/resources.platform-notifications",
+    "~/routes/resources.queues.concurrency-keys",
+    "~/routes/resources.taskruns.$runParam.debug",
+    "~/routes/resources.taskruns.$runParam.replay",
+    "~/runEngine/concerns/waitpointCompletionPacket.server",
+    "~/services/billingLimit.schemas",
+    "~/services/clickhouse/clickhouseFactoryInstance.server",
+    "~/services/dashboardPreferences.server",
+    "~/services/httpAsyncStorage.server",
+    "~/services/impersonation.server",
+    "~/services/loadProjectEnvironmentFromRequest.server",
+    "~/services/logger.server",
+    "~/services/platform.v3.server",
+    "~/services/preferences/uiPreferences.server",
+    "~/services/rbac.server",
+    "~/services/realtime/v1StreamsGlobal.server",
+    "~/services/resizablePanel.server",
+    "~/services/routeBuilders/dashboardBuilder",
+    "~/services/routeBuilders/permissions.server",
+    "~/services/runsRepository/runsRepository.server",
+    "~/services/session.server",
+    "~/services/sessionsRepository/sessionsRepository.server",
+    "~/services/sso.server",
+    "~/services/telemetry.server",
+    "~/v3/canAccessQueueMetricsUi.server",
+    "~/v3/featureFlags.server",
+    "~/v3/mollifier/readFallback.server",
+    "~/v3/mollifier/syntheticRunHeader.server",
+    "~/v3/mollifier/syntheticTrace.server",
+    "~/v3/runEngine.server",
+    "~/v3/runOpsMigration/controlPlaneResolver.server",
+    "~/v3/runStore.server",
+    "~/v3/services/alerts/createAlertChannel.server",
+    "~/v3/services/baseService.server",
+    "~/v3/services/bulk/BulkActionV2.server",
+    "~/v3/services/errorGroupActions.server",
+    "~/v3/services/pauseEnvironment.server",
+    "~/v3/services/resetIdempotencyKey.server"
+  ]
+}
