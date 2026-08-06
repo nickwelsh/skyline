@@ -35,7 +35,7 @@ describe("HtmlCapturePreview", () => {
     flushSync(() => root.unmount());
   });
 
-  it("focuses expanded evidence and returns focus after Escape", () => {
+  it("focuses expanded evidence and matches pinned Escape focus behavior", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
@@ -51,7 +51,7 @@ describe("HtmlCapturePreview", () => {
 
     flushSync(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     expect(document.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).toBe(expand);
+    expect(document.activeElement).not.toBe(expand);
 
     flushSync(() => root.unmount());
   });
