@@ -42,6 +42,8 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await expect(page.locator(`[title=${JSON.stringify(primaryError.errorMessage)}]`)).toBeVisible();
   await expect(page.locator("tbody").getByText("321", { exact: true })).toBeVisible();
   await expect(page.locator("tbody").getByText("1", { exact: true })).toBeVisible();
+  await expect(page.locator("tbody tr").first().getByRole("link", { name: jobType }))
+    .toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorListVisuals(page)).toEqual(triggerListVisuals);
 
@@ -72,7 +74,6 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await expect(exceptionEvidence).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
   const details = page.getByRole("complementary", { name: "Error group details" });
   await expect(details.getByText("Task", { exact: true })).toBeVisible();
-  await expect(details.getByRole("link", { name: jobType })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(page.locator('a[href="/skyline/runs/run_invoice?attempt=2"]')).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorDetailVisuals(page)).toEqual(triggerDetailVisuals);
