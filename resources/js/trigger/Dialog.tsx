@@ -41,8 +41,10 @@ const DialogContent = React.forwardRef<
     >
       <hr className="absolute left-0 top-11 w-full border-grid-bright" />
       {children}
-      <DialogPrimitive.Close className="group absolute right-2 top-2.25 flex items-center gap-1 rounded-sm py-1 pr-1 opacity-70 transition focus-custom hover:bg-background-hover hover:opacity-100 focus-visible:focus-custom disabled:pointer-events-none">
-        <kbd className="rounded border border-grid-bright px-1 font-mono text-xs uppercase text-text-faint">Esc</kbd>
+      <DialogPrimitive.Close className="data-[state=open]:bg-accent data-[state=open]:text-muted-foreground group absolute right-2 top-2.25 flex items-center gap-1 rounded-sm p-1 py-1 pl-0 pr-1 opacity-70 transition focus-custom hover:bg-background-hover hover:opacity-100 focus-visible:focus-custom disabled:pointer-events-none">
+        <span className="-mr-0.5 ml-1 flex min-h-5 min-w-5 items-center justify-center gap-x-1.5 rounded-[2px] border border-dimmed/40 px-1 font-mono text-[0.65rem] font-medium tabular-nums text-text-dimmed uppercase transition group-hover:border-border-brighter group-hover:border-dimmed/60 group-hover:text-text-bright/80">
+          <span><span className="capitalize">Esc</span></span>
+        </span>
         <XMarkIcon className="size-4 text-text-dimmed transition group-hover:text-text-bright" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

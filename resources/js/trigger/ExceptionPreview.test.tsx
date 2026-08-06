@@ -95,6 +95,9 @@ describe("ExceptionPreview", () => {
     flushSync(() => showFrames.click());
     expect(dialog.textContent).toContain("1 vendor frame");
     const close = [...dialog.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Close"))!;
+    expect(close.className).toContain("p-1 py-1 pl-0 pr-1");
+    expect(close.querySelector("span")?.className).toContain("min-w-5");
+    expect(close.querySelector("span")?.className).toContain("min-h-5");
     flushSync(() => close.click());
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
 
