@@ -23,14 +23,18 @@ import { TaskRunStatusCombo, type RunStatus } from "~/components/runs/v3/TaskRun
 
 export type PresentedRun = {
   id: string;
+  friendlyId?: string;
   path: string;
   isRoot?: boolean;
   jobType: string;
+  version?: string | null;
+  machine?: string | null;
   status: RunStatus;
   queueTarget: string;
   traceIdentity: string;
   attemptCount: number;
   startedAt?: string | null;
+  finishedAt?: string | null;
   queueDuration: string;
   duration: string;
   activeDuration?: string;

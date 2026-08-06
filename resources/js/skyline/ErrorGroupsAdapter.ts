@@ -8,6 +8,7 @@ import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
 import { compactQuery, queryValue } from "./QueryParams";
 
 export type PresentedErrorGroup = Omit<ErrorGroupsPageDto["errorGroups"][number], "href" | "jobHref" | "latest"> & {
+  friendlyId: string;
   path: string;
   jobPath: string;
   latest: Omit<ErrorGroupsPageDto["errorGroups"][number]["latest"], "runHref" | "attemptHref"> & {
@@ -37,6 +38,9 @@ export type ErrorGroupDetailRouteData = {
   filters: ErrorGroupDetailDto["filters"];
   filterOptions: ErrorGroupDetailDto["options"];
   hasAnyOccurrences: boolean;
+  canViewVersions: false;
+  affectedVersions: [];
+  viewAllRunsPath: string;
 };
 
 export function errorGroupsQuery(request: Request): ErrorGroupsQuery {
@@ -51,7 +55,11 @@ export function errorGroupsQuery(request: Request): ErrorGroupsQuery {
 
 export function errorOccurrencesQuery(request: Request): ErrorOccurrencesQuery {
   const params = new URL(request.url).searchParams;
-  return compactQuery({ period: period(params.get("period")), cursor: queryValue(params, "cursor") });
+  const requestedPeriod = params.get("period");
+  return compactQuery({
+    period: requestedPeriod === null ? "7d" : period(requestedPeriod),
+    cursor: queryValue(params, "cursor"),
+  });
 }
 
 export function presentErrorGroups(page: ErrorGroupsPageDto): ErrorGroupsRouteData {
@@ -82,6 +90,9 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
     filters: page.filters,
     filterOptions: page.options,
     hasAnyOccurrences: page.hasAnyOccurrences,
+    canViewVersions: false,
+    affectedVersions: [],
+    viewAllRunsPath: "/runs",
   };
 }
 
@@ -93,14 +104,18 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
 
   return {
     id: attempt.runId,
+    friendlyId: attempt.runId,
     path: routePath(attempt.attemptHref, "runs"),
     isRoot: true,
     jobType: attempt.jobType,
+    version: null,
+    machine: null,
     status: "failed",
-    queueTarget: "default",
+    queueTarget: "—",
     traceIdentity: `span_${attempt.runId}`,
     attemptCount: attempt.attemptNumber,
     startedAt: attempt.startedAt,
+    finishedAt: attempt.finishedAt ?? attempt.observedAt,
     queueDuration: "—",
     duration: formatDuration(durationUs),
     activeDuration: formatDuration(durationUs),
@@ -111,6 +126,7 @@ function presentErrorGroup({ href, jobHref, latest, ...group }: ErrorGroupsPageD
   const { runHref, attemptHref, ...latestData } = latest;
   return {
     ...group,
+    friendlyId: `error_${group.fingerprint}`,
     path: routePath(href, "errors"),
     jobPath: routePath(jobHref, "jobs"),
     latest: {

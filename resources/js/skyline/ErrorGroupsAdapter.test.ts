@@ -95,17 +95,32 @@ describe("ErrorGroupsAdapter", () => {
     });
     expect(presented.failedRuns[0]).toEqual({
       id: "run_latest",
+      friendlyId: "run_latest",
       path: "/runs/run_latest?node=attempt_run_latest_2",
       isRoot: true,
       jobType: "App\\Jobs\\Invoice",
+      version: null,
+      machine: null,
       status: "failed",
-      queueTarget: "default",
+      queueTarget: "—",
       traceIdentity: "span_run_latest",
       attemptCount: 2,
       startedAt: summary.lastObservedAt,
+      finishedAt: summary.lastObservedAt,
       queueDuration: "—",
       duration: "0µs",
       activeDuration: "0µs",
     });
+    expect(presented).toMatchObject({
+      errorGroup: { friendlyId: "error_abc" },
+      canViewVersions: false,
+      affectedVersions: [],
+      viewAllRunsPath: "/runs",
+    });
+  });
+
+  it("defaults Error-detail occurrence evidence to the source seven-day period", () => {
+    expect(errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc")))
+      .toEqual({ period: "7d" });
   });
 });
