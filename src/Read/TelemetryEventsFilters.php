@@ -20,6 +20,7 @@ final readonly class TelemetryEventsFilters
 
     /** @param list<string> $levels */
     private function __construct(
+        public ?string $search,
         public array $levels,
         public ?string $jobType,
         public ?string $runId,
@@ -29,6 +30,7 @@ final readonly class TelemetryEventsFilters
 
     public static function fromRequest(Request $request, int $observedAt): self
     {
+        $search = self::string($request, 'search', 'Search');
         $levels = $request->query('levels', []);
         if (! is_array($levels) || count($levels) > count(self::LEVELS)) {
             throw new InvalidQuery('The level filter is invalid.');
@@ -40,28 +42,37 @@ final readonly class TelemetryEventsFilters
 
         $jobType = self::string($request, 'jobType', 'Job type');
         $runId = self::string($request, 'runId', 'Run identity');
-        $period = $request->query('period', 'all');
+        $period = $request->query('period', '1h');
         if (! is_string($period) || ! array_key_exists($period, self::PERIODS)) {
             throw new InvalidQuery('The time range filter is invalid.');
         }
         $duration = self::PERIODS[$period];
 
-        return new self($levels, $jobType, $runId, $period, $duration === null ? null : $observedAt - $duration);
+        return new self($search, $levels, $jobType, $runId, $period, $duration === null ? null : $observedAt - $duration);
     }
 
     public function applyQuery(Builder $events): Builder
     {
         return $events
+            ->when($this->search !== null, function (Builder $events): void {
+                $search = strtolower($this->search);
+                $events->where(function (Builder $events) use ($search): void {
+                    PortableLike::whereContains($events, 'LOWER(skyline_telemetry_events.message)', $search);
+                    $events->orWhere(fn (Builder $events): Builder => PortableLike::whereContains($events, 'LOWER(skyline_telemetry_events.name)', $search));
+                    $events->orWhere(fn (Builder $events): Builder => PortableLike::whereContains($events, 'LOWER(skyline_telemetry_events.run_id)', $search));
+                    $events->orWhere(fn (Builder $events): Builder => PortableLike::whereContains($events, 'LOWER(skyline_runs.job_name)', $search));
+                });
+            })
             ->when($this->levels !== [], fn (Builder $events): Builder => $events->whereIn('skyline_telemetry_events.level', $this->levels))
             ->when($this->jobType !== null, fn (Builder $events): Builder => $events->where('skyline_runs.job_name', $this->jobType))
             ->when($this->runId !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.run_id', $this->runId))
             ->when($this->from !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.occurred_at', '>=', $this->from));
     }
 
-    /** @return array{levels: list<string>, jobType: ?string, runId: ?string, period: string} */
+    /** @return array{search: ?string, levels: list<string>, jobType: ?string, runId: ?string, period: string} */
     public function toArray(): array
     {
-        return ['levels' => $this->levels, 'jobType' => $this->jobType, 'runId' => $this->runId, 'period' => $this->period];
+        return ['search' => $this->search, 'levels' => $this->levels, 'jobType' => $this->jobType, 'runId' => $this->runId, 'period' => $this->period];
     }
 
     /** @return list<string> */

@@ -7,7 +7,7 @@ use NickWelsh\Skyline\Read\ObservedIds;
 it('projects a versioned time-ordered Telemetry-event union with stable causal identities', function (): void {
     seedTelemetryEventRun();
 
-    $response = $this->getJson('/skyline/api/logs')->assertOk()
+    $response = $this->getJson('/skyline/api/logs?period=all')->assertOk()
         ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('capabilities.navigation.logs', true)
         ->assertJsonCount(3, 'telemetryEvents');
@@ -45,7 +45,7 @@ it('projects a versioned time-ordered Telemetry-event union with stable causal i
         ->and($response->json('telemetryEvents.1.attemptHref'))->toBe('/skyline/runs/telemetry-run-1?node=attempt_telemetry-run-1_1')
         ->and($response->json('telemetryEvents.1.jobHref'))->toStartWith('/skyline/jobs/job_');
 
-    expect($this->getJson('/skyline/api/logs')->json('telemetryEvents.*.id'))
+    expect($this->getJson('/skyline/api/logs?period=all')->json('telemetryEvents.*.id'))
         ->toBe($response->json('telemetryEvents.*.id'));
 });
 
@@ -56,7 +56,7 @@ it('shows captured operation detail, causal links, and honest capture boundaries
     config()->set('skyline.privacy.metadata_string_bytes', 12);
     seedTelemetryEventRun();
 
-    $page = $this->getJson('/skyline/api/logs')->assertOk()
+    $page = $this->getJson('/skyline/api/logs?period=all')->assertOk()
         ->assertJsonPath('capture.enabled', true)
         ->assertJsonPath('capture.supportedLevels', ['warning', 'error', 'critical'])
         ->assertJsonPath('capture.perAttemptLimit', 7);
@@ -104,7 +104,7 @@ it('reapplies bounded allowlisted log presentation at the detail read boundary',
         ], JSON_THROW_ON_ERROR),
     ]);
 
-    $event = collect($this->getJson('/skyline/api/logs')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
+    $event = collect($this->getJson('/skyline/api/logs?period=all')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
     $detail = $this->getJson('/skyline/api/logs/'.$event['id'])->assertOk()
         ->assertJsonPath('telemetryEvent.capture.isTruncated', true)
         ->assertJsonMissingPath('telemetryEvent.context.private')
@@ -131,7 +131,7 @@ it('preserves capture-time log truncation evidence through persistence and detai
         ], JSON_THROW_ON_ERROR),
     ]);
 
-    $event = collect($this->getJson('/skyline/api/logs')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
+    $event = collect($this->getJson('/skyline/api/logs?period=all')->assertOk()->json('telemetryEvents'))->firstWhere('level', 'ERROR');
     $this->getJson('/skyline/api/logs/'.$event['id'])->assertOk()
         ->assertJsonPath('telemetryEvent.capture.isTruncated', true)
         ->assertJsonPath('telemetryEvent.capture.truncated.0.path', 'message')
@@ -191,6 +191,51 @@ it('filters and cursor-paginates Telemetry events through server-supplied URL op
         ->assertStatus(422)->assertJsonPath('error.code', 'invalid_query');
     $this->getJson('/skyline/api/logs?levels[]=VERBOSE')
         ->assertStatus(422)->assertJsonPath('error.code', 'invalid_query');
+});
+
+it('defaults the Logs window to the source one-hour period', function (): void {
+    $now = Nanoseconds::now();
+    seedTelemetryOperation(70, 'App\\Jobs\\Recent', 'OK', $now - 60_000_000_000);
+    seedTelemetryOperation(71, 'App\\Jobs\\Old', 'OK', $now - 7_200_000_000_000);
+
+    $this->getJson('/skyline/api/logs')->assertOk()
+        ->assertJsonPath('filters.period', '1h')
+        ->assertJsonCount(1, 'telemetryEvents')
+        ->assertJsonPath('telemetryEvents.0.jobType', 'App\\Jobs\\Recent');
+
+    $this->getJson('/skyline/api/logs?period=all')->assertOk()
+        ->assertJsonCount(2, 'telemetryEvents');
+});
+
+it('searches the Telemetry-event stream through the real API', function (): void {
+    seedTelemetryEventRun();
+
+    $this->getJson('/skyline/api/logs?'.http_build_query(['search' => 'import failed', 'period' => 'all']))
+        ->assertOk()
+        ->assertJsonPath('filters.search', 'import failed')
+        ->assertJsonCount(1, 'telemetryEvents')
+        ->assertJsonPath('telemetryEvents.0.message', 'Import failed');
+
+    $this->getJson('/skyline/api/logs?'.http_build_query(['search' => 'generate pdf', 'period' => 'all']))
+        ->assertOk()
+        ->assertJsonCount(1, 'telemetryEvents')
+        ->assertJsonPath('telemetryEvents.0.name', 'Generate PDF');
+
+    $this->getJson('/skyline/api/logs?'.http_build_query(['search' => 'telemetry-run', 'period' => 'all']))
+        ->assertOk()
+        ->assertJsonCount(3, 'telemetryEvents');
+
+    $this->getJson('/skyline/api/logs?'.http_build_query(['search' => 'telemetryjob', 'period' => 'all']))
+        ->assertOk()
+        ->assertJsonCount(3, 'telemetryEvents');
+
+    $this->getJson('/skyline/api/logs?'.http_build_query(['search' => '%', 'period' => 'all']))
+        ->assertOk()
+        ->assertJsonCount(0, 'telemetryEvents');
+
+    $this->getJson('/skyline/api/logs?search[]=&search[]=bad')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
 });
 
 it('distinguishes initial and filtered-empty Telemetry-event pages', function (): void {
