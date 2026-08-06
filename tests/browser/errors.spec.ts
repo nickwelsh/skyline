@@ -70,8 +70,9 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await vendorFrames.click();
   await expect(exceptionEvidence).toContainText("Illuminate\\Container\\BoundMethod::call");
   await expect(exceptionEvidence).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
-  await expect(page.getByText("Task", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: jobType })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
+  const details = page.getByRole("complementary", { name: "Error group details" });
+  await expect(details.getByText("Task", { exact: true })).toBeVisible();
+  await expect(details.getByRole("link", { name: jobType })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(page.locator('a[href="/skyline/runs/run_invoice?attempt=2"]')).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorDetailVisuals(page)).toEqual(triggerDetailVisuals);
@@ -180,7 +181,8 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
 
   await page.goto(`/skyline/errors/${errorId}`);
   delayDetail = true;
-  await page.getByLabel("Time range").selectOption("24h");
+  await page.getByRole("button", { name: "Occurred range" }).click();
+  await page.getByRole("button", { name: "1 day", exact: true }).click();
   await expect(page.getByLabel("Loading Error group")).toBeVisible();
   delayDetail = false;
 
