@@ -54,7 +54,7 @@ const capabilities = fixtureCapabilities;
 export class FixtureAdapter implements SkylineDtoAdapter {
   async telemetryEvents(query: TelemetryEventsQuery = {}): Promise<TelemetryEventsPageDto> {
     const filtered = fixtureTelemetryEvents.filter((event) =>
-      (!query.levels || query.levels.includes(event.level))
+      (!query.levels?.length || query.levels.includes(event.level))
       && (!query.jobType || event.jobType === query.jobType)
       && (!query.runId || event.runId === query.runId));
 

@@ -4,9 +4,26 @@ import type { SkylineCapabilities, TelemetryEventDetailDto, TelemetryEventsPageD
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-225-trigger-logs-baseline.json" with { type: "json" };
 import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
+import { installSkylineFixture, parseScenario, scenarioPath } from "../fidelity/support/skyline";
 
 const operationId = "event_operation";
 const logId = "event_log";
+
+test("pinned fixture keeps the Telemetry-event stream visible beside selected detail", async ({ page }) => {
+  const scenario = parseScenario("log-found@1440x960-classic");
+  const fixture = await installSkylineFixture(page, scenario);
+  const listResponses: Array<{ url: string; page: TelemetryEventsPageDto }> = [];
+  page.on("response", async (response) => {
+    if (new URL(response.url()).pathname.endsWith("/skyline/api/logs")) listResponses.push({ url: response.url(), page: await response.json() });
+  });
+  await page.goto(scenarioPath(scenario, fixture.catalog));
+  await expect.poll(() => listResponses.at(-1)).toEqual(expect.objectContaining({
+    url: expect.stringMatching(/\/skyline\/api\/logs$/),
+    page: expect.objectContaining({ telemetryEvents: expect.arrayContaining([expect.objectContaining({ id: "event_fixture_operation" }), expect.objectContaining({ id: "event_fixture_log" })]) }),
+  }));
+  await expect(page.locator("tbody tr")).toHaveCount(2);
+  await expect(page.getByRole("region", { name: "Telemetry-event detail" })).toContainText("Invoice import delayed");
+});
 
 test("paired pinned Trigger Logs preserve list/detail geometry, selection, links, and a11y", async ({ page }) => {
   for (const source of Object.values(baseline.sourceFiles)) {
