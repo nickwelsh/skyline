@@ -1,0 +1,120 @@
+diff --git a/dist/commonjs/ReactWindowSplitter.d.ts b/dist/commonjs/ReactWindowSplitter.d.ts
+index d953edf7655d9bce7de0f3b3ef64713297ee6c77..636ae7e43688a98e58f1047aa41f394901affc3d 100644
+--- a/dist/commonjs/ReactWindowSplitter.d.ts
++++ b/dist/commonjs/ReactWindowSplitter.d.ts
+@@ -1,6 +1,8 @@
+ import { PanelGroupHandle, PanelHandle, SharedPanelGroupProps, SharedPanelProps, SharedPanelResizerProps } from "@window-splitter/interface";
+ import React from "react";
+-export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement>, SharedPanelGroupProps {
++export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement>, Omit<SharedPanelGroupProps, "autosaveStrategy"> {
++    /** Use host-managed persistence while retaining the autosave layout lifecycle. */
++    autosaveStrategy?: SharedPanelGroupProps["autosaveStrategy"] | "external";
+     /** Imperative handle to control the group */
+     handle?: React.Ref<PanelGroupHandle>;
+ }
+diff --git a/dist/commonjs/ReactWindowSplitter.js b/dist/commonjs/ReactWindowSplitter.js
+index df1f4d8f94b398eecb4def96d7ec13a69864156f..ce92a12e44d79eacc00e26fc916ee887cd64f17f 100644
+--- a/dist/commonjs/ReactWindowSplitter.js
++++ b/dist/commonjs/ReactWindowSplitter.js
+@@ -232,8 +232,10 @@ const PanelGroupImpl = react_1.default.forwardRef(function PanelGroupImpl({ auto
+     if (typeof window !== "undefined" &&
+         autosaveId &&
+         !snapshot &&
+-        autosaveStrategy === "localStorage") {
+-        const localSnapshot = localStorage.getItem(autosaveId);
++        (autosaveStrategy === "localStorage" || autosaveStrategy === "external")) {
++        const localSnapshot = autosaveStrategy === "localStorage"
++            ? localStorage.getItem(autosaveId)
++            : null;
+         if (localSnapshot) {
+             setSnapshot(JSON.parse(localSnapshot));
+         }
+@@ -248,7 +250,7 @@ const PanelGroupImpl = react_1.default.forwardRef(function PanelGroupImpl({ auto
+             orientation: props.orientation,
+             groupId,
+             items: initialItems.current,
+-            autosaveStrategy,
++            autosaveStrategy: autosaveStrategy === "external" ? undefined : autosaveStrategy,
+             shiftAmount,
+             ...(typeof snapshotMemo === "object" ? snapshotMemo : undefined),
+         } },
+diff --git a/dist/esm/ReactWindowSplitter.d.ts b/dist/esm/ReactWindowSplitter.d.ts
+index d953edf7655d9bce7de0f3b3ef64713297ee6c77..636ae7e43688a98e58f1047aa41f394901affc3d 100644
+--- a/dist/esm/ReactWindowSplitter.d.ts
++++ b/dist/esm/ReactWindowSplitter.d.ts
+@@ -1,6 +1,8 @@
+ import { PanelGroupHandle, PanelHandle, SharedPanelGroupProps, SharedPanelProps, SharedPanelResizerProps } from "@window-splitter/interface";
+ import React from "react";
+-export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement>, SharedPanelGroupProps {
++export interface PanelGroupProps extends React.HTMLAttributes<HTMLDivElement>, Omit<SharedPanelGroupProps, "autosaveStrategy"> {
++    /** Use host-managed persistence while retaining the autosave layout lifecycle. */
++    autosaveStrategy?: SharedPanelGroupProps["autosaveStrategy"] | "external";
+     /** Imperative handle to control the group */
+     handle?: React.Ref<PanelGroupHandle>;
+ }
+diff --git a/dist/esm/ReactWindowSplitter.js b/dist/esm/ReactWindowSplitter.js
+index 53f43b5a8c4a37210ee376dcf8f535797241b1f9..cd78acd64be0fcb0c93476f5a5ec17edc4bb7244 100644
+--- a/dist/esm/ReactWindowSplitter.js
++++ b/dist/esm/ReactWindowSplitter.js
+@@ -196,8 +196,10 @@ const PanelGroupImpl = React.forwardRef(function PanelGroupImpl({ autosaveId, au
+     if (typeof window !== "undefined" &&
+         autosaveId &&
+         !snapshot &&
+-        autosaveStrategy === "localStorage") {
+-        const localSnapshot = localStorage.getItem(autosaveId);
++        (autosaveStrategy === "localStorage" || autosaveStrategy === "external")) {
++        const localSnapshot = autosaveStrategy === "localStorage"
++            ? localStorage.getItem(autosaveId)
++            : null;
+         if (localSnapshot) {
+             setSnapshot(JSON.parse(localSnapshot));
+         }
+@@ -212,7 +214,7 @@ const PanelGroupImpl = React.forwardRef(function PanelGroupImpl({ autosaveId, au
+             orientation: props.orientation,
+             groupId,
+             items: initialItems.current,
+-            autosaveStrategy,
++            autosaveStrategy: autosaveStrategy === "external" ? undefined : autosaveStrategy,
+             shiftAmount,
+             ...(typeof snapshotMemo === "object" ? snapshotMemo : undefined),
+         } },
+diff --git a/src/ReactWindowSplitter.tsx b/src/ReactWindowSplitter.tsx
+index eab238ecd0164f28a7b9016cdd2d2fa3c858c3a8..1229961c0f263bdfb4ab0866409abc8919bfd8ce 100644
+--- a/src/ReactWindowSplitter.tsx
++++ b/src/ReactWindowSplitter.tsx
+@@ -165,7 +165,9 @@ const GroupMachine = {
+ 
+ export interface PanelGroupProps
+   extends React.HTMLAttributes<HTMLDivElement>,
+-    SharedPanelGroupProps {
++    Omit<SharedPanelGroupProps, "autosaveStrategy"> {
++  /** Use host-managed persistence while retaining the autosave layout lifecycle. */
++  autosaveStrategy?: SharedPanelGroupProps["autosaveStrategy"] | "external";
+   /** Imperative handle to control the group */
+   handle?: React.Ref<PanelGroupHandle>;
+ }
+@@ -374,9 +376,12 @@ const PanelGroupImpl = React.forwardRef<
+     typeof window !== "undefined" &&
+     autosaveId &&
+     !snapshot &&
+-    autosaveStrategy === "localStorage"
++    (autosaveStrategy === "localStorage" || autosaveStrategy === "external")
+   ) {
+-    const localSnapshot = localStorage.getItem(autosaveId);
++    const localSnapshot =
++      autosaveStrategy === "localStorage"
++        ? localStorage.getItem(autosaveId)
++        : null;
+ 
+     if (localSnapshot) {
+       setSnapshot(JSON.parse(localSnapshot));
+@@ -395,7 +400,8 @@ const PanelGroupImpl = React.forwardRef<
+         orientation: props.orientation,
+         groupId,
+         items: initialItems.current,
+-        autosaveStrategy,
++        autosaveStrategy:
++          autosaveStrategy === "external" ? undefined : autosaveStrategy,
+         shiftAmount,
+         ...(typeof snapshotMemo === "object" ? snapshotMemo : undefined),
+       }}

@@ -102,6 +102,7 @@ test("Run panel layout persists through the external preference adapter", async 
 
   const tree = page.locator('[data-splitter-id="tree"]');
   const handle = page.locator('[data-splitter-id="tree-handle"]');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("panel-run-tree"))).toBeNull();
   await expect(tree).toBeVisible();
   const before = await tree.boundingBox();
   const handleBox = await handle.boundingBox();
@@ -118,9 +119,11 @@ test("Run panel layout persists through the external preference adapter", async 
     const value = localStorage.getItem("skyline.ui-preferences.v1:/skyline");
     return value ? JSON.parse(value).panels?.["panel-run-tree"] : null;
   })).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("panel-run-tree"))).toBeNull();
   await page.reload();
   await expect(tree).toBeVisible();
   await expect.poll(async () => (await tree.boundingBox())?.width).toBeGreaterThan(before!.width + 80);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("panel-run-tree"))).toBeNull();
 });
 
 test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page, browser }) => {

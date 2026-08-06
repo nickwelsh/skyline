@@ -89,7 +89,8 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@window-splitter/state@1.1.3": "patches/@window-splitter__state@1.1.3.patch"
+      "@window-splitter/state@1.1.3": "patches/@window-splitter__state@1.1.3.patch",
+      "@window-splitter/react@1.1.3": "patches/@window-splitter__react@1.1.3.patch"
     }
   }
 }

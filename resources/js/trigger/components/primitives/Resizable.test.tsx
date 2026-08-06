@@ -14,7 +14,7 @@ vi.mock("@window-splitter/react", async () => {
       const percentage = id === "tree" ? 0.25 : 0.75;
       return <button ref={ref} data-panel-id={String(id)} data-default={String(defaultSize)} onClick={() => (onResize as (size: { pixel: number; percentage: number }) => void)?.({ pixel: percentage * 100, percentage })}>{children as React.ReactNode}</button>;
     }),
-    PanelGroup: ({ children, snapshot }: { children: React.ReactNode; snapshot?: object }) => <div data-snapshot={snapshot ? "provided" : "absent"}>{children}</div>,
+    PanelGroup: ({ children, snapshot, autosaveId, autosaveStrategy }: { children: React.ReactNode; snapshot?: object; autosaveId?: string; autosaveStrategy?: string }) => <div data-snapshot={snapshot ? "provided" : "absent"} data-autosave-id={autosaveId} data-autosave-strategy={autosaveStrategy}>{children}</div>,
     PanelResizer: ({ children, onDragStart, onDragEnd }: { children: React.ReactNode; onDragStart?: () => void; onDragEnd?: () => void }) => <button
       data-resizer
       onPointerDown={onDragStart}
@@ -55,7 +55,9 @@ describe("ResizablePanelGroup persistence", () => {
 
     flushSync(() => root.render(panels()));
     expect(defaults(container)).toEqual(["50%", "50%"]);
-    expect(container.firstElementChild?.getAttribute("data-snapshot")).toBe("provided");
+    expect(container.firstElementChild?.getAttribute("data-snapshot")).toBe("absent");
+    expect(container.firstElementChild?.getAttribute("data-autosave-id")).toBe("panel-run-tree");
+    expect(container.firstElementChild?.getAttribute("data-autosave-strategy")).toBe("external");
 
     saved = { orientation: "horizontal", itemIds: ["tree", "timeline"], sizes: [0.25, 0.75] };
     flushSync(() => root.render(panels()));

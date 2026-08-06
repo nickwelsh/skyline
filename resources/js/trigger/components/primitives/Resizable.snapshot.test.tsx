@@ -33,6 +33,7 @@ describe("ResizablePanelGroup source snapshot", () => {
     const storageSet = vi.spyOn(Storage.prototype, "setItem");
     const { group, root } = await renderGroup(undefined);
 
+    expect(group.dataset.groupId).toBe("panel-run-tree");
     expect(group.style.gridTemplateColumns).toBe("50% 3px 50%");
     expect(storageGet).not.toHaveBeenCalled();
     expect(storageSet).not.toHaveBeenCalled();
