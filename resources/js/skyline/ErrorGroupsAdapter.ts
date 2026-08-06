@@ -39,6 +39,8 @@ export type ErrorGroupDetailRouteData = {
   filterOptions: ErrorGroupDetailDto["options"];
   hasAnyOccurrences: boolean;
   canViewVersions: false;
+  canViewMachines: false;
+  canBulkReplay: false;
   affectedVersions: [];
   viewAllRunsPath: string;
 };
@@ -91,6 +93,8 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
     filterOptions: page.options,
     hasAnyOccurrences: page.hasAnyOccurrences,
     canViewVersions: false,
+    canViewMachines: false,
+    canBulkReplay: false,
     affectedVersions: [],
     viewAllRunsPath: "/runs",
   };
@@ -112,13 +116,12 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
     machine: null,
     status: "failed",
     queueTarget: "—",
-    traceIdentity: `span_${attempt.runId}`,
+    traceIdentity: "—",
     attemptCount: attempt.attemptNumber,
     startedAt: attempt.startedAt,
     finishedAt: attempt.finishedAt ?? attempt.observedAt,
     queueDuration: "—",
     duration: formatDuration(durationUs),
-    activeDuration: formatDuration(durationUs),
   };
 }
 

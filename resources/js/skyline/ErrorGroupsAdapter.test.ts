@@ -103,17 +103,18 @@ describe("ErrorGroupsAdapter", () => {
       machine: null,
       status: "failed",
       queueTarget: "—",
-      traceIdentity: "span_run_latest",
+      traceIdentity: "—",
       attemptCount: 2,
       startedAt: summary.lastObservedAt,
       finishedAt: summary.lastObservedAt,
       queueDuration: "—",
       duration: "0µs",
-      activeDuration: "0µs",
     });
     expect(presented).toMatchObject({
       errorGroup: { friendlyId: "error_abc" },
       canViewVersions: false,
+      canViewMachines: false,
+      canBulkReplay: false,
       affectedVersions: [],
       viewAllRunsPath: "/runs",
     });

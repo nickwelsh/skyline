@@ -12,9 +12,11 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
+import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
+import { LinkButton } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
@@ -52,6 +54,8 @@ type ErrorGroupDetailData = {
   filterOptions: { timeRanges: Array<{ value: string; label: string }> };
   hasAnyOccurrences: boolean;
   canViewVersions: false;
+  canViewMachines: false;
+  canBulkReplay: false;
   affectedVersions: [];
   viewAllRunsPath: string;
 };
@@ -104,13 +108,19 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
           <div className="flex min-h-0 flex-col gap-1 overflow-y-hidden">
             <div className="flex items-center justify-between pl-3 pr-2 pt-1">
               <Header3 id="runs-heading" className="mb-1 mt-2">Runs</Header3>
-              <ListPagination list={data} />
+              <div className="flex items-center gap-2">
+                <LinkButton variant="secondary/small" to={data.viewAllRunsPath} LeadingIcon={RunsIcon}>View all runs</LinkButton>
+                <ListPagination list={data} />
+              </div>
             </div>
             <div className="relative min-h-0 flex-1 overflow-hidden">
               <TaskRunsTable
                 total={data.failedRuns.length}
                 hasFilters={data.filters.period !== "all"}
                 runs={data.failedRuns}
+                presentation="error"
+                showVersions={data.canViewVersions}
+                showMachines={data.canViewMachines}
               />
               {navigation.state !== "idle" && (
                 <div

@@ -42,6 +42,14 @@ describe("Error-group detail source chrome", () => {
     expect(container.querySelector<HTMLButtonElement>('[aria-label="Occurred range"]')?.textContent)
       .toContain("Occurred:7 days");
     expect(container.textContent).not.toContain("Versions");
+    expect(Array.from(container.querySelectorAll("th"), (header) => header.textContent?.trim()))
+      .toEqual(["ID", "Task", "Status", "Started", "Duration", "Queue"]);
+    expect(Array.from(container.querySelectorAll("a")).find((link) => link.textContent?.includes("View all runs"))?.getAttribute("href"))
+      .toBe("/runs");
+    expect(container.textContent).not.toContain("Bulk replay");
+    expect(container.textContent).not.toContain("Machine");
+    expect(container.textContent).not.toContain("Queue target");
+    expect(container.textContent).not.toContain("Trace");
 
     await act(async () => root.unmount());
   });
