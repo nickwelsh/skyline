@@ -14,11 +14,11 @@ final readonly class ErrorGroupsFilters
         public ?int $from,
     ) {}
 
-    public static function fromRequest(Request $request, int $observedAt): self
+    public static function fromRequest(Request $request, int $observedAt, string $defaultPeriod): self
     {
         $jobType = self::string($request, 'jobType', 'Job type');
         $exceptionClass = self::string($request, 'exceptionClass', 'exception class');
-        $time = JobsFilters::fromRequest($request, $observedAt);
+        $time = JobsFilters::fromRequest($request, $observedAt, $defaultPeriod);
 
         return new self($jobType, $exceptionClass, $time->period, $time->from);
     }

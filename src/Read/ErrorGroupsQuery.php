@@ -24,7 +24,7 @@ final readonly class ErrorGroupsQuery
     public function page(Request $request): array
     {
         $observedAt = Nanoseconds::now();
-        $filters = ErrorGroupsFilters::fromRequest($request, $observedAt);
+        $filters = ErrorGroupsFilters::fromRequest($request, $observedAt, '24h');
         $rows = $filters->apply($this->baseQuery())
             ->orderByDesc('skyline_attempts.started_at')
             ->orderByDesc('skyline_attempts.run_id')
@@ -49,7 +49,7 @@ final readonly class ErrorGroupsQuery
     public function detail(Request $request, string $errorId): array
     {
         $observedAt = Nanoseconds::now();
-        $filters = ErrorGroupsFilters::fromRequest($request, $observedAt);
+        $filters = ErrorGroupsFilters::fromRequest($request, $observedAt, '7d');
         $group = $this->groups(
             $this->baseQuery()
                 ->orderByDesc('skyline_attempts.started_at')

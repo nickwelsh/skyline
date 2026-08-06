@@ -124,4 +124,23 @@ describe("ErrorGroupsAdapter", () => {
     expect(errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc")))
       .toEqual({ period: "7d" });
   });
+
+  it("defaults Error groups to the source one-day period", () => {
+    expect(errorGroupsQuery(new Request("https://example.test/skyline/errors")))
+      .toEqual({ period: "24h" });
+
+    const presented = presentErrorGroups({
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T12:01:00.000000000Z",
+      capabilities: {} as ErrorGroupsPageDto["capabilities"],
+      errorGroups: [summary],
+      pagination: { next: null, previous: null },
+      filters: { jobType: null, exceptionClass: null, period: "24h" },
+      options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
+      hasAnyErrorGroups: true,
+    });
+
+    expect(presented.hasFilters).toBe(false);
+  });
 });

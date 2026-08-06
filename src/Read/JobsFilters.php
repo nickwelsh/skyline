@@ -22,7 +22,7 @@ final readonly class JobsFilters
         public ?int $from,
     ) {}
 
-    public static function fromRequest(Request $request, int $observedAt): self
+    public static function fromRequest(Request $request, int $observedAt, string $defaultPeriod = 'all'): self
     {
         $search = $request->query('search');
         if ($search === '') {
@@ -32,7 +32,7 @@ final readonly class JobsFilters
             throw new InvalidQuery('The search filter is invalid.');
         }
 
-        $period = $request->query('period', 'all');
+        $period = $request->query('period', $defaultPeriod);
         if (! is_string($period) || ! array_key_exists($period, self::PERIODS)) {
             throw new InvalidQuery('The time range filter is invalid.');
         }

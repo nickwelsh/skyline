@@ -9,7 +9,7 @@ it('groups failed Attempts by stable message-free relative exception fingerprint
     seedErrorOccurrence(3, 'App\\Jobs\\Invoice', 'RuntimeException', 'Other callable', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->retry');
     seedErrorOccurrence(4, 'App\\Jobs\\Digest', 'RuntimeException', 'Other Job type', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->handle');
 
-    $response = $this->getJson('/skyline/api/errors')->assertOk()
+    $response = $this->getJson('/skyline/api/errors?period=all')->assertOk()
         ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('capabilities.errors.view', true)
         ->assertJsonPath('capabilities.errors.resolve', false)
@@ -67,6 +67,26 @@ it('filters Error groups through URL state and returns server-supplied options',
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('defaults Error-group and occurrence evidence to the source time ranges', function (): void {
+    $now = Nanoseconds::now();
+    seedErrorOccurrence(60, 'App\\Jobs\\Invoice', 'RuntimeException', 'Recent failure', '/srv/app/Jobs/Invoice.php', 10, 'App\\Jobs\\Invoice->handle', $now - 3_600_000_000_000);
+    seedErrorOccurrence(61, 'App\\Jobs\\Invoice', 'RuntimeException', 'Two-day failure', '/srv/app/Jobs/Invoice.php', 20, 'App\\Jobs\\Invoice->handle', $now - 2 * 86_400_000_000_000);
+    seedErrorOccurrence(62, 'App\\Jobs\\Invoice', 'RuntimeException', 'Eight-day failure', '/srv/app/Jobs/Invoice.php', 30, 'App\\Jobs\\Invoice->handle', $now - 8 * 86_400_000_000_000);
+
+    $page = $this->getJson('/skyline/api/errors')->assertOk()
+        ->assertJsonPath('filters.period', '24h')
+        ->assertJsonCount(1, 'errorGroups')
+        ->assertJsonPath('errorGroups.0.occurrenceCount', 1);
+
+    $this->getJson('/skyline/api/errors/'.$page->json('errorGroups.0.id'))
+        ->assertOk()
+        ->assertJsonPath('filters.period', '7d')
+        ->assertJsonPath('errorGroup.occurrenceCount', 3)
+        ->assertJsonCount(2, 'failedAttempts')
+        ->assertJsonPath('failedAttempts.0.exception.message', 'Recent failure')
+        ->assertJsonPath('failedAttempts.1.exception.message', 'Two-day failure');
+});
+
 it('shows representative frames activity and cursor-paginated original occurrences', function (): void {
     for ($index = 20; $index < 47; $index++) {
         seedErrorOccurrence(
@@ -80,8 +100,8 @@ it('shows representative frames activity and cursor-paginated original occurrenc
         );
     }
 
-    $group = $this->getJson('/skyline/api/errors')->assertOk()->json('errorGroups.0');
-    $first = $this->getJson('/skyline/api/errors/'.$group['id'])
+    $group = $this->getJson('/skyline/api/errors?period=all')->assertOk()->json('errorGroups.0');
+    $first = $this->getJson('/skyline/api/errors/'.$group['id'].'?period=all')
         ->assertOk()
         ->assertJsonPath('errorGroup.id', $group['id'])
         ->assertJsonPath('errorGroup.occurrenceCount', 27)
@@ -105,7 +125,7 @@ it('shows representative frames activity and cursor-paginated original occurrenc
     $next = $first->json('pagination.next');
     expect($next)->toBeString()->not->toContain('error-run');
 
-    $this->getJson('/skyline/api/errors/'.$group['id'].'?'.http_build_query(['cursor' => $next]))
+    $this->getJson('/skyline/api/errors/'.$group['id'].'?'.http_build_query(['period' => 'all', 'cursor' => $next]))
         ->assertOk()
         ->assertJsonCount(2, 'failedAttempts')
         ->assertJsonPath('failedAttempts.1.exception.message', 'Invoice 20 failed')
@@ -127,7 +147,7 @@ it('cursor-paginates Error groups in stable order and binds cursors to filters',
         );
     }
 
-    $first = $this->getJson('/skyline/api/errors?'.http_build_query(['jobType' => 'App\\Jobs\\Invoice']))
+    $first = $this->getJson('/skyline/api/errors?'.http_build_query(['jobType' => 'App\\Jobs\\Invoice', 'period' => 'all']))
         ->assertOk()
         ->assertJsonCount(25, 'errorGroups')
         ->assertJsonPath('pagination.previous', null);
@@ -138,6 +158,7 @@ it('cursor-paginates Error groups in stable order and binds cursors to filters',
 
     $second = $this->getJson('/skyline/api/errors?'.http_build_query([
         'jobType' => 'App\\Jobs\\Invoice',
+        'period' => 'all',
         'cursor' => $nextCursor,
     ]))->assertOk()
         ->assertJsonCount(2, 'errorGroups')
@@ -148,6 +169,7 @@ it('cursor-paginates Error groups in stable order and binds cursors to filters',
 
     $previous = $this->getJson('/skyline/api/errors?'.http_build_query([
         'jobType' => 'App\\Jobs\\Invoice',
+        'period' => 'all',
         'cursor' => $second->json('pagination.previous'),
     ]))->assertOk()->assertJsonCount(25, 'errorGroups');
 
@@ -163,12 +185,12 @@ it('falls back to a relative origin file and distinguishes empty filtered and mi
     seedErrorOccurrence(50, 'App\\Jobs\\Import', 'RuntimeException', 'First dynamic message', '/private/root/Import.php', 10, 'Vendor\\Runner->process');
     seedErrorOccurrence(51, 'App\\Jobs\\Import', 'RuntimeException', 'Second dynamic message', '/another/root/Import.php', 90, 'Vendor\\Runner->process');
 
-    $page = $this->getJson('/skyline/api/errors')->assertOk()
+    $page = $this->getJson('/skyline/api/errors?period=all')->assertOk()
         ->assertJsonCount(1, 'errorGroups')
         ->assertJsonPath('errorGroups.0.occurrenceCount', 2)
         ->assertJsonPath('hasAnyErrorGroups', true);
 
-    $this->getJson('/skyline/api/errors?'.http_build_query(['exceptionClass' => 'LogicException']))
+    $this->getJson('/skyline/api/errors?'.http_build_query(['exceptionClass' => 'LogicException', 'period' => 'all']))
         ->assertOk()
         ->assertJsonCount(0, 'errorGroups')
         ->assertJsonPath('hasAnyErrorGroups', true);

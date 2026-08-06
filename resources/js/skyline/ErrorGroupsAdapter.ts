@@ -47,10 +47,11 @@ export type ErrorGroupDetailRouteData = {
 
 export function errorGroupsQuery(request: Request): ErrorGroupsQuery {
   const params = new URL(request.url).searchParams;
+  const requestedPeriod = params.get("period");
   return compactQuery({
     jobType: queryValue(params, "jobType"),
     exceptionClass: queryValue(params, "exceptionClass"),
-    period: period(params.get("period")),
+    period: requestedPeriod === null ? "24h" : period(requestedPeriod),
     cursor: queryValue(params, "cursor"),
   });
 }
@@ -72,7 +73,7 @@ export function presentErrorGroups(page: ErrorGroupsPageDto): ErrorGroupsRouteDa
     filters: page.filters,
     filterOptions: page.options,
     hasAnyErrorGroups: page.hasAnyErrorGroups,
-    hasFilters: page.filters.jobType !== null || page.filters.exceptionClass !== null || page.filters.period !== "all",
+    hasFilters: page.filters.jobType !== null || page.filters.exceptionClass !== null || page.filters.period !== "24h",
   };
 }
 
