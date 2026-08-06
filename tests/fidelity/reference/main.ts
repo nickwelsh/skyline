@@ -209,7 +209,7 @@ type ReferencePort = {
   context: ReferenceContext;
   canonicalUrl?(captureId: string): string;
   defaultSearch?(captureId: string): string;
-  resource?(kind: "span", params: Record<string, string | undefined>): unknown | Promise<unknown>;
+  resource?(kind: "span" | "queue-metric", params: Record<string, string | undefined>): unknown | Promise<unknown>;
   load(input: ReferenceLoad): unknown | Promise<unknown>;
 };
 

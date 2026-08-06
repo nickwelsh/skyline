@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createReferenceFixture } from "./reference";
+import { createReferenceFixture, referenceQueueMetricKey } from "./reference";
 
 describe("pinned Trigger Errors fixture", () => {
   test("maps Skyline occurrences into the reached presenter seams", async () => {
@@ -42,6 +42,63 @@ describe("pinned Trigger Logs fixture", () => {
       level: "WARN",
       message: "Invoice import delayed",
       attributes: expect.objectContaining({ "log.context": { code: 429 } }),
+    }));
+  });
+});
+
+describe("pinned Trigger Queues fixture", () => {
+  test("classifies exact environment live query separately from broker-only live data", () => {
+    expect(referenceQueueMetricKey("SELECT timeBucket() AS t, max(max_env_queued) AS env_queued, max(max_env_running) AS env_running FROM env_metrics GROUP BY t ORDER BY t")).toBe("environmentLive");
+    expect(referenceQueueMetricKey("SELECT q_limit FROM queue_metrics")).toBe("live");
+    expect(referenceQueueMetricKey("SELECT unknown FROM queue_metrics")).toBeUndefined();
+  });
+
+  test("preserves observed list and detail evidence behind source presenter seams", async () => {
+    const fixture = await createReferenceFixture();
+    const list = fixture.loaders.queues as any;
+    const detail = fixture.loaders.queue as any;
+    const queue = list.queues.find(({ name }: { name: string }) => name === "default");
+
+    expect(queue).toEqual(expect.objectContaining({
+      id: "queue_3b6b7027",
+      connection: "redis",
+      name: "default",
+      firstObservedAt: expect.any(String),
+      lastObservedAt: expect.any(String),
+      recordedRunCounts: expect.objectContaining({ completed: expect.any(Number) }),
+      queueTime: expect.objectContaining({ sampleCount: expect.any(Number), p95Us: expect.any(Number) }),
+    }));
+    expect(list.observed).toEqual(expect.objectContaining({
+      pagination: { previous: null, next: null },
+      filters: expect.objectContaining({ connection: null, search: null }),
+      options: expect.objectContaining({ connections: expect.arrayContaining(["redis"]) }),
+    }));
+    expect(detail.observed.activity).toEqual(expect.arrayContaining([
+      expect.objectContaining({ timestamp: expect.any(String), recordedRuns: 1 }),
+    ]));
+    expect(detail.observed.queueTime).toEqual(expect.arrayContaining([
+      expect.objectContaining({ timestamp: expect.any(String), sampleCount: 1, p95Us: expect.any(Number) }),
+    ]));
+    expect(detail.runList).toEqual(expect.objectContaining({
+      runs: expect.arrayContaining([expect.objectContaining({
+        friendlyId: expect.any(String),
+        taskIdentifier: expect.any(String),
+        startedAt: expect.any(String),
+      })]),
+      pagination: { previous: undefined, next: undefined },
+    }));
+    expect(fixture.resources?.queueMetrics).toEqual(expect.objectContaining({
+      concurrency: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), limit: 10 })]),
+      queueDepth: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number) })]),
+      schedulingDelay: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), p50: expect.any(Number), p95: expect.any(Number), samples: 1 })]),
+      environmentSaturation: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), env_limit: 10 })]),
+      environmentBacklog: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number) })]),
+      environmentLive: [{
+        t: "2026-08-05T20:02:00.000Z",
+        env_queued: list.environment.queued,
+        env_running: list.environment.running,
+      }],
+      live: [],
     }));
   });
 });

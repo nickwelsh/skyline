@@ -35,6 +35,9 @@ export default defineConfig({
 
 function capabilityAdapters(): Plugin {
   const buttonsSource = join(vendorRoot, "components/primitives/Buttons.tsx");
+  const queueControlsSource = join(vendorRoot, "components/queues/QueueControls.tsx");
+  const queueMetricSource = join(vendorRoot, "components/queues/QueueMetricCards.tsx");
+  const queueListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx");
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
@@ -45,6 +48,9 @@ function capabilityAdapters(): Plugin {
     enforce: "pre",
     transform(code, moduleId) {
       const source = moduleId.split("?")[0];
+      if (source === queueControlsSource) return conditionQueueControls(code, capabilityPolicy.queues);
+      if (source === queueMetricSource) return conditionQueueMetricResources(code, capabilityPolicy.queues);
+      if (source === queueListSource) return conditionQueueListMetricResources(code, capabilityPolicy.queues);
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return hideErrorDetailMutations(code);
       if (source === sideMenuSource) return conditionSideMenuShell(code);
@@ -62,6 +68,7 @@ function text(value) {
   if (Array.isArray(value)) return value.map(text).join("");
   return React.isValidElement(value) ? text(value.props.children) : "";
 }
+
 function blocked(props, link) {
   const label = text(props.children).trim();
   if (policy.blockedLabels.includes(label)) return true;
@@ -77,6 +84,68 @@ export const LinkButton = (props) => blocked(props, true) ? null : <SourceLinkBu
 `;
     },
   };
+}
+
+export function conditionQueueMetricResources(code: string, policy: { metricSource: string } = capabilityPolicy.queues) {
+  if (policy.metricSource !== "observed-fixture") throw new Error("Pinned Trigger Queue metric policy changed; capability adapter must be reviewed.");
+  const declaration = "export function useQueueMetric(";
+  if (!code.includes(declaration)) throw new Error("Pinned Trigger Queue metric hook changed; capability adapter must be reviewed.");
+  const call = /  return useMetricResourceQuery\(query, \{[\s\S]*?\n  \}\);\n\}/;
+  const adapted = code.replace(call, `  const rows = (window as any).__TRIGGER_FIDELITY_REFERENCE__?.resource?.("queue-metric", { query }) ?? [];
+  return { rows, showLoading: false, failed: false };
+}`);
+  if (adapted === code) throw new Error("Pinned Trigger Queue metric resource call changed; capability adapter must be reviewed.");
+  return adapted;
+}
+
+export function conditionQueueListMetricResources(code: string, policy: { metricSource: string; hiddenMutableRegions?: string[] } = capabilityPolicy.queues) {
+  if (policy.metricSource !== "observed-fixture") throw new Error("Pinned Trigger Queue metric policy changed; capability adapter must be reviewed.");
+  if (!policy.hiddenMutableRegions?.includes("environment-pause-resume")) throw new Error("Pinned Trigger Queue mutation policy changed; capability adapter must be reviewed.");
+  const call = "useMetricResourceQuery(";
+  if (code.split(call).length - 1 !== 3) throw new Error("Pinned Trigger Queue list metric calls changed; capability adapter must be reviewed.");
+  let adapted = code.replaceAll(call, "useReferenceQueueMetric(");
+  const environmentDeclaration = "function EnvironmentPauseResumeButton({";
+  if (!adapted.includes(environmentDeclaration)) throw new Error("Pinned Trigger Queue environment mutation region changed; capability adapter must be reviewed.");
+  adapted = adapted.replace(environmentDeclaration, "function SourceEnvironmentPauseResumeButton({");
+  return `${adapted}
+function useReferenceQueueMetric(query: string, _options: unknown) {
+  const rows = query ? (window as any).__TRIGGER_FIDELITY_REFERENCE__?.resource?.("queue-metric", { query }) ?? [] : [];
+  return { rows, showLoading: false, failed: false };
+}
+const queueCapabilityPolicy = ${JSON.stringify(capabilityPolicy.queues)};
+function EnvironmentPauseResumeButton(props: Parameters<typeof SourceEnvironmentPauseResumeButton>[0]) {
+  return queueCapabilityPolicy.hiddenMutableRegions.includes("environment-pause-resume")
+    ? null
+    : <SourceEnvironmentPauseResumeButton {...props} />;
+}
+`;
+}
+
+export function conditionQueueControls(code: string, policy: { hiddenMutableRegions?: string[] } = capabilityPolicy.queues) {
+  if (!policy.hiddenMutableRegions?.includes("queue-pause-resume") || !policy.hiddenMutableRegions.includes("queue-concurrency-override")) {
+    throw new Error("Pinned Trigger Queue mutation policy changed; capability adapter must be reviewed.");
+  }
+  const pauseDeclaration = "export function QueuePauseResumeButton(";
+  const overrideDeclaration = "export function QueueOverrideConcurrencyButton(";
+  if (!code.includes(pauseDeclaration) || !code.includes(overrideDeclaration)) {
+    throw new Error("Pinned Trigger Queue mutation controls changed; capability adapter must be reviewed.");
+  }
+  const adapted = code
+    .replace(pauseDeclaration, "function SourceQueuePauseResumeButton(")
+    .replace(overrideDeclaration, "function SourceQueueOverrideConcurrencyButton(");
+  return `${adapted}
+const queueCapabilityPolicy = ${JSON.stringify(capabilityPolicy.queues)};
+export function QueuePauseResumeButton(props: Parameters<typeof SourceQueuePauseResumeButton>[0]) {
+  return queueCapabilityPolicy.hiddenMutableRegions.includes("queue-pause-resume")
+    ? null
+    : <SourceQueuePauseResumeButton {...props} />;
+}
+export function QueueOverrideConcurrencyButton(props: Parameters<typeof SourceQueueOverrideConcurrencyButton>[0]) {
+  return queueCapabilityPolicy.hiddenMutableRegions.includes("queue-concurrency-override")
+    ? null
+    : <SourceQueueOverrideConcurrencyButton {...props} />;
+}
+`;
 }
 
 export function conditionSideMenuItems(code: string) {

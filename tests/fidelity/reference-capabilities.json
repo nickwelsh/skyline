@@ -5,6 +5,12 @@
   "errors": {
     "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"]
   },
+  "queues": {
+    "metricSource": "observed-fixture",
+    "knownMetricQueries": ["gate", "peak", "concurrency", "queueDepth", "throughput", "schedulingDelay", "throttled", "environmentSaturation", "environmentBacklog", "environmentLive", "live"],
+    "knownEmptyMetricQueries": ["live"],
+    "hiddenMutableRegions": ["environment-pause-resume", "queue-pause-resume", "queue-concurrency-override"]
+  },
   "shell": {
     "supportedActions": ["tasks", "runs", "logs", "errors", "queues", "favorite"],
     "supportedSections": ["Favorites", "Observability"],

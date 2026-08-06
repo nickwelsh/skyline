@@ -2,11 +2,34 @@ import type { Page } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import { fixtureCatalog } from "./skyline";
 
+type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentLive" | "live";
+
+export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey; includes: string[]; excludes?: string[] }> = [
+  { key: "gate", includes: ["peak_keys"] },
+  { key: "peak", includes: ["peak_queued"] },
+  { key: "environmentLive", includes: ["max(max_env_queued) AS env_queued", "max(max_env_running) AS env_running"] },
+  { key: "environmentSaturation", includes: ["max(max_env_running) AS running", "max(max_env_limit) AS env_limit"] },
+  { key: "environmentBacklog", includes: ["max(max_env_queued) AS queued"] },
+  { key: "concurrency", includes: ["max(max_running) AS running", "max(max_limit) AS limit"] },
+  { key: "queueDepth", includes: ["max(max_queued) AS queued"], excludes: ["max(max_running)"] },
+  { key: "throughput", includes: ["enqueued", "started"] },
+  { key: "schedulingDelay", includes: ["wait_quantiles"] },
+  { key: "throttled", includes: ["throttled_count"] },
+  { key: "live", includes: ["q_limit"] },
+];
+
+export function referenceQueueMetricKey(query: string) {
+  return referenceQueueMetricMatchers.find(({ includes, excludes = [] }) =>
+    includes.every((part) => query.includes(part)) && excludes.every((part) => !query.includes(part)))?.key;
+}
+
 export type ReferenceFixture = {
   loaders: Record<string, unknown>;
   resources?: {
     spans?: Record<string, unknown>;
+    queueMetrics?: Record<string, Array<Record<string, unknown>>>;
   };
+  queueMetricMatchers: typeof referenceQueueMetricMatchers;
   context?: {
     root?: Record<string, unknown>;
     organization?: Record<string, unknown>;
@@ -35,6 +58,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
   };
 
   return {
+    queueMetricMatchers: referenceQueueMetricMatchers,
     loaders: {
       jobs: triggerJobs(jobs),
       job: triggerJob(job),
@@ -50,7 +74,10 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       queues: triggerQueues(queues),
       queue: triggerQueue(queue),
     },
-    resources: { spans: { [runDetail.run.spanId]: triggerSpanRun(run) } },
+    resources: {
+      spans: { [runDetail.run.spanId]: triggerSpanRun(run) },
+      queueMetrics: triggerQueueMetricRows(queue, queues),
+    },
     canonicalUrls: {
       "jobs-populated": "/skyline/jobs", "job-found": `/skyline/jobs/${catalog.job}`,
       "runs-populated": "/skyline/runs", "run-found": `/skyline/runs/${catalog.run}`,
@@ -180,6 +207,15 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         kind: string,
         params: Record<string, string | undefined>,
       ) => {
+        if (kind === "queue-metric") {
+          const query = params.query ?? "";
+          const key = input.queueMetricMatchers.find(({ includes, excludes = [] }) =>
+            includes.every((part) => query.includes(part)) && excludes.every((part) => !query.includes(part)))?.key;
+          if (!key) throw new Error(`Unknown Trigger reference Queue metric query: ${query}`);
+          const rows = input.resources?.queueMetrics?.[key];
+          if (!rows) throw new Error(`Missing Trigger reference Queue metric resource: ${key}`);
+          return structuredClone(rows);
+        }
         if (kind !== "span") throw new Error(`Unsupported Trigger reference resource: ${kind}`);
         const value = input.resources?.spans?.[params.spanParam ?? ""];
         if (value === undefined) {
@@ -418,13 +454,44 @@ function triggerLog(event: any) {
 }
 
 function triggerQueues(page: any) {
-  const queues = page.queueTargets.map((queue: any) => ({ id: queue.id, name: queue.queue, type: "custom", running: queue.recordedRunCounts.running, queued: queue.recordedRunCounts.queued, paused: false, concurrencyLimit: null, concurrency: { current: null, base: null, override: null, overriddenBy: null, overriddenAt: null }, concurrencyLimitOverridePercent: null, releaseConcurrencyOnWaitpoint: true }));
-  return { success: true, queues, pagination: { mode: "unfiltered", currentPage: 1, totalPages: 1, count: queues.length }, totalQueues: queues.length, hasFilters: false, environment: { running: queues.reduce((sum: number, queue: any) => sum + queue.running, 0), queued: queues.reduce((sum: number, queue: any) => sum + queue.queued, 0), concurrencyLimit: 10, burstFactor: 1, runsEnabled: true, queueSizeLimit: 1_000 }, autoReloadPollIntervalMs: 60_000, metrics: null, allocation: null, queueMetricsUiEnabled: false, defaultPeriod: "1h", maxPeriodDays: 30 };
+  const queues = page.queueTargets.map((queue: any) => ({ id: queue.id, connection: queue.connection, name: queue.queue, type: "custom", running: queue.recordedRunCounts.running, queued: queue.recordedRunCounts.queued, paused: false, concurrencyLimit: null, concurrency: { current: null, base: null, override: null, overriddenBy: null, overriddenAt: null }, concurrencyLimitOverridePercent: null, releaseConcurrencyOnWaitpoint: true, firstObservedAt: queue.firstObservedAt, lastObservedAt: queue.lastObservedAt, recordedRunCount: queue.recordedRunCount, recordedRunCounts: queue.recordedRunCounts, queueTime: queue.queueTime }));
+  const metrics = { bucketStartMs: Date.parse("2026-08-04T19:57:00Z"), bucketIntervalMs: 60_000, byQueue: Object.fromEntries(queues.map((queue: any) => [queue.name, { p95WaitMs: queue.queueTime.p95Us == null ? null : queue.queueTime.p95Us / 1_000, depthSparkline: [queue.queued], throttledSparkline: [0], peakQueued: queue.queued, throttledTotal: 0 }])) };
+  return { success: true, queues, pagination: { mode: "unfiltered", currentPage: 1, totalPages: 1, count: queues.length }, totalQueues: queues.length, hasFilters: false, environment: { running: queues.reduce((sum: number, queue: any) => sum + queue.running, 0), queued: queues.reduce((sum: number, queue: any) => sum + queue.queued, 0), concurrencyLimit: 10, burstFactor: 1, runsEnabled: true, queueSizeLimit: 1_000 }, autoReloadPollIntervalMs: 60_000, metrics, allocation: null, queueMetricsUiEnabled: true, defaultPeriod: "1h", maxPeriodDays: 30, observed: { pagination: page.pagination, filters: page.filters, options: page.options } };
 }
 
 function triggerQueue(detail: any) {
   const queue = { id: detail.queueTarget.id, name: detail.queueTarget.queue, type: "custom", running: detail.queueTarget.recordedRunCounts.running, queued: detail.queueTarget.recordedRunCounts.queued, paused: false, concurrencyLimit: null, concurrency: { current: null, base: null, override: null, overriddenBy: null, overriddenAt: null }, releaseConcurrencyOnWaitpoint: true };
-  return { queue, fullName: detail.queueTarget.queue, queuedRunsPath: "/runs", environmentConcurrencyLimit: 10, ckBreakdown: { keys: [], totalCurrent: 0, totalLimit: 0 }, oldestQueuedAt: null, loadedAt: Date.parse("2026-08-05T20:02:00.000Z"), backPath: "/queues", defaultPeriod: "1h", maxPeriodDays: 30, ids: { organizationId: "organization", projectId: "project", environmentId: "environment" } };
+  const runList = triggerRunList({ runs: detail.runs.map((run: any) => ({ ...run, queue: detail.queueTarget.queue, isRoot: true })), pagination: detail.pagination, hasAnyRuns: detail.hasAnyRuns });
+  return { queue, fullName: detail.queueTarget.queue, queuedRunsPath: "/runs", environmentConcurrencyLimit: 10, ckBreakdown: { keys: [], totalCurrent: 0, totalLimit: 0 }, oldestQueuedAt: null, loadedAt: Date.parse("2026-08-05T20:02:00.000Z"), backPath: "/queues", defaultPeriod: "1h", maxPeriodDays: 30, ids: { organizationId: "organization", projectId: "project", environmentId: "environment" }, observed: { queueTarget: detail.queueTarget, activity: detail.series.activity, queueTime: detail.series.queueTime, filters: detail.filters, options: detail.options }, runList };
+}
+
+function triggerQueueMetricRows(detail: any, page: any) {
+  const activity = detail.series.activity.map((point: any) => ({
+    t: point.timestamp,
+    running: point.recordedRunCounts.running,
+    queued: point.recordedRunCounts.queued,
+    limit: 10,
+    enqueued: point.recordedRuns,
+    started: point.recordedRunCounts.running + point.recordedRunCounts.completed + point.recordedRunCounts.failed,
+  }));
+  const schedulingDelay = detail.series.queueTime.map((point: any) => ({ t: point.timestamp, p50: point.medianUs / 1_000, p95: point.p95Us / 1_000, p99: point.maximumUs / 1_000, samples: point.sampleCount }));
+  return {
+    gate: [{ peak_keys: 0, peak_wait: 0 }],
+    peak: [{ peak_queued: Math.max(0, ...activity.map((point: any) => point.queued)), worst_wait: Math.max(0, ...schedulingDelay.map((point: any) => point.p99)) }],
+    concurrency: activity.map(({ t, running, limit }: any) => ({ t, running, limit })),
+    queueDepth: activity.map(({ t, queued }: any) => ({ t, queued })),
+    throughput: activity.map(({ t, enqueued, started }: any) => ({ t, enqueued, started })),
+    schedulingDelay,
+    throttled: activity.map(({ t }: any) => ({ t, throttled: 0 })),
+    environmentSaturation: activity.map(({ t, running, limit }: any) => ({ t, running, env_limit: limit })),
+    environmentBacklog: activity.map(({ t, queued }: any) => ({ t, queued })),
+    environmentLive: [{
+      t: "2026-08-05T20:02:00.000Z",
+      env_queued: page.queueTargets.reduce((sum: number, queue: any) => sum + queue.recordedRunCounts.queued, 0),
+      env_running: page.queueTargets.reduce((sum: number, queue: any) => sum + queue.recordedRunCounts.running, 0),
+    }],
+    live: [],
+  };
 }
 
 function triggerStatus(status: string) {

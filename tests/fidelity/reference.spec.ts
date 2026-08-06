@@ -79,6 +79,37 @@ test("reference log-found selects its pinned event without fallback", async ({ p
   expect(errors).toEqual([]);
 });
 
+test("reference queues-populated renders pinned metrics and observed queue identity", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/queues-populated", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page.getByRole("heading", { name: "Queues" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "default", exact: true })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Delay p95" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
+  await expect(page.getByText("Unable to load metrics", { exact: true })).toHaveCount(0);
+  await expectReferenceHealthy(page);
+  expect(errors).toEqual([]);
+});
+
+test("reference queue-found renders pinned detail charts from observed resources", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/queue-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page.getByRole("heading", { name: "default" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Overview" })).toBeVisible();
+  for (const title of ["Concurrency", "Queue depth", "Scheduling delay"]) {
+    await expect(page.getByText(title, { exact: true }).first()).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
+  await expectReferenceHealthy(page);
+  expect(errors).toEqual([]);
+});
+
 test("reference app shell fills the viewport", async ({ page }) => {
   await installReferenceFixture(page, await createReferenceFixture());
   await page.goto("http://127.0.0.1:4185/oracle/runs-populated", { waitUntil: "domcontentloaded", timeout: 10_000 });
