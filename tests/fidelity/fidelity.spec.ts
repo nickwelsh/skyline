@@ -59,9 +59,9 @@ for (const capture of captures) {
       observeAction(reference, "captured"),
       observeAction(page, "captured"),
     ]);
+    expect.soft(skylineTree, "Accessibility tree drifted from Trigger.").toEqual(triggerTree);
+    expect.soft(additionalAxeViolations(triggerAxe, skylineAxe), "Skyline added Axe violations.").toEqual([]);
     const comparison = comparePixels(triggerPng, skylinePng, []);
-    expect(skylineTree).toEqual(triggerTree);
-    expect(additionalAxeViolations(triggerAxe, skylineAxe)).toEqual([]);
 
     const directory = resolve(root, "tests/fidelity/oracle/artifacts", capture);
     proof(`${directory}/trigger.png`, triggerPng);
