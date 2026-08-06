@@ -132,6 +132,7 @@ export class HttpAdapter implements SkylineDtoAdapter {
 
   private telemetryEventsQuery(query: TelemetryEventsQuery): URLSearchParams {
     const params = new URLSearchParams();
+    if (query.search) params.set("search", query.search);
     query.levels?.forEach((level) => params.append("levels[]", level));
     if (query.jobType) params.set("jobType", query.jobType);
     if (query.runId) params.set("runId", query.runId);

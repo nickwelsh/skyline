@@ -5,8 +5,9 @@ import type { TelemetryEventDetailDto, TelemetryEventsPageDto } from "./dto";
 
 describe("TelemetryEventsAdapter", () => {
   it("maps URL-backed filters and external list links into presenter data", () => {
-    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs"))).toEqual({ period: "1h" });
-    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs?levels=ERROR&levels=WARN&jobType=App%5CJobs%5CInvoice&runId=run_1&period=7d&cursor=opaque"))).toEqual({
+    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs"))).toEqual({});
+    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs?search=invoice&levels=ERROR&levels=WARN&jobType=App%5CJobs%5CInvoice&runId=run_1&period=7d&cursor=opaque"))).toEqual({
+      search: "invoice",
       levels: ["ERROR", "WARN"],
       jobType: "App\\Jobs\\Invoice",
       runId: "run_1",
@@ -84,7 +85,7 @@ function pageFixture(): TelemetryEventsPageDto {
       operationHref: "/skyline/runs/run_1?node=span_span_1",
     }],
     pagination: { previous: null, next: "next" },
-    filters: { levels: ["ERROR"], jobType: "App\\Jobs\\Invoice", runId: null, period: "7d" },
+    filters: { search: null, levels: ["ERROR"], jobType: "App\\Jobs\\Invoice", runId: null, period: "7d" },
     options: {
       levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"],
       jobTypes: ["App\\Jobs\\Invoice"],

@@ -301,6 +301,7 @@ export type ErrorGroupDetailDto = {
 
 export type TelemetryEventLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 export type TelemetryEventsQuery = {
+  search?: string;
   levels?: TelemetryEventLevel[];
   jobType?: string;
   runId?: string;
@@ -345,7 +346,7 @@ export type TelemetryEventsPageDto = {
   capabilities: SkylineCapabilities;
   telemetryEvents: TelemetryEventSummary[];
   pagination: { next: string | null; previous: string | null };
-  filters: { levels: TelemetryEventLevel[]; jobType: string | null; runId: string | null; period: NonNullable<JobsQuery["period"]> };
+  filters: { search: string | null; levels: TelemetryEventLevel[]; jobType: string | null; runId: string | null; period: NonNullable<JobsQuery["period"]> };
   options: { levels: TelemetryEventLevel[]; jobTypes: string[]; timeRanges: TimeRangeOption[] };
   capture: TelemetryCapture;
   hasAnyTelemetryEvents: boolean;

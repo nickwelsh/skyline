@@ -39,10 +39,11 @@ export function telemetryEventsQuery(request: Request): TelemetryEventsQuery {
   const levels = params.getAll("levels").filter(isLevel);
 
   return compactQuery({
+    search: queryValue(params, "search"),
     levels: levels.length > 0 ? levels : undefined,
     jobType: queryValue(params, "jobType"),
     runId: queryValue(params, "runId"),
-    period: period(params.get("period")) ?? "1h",
+    period: period(params.get("period")),
     cursor: queryValue(params, "cursor"),
   });
 }
@@ -53,7 +54,7 @@ export function presentTelemetryEvents(page: TelemetryEventsPageDto): TelemetryE
     telemetryEvents: page.telemetryEvents.map(presentSummary),
     pagination: pagination(page.pagination),
     filterOptions: page.options,
-    hasFilters: page.filters.levels.length > 0 || page.filters.jobType !== null || page.filters.runId !== null || page.filters.period !== "all",
+    hasFilters: page.filters.search !== null || page.filters.levels.length > 0 || page.filters.jobType !== null || page.filters.runId !== null || page.filters.period !== "1h",
   };
 }
 

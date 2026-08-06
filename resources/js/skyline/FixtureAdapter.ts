@@ -53,8 +53,10 @@ const capabilities = fixtureCapabilities;
 
 export class FixtureAdapter implements SkylineDtoAdapter {
   async telemetryEvents(query: TelemetryEventsQuery = {}): Promise<TelemetryEventsPageDto> {
+    const search = query.search?.trim().toLowerCase();
     const filtered = fixtureTelemetryEvents.filter((event) =>
-      (!query.levels?.length || query.levels.includes(event.level))
+      (!search || [event.runId, event.jobType, event.variant === "operation" ? event.name : event.message].some((value) => value.toLowerCase().includes(search)))
+      && (!query.levels?.length || query.levels.includes(event.level))
       && (!query.jobType || event.jobType === query.jobType)
       && (!query.runId || event.runId === query.runId));
 
@@ -65,7 +67,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       capabilities,
       telemetryEvents: filtered,
       pagination: { previous: null, next: null },
-      filters: { levels: query.levels ?? [], jobType: query.jobType ?? null, runId: query.runId ?? null, period: query.period ?? "all" },
+      filters: { search: query.search ?? null, levels: query.levels ?? [], jobType: query.jobType ?? null, runId: query.runId ?? null, period: query.period ?? "1h" },
       options: { levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"], jobTypes: [...new Set(fixtureTelemetryEvents.map((event) => event.jobType))].sort(), timeRanges: fixtureTimeRanges },
       capture: fixtureTelemetryCapture,
       hasAnyTelemetryEvents: fixtureTelemetryEvents.length > 0,

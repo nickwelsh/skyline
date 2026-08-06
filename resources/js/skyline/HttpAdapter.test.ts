@@ -4,6 +4,15 @@ import { HttpAdapter, SkylineApiError } from "./HttpAdapter";
 afterEach(() => vi.restoreAllMocks());
 
 describe("HttpAdapter", () => {
+  it("encodes Telemetry-event search and list filters", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jsonResponse({ telemetryEvents: [] }));
+    const adapter = new HttpAdapter("/monitoring");
+
+    await adapter.telemetryEvents({ search: "invoice delayed", levels: ["WARN"], jobType: "App\\Jobs\\Invoice", runId: "run_1", period: "1h", cursor: "next" });
+
+    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/logs?search=invoice+delayed&levels%5B%5D=WARN&jobType=App%5CJobs%5CInvoice&runId=run_1&period=1h&cursor=next");
+  });
+
   it("encodes Error-group list and occurrence URL state", async () => {
     const fetch = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(jsonResponse({ errorGroups: [] }))

@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "./FixtureAdapter";
 
 describe("FixtureAdapter", () => {
+  it("applies Telemetry-event search without losing unfiltered evidence state", async () => {
+    const page = await new FixtureAdapter().telemetryEvents({ search: "import delayed" });
+
+    expect(page.telemetryEvents.map((event) => event.id)).toEqual(["event_fixture_log"]);
+    expect(page.filters.search).toBe("import delayed");
+    expect(page.hasAnyTelemetryEvents).toBe(true);
+  });
+
   it("adapts grouped failure fixtures without erasing occurrence evidence", async () => {
     const adapter = new FixtureAdapter();
     const page = await adapter.errorGroups({ exceptionClass: "Illuminate\\Database\\DeadlockException" });

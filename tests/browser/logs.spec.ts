@@ -143,6 +143,11 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await routeLogs(page, { paginate: true });
   await page.goto("/skyline/logs");
   await expect(page.getByText("Showing all 2 logs")).toHaveCount(0);
+  const searchRequest = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/skyline/api/logs") && new URL(request.url()).searchParams.get("search") === "invoice");
+  await page.getByPlaceholder("Search logs…").fill("invoice");
+  await page.getByPlaceholder("Search logs…").press("Enter");
+  await searchRequest;
+  await expect(page).toHaveURL(/search=invoice/);
   await toggleLevel(page, "ERROR");
   await expect(page).toHaveURL(/levels=ERROR/);
   await toggleLevel(page, "WARN");
@@ -255,7 +260,7 @@ function listResponse(url = new URL("https://example.test")): TelemetryEventsPag
   return {
     schemaVersion: 1, packageVersion: "fixture", generatedAt: "2026-08-05T12:00:02Z", capabilities: capabilities(),
     telemetryEvents: [operation(), log()], pagination: { previous: null, next: null },
-    filters: { levels: url.searchParams.getAll("levels[]") as TelemetryEventsPageDto["filters"]["levels"], jobType: url.searchParams.get("jobType"), runId: url.searchParams.get("runId"), period: url.searchParams.get("period") as TelemetryEventsPageDto["filters"]["period"] ?? "all" },
+    filters: { search: url.searchParams.get("search"), levels: url.searchParams.getAll("levels[]") as TelemetryEventsPageDto["filters"]["levels"], jobType: url.searchParams.get("jobType"), runId: url.searchParams.get("runId"), period: url.searchParams.get("period") as TelemetryEventsPageDto["filters"]["period"] ?? "1h" },
     options: { levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"], jobTypes: ["App\\Jobs\\GenerateMonthlyInvoices"], timeRanges },
     capture: { enabled: true, supportedLevels: ["warning", "error"], perAttemptLimit: 100 }, hasAnyTelemetryEvents: true,
   };

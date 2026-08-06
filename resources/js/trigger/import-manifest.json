@@ -13,7 +13,7 @@
     "resources/js/trigger/assets/icons/ExitIcon.tsx": "cc9435d4ac532b1c73da1cd700d652f2c69ffe95f3c66397e307655a1a11f435",
     "resources/js/trigger/assets/icons/RunsIcon.tsx": "247fbc6aefa9d110373674f4c91ce61213f8103e8817f61a7b98ed8743d92c95",
     "resources/js/trigger/components/LogLevelTooltipInfo.tsx": "59340209f15a278471cf3525554af106b6a63a99bdf658e9fcd5b7e375469a5e",
-    "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx": "714db4afe7d49c89df07a6f6d107101ea6403bcb0f111affc161dc8091b6de32",
+    "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx": "db4c1f86236f9f231668b07228809f8536d31672434e68178d34179c3ffb1abb",
     "resources/js/trigger/components/navigation/JobFavorites.tsx": "550d2bff2a024557ae564d961b980306cd5899b0cecadc9dadbeac787717f23b",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx": "0a4c8bfb83c1572345e808e0e481fa828ea163ec0dd33b43dc612c93839952fa",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx": "5a1767fd3ed54d53838dfee7980d7af5a4354e1964abdd0dbda973b55c7783f7",
