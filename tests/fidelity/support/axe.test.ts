@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { additionalAxeViolations, normalizeRadixTargets } from "./axe";
+import { additionalAxeViolations, normalizedPartitionLedger, normalizeRadixTargets, pairedPresenterAxeDifferences, partitionAxeEvidence } from "./axe";
 
 const violations = [
   violation("aria-dialog-name", "#radix-\\:r9\\:"),
@@ -28,6 +28,34 @@ describe("Axe fidelity evidence", () => {
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [...violations[0].nodes, violations[0].nodes[0]] }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"] }] }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], id: "aria-input-name" }])).toHaveLength(1);
+  });
+
+  test("partitions nodes without weakening normalized evidence", () => {
+    const mixed = [{ ...violations[0], nodes: [violations[0].nodes[0], { ...violations[0].nodes[0], target: ["main > span"] }] }];
+    expect(partitionAxeEvidence(mixed, new Set([JSON.stringify(["main > span"])]))).toEqual({
+      outside: [{ ...violations[0], nodes: [violations[0].nodes[0]] }],
+      inside: [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["main > span"] }] }],
+    });
+  });
+
+  test("requires exact outside rule and target signatures", () => {
+    const trigger = { outside: violations, inside: [] };
+    const expected = { trigger: normalizedPartitionLedger(trigger), skyline: normalizedPartitionLedger(trigger) };
+    expect(pairedPresenterAxeDifferences(trigger, trigger, expected)).toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [{ ...violations[0], impact: "critical" }, ...violations.slice(1)], inside: [] }, expected)).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [{ ...violations[0], tags: ["wcag2aa"] }, ...violations.slice(1)], inside: [] }, expected)).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["main > span"] }] }, ...violations.slice(1)], inside: [] }, expected)).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [...violations, violation("label", "label")], inside: [] }, expected)).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences({ outside: violations.slice(1), inside: [] }, trigger, expected)).not.toEqual([]);
+  });
+
+  test("allows only removal of existing inside targets", () => {
+    const trigger = { outside: [], inside: [{ ...violations[0], nodes: [violations[0].nodes[0], { ...violations[0].nodes[0], target: ["main > span"] }] }] };
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [], inside: [{ ...violations[0], nodes: [violations[0].nodes[0]] }] })).toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [], inside: [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["aside > span"] }] }] })).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [], inside: [{ ...violations[0], nodes: [...trigger.inside[0].nodes, trigger.inside[0].nodes[0]] }] })).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [], inside: [{ ...violations[0], impact: "critical" }] })).not.toEqual([]);
+    expect(pairedPresenterAxeDifferences(trigger, { outside: [], inside: [violation("label", "label")] })).not.toEqual([]);
   });
 });
 
