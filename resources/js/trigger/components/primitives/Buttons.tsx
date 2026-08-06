@@ -343,6 +343,7 @@ type LinkPropsType = Pick<
   | "onMouseEnter"
   | "onMouseLeave"
   | "download"
+  | "aria-label"
 > & {
   to: string;
   disabled?: boolean;
@@ -356,10 +357,16 @@ export const LinkButton = ({
   onMouseEnter,
   onMouseLeave,
   download,
+  "aria-label": ariaLabel,
   disabled = false,
   ...props
 }: LinkPropsType) => {
   const innerRef = useRef<HTMLAnchorElement>(null);
+  const accessibleLabel = ariaLabel !== undefined
+    ? ariaLabel
+    : typeof props.tooltip === "string" && props.tooltip.trim() !== ""
+      ? props.tooltip.trim()
+      : undefined;
 
   useShortcutKeys({
     shortcut: props.shortcut,
@@ -399,6 +406,7 @@ export const LinkButton = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       download={download}
+      aria-label={accessibleLabel}
     >
       <ButtonContent {...props} />
     </Link>
