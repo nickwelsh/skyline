@@ -24,3 +24,8 @@ declare module "virtual:pinned-trigger-state-inspector" {
     scenario: "sql-captured" | "transaction-committed" | "cache-long" | "redis-truncated";
   }): React.JSX.Element;
 }
+
+declare module "virtual:pinned-trigger-logs" {
+  import type { ComponentType } from "react";
+  export const PinnedTriggerLogs: ComponentType<{ logs: Array<{ id: string; runId: string; taskIdentifier: string; spanId: string; triggeredTimestamp: string; level: string; message: string; attributes: Record<string, unknown> }> }>;
+}

@@ -7,12 +7,11 @@
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { useEffect } from "react";
 import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
-import type { TelemetryEventDetailRouteData, TelemetryEventsRouteData } from "../../../skyline/TelemetryEventsAdapter";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
-import { LogDetailView } from "~/components/logs/LogDetailView";
-import { LogsTable } from "~/components/logs/LogsTable";
+import { LogDetailView, type LogDetailEntry } from "~/components/logs/LogDetailView";
+import { LogsTable, type LogsTableEntry } from "~/components/logs/LogsTable";
 import { Button } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
@@ -25,8 +24,15 @@ import {
 } from "~/components/primitives/Resizable";
 import { Spinner } from "~/components/primitives/Spinner";
 
-export type LogsRouteData = TelemetryEventsRouteData & {
-  selected: null | { state: "found"; data: TelemetryEventDetailRouteData } | { state: "not-found" | "error"; message: string };
+export type LogsRouteData = {
+  telemetryEvents: LogsTableEntry[];
+  pagination: { next?: string; previous?: string };
+  filters: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobType: string | null; runId: string | null; period: string };
+  filterOptions: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobTypes: string[]; timeRanges: Array<{ value: string; label: string }> };
+  capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
+  hasAnyTelemetryEvents: boolean;
+  hasFilters: boolean;
+  selected: null | { state: "found"; data: { telemetryEvent: LogDetailEntry } } | { state: "not-found" | "error"; message: string };
 };
 
 export default function Page() {
@@ -62,7 +68,7 @@ export default function Page() {
               </div>
             </ResizablePanel>
             <ResizableHandle id="logs-detail-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
-            {selectedId && <ResizablePanel id="logs-detail" min="430px" default="500px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
+            {selectedId && <ResizablePanel id="logs-detail" min="430px" default="430px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
               {data.selected?.state === "found"
                 ? <LogDetailView log={data.selected.data.telemetryEvent} onClose={() => setSelected()} />
                 : <DetailFailure state={data.selected?.state ?? "error"} message={data.selected?.message ?? "Telemetry-event detail could not be loaded."} onClose={() => setSelected()} />}
@@ -112,7 +118,7 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
       </div>
       <ListPagination list={data} />
     </div>
-    {!data.capture.enabled && <Callout variant="warning" className="m-2" aria-label="Application-log capture disabled">Application-log capture is disabled. Recorded operations and previously captured logs remain available.</Callout>}
+    {!data.capture.enabled && <div aria-label="Application-log capture disabled"><Callout variant="warning" className="m-2">Application-log capture is disabled. Recorded operations and previously captured logs remain available.</Callout></div>}
     {data.capture.enabled && <p aria-label="Application-log capture" className="sr-only">Captures {data.capture.supportedLevels.join(", ")} with a limit of {data.capture.perAttemptLimit} logs per Attempt.</p>}
   </div>;
 }

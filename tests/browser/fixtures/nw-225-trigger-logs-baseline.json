@@ -1,0 +1,25 @@
+{
+  "generatedBy": "NW-225 pinned Trigger Logs fixture",
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "sourceFiles": {
+    "logsTable": { "path": "apps/webapp/app/components/logs/LogsTable.tsx", "sha256": "346a3e636f701be009fc61d11de2b25076a41ae64bb1783f03e5c4cb03a91942" },
+    "logDetail": { "path": "apps/webapp/app/components/logs/LogDetailView.tsx", "sha256": "a1d0f5b4602b0cd05286bbea58b7d7816a10650256856be4124a02a7fa0f65af" },
+    "logLevel": { "path": "apps/webapp/app/components/logs/LogLevel.tsx", "sha256": "4c74a8272de5bd0f94cece74d2932b4ce84f5e07302c106836e3b7bd5d044735" },
+    "logsRoute": { "path": "apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx", "sha256": "9b1a6de6af94a68535769caac09dbb3133438350baca293fb9b925a2c1054dc6" },
+    "logsIcon": { "path": "apps/webapp/app/assets/icons/LogsIcon.tsx", "sha256": "c8c5bc2f91a2eeae6df0498e1235b8a766e154b987d0e04d8e293fe2ea558d82" },
+    "table": { "path": "apps/webapp/app/components/primitives/Table.tsx", "sha256": "98c22b2102bbc395268dd16d2894b24df9ddc6759cb15fc5bfa9510013f1504c" },
+    "resizable": { "path": "apps/webapp/app/components/primitives/Resizable.tsx", "sha256": "eb1a34a963e4ee5ae0e9073f9b63e3d809f97a0a144da4c6fea237bff3034837" },
+    "propertyTable": { "path": "apps/webapp/app/components/primitives/PropertyTable.tsx", "sha256": "f0b2ce27da084c1313d3b49813f77d706beb0a69d58dbe7fff71a888c207641e" }
+  },
+  "referenceLogs": [
+    { "id": "log_info", "runId": "run_invoice", "taskIdentifier": "App\\Jobs\\GenerateMonthlyInvoices", "spanId": "span_job", "triggeredTimestamp": "2026-08-05T12:00:00Z", "level": "INFO", "message": "Generating monthly invoice for customer 42", "attributes": { "customer_id": 42 } },
+    { "id": "log_error", "runId": "run_invoice", "taskIdentifier": "App\\Jobs\\GenerateMonthlyInvoices", "spanId": "span_job", "triggeredTimestamp": "2026-08-05T12:00:01Z", "level": "ERROR", "message": "Invoice provider rejected request", "attributes": { "provider": "fixture" } }
+  ],
+  "contract": {
+    "variants": ["operation", "log"],
+    "list": ["filters", "pagination", "loading", "initial-empty", "filtered-empty", "api-error"],
+    "detail": ["causal-relationships", "capture", "truthful-truncation", "not-found", "api-error"],
+    "navigation": ["run", "attempt", "job", "operation", "error-group"],
+    "accessibility": ["semantic-table", "keyboard-selection", "escape-close", "labelled-detail"]
+  }
+}
