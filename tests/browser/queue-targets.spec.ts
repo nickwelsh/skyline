@@ -298,7 +298,7 @@ function listResponse(): QueueTargetsPageDto {
     queueTargets: [summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }), summary(`queue_${"b".repeat(64)}`, "mail", {})],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
-    options: { connections: ["redis", "sqs"], timeRanges: queueTimeRanges() },
+    options: { connections: ["database", "redis", "sqs"], timeRanges: queueTimeRanges() },
     hasAnyQueueTargets: true,
   };
 }
