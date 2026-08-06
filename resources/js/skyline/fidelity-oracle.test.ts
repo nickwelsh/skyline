@@ -219,8 +219,15 @@ describe("source-fidelity oracle", () => {
     expect(() => validateFidelityBundleEnvelope(environment, matrix, { ...actions, scripts: [] }, bundle)).toThrow(/action/i);
   });
 
-  test("proof provenance binds the Skyline fixture server", () => {
-    const source = readFileSync(join(root, "scripts/serve-fixture.mjs"));
-    expect(fidelityInputHashes(root).serveFixtureSha256).toBe(createHash("sha256").update(source).digest("hex"));
+  test("proof provenance binds runtime and import verification inputs", () => {
+    const inputs = fidelityInputHashes(root);
+    expect(inputs.serveFixtureSha256).toBe(fileHash("scripts/serve-fixture.mjs"));
+    expect(inputs.uiPreferencesPrepaintSha256).toBe(fileHash("resources/js/skyline/uiPreferencesPrepaint.js"));
+    expect(inputs.referenceImportCheckerSha256).toBe(fileHash("scripts/import-fidelity-reference.mjs"));
+    expect(inputs.triggerImportCheckerSha256).toBe(fileHash("scripts/import-trigger.mjs"));
   });
+
+  function fileHash(path: string) {
+    return createHash("sha256").update(readFileSync(join(root, path))).digest("hex");
+  }
 });
