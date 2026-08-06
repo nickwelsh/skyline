@@ -118,7 +118,7 @@ test("Job detail can be favorited to a persistent valid sidebar destination", as
   await expect(favorite).toHaveCount(0);
 });
 
-test("sidebar customization hides a favorite persistently", async ({ page }) => {
+test("sidebar customization hides and restores a favorite persistently", async ({ page }) => {
   await routeJobs(page);
   await page.goto("/skyline/jobs/job_invoice");
 
@@ -141,6 +141,14 @@ test("sidebar customization hides a favorite persistently", async ({ page }) => 
   await expect(favorite).toHaveCount(0);
   await page.reload();
   await expect(favorite).toHaveCount(0);
+
+  await observability.hover();
+  await observability.locator("..").getByRole("button", { name: "Sidebar options" }).click();
+  await page.getByText("Customize sidebar", { exact: true }).click();
+  await page.getByRole("button", { name: "Show GenerateMonthlyInvoices" }).click();
+  await page.getByRole("button", { name: "Confirm" }).click();
+  await expect(favorite).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline") ?? "{}").sidebar?.hiddenItems?.job_invoice)).toBeUndefined();
 });
 
 test("capability-enabled Job guidance retains its useful-links preference", async ({ page }) => {

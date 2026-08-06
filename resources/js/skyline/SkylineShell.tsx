@@ -21,7 +21,7 @@ export function SkylineShell({ bootstrap }: { bootstrap: SkylineBootstrap }) {
   }));
   const onCustomize = (payload: SidebarCustomizationPayload) => update((current) => ({
     ...current,
-    sidebar: customizeSidebar(current, payload),
+    sidebar: customizeSidebar(current, payload, new Set(favorites.map((favorite) => favorite.id))),
     favorites: customizeFavorites(current.favorites, payload),
   }));
 
@@ -58,11 +58,11 @@ function mergeVisibleFavorites(current: FavoritePreference[], next: JobFavorite[
   return [...next.map((favorite) => ({ id: favorite.id, label: favorite.label, url: favorite.path, icon: favorite.icon })), ...dormant];
 }
 
-function customizeSidebar(current: UiPreferences, payload: SidebarCustomizationPayload) {
+function customizeSidebar(current: UiPreferences, payload: SidebarCustomizationPayload, visibleFavoriteIds: ReadonlySet<string>) {
   const sidebar = current.sidebar;
   const dormantSections = sidebar.sectionOrder.filter((id) => !visibleSectionIds.has(id));
   const sectionOrder = [...(payload.sectionOrder ?? ["favorites", "metrics"]), ...dormantSections];
-  const dormantHidden = Object.fromEntries(Object.entries(sidebar.hiddenItems).filter(([id]) => !visibleItemIds.has(id)));
+  const dormantHidden = Object.fromEntries(Object.entries(sidebar.hiddenItems).filter(([id]) => !visibleItemIds.has(id) && !visibleFavoriteIds.has(id)));
   const dormantItemOrder = Object.fromEntries(Object.entries(sidebar.sectionItemOrder).filter(([id]) => !visibleSectionIds.has(id)));
 
   return {
