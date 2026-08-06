@@ -29,14 +29,13 @@ export type LogsRouteData = {
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
-  selectedSummary: { variant: "operation" | "log"; name?: string; message?: string } | null;
+  selectedSummary: { variant: "operation"; name: string } | { variant: "log"; message: string } | null;
   renderTable: (props: { selectedId?: string; onSelect: (id: string) => void; loading: boolean }) => React.ReactNode;
-  renderDetail: (event: unknown, onClose: () => void) => React.ReactNode;
-  loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { telemetryEvent: unknown } } | { state: "not-found" | "error"; message: string }>;
+  loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { render: (onClose: () => void) => React.ReactNode } } | { state: "not-found" | "error"; message: string }>;
 };
 
 type DetailState =
-  | { id: string; state: "found"; data: { telemetryEvent: unknown }; refreshing: boolean }
+  | { id: string; state: "found"; data: { render: (onClose: () => void) => React.ReactNode }; refreshing: boolean }
   | { id: string; state: "loading" }
   | { id: string; state: "not-found" | "error"; message: string };
 
@@ -100,7 +99,7 @@ export default function Page() {
             <ResizableHandle id="logs-detail-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
             {selectedId && <ResizablePanel id="logs-detail" min="430px" default="430px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
               {detail?.state === "found"
-                ? <div className="relative h-full">{data.renderDetail(detail.data.telemetryEvent, () => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
+                ? <div className="relative h-full">{detail.data.render(() => setSelected())}{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
                 : detail?.state === "not-found" || detail?.state === "error"
                   ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
                   : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />}

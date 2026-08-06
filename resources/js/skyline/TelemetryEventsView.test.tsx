@@ -12,7 +12,7 @@ describe("Telemetry-event adapters", () => {
 
   it("keeps upstream row semantics while adapting selection and truthful empty states", () => {
     const select = vi.fn();
-    const populated = render(<MemoryRouter><TelemetryEventsTable events={[summary()]} selectedId="event_operation" onSelect={select} loading={false} hasAnyEvents hasFilters={false} /></MemoryRouter>);
+    const populated = render(<MemoryRouter><TelemetryEventsTable events={[summary()]} selectedId="event_operation" onSelect={select} loading={false} hasAnyEvents hasFilters={false} hasMore={false} /></MemoryRouter>);
     const row = populated.container.querySelector("tbody tr")!;
     const firstCellButton = row.querySelector<HTMLButtonElement>("button")!;
 
@@ -22,13 +22,17 @@ describe("Telemetry-event adapters", () => {
     expect(select).toHaveBeenCalledWith("event_operation");
     flushSync(() => populated.root.unmount());
 
-    const initial = render(<TelemetryEventsTable events={[]} onSelect={select} loading={false} hasAnyEvents={false} hasFilters={false} />);
+    const initial = render(<TelemetryEventsTable events={[]} onSelect={select} loading={false} hasAnyEvents={false} hasFilters={false} hasMore={false} />);
     expect(initial.container.textContent).toContain("No Telemetry events yet");
     flushSync(() => initial.root.unmount());
 
-    const filtered = render(<TelemetryEventsTable events={[]} onSelect={select} loading={false} hasAnyEvents hasFilters />);
+    const filtered = render(<TelemetryEventsTable events={[]} onSelect={select} loading={false} hasAnyEvents hasFilters hasMore={false} />);
     expect(filtered.container.textContent).toContain("No matching Telemetry events");
     flushSync(() => filtered.root.unmount());
+
+    const paginated = render(<MemoryRouter><TelemetryEventsTable events={[summary()]} onSelect={select} loading={false} hasAnyEvents hasFilters={false} hasMore /></MemoryRouter>);
+    expect(paginated.container.textContent).not.toContain("Showing all");
+    flushSync(() => paginated.root.unmount());
   });
 
   it("shows causal operation evidence, working links, and only proven truncation", () => {

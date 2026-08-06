@@ -119,6 +119,7 @@ test("rapid Logs selection ignores aborted and stale detail responses", async ({
 test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) => {
   await routeLogs(page, { paginate: true });
   await page.goto("/skyline/logs");
+  await expect(page.getByText("Showing all 2 logs")).toHaveCount(0);
   await page.getByLabel("ERROR", { exact: true }).click();
   await expect(page).toHaveURL(/levels=ERROR/);
   await page.getByLabel("WARN", { exact: true }).click();
@@ -135,6 +136,7 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await expect(page).toHaveURL(/\/skyline\/logs$/);
   await page.locator('a[href*="cursor=opaque-next"]').click();
   await expect(page).toHaveURL(/cursor=opaque-next&direction=forward/);
+  await expect(page.getByText("Showing all 2 logs")).toHaveCount(0);
   await page.locator('a[href*="cursor=opaque-previous"]').click();
   await expect(page).toHaveURL(/cursor=opaque-previous&direction=backward/);
 });

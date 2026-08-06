@@ -6,7 +6,6 @@ import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAd
 import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargetsQuery } from "./QueueTargetAdapter";
 import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
 import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
-import type { PresentedTelemetryEventDetail } from "./TelemetryEventsAdapter";
 import { TelemetryEventDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
 import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
@@ -54,11 +53,11 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
     return {
       ...list,
       selectedSummary: eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null,
-      renderTable: (props) => <TelemetryEventsTable events={list.telemetryEvents} {...props} hasAnyEvents={list.hasAnyTelemetryEvents} hasFilters={list.hasFilters} />,
-      renderDetail: (event, onClose) => <TelemetryEventDetailView event={event as PresentedTelemetryEventDetail} onClose={onClose} />,
+      renderTable: (props) => <TelemetryEventsTable events={list.telemetryEvents} {...props} hasAnyEvents={list.hasAnyTelemetryEvents} hasFilters={list.hasFilters} hasMore={Boolean(list.pagination.next || list.pagination.previous)} />,
       loadDetail: async (id, signal) => {
         try {
-          return { state: "found" as const, data: presentTelemetryEventDetail(await adapter.telemetryEvent(id, signal)) };
+          const detail = presentTelemetryEventDetail(await adapter.telemetryEvent(id, signal));
+          return { state: "found" as const, data: { render: (onClose: () => void) => <TelemetryEventDetailView event={detail.telemetryEvent} onClose={onClose} /> } };
         } catch (error) {
           if (signal?.aborted || (error instanceof DOMException && error.name === "AbortError")) throw error;
           const notFound = error instanceof SkylineApiError && error.status === 404;

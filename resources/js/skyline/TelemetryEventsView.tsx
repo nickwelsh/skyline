@@ -13,18 +13,19 @@ import { PacketDisplay } from "~/components/runs/v3/PacketDisplay";
 import type { LogEntry } from "~/presenters/v3/LogsListPresenter.server";
 import type { PresentedTelemetryEvent, PresentedTelemetryEventDetail } from "./TelemetryEventsAdapter";
 
-export function TelemetryEventsTable({ events, selectedId, onSelect, loading, hasAnyEvents, hasFilters }: {
+export function TelemetryEventsTable({ events, selectedId, onSelect, loading, hasAnyEvents, hasFilters, hasMore }: {
   events: PresentedTelemetryEvent[];
   selectedId?: string;
   onSelect: (id: string) => void;
   loading: boolean;
   hasAnyEvents: boolean;
   hasFilters: boolean;
+  hasMore: boolean;
 }) {
   const empty = events.length === 0;
 
   return <div className="relative h-full">
-    <LogsTable logs={events.map(toTriggerLog)} selectedLogId={selectedId} onLogSelect={onSelect} isLoading={loading || empty} />
+    <LogsTable logs={events.map(toTriggerLog)} selectedLogId={selectedId} onLogSelect={onSelect} isLoading={loading || empty} hasMore={hasMore} />
     {empty && !loading && <div className="pointer-events-none absolute inset-x-0 top-24 flex min-h-64 flex-col items-center justify-center gap-1">
       <Paragraph variant="base/bright">{hasAnyEvents && hasFilters ? "No matching Telemetry events" : "No Telemetry events yet"}</Paragraph>
       <Paragraph variant="small">{hasAnyEvents && hasFilters ? "Change or clear filters to see more events." : "Operations and application logs will appear here when Skyline observes them."}</Paragraph>
