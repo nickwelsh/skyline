@@ -305,8 +305,12 @@ async function visuals(page: Page) {
 
 async function detailVisuals(detail: Locator) {
   return detail.evaluate((detail) => {
-    const handle = detail.ownerDocument.querySelector<HTMLElement>('[role="separator"]')!;
-    const panel = handle.nextElementSibling as HTMLElement;
+    let panel: HTMLElement | null = detail.parentElement;
+    while (panel && panel.previousElementSibling?.getAttribute("role") !== "separator") {
+      panel = panel.parentElement;
+    }
+    if (!panel) throw new Error("Telemetry-event detail panel is unavailable.");
+    const handle = panel.previousElementSibling as HTMLElement;
     const layout = getComputedStyle(detail).display === "grid" ? detail : detail.firstElementChild!;
     const title = detail.querySelector("h2")!; const style = getComputedStyle(title);
     return { width: Math.round(panel.getBoundingClientRect().width), handleWidth: getComputedStyle(handle).width, titleFontSize: style.fontSize, titleFontWeight: style.fontWeight, rows: getComputedStyle(layout).gridTemplateRows.split(" ").length };
