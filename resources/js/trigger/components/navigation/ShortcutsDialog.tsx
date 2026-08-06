@@ -7,8 +7,8 @@ import { KeyboardIcon } from "~/assets/icons/KeyboardIcon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../primitives/Dialog";
 import { ShortcutKey } from "../primitives/ShortcutKey";
 
-export function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-md p-4"><DialogHeader className="h-7"><DialogTitle className="flex items-center gap-2"><KeyboardIcon className="size-5" />Keyboard shortcuts</DialogTitle></DialogHeader><div className="mt-5 space-y-3"><ShortcutRow name="Close"><ShortcutKey shortcut={{ key: "esc" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Toggle side menu"><ShortcutKey shortcut={{ modifiers: ["mod"], key: "b" }} variant="medium/bright" /></ShortcutRow></div></DialogContent></Dialog>;
+export function ShortcutsDialog({ open, onOpenChange, returnFocus }: { open: boolean; onOpenChange: (open: boolean) => void; returnFocus?: HTMLButtonElement | null }) {
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent onCloseAutoFocus={(event) => { if (!returnFocus) return; event.preventDefault(); returnFocus.focus(); }} className="max-w-md p-4"><DialogHeader className="h-7"><DialogTitle className="flex items-center gap-2"><KeyboardIcon className="size-5" />Keyboard shortcuts</DialogTitle></DialogHeader><div className="mt-5 space-y-3"><ShortcutRow name="Close"><ShortcutKey shortcut={{ key: "esc" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Toggle side menu"><ShortcutKey shortcut={{ modifiers: ["mod"], key: "b" }} variant="medium/bright" /></ShortcutRow></div></DialogContent></Dialog>;
 }
 
 function ShortcutRow({ name, children }: { name: string; children: React.ReactNode }) {

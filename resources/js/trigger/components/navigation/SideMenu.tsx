@@ -113,6 +113,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   const widthRef = useRef(width);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const shortcutsReturnFocusRef = useRef<HTMLButtonElement | null>(null);
   const collapsed = width <= COLLAPSED_WIDTH;
   const progress = Math.min(1, Math.max(0, (DEFAULT_WIDTH - width) / (DEFAULT_WIDTH - COLLAPSED_WIDTH)));
   const labelOpacity = Math.min(1, Math.max(0, (0.6 - progress) / 0.6));
@@ -140,7 +141,10 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   });
   useShortcutKeys({
     shortcut: capabilities.shell.shortcuts ? { modifiers: ["shift"], key: "?" } : undefined,
-    action: () => setShortcutsOpen(true),
+    action: () => {
+      shortcutsReturnFocusRef.current = null;
+      setShortcutsOpen(true);
+    },
   });
 
   const resize = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -239,7 +243,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex gap-1", collapsed ? "flex-col" : "items-center")}>
           <DormantShellActions capabilities={capabilities.shell} />
-          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} onOpenShortcuts={() => setShortcutsOpen(true)} labelOpacity={labelOpacity} />}
+          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
           <button type="button" aria-label={collapsed ? "Expand side menu" : "Collapse side menu"} onClick={toggleCollapsed} className="flex size-8 shrink-0 items-center justify-center rounded text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom">
             {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
@@ -250,7 +254,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
         {customizeOpen && <CustomizeSidebarDialog sections={customizeSections} prefs={preferences} onConfirm={(payload) => { onCustomize(payload); setCustomizeOpen(false); }} isConfirming={false} />}
       </Dialog>
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} returnFocus={shortcutsReturnFocusRef.current} />
     </aside>
   );
 }

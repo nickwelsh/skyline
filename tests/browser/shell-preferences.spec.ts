@@ -82,6 +82,7 @@ test("source shell exposes only supported surfaces and persists customization", 
 });
 
 test("paired pinned Trigger and Skyline shells preserve reached behavior", async ({ page, context }) => {
+  test.setTimeout(60_000);
   const reference = await context.newPage();
   await reference.goto("http://127.0.0.1:4175/shell");
   await reference.evaluate(() => document.fonts.ready);
@@ -154,22 +155,86 @@ function runsResponse(): RunsPageDto {
 
 async function exerciseShell(page: Page) {
   const navigation = ["tasks", "runs", "logs", "errors", "queues"];
-  const navigationNames = [/^(Tasks|Jobs)$/, /^Runs$/, /^Logs$/, /^Errors$/, /^Queues$/];
-  for (const name of navigationNames) await expect(page.getByRole("link", { name }).first()).toBeVisible();
+  await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+    key: storageKey,
+    value: {
+      version: 1,
+      theme: "system",
+      contrast: 70,
+      sidebar: {
+        isCollapsed: false,
+        width: 224,
+        sectionOrder: ["favorites", "metrics"],
+        collapsedSections: {},
+        hiddenItems: { prompts: true, models: true, query: true, dashboards: true, deployments: true, "environment-variables": true, "preview-branches": true, regions: true, "waitpoint-tokens": true, batches: true, "bulk-actions": true, "api-keys": true, alerts: true, limits: true, integrations: true },
+        sectionItemOrder: { metrics: ["logs", "errors", "queues"] },
+      },
+      favorites: [
+        { id: "favorite-run", label: "Pinned Run", url: "/runs/run-01" },
+        { id: "future-query", label: "Future Query", url: "/query" },
+      ],
+    },
+  });
+  await page.reload();
 
-  await page.getByRole("button", { name: "Help & Feedback" }).click();
-  await page.getByText("Shortcuts", { exact: true }).click();
+  for (const action of navigation) await expect(page.locator(`[data-action="${action}"]`).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Pinned Run", exact: true })).toBeVisible();
+  const unsupported = ["Sessions", "Prompts", "Models", "Query", "Dashboards", "Deployments", "Deploys", "Environment variables", "Preview branches", "Regions", "Manage", "Waitpoint tokens", "Batches", "Bulk actions", "API keys", "Alerts", "Concurrency", "Limits", "Integrations", "Future Query", "Account", "Notifications", "Job guidance", "Switch organization", "Switch project", "Switch environment", "Ask AI", "Documentation", "Status", "Suggest a feature", "Contact us…", "Full changelog"];
+  for (const label of unsupported) {
+    await expect(shellMenu(page).getByText(label, { exact: true })).toHaveCount(0);
+  }
+
+  await page.keyboard.press("Control+b");
+  await expect.poll(async () => (await shellMenu(page).boundingBox())?.width).toBe(44);
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "{}").sidebar?.isCollapsed, storageKey)).toBe(true);
+  await page.reload();
+  await expect.poll(async () => (await shellMenu(page).boundingBox())?.width).toBe(44);
+  await page.keyboard.press("Control+b");
+  await expect.poll(async () => (await shellMenu(page).boundingBox())?.width).toBe(224);
+
+  const helpButton = page.getByRole("button", { name: "Help & Feedback" });
+  await helpButton.focus();
+  await page.evaluate(() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "?", code: "Slash", shiftKey: true, bubbles: true })));
   await expect(page.getByText("Keyboard shortcuts", { exact: true })).toBeVisible();
   for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(page.getByText("Keyboard shortcuts", { exact: true })).not.toBeVisible();
+
+  await helpButton.click();
+  for (const label of ["Ask AI", "Documentation", "Status", "Suggest a feature", "Contact us…", "Full changelog"]) await expect(page.getByRole("dialog").getByText(label, { exact: true })).toHaveCount(0);
+  const shortcutsButton = page.getByRole("button", { name: "Shortcuts" });
+  await shortcutsButton.click();
+  await expect(page.getByText("Keyboard shortcuts", { exact: true })).toBeVisible();
+  for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByText("Keyboard shortcuts", { exact: true })).not.toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const label = document.activeElement?.textContent ?? "";
+    return label.includes("Shortcuts") || label.includes("Help & Feedback");
+  })).toBe(true);
 
   const observability = page.getByRole("button", { name: "Observability", exact: true });
   await observability.hover();
   await observability.locator("..").getByRole("button", { name: /^(Sidebar options|Customize sidebar)$/ }).click();
   await page.getByText("Customize sidebar", { exact: true }).click();
+  for (const label of unsupported) await expect(page.getByRole("dialog").getByText(label, { exact: true })).toHaveCount(0);
+  await page.getByLabel("Rename Pinned Run").fill("Important Run");
   await page.getByRole("button", { name: "Hide Logs" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
+  await expect(page.getByRole("link", { name: "Important Run", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Logs", exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Logs", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Important Run", exact: true })).toBeVisible();
+  await page.evaluate(() => { Storage.prototype.setItem = () => { throw new DOMException("blocked", "SecurityError"); }; });
+  await page.getByRole("button", { name: "Collapse side menu" }).click();
+  await expect.poll(async () => (await shellMenu(page).boundingBox())?.width).toBe(44);
+  await expect(page.getByRole("status")).toHaveText("Browser storage is unavailable. Preference changes will last for this tab only.");
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
 
-  return { navigation, shortcuts: baseline.contract.shortcuts, logsVisibleAfterCustomization: false };
+  return { navigation, favorite: "Important Run", shortcuts: baseline.contract.shortcuts, focusReturned: true, persistence: true, storageFallback: true, unsupportedHidden: true, logsVisibleAfterCustomization: false };
+}
+
+function shellMenu(page: Page) {
+  return page.locator('[data-testid="side-menu"], div.relative.h-full.border-r.bg-background-bright').first();
 }
