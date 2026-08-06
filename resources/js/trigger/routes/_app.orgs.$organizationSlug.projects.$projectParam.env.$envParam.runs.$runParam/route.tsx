@@ -144,7 +144,7 @@ export default function RunDetailRoute() {
     rememberedSelection.current = { runId: data.run.id, nodeId: selectedParam };
   }
 
-  const selectedId = selectedParam ?? (rememberedSelection.current.nodeId ? undefined : rootNodeId);
+  const selectedId = selectedParam;
 
   useEffect(() => {
     if (selectedParam) rememberedSelection.current.nodeId = selectedParam;

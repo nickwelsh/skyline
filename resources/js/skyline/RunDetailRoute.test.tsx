@@ -33,6 +33,35 @@ afterEach(() => {
 });
 
 describe("Run detail source primitives", () => {
+  it("mounts the trace splitter before the delayed inspector opens", async () => {
+    const adapter = new FixtureAdapter();
+    const inspector = await adapter.inspector(`run_${runId}`, runId);
+    let resolveInspector!: (value: typeof inspector) => void;
+    const pendingInspector = new Promise<typeof inspector>((resolve) => { resolveInspector = resolve; });
+    const loadInspector = vi.fn(() => pendingInspector);
+    const collapsedStates: string[] = [];
+    const observer = new MutationObserver(() => {
+      const panel = document.querySelector('[data-splitter-id="inspector"]');
+      const group = document.querySelector('[data-group-id="panel-run-tree"]');
+      if (panel && group) collapsedStates.push(panel.getAttribute("data-collapsed") ?? "missing");
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-collapsed"] });
+
+    const { container, root } = await renderRoute({ initialEntry: `/runs/${runId}`, loadInspector });
+    const treeGroup = container.querySelector('[data-group-id="panel-run-tree"]');
+
+    expect(collapsedStates[0]).toBe("true");
+    await vi.waitFor(() => expect(loadInspector).toHaveBeenCalledWith(`run_${runId}`, expect.any(AbortSignal)));
+    expect(container.querySelector('[data-group-id="panel-run-tree"]')).toBe(treeGroup);
+
+    await act(async () => resolveInspector(inspector));
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull());
+    expect(container.querySelector('[data-group-id="panel-run-tree"]')).toBe(treeGroup);
+
+    observer.disconnect();
+    await act(async () => root.unmount());
+  });
+
   it("presents the selected Trace row label through the source Paragraph and SpanTitle seam", async () => {
     const { container, root } = await renderRoute();
     const row = container.querySelector(`[data-node-id="run_${runId}"]`);
@@ -89,12 +118,12 @@ describe("Run detail source primitives", () => {
   });
 });
 
-async function renderRoute() {
+async function renderRoute(options: { initialEntry?: string; loadInspector?: Parameters<typeof presentRunDetail>[1] } = {}) {
   const adapter = new FixtureAdapter();
-  const data = presentRunDetail(await adapter.trace(runId), (nodeId) => adapter.inspector(nodeId, runId));
+  const data = presentRunDetail(await adapter.trace(runId), options.loadInspector ?? ((nodeId) => adapter.inspector(nodeId, runId)));
   const router = createMemoryRouter([
     { path: "/runs/:runId", loader: () => data, element: <RunDetailRoute /> },
-  ], { initialEntries: [`/runs/${runId}?node=run_${runId}`] });
+  ], { initialEntries: [options.initialEntry ?? `/runs/${runId}?node=run_${runId}`] });
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
