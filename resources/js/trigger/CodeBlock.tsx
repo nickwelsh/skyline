@@ -6,7 +6,7 @@
 import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
-import { forwardRef, useCallback, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
@@ -28,6 +28,7 @@ type CodeBlockProps = {
   showOpenInModal?: boolean;
   wrap?: boolean;
   label?: string;
+  modalContent?: ReactNode;
 };
 
 const dimAmount = 0.5;
@@ -76,7 +77,9 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   rowTitle,
   wrap = false,
   label = "Code",
+  modalContent,
 }, ref) {
+  const expandButton = useRef<HTMLButtonElement>(null);
   const [mouseOver, setMouseOver] = useState(false);
   const [copied, setCopied] = useState(false);
   const [modalCopied, setModalCopied] = useState(false);
@@ -142,7 +145,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           {showOpenInModal && (
             <TooltipProvider>
               <Tooltip disableHoverableContent>
-                <TooltipTrigger aria-label={`Expand ${label}`} onClick={() => setIsModalOpen(true)}>
+                <TooltipTrigger ref={expandButton} aria-label={`Expand ${label}`} onClick={() => setIsModalOpen(true)}>
                   <ArrowsPointingOutIcon className="size-4 transition-colors hover:text-text-bright" />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-xs">Expand</TooltipContent>
@@ -168,6 +171,10 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent
           className="flex flex-col gap-0 p-0 pt-[2.9rem] sm:h-[80vh] sm:max-h-[80vh] sm:!w-[80vw] sm:!max-w-[80vw]"
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            window.setTimeout(() => expandButton.current?.focus(), 0);
+          }}
         >
           <DialogHeader className="h-fit">
             <DialogTitle className={fileName || rowTitle ? "absolute left-3.5 top-2.5" : "sr-only"}>
@@ -182,17 +189,20 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               {modalCopied ? "Copied" : "Copy"}
             </button>
           </DialogHeader>
-          <HighlightCode
-            theme={theme}
-            code={code}
-            language={language}
-            showLineNumbers={showLineNumbers}
-            highlightLines={highlightLines}
-            maxLineWidth={maxLineWidth}
-            className="min-h-full"
-            preClassName="text-sm"
-            isWrapped={isWrapped}
-          />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <HighlightCode
+              theme={theme}
+              code={code}
+              language={language}
+              showLineNumbers={showLineNumbers}
+              highlightLines={highlightLines}
+              maxLineWidth={maxLineWidth}
+              className={modalContent ? "" : "min-h-full"}
+              preClassName="text-sm"
+              isWrapped={isWrapped}
+            />
+            {modalContent}
+          </div>
         </DialogContent>
       </Dialog>
     </>

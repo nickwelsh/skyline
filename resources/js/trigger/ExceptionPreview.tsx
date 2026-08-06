@@ -57,10 +57,10 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
       {exception.messageTruncated && <div className="text-xs text-warning">Exception message truncated</div>}
       <div className="flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs text-text-faint">
         {exception.location
-          ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} outOfTabOrder={attemptPresenter} />
+          ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
           : <span>Source location not captured</span>}
         {exception.code && <span>Code {exception.code}</span>}
-        {attemptPresenter && <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" tabIndex={-1} />}
+        {attemptPresenter && <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />}
       </div>
     </>
   );
@@ -83,33 +83,54 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
         <div id="exception-trace" className="flex max-h-[40rem] flex-col gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
           {groups.map((group) => group.vendor
             ? <VendorFrames key={`vendor-${group.entries[0].index}`} entries={group.entries} />
-            : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} />))}
+            : group.entries.map((entry) => <ApplicationFrame key={`${entry.frame.file}:${entry.frame.line}:${entry.index}`} entry={entry} main={entry.index === mainFrame} allowModal={!attemptPresenter} />))}
         </div>
       )}
     </>
   ) : <div className="border-t border-grid-bright pt-2 text-xs text-text-faint">Stack trace not captured</div>;
 
-  return (
-    <section data-skyline-extension={attemptPresenter ? undefined : extensionId ?? undefined} role={attemptPresenter ? undefined : "region"} aria-label={attemptPresenter ? undefined : "Exception"} className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
-      {attemptPresenter
-        ? <Header3 className="text-rose-500">{exception.class}</Header3>
-        : <div className="flex min-w-0 items-center gap-2">
-          <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
-          <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
-        </div>}
+  const common = (
+    <>
+      <Header3 className="text-rose-500">{exception.class}</Header3>
       <Callout variant="error">
         <pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">
           {exception.message}
         </pre>
       </Callout>
-      {attemptPresenter
-        ? <div data-skyline-extension="attempt-exception-evidence" role="region" aria-label="Exception" className="flex h-[3.625rem] flex-col overflow-y-auto rounded-md border border-grid-bright px-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">{metadata}{trace}</div>
-        : <>{metadata}{trace}</>}
+    </>
+  );
+
+  if (attemptPresenter) {
+    return (
+      <section className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
+        {common}
+        <div data-skyline-extension="attempt-exception-evidence" role="region" aria-label="Exception">
+          <CodeBlock
+            code={formatStackTrace(exception.frames)}
+            label="exception stack trace"
+            maxLines={20}
+            showCopyButton={false}
+            showLineNumbers={false}
+            modalContent={<div className="flex flex-col gap-2 border-t border-grid-bright px-4 py-3">{metadata}{trace}</div>}
+          />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section data-skyline-extension={extensionId ?? undefined} role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
+        <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
+      </div>
+      <Callout variant="error"><pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">{exception.message}</pre></Callout>
+      {metadata}{trace}
     </section>
   );
 }
 
-function ApplicationFrame({ entry, main }: { entry: FrameEntry; main: boolean }) {
+function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntry; main: boolean; allowModal?: boolean }) {
   const { frame, index } = entry;
   const [expanded, setExpanded] = useState(main && frame.snippet !== null);
   const panelId = `exception-frame-${index}`;
@@ -140,6 +161,7 @@ function ApplicationFrame({ entry, main }: { entry: FrameEntry; main: boolean })
             highlightedRanges={[[frame.snippet.highlightedLine - frame.snippet.startingLine + 1, frame.snippet.highlightedLine - frame.snippet.startingLine + 1]]}
             label={`application frame ${index + 1}`}
             maxLines={20}
+            showOpenInModal={allowModal}
             showLineNumbers
             showTextWrapping
           />
@@ -180,18 +202,25 @@ function VendorFrames({ entries }: { entries: FrameEntry[] }) {
   );
 }
 
-function SourceLink({ file, line, href, compact = false, outOfTabOrder = false }: { file: string; line: number | null; href: string | null; compact?: boolean; outOfTabOrder?: boolean }) {
+function SourceLink({ file, line, href, compact = false }: { file: string; line: number | null; href: string | null; compact?: boolean }) {
   const location = `${file}:${line ?? "?"}`;
   const content = <><span className={compact ? "truncate" : "min-w-0 truncate"}>{location}</span>{href && <IconExternalLink className="size-4 shrink-0" />}</>;
 
   return href
-    ? <a href={href} target="_blank" rel="noreferrer" tabIndex={outOfTabOrder ? -1 : undefined} title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
+    ? <a href={href} target="_blank" rel="noreferrer" title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
     : <span className="flex min-w-0 items-center gap-1">{content}</span>;
 }
 
 function formatCall(frame: ExceptionPreviewFrame) {
   if (frame.class && frame.type) return `${frame.class}${frame.type}${frame.function}`;
   return frame.function || "throw";
+}
+
+function formatStackTrace(frames: ExceptionPreviewFrame[]) {
+  return frames.map((frame) => {
+    const location = `${frame.file}:${frame.line ?? "?"}`;
+    return `${location} ${formatCall(frame)}`;
+  }).join("\n");
 }
 
 function groupFrames(frames: ExceptionPreviewFrame[]) {

@@ -72,22 +72,31 @@ describe("ExceptionPreview", () => {
     flushSync(() => root.unmount());
   });
 
-  it("marks only the Attempt presenter replacement and resets disclosure per Attempt", () => {
+  it("marks only the Attempt presenter replacement and opens one evidence modal", async () => {
     const { container, root } = render(exception(), "attempt-exception-evidence");
     const panel = container.querySelector<HTMLElement>(".flex.flex-col.gap-2.rounded-sm.border.border-rose-500\\/50")!;
     const presenter = panel.querySelector<HTMLElement>(":scope > [data-skyline-extension='attempt-exception-evidence'][role='region'][aria-label='Exception']")!;
 
     expect(presenter).not.toBeNull();
     expect(panel.getAttribute("role")).toBeNull();
-    expect(presenter.querySelector<HTMLAnchorElement>("a")?.target).toBe("_blank");
-    expect(presenter.querySelector<HTMLAnchorElement>("a")?.tabIndex).toBe(-1);
-    expect(presenter.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')?.tabIndex).toBe(-1);
+    expect(presenter.querySelector('[aria-label="exception stack trace"]')).not.toBeNull();
+    const expand = presenter.querySelector<HTMLButtonElement>('button[aria-label="Expand exception stack trace"]')!;
+    expect(expand.tabIndex).toBe(0);
+    flushSync(() => expand.click());
+    await vi.waitFor(() => expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1));
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(dialog.textContent).toContain("app/Jobs/ChargeCard.php:42");
+    expect(dialog.querySelector('[aria-label="Expand application frame 1"]')).toBeNull();
+    const showFrames = dialog.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
+    flushSync(() => showFrames.click());
+    expect(dialog.textContent).toContain("1 vendor frame");
+    const close = [...dialog.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Close"))!;
+    flushSync(() => close.click());
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
 
-    const trace = presenter.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
-    flushSync(() => trace.click());
-    expect(trace.getAttribute("aria-expanded")).toBe("true");
     flushSync(() => root.render(<ExceptionPreview exception={{ ...exception(), class: "LogicException" }} extensionId="attempt-exception-evidence" />));
-    expect(container.querySelector('[aria-controls="exception-trace"]')?.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelector("h3")?.textContent).toBe("LogicException");
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
 
     flushSync(() => root.unmount());
   });

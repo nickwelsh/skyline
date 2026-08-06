@@ -119,18 +119,20 @@ test("Run panel layout persists through the external preference adapter", async 
   await expect.poll(async () => (await tree.boundingBox())?.width).toBeGreaterThan(before!.width + 80);
 });
 
-test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page }) => {
+test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page, browser }) => {
+  test.setTimeout(30_000);
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   for (const source of Object.values(triggerFailureBaseline.sourceFiles)) {
     const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
 
-  const referencePage = await page.context().newPage();
+  const referenceContext = await browser.newContext();
+  const referencePage = await referenceContext.newPage();
   await referencePage.setViewportSize(failureScenario.viewport);
   await referencePage.goto("http://127.0.0.1:4175");
   const triggerBehavior = await exercisePinnedTriggerFailure(referencePage);
-  await referencePage.close();
+  await referenceContext.close();
 
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
@@ -158,10 +160,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   expect(skylineBehavior.shared).toEqual(triggerBehavior.shared);
   expect(skylineBehavior.visual).toEqual(triggerBehavior.visual);
   expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true, focusReturned: false });
-  expect(skylineBehavior).toMatchObject({ dialogClosed: true, focusReturned: false, copied: "Copied" });
-
-  const trace = page.locator("#exception-trace");
-  expect(await trace.evaluate((element) => element.scrollHeight)).toBeGreaterThan(await trace.evaluate((element) => element.clientHeight));
+  expect(skylineBehavior).toMatchObject({ dialogClosed: true, stackFocusReturned: true, traceScrollable: true, copied: "Copied" });
 
   await page.getByRole("switch", { name: "Errors only" }).click();
   await page.locator(`[data-node-id="${failedAttemptId}"]`).click();
@@ -173,15 +172,19 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
   await expect(page.getByLabel("Loading inspector")).toBeVisible();
   const exception = page.getByRole("region", { name: "Exception" });
-  await expect(exception).toContainText("Retry failed differently.");
-  await expect(exception).toContainText("app/Jobs/FinalizeInvoices.php:73");
-  await expect(exception).toContainText("Show 2 frames");
-  await expect(exception).not.toContainText("Source location not captured");
-  await expect(exception).not.toContainText("Stack trace not captured");
-  await expect(exception).not.toContainText("DeadlockException");
+  await expect(exception.locator("..")).toContainText("Retry failed differently.");
+  await exception.getByRole("button", { name: "Expand exception stack trace" }).click();
+  const retryEvidence = page.getByRole("dialog", { name: "exception stack trace" });
+  await expect(retryEvidence).toContainText("app/Jobs/FinalizeInvoices.php:73");
+  await expect(retryEvidence).toContainText("Show 2 frames");
+  await expect(retryEvidence).not.toContainText("Source location not captured");
+  await expect(retryEvidence).not.toContainText("Stack trace not captured");
+  await expect(retryEvidence).not.toContainText("DeadlockException");
+  await page.keyboard.press("Escape");
+  await expect(retryEvidence).toHaveCount(0);
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
-  await expect(exception).toContainText("Retry failed differently.");
+  await expect(page.getByRole("region", { name: "Exception" }).locator("..")).toContainText("Retry failed differently.");
 });
 
 test("failed Attempt inspector reports request, copy, and source-link outcomes", async ({ page }) => {
@@ -200,6 +203,7 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
 
   requestFails = false;
   await page.reload();
+  await page.getByRole("button", { name: "Expand exception stack trace" }).click();
   const source = page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" });
   await expect(source).toHaveAttribute("href", "https://example.test/source/app/Jobs/GenerateMonthlyInvoices.php#L58");
   await expect(source).toHaveAttribute("title", "Open app/Jobs/GenerateMonthlyInvoices.php:58 in editor");
@@ -220,60 +224,64 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
 
 async function exerciseFailureSurface(page: Page) {
   const exception = page.getByRole("region", { name: "Exception" });
-  await expect(exception).toContainText("Illuminate\\Database\\DeadlockException");
-  await expect(exception).toContainText("Deadlock found when trying to get lock; retry transaction");
+  const panel = exception.locator("..");
+  await expect(panel).toContainText("Illuminate\\Database\\DeadlockException");
+  await expect(panel).toContainText("Deadlock found when trying to get lock; retry transaction");
+  const shared = {
+    heading: await panel.getByRole("heading", { level: 3 }).textContent(),
+    message: failureScenario.skylineException.message,
+    containerClass: await panel.getAttribute("class"),
+    headingTag: await panel.getByRole("heading", { level: 3 }).evaluate((element) => element.tagName),
+  };
+  const visual = await failureVisuals(panel);
 
-  const source = exception.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" }).first();
+  const expandStack = exception.getByRole("button", { name: "Expand exception stack trace" });
+  await expandStack.focus();
+  await page.keyboard.press("Enter");
+  const stackDialog = page.getByRole("dialog", { name: "exception stack trace" });
+  await expect(stackDialog).toBeVisible();
+  const evidence = stackDialog;
+
+  const source = evidence.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" }).first();
   await source.focus();
   await expect(source).toBeFocused();
 
-  const traceButton = exception.locator('button[aria-controls="exception-trace"]');
+  const traceButton = evidence.locator('button[aria-controls="exception-trace"]');
   const initialTraceExpanded = await traceButton.getAttribute("aria-expanded");
   await traceButton.focus();
   await expect(traceButton).toBeFocused();
   await traceButton.click();
   const tracePanelId = await traceButton.getAttribute("aria-controls");
-  const tracePanel = exception.locator(`#${tracePanelId}`);
+  const tracePanel = evidence.locator(`#${tracePanelId}`);
   await expect(tracePanel).toBeVisible();
 
-  const application = exception.getByRole("button", { name: "App\\Jobs\\GenerateMonthlyInvoices->handle" });
+  const application = evidence.getByRole("button", { name: "App\\Jobs\\GenerateMonthlyInvoices->handle" });
   const applicationPanelId = await application.getAttribute("aria-controls");
-  await expect(exception.locator(`#${applicationPanelId}`)).toBeVisible();
+  await expect(evidence.locator(`#${applicationPanelId}`)).toBeVisible();
   await traceButton.focus();
   await page.keyboard.press("Tab");
   await expect(application).toBeFocused();
 
-  const vendor = exception.getByRole("button", { name: "1 vendor frame" });
+  const vendor = evidence.getByRole("button", { name: "1 vendor frame" });
   const initialVendorExpanded = await vendor.getAttribute("aria-expanded");
   await vendor.click();
   const vendorPanelId = await vendor.getAttribute("aria-controls");
-  const vendorPanel = exception.locator(`#${vendorPanelId}`);
+  const vendorPanel = evidence.locator(`#${vendorPanelId}`);
   await expect(vendorPanel).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
 
-  const copy = exception.getByRole("button", { name: "Copy exception as Markdown" });
+  const copy = evidence.getByRole("button", { name: "Copy exception as Markdown" });
   await copy.click();
   await expect(copy).toContainText("Copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(failureScenario.skylineException.markdown);
 
-  const wrap = exception.getByRole("button", { name: "Wrap application frame 1" });
+  const wrap = evidence.getByRole("button", { name: "Wrap application frame 1" });
   await wrap.click();
-  await expect(exception.getByRole("button", { name: "Unwrap application frame 1" })).toBeVisible();
-  const expand = exception.getByRole("button", { name: "Expand application frame 1" });
-  await expand.focus();
-  await expand.click();
-  await expect(page.getByRole("dialog", { name: "application frame 1" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog", { name: "application frame 1" })).toHaveCount(0);
-  await expect(expand).not.toBeFocused();
+  await expect(evidence.getByRole("button", { name: "Unwrap application frame 1" })).toBeVisible();
+  await expect(evidence.getByRole("button", { name: "Expand application frame 1" })).toHaveCount(0);
 
-  return {
-    shared: {
-      heading: await exception.getByRole("heading", { level: 3 }).textContent(),
-      message: failureScenario.skylineException.message,
-      containerClass: await exception.getAttribute("class"),
-      headingTag: await exception.getByRole("heading", { level: 3 }).evaluate((element) => element.tagName),
-    },
-    visual: await failureVisuals(exception),
+  const evidenceResult = {
+    shared,
+    visual,
     sourceHref: await source.getAttribute("href"),
     sourceTitle: await source.getAttribute("title"),
     initialTraceExpanded,
@@ -285,9 +293,16 @@ async function exerciseFailureSurface(page: Page) {
     vendorPanelId,
     vendorExpanded: await vendor.getAttribute("aria-expanded"),
     copied: (await copy.textContent())?.trim(),
-    wrapped: await exception.getByRole("button", { name: "Unwrap application frame 1" }).isVisible(),
-    dialogClosed: await page.getByRole("dialog", { name: "application frame 1" }).count() === 0,
-    focusReturned: await expand.evaluate((element) => element === document.activeElement),
+    wrapped: await evidence.getByRole("button", { name: "Unwrap application frame 1" }).isVisible(),
+    traceScrollable: await tracePanel.evaluate((element) => element.scrollHeight > element.clientHeight),
+  };
+  await page.keyboard.press("Escape");
+  await expect(evidence).toHaveCount(0);
+  await expect(expandStack).toBeFocused();
+  return {
+    ...evidenceResult,
+    dialogClosed: true,
+    stackFocusReturned: true,
   };
 }
 
