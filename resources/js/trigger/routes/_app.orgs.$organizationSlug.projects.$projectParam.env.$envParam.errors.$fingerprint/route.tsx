@@ -8,10 +8,12 @@
  */
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { BugIcon } from "~/assets/icons/BugIcon";
+import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
-import { DateTimeShort } from "~/components/primitives/DateTime";
+import { CopyableText } from "~/components/primitives/CopyableText";
+import { DateTime, DateTimeShort } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { Paragraph } from "~/components/primitives/Paragraph";
@@ -97,15 +99,12 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
     <ResizablePanelGroup orientation="horizontal" className="max-h-full">
       <ResizablePanel id="error-main" min="300px">
         <div className="grid h-full grid-rows-[12rem_1fr] overflow-hidden">
-          <section
-            aria-labelledby="error-activity-heading"
-            className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4"
-          >
+          <section aria-label="Occurrence activity" className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4">
             <div className="flex items-center gap-2">
-              <Header3 id="error-activity-heading">Occurrence activity</Header3>
+              <span className="text-xs text-text-dimmed">Occurred</span>
               <select
                 aria-label="Time range"
-                className="ml-auto h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
+                className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
                 value={data.filters.period}
                 onChange={(event) => updatePeriod(event.currentTarget.value)}
               >
@@ -118,11 +117,11 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
           </section>
 
           <section
-            aria-labelledby="failed-attempts-heading"
+            aria-labelledby="runs-heading"
             className="flex min-h-0 flex-col gap-1 overflow-y-hidden"
           >
             <div className="flex items-center justify-between pl-3 pr-2 pt-1">
-              <Header3 id="failed-attempts-heading" className="mb-1 mt-2">Failed Attempts</Header3>
+              <Header3 id="runs-heading" className="mb-1 mt-2">Runs</Header3>
               <ListPagination list={data} />
             </div>
             <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -250,12 +249,26 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <div className="flex flex-col gap-4">
           <Property.Table>
-            <Property.Item>
-              <Property.Label>ID</Property.Label>
-              <Property.Value><span className="break-all font-mono text-xs">{data.errorGroup.fingerprint}</span></Property.Value>
+            <Property.Item className="gap-1">
+              <Property.Label>Error</Property.Label>
+              <Property.Value>
+                <CodeBlock
+                  code={data.errorGroup.representativeMessage}
+                  showCopyButton
+                  showLineNumbers={false}
+                  showOpenInModal={false}
+                  language="typescript"
+                  wrap
+                  label="Error"
+                />
+              </Property.Value>
             </Property.Item>
             <Property.Item>
-              <Property.Label>Job type</Property.Label>
+              <Property.Label>ID</Property.Label>
+              <Property.Value><CopyableText value={data.errorGroup.fingerprint.slice(-8)} /></Property.Value>
+            </Property.Item>
+            <Property.Item>
+              <Property.Label>Task</Property.Label>
               <Property.Value>
                 <Link
                   to={data.errorGroup.jobPath}
@@ -266,20 +279,16 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
               </Property.Value>
             </Property.Item>
             <Property.Item>
-              <Property.Label>Exception</Property.Label>
-              <Property.Value><span className="break-all font-mono text-xs">{data.errorGroup.exceptionClass}</span></Property.Value>
-            </Property.Item>
-            <Property.Item>
               <Property.Label>Occurrences</Property.Label>
               <Property.Value>{data.errorGroup.occurrenceCount.toLocaleString()}</Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>First seen</Property.Label>
-              <Property.Value><DateTimeShort date={data.errorGroup.firstObservedAt} /></Property.Value>
+              <Property.Value><DateTime date={data.errorGroup.firstObservedAt} /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Last seen</Property.Label>
-              <Property.Value><DateTimeShort date={data.errorGroup.lastObservedAt} /></Property.Value>
+              <Property.Value><RelativeDateTime date={data.errorGroup.lastObservedAt} /></Property.Value>
             </Property.Item>
           </Property.Table>
           <ExceptionPreview exception={data.representative} />
@@ -287,6 +296,12 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
       </div>
     </aside>
   );
+}
+
+function RelativeDateTime({ date }: { date: string }) {
+  const elapsed = Date.now() - new Date(date).getTime();
+  const hours = Math.max(1, Math.floor(elapsed / 3_600_000));
+  return <span title={date}>{hours} {hours === 1 ? "hour" : "hours"} ago</span>;
 }
 
 export function ErrorDetailErrorBoundary() {

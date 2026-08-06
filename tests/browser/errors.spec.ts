@@ -36,16 +36,16 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
 
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Errors" })).toHaveAttribute("href", "/skyline/errors");
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Job type", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Task", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
   await expect(page.locator("thead th[scope=col]")).toHaveCount(7);
   await expect(page.locator("tbody tr")).toHaveCount(2);
-  await expect(page.getByText(primaryError.errorMessage, { exact: true })).toBeVisible();
+  await expect(page.locator(`[title=${JSON.stringify(primaryError.errorMessage)}]`)).toBeVisible();
   await expect(page.locator("tbody").getByText("321", { exact: true })).toBeVisible();
   await expect(page.locator("tbody").getByText("1", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorListVisuals(page)).toEqual(triggerListVisuals);
 
-  await page.getByLabel("Job type").selectOption(jobType);
+  await page.getByLabel("Task").selectOption(jobType);
   await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
   await page.getByLabel("Exception class").selectOption("RuntimeException");
   await expect(page).toHaveURL(/exceptionClass=RuntimeException/);
@@ -59,8 +59,8 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await errorLink.focus();
   await errorLink.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/skyline/errors/${errorId}$`));
-  await expect(page.getByRole("heading", { name: "Occurrence activity" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Failed Attempts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Occurrence activity" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect(page.getByRole("img", { name: "Error occurrences over time" })).toBeVisible();
   const exceptionEvidence = page.getByRole("region", { name: "Exception" });
   await expect(exceptionEvidence).toContainText(primaryError.errorMessage);
@@ -70,6 +70,7 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await vendorFrames.click();
   await expect(exceptionEvidence).toContainText("Illuminate\\Container\\BoundMethod::call");
   await expect(exceptionEvidence).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
+  await expect(page.getByText("Task", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: jobType })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
   await expect(page.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?attempt=2");
   await expect(page.getByRole("link", { name: "run_invoice" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
@@ -97,7 +98,7 @@ test("Errors URL-cursor paginate groups and failed Attempts", async ({ page }) =
   await page.goto("/skyline/errors");
   await page.locator('a[href*="cursor=next-errors"]').click();
   await expect(page).toHaveURL(/cursor=next-errors&direction=forward/);
-  await expect(page.getByRole("link", { name: "LogicException" })).toBeVisible();
+  await expect(page.locator(`a[href="/skyline/errors/err_${"b".repeat(64)}"]`).first()).toBeVisible();
   await page.locator('a[href*="cursor=previous-errors"]').click();
   await expect(page).toHaveURL(/cursor=previous-errors&direction=backward/);
 

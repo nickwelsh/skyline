@@ -7,13 +7,16 @@
  */
 import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
+import { useMemo } from "react";
+import { Bar, BarChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
 import { BugIcon } from "~/assets/icons/BugIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
 import { Button } from "~/components/primitives/Buttons";
-import { DateTimeShort } from "~/components/primitives/DateTime";
+import { Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { Paragraph } from "~/components/primitives/Paragraph";
+import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
 import {
   Table,
@@ -23,6 +26,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from "~/components/primitives/Table";
+import { SimpleTooltip } from "~/components/primitives/Tooltip";
 
 type ErrorGroup = {
   id: string;
@@ -97,14 +101,15 @@ function FiltersBar({ list }: { list: ErrorsListData }) {
   return (
     <div
       aria-label="Error group filters"
-      className="flex items-center justify-between gap-2 border-b border-grid-bright px-2"
+      className="flex items-start justify-between gap-x-2 border-b border-grid-bright p-2"
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
+        <SearchInput placeholder="Search errors…" paramName="exceptionClass" />
         <Filter
-          label="Job type"
+          label="Task"
           value={list.filters.jobType ?? ""}
           options={list.filterOptions.jobTypes.map((value) => ({ value, label: value }))}
-          allLabel="All Job types"
+          allLabel="Tasks"
           onChange={(value) => update("jobType", value)}
         />
         <Filter
@@ -200,7 +205,7 @@ function ErrorsList({
       <TableHeader>
         <TableRow>
           <TableHeaderCell>ID</TableHeaderCell>
-          <TableHeaderCell>Job type</TableHeaderCell>
+        <TableHeaderCell>Task</TableHeaderCell>
           <TableHeaderCell>Error</TableHeaderCell>
           <TableHeaderCell>Occurrences</TableHeaderCell>
           <TableHeaderCell>Activity</TableHeaderCell>
@@ -225,9 +230,10 @@ function ErrorGroupRow({ errorGroup }: { errorGroup: ErrorGroup }) {
       </TableCell>
       <TableCell to={errorGroup.jobPath}>{errorGroup.jobType}</TableCell>
       <TableCell to={errorGroup.path} className="max-w-96 font-mono">
-        <span className="block text-[0.6875rem] text-text-faint">{errorGroup.exceptionClass}</span>
-        <span className="block max-w-96 truncate" title={errorGroup.representativeMessage}>
-          {errorGroup.representativeMessage}
+        <span title={errorGroup.representativeMessage}>
+          {errorGroup.representativeMessage.length > 128
+            ? `${errorGroup.representativeMessage.slice(0, 128)}…`
+            : errorGroup.representativeMessage}
         </span>
       </TableCell>
       <TableCell to={errorGroup.path}>
@@ -237,30 +243,55 @@ function ErrorGroupRow({ errorGroup }: { errorGroup: ErrorGroup }) {
         <ErrorActivityGraph activity={errorGroup.activity} />
       </TableCell>
       <TableCell to={errorGroup.path} className="tabular-nums">
-        <DateTimeShort date={errorGroup.firstObservedAt} />
+        <RelativeDateTime date={errorGroup.firstObservedAt} />
       </TableCell>
       <TableCell to={errorGroup.path} className="tabular-nums">
-        <DateTimeShort date={errorGroup.lastObservedAt} />
+        <RelativeDateTime date={errorGroup.lastObservedAt} />
       </TableCell>
     </TableRow>
   );
 }
 
 function ErrorActivityGraph({ activity }: { activity: ErrorGroup["activity"] }) {
-  const peak = Math.max(1, ...activity.map((point) => point.occurrences));
+  const data = useMemo(() => activity.map((point) => ({ date: point.timestamp, count: point.occurrences })), [activity]);
+  const peak = Math.max(...data.map((point) => point.count));
 
   return (
-    <div role="img" aria-label="Error occurrence activity" className="flex h-7 w-32 items-end gap-px">
-      {activity.length > 0 ? activity.map((point) => (
-        <span
-          key={point.timestamp}
-          title={`${point.timestamp}: ${point.occurrences} occurrences`}
-          className="min-w-1 flex-1 bg-rose-500"
-          style={{ height: `${Math.max(12, point.occurrences / peak * 100)}%` }}
-        />
-      )) : <span className="h-px w-full bg-grid-bright" />}
+    <div role="img" aria-label="Error occurrence activity" className="flex items-start gap-1.5">
+      <div className="h-6 w-28 rounded-sm">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+            <YAxis domain={[0, peak || 1]} hide />
+            <Tooltip animationDuration={0} content={() => null} />
+            <Bar dataKey="count" fill="#6366F1" strokeWidth={0} isAnimationActive={false} minPointSize={1} />
+            <ReferenceLine y={0} stroke="var(--color-border-bright)" strokeWidth={1} />
+            {peak > 0 && <ReferenceLine y={peak} stroke="var(--color-border-brighter)" strokeDasharray="4 4" strokeWidth={1} />}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <SimpleTooltip
+        asChild
+        button={<span className="-mt-1 text-xxs tabular-nums text-text-dimmed">{formatNumberCompact(peak)}</span>}
+        content="Peak occurrences in a single time bucket"
+      />
     </div>
   );
+}
+
+function RelativeDateTime({ date }: { date: string }) {
+  const elapsed = Date.now() - new Date(date).getTime();
+  const divisions = [
+    { milliseconds: 86_400_000, singular: "day", plural: "days" },
+    { milliseconds: 3_600_000, singular: "hour", plural: "hours" },
+    { milliseconds: 60_000, singular: "minute", plural: "minutes" },
+  ];
+  const unit = divisions.find(({ milliseconds }) => elapsed >= milliseconds) ?? divisions[2];
+  const value = Math.max(1, Math.floor(elapsed / unit.milliseconds));
+  return <span title={date}>{value} {value === 1 ? unit.singular : unit.plural} ago</span>;
+}
+
+function formatNumberCompact(value: number) {
+  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
 }
 
 export function ErrorsErrorBoundary() {
