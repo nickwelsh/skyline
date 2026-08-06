@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "fixtureVersion": "nw-227-v1",
+  "description": "NW-216 capability conditioning applied around exact Trigger controls.",
+  "buttons": {
+    "blockedVariantPrefixes": ["docs/"],
+    "blockedLinkPathFragments": [
+      "/alerts",
+      "/apikeys",
+      "/batches",
+      "/billing",
+      "/bulk-actions",
+      "/deployments",
+      "/environment-variables",
+      "/integrations",
+      "/limits",
+      "/regions",
+      "/sessions",
+      "/test",
+      "/waitpoints"
+    ],
+    "blockedLabels": [
+      "Bulk action",
+      "Cancel run",
+      "Configure alerts…",
+      "Increase limit",
+      "Pause environment",
+      "Pause queue",
+      "Replay run",
+      "Resume environment",
+      "Resume queue",
+      "Test task"
+    ]
+  }
+}

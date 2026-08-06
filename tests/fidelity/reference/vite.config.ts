@@ -12,11 +12,12 @@ const repositoryRoot = resolve(directory, "../../..");
 const triggerPackage = resolve(repositoryRoot, "../trigger.dev/apps/webapp/package.json");
 const triggerRequire = createRequire(triggerPackage);
 const localRequire = createRequire(join(repositoryRoot, "package.json"));
+const capabilityPolicy = JSON.parse(readFileSync(join(directory, "../reference-capabilities.json"), "utf8"));
 
 export default defineConfig({
   root: directory,
   cacheDir: "/tmp/skyline-fidelity-reference-vite",
-  plugins: [referenceAdapters(), react(), tailwindcss()],
+  plugins: [capabilityAdapters(), referenceAdapters(), react(), tailwindcss()],
   resolve: {
     alias: [
       { find: "~", replacement: vendorRoot },
@@ -31,6 +32,40 @@ export default defineConfig({
     sourcemap: false,
   },
 });
+
+function capabilityAdapters(): Plugin {
+  const source = join(vendorRoot, "components/primitives/Buttons.tsx");
+  return {
+    name: "skyline-fidelity-reference-capabilities",
+    enforce: "pre",
+    transform(code, moduleId) {
+      if (moduleId.split("?")[0] !== source) return undefined;
+      const adapted = code
+        .replace("export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(", "const SourceButton = forwardRef<HTMLButtonElement, ButtonPropsType>(")
+        .replace("export const LinkButton = ({", "const SourceLinkButton = ({");
+      if (adapted === code) throw new Error("Pinned Trigger Buttons declarations changed; capability adapter must be reviewed.");
+      return `${adapted}
+const policy = ${JSON.stringify(capabilityPolicy.buttons)};
+function text(value) {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(text).join("");
+  return React.isValidElement(value) ? text(value.props.children) : "";
+}
+function blocked(props, link) {
+  const label = text(props.children).trim();
+  if (policy.blockedLabels.includes(label)) return true;
+  if (link && policy.blockedVariantPrefixes.some((prefix) => String(props.variant ?? "").startsWith(prefix))) return true;
+  const target = typeof props.to === "string" ? props.to : "";
+  return link && policy.blockedLinkPathFragments.some((fragment) => target.includes(fragment));
+}
+export const Button = React.forwardRef(function CapabilityButton(props, ref) {
+  return blocked(props, false) ? null : <SourceButton {...props} ref={ref} />;
+});
+export const LinkButton = (props) => blocked(props, true) ? null : <SourceLinkButton {...props} />;
+`;
+    },
+  };
+}
 
 function referenceAdapters(): Plugin {
   const imports = collectImports(vendorRoot);
