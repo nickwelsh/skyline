@@ -24,7 +24,7 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
       accessibleRole: "region",
       accessibleName: "Recorded runs",
       anchorAccessibleRole: "combobox",
-      anchorAccessibleName: "Period: 1hr",
+      anchorAccessibleName: "Period: 1 hr",
       measurements: {},
     });
     expect(definition.captures).toEqual([
@@ -69,6 +69,7 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
     expect(discovery).toContain('step("recorded-runs:escape"');
     expect(discovery).toContain('step("recorded-runs:focus-restored"');
     expect(discovery).toContain('scenario.id === "queues-paginated-runs"');
+    expect(discovery).toContain("FRAMEWORK_EXTENSION_ANCHOR=");
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
     expect(config).toContain('"**/queue-recorded-runs-extension.discovery.ts"');
   });

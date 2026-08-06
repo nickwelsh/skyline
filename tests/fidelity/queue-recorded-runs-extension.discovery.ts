@@ -53,6 +53,11 @@ for (const capture of definition.captures) {
       await Promise.all([applyLiveSystemChange(skyline, capture), applyLiveSystemChange(trigger, capture)]);
       await Promise.all([step("settle:skyline", () => settleCapture(skyline)), step("settle:trigger", () => settleCapture(trigger))]);
       await Promise.all([step("canvas:skyline", () => assertFixedCanvas(skyline, capture)), step("canvas:trigger", () => assertFixedCanvas(trigger, capture))]);
+      const [triggerAnchorRect, skylineAnchorRect] = await Promise.all([
+        trigger.locator(definition.triggerAnchorSelector).boundingBox(),
+        skyline.locator(definition.skylineAnchorSelector).boundingBox(),
+      ]);
+      process.stdout.write(`\nFRAMEWORK_EXTENSION_ANCHOR=${JSON.stringify({ definition: definition.id, capture, triggerAnchorRect, skylineAnchorRect })}\n`);
       const observation = await discoverFrameworkExtensionObservation(trigger, skyline, definition, step);
       const measurement = {
         relativeRect: observation.relativeRect,

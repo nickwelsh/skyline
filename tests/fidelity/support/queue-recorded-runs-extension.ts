@@ -19,7 +19,7 @@ export function queueRecordedRunsExtensionDefinition(matrix: FidelityMatrix): Fr
     accessibleRole: "region",
     accessibleName: "Recorded runs",
     anchorAccessibleRole: "combobox",
-    anchorAccessibleName: "Period: 1hr",
+    anchorAccessibleName: "Period: 1 hr",
     measurements: {},
   };
 }
