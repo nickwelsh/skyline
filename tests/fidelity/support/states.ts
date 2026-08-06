@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import fixture from "../fixtures.json" with { type: "json" };
 import type { FidelityScenario } from "./skyline";
+import { isNw223State } from "./nw223";
 
 export async function seedOwnedState(page: Page, scenario: FidelityScenario, basePath = "/skyline") {
   const storageKey = `skyline.ui-preferences.v1:${basePath}`;
@@ -36,6 +37,14 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario, o
   if (scenario.id === "runs-inspectors" || scenario.id.startsWith("runs-exception")) {
     const attempt = scenario.id === "runs-exception-retry" ? 2 : 1;
     await page.getByRole("treeitem", { name: new RegExp(`Attempt ${attempt}`) }).first().click();
+  }
+  if (scenario.surface === "runs" && isNw223State(scenario.state)) {
+    await page.getByRole("treeitem", { name: /(?:SQL query|Database transaction|Cache operation|Redis command)/ }).first().click();
+    if (new URL(page.url()).pathname.startsWith("/skyline/")) {
+      await page.getByRole("tab", { name: "Detail", exact: true }).click();
+      if (scenario.state === "inspectors-sql-applied") await page.getByRole("tab", { name: "With bindings" }).click();
+      if (scenario.state === "inspectors-sql-result") await page.getByRole("tab", { name: "Tree" }).click();
+    }
   }
   if (scenario.id === "runs-exception-expanded" && options.expandException !== false) {
     if (new URL(page.url()).pathname.startsWith("/skyline/")) {

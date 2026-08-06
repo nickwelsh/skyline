@@ -2,6 +2,7 @@ import type { Page, Route } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import fixture from "../fixtures.json" with { type: "json" };
 import { isNw222State, nw222InspectorState, nw222TraceState } from "./nw222";
+import { isNw223State, nw223InspectorState, nw223TraceState } from "./nw223";
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
@@ -45,7 +46,7 @@ export function scenarioPath(scenario: FidelityScenario, catalog: FixtureCatalog
     queue: `/skyline/queues/${catalog.queue}`,
   };
   if (scenario.surface === "shell") return "/skyline/runs";
-  if (scenario.kind === "detail" || ownedDetailScenarios.has(scenario.id)) return details[singular(scenario.surface)];
+  if (scenario.kind === "detail" || ownedDetailScenarios.has(scenario.id) || scenario.id.startsWith("runs-inspectors-")) return details[singular(scenario.surface)];
   return roots[scenario.surface] ?? roots.runs;
 }
 
@@ -153,6 +154,14 @@ function ownedResponse(response: unknown, scenario: FidelityScenario, path: stri
     const inspector = path.match(/^runs\/[^/]+\/nodes\/(.+)$/);
     if (inspector && clone.node) {
       clone.node = nw222InspectorState(clone.node, decodeURIComponent(inspector[1]), scenario.state);
+      return clone;
+    }
+  }
+  if (scenario.surface === "runs" && isNw223State(scenario.state)) {
+    if (/^runs\/[^/]+$/.test(path)) return nw223TraceState(clone as never, scenario.state);
+    const inspector = path.match(/^runs\/[^/]+\/nodes\/(.+)$/);
+    if (inspector && clone.node) {
+      clone.node = nw223InspectorState(clone.node, decodeURIComponent(inspector[1]), scenario.state);
       return clone;
     }
   }

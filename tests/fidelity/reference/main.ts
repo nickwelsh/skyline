@@ -181,7 +181,7 @@ function captureFromPath(pathname: string) {
   const separator = id.indexOf("-");
   if (separator < 1) throw new Error(`Invalid fidelity capture id: ${id}`);
   const requestedSurface = id.slice(0, separator);
-  const surface = ownedDetailSurfaces[id] ?? requestedSurface;
+  const surface = id.startsWith("runs-inspectors-") ? "run" : ownedDetailSurfaces[id] ?? requestedSurface;
   if (!(surface in elements)) throw new Error(`Unsupported fidelity surface: ${surface}`);
   return { id, surface: surface as Surface, state: id.slice(separator + 1) };
 }

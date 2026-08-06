@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import { nw222InspectorState, nw222States, nw222TraceState } from "./nw222";
+import { nw223InspectorState, nw223States, nw223TraceState } from "./nw223";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
 import { fixtureCatalog } from "./skyline";
 
@@ -72,6 +73,17 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       [runDetail.run.spanId]: structuredClone(baseRunResource),
     }];
   }));
+  const operationSpanStates = Object.fromEntries(nw223States.map((state) => {
+    const detail = nw223TraceState(run, state);
+    const stateInspectors = Object.fromEntries(detail.trace.nodes.map((node) => [
+      node.id,
+      nw223InspectorState(inspectors[node.id], node.id, state),
+    ]));
+    return [state, {
+      ...triggerRunInspectorResources(detail, stateInspectors, baseRunResource),
+      [runDetail.run.spanId]: structuredClone(baseRunResource),
+    }];
+  }));
   const errorLayout = {
     alertData: { channels: [], emailEnabled: false, slackEnabled: false },
     projectRef: "proj_fixture", projectId: "project", environmentType: "PRODUCTION",
@@ -87,6 +99,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       shell: { data: runList, rootOnlyDefault: false, filters: runList.filters, canCancelRuns: false, canReplayRuns: false },
       run: runDetail,
       ...Object.fromEntries(nw222States.map((state) => [`runs-${state}`, triggerRun(nw222TraceState(run, state))])),
+      ...Object.fromEntries(nw223States.map((state) => [`runs-${state}`, triggerRun(nw223TraceState(run, state))])),
       "errors:layout": errorLayout,
       errors: triggerErrors(errors, errorLayout),
       "error:layout": errorLayout,
@@ -98,7 +111,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
     },
     resources: {
       spans: spanStates.exception,
-      spanStates,
+      spanStates: { ...spanStates, ...operationSpanStates },
       queueMetrics: triggerQueueMetricRows(queue, queues),
     },
     canonicalUrls: {
@@ -220,11 +233,11 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       canonicalUrl: (captureId: string) => {
         if (input.canonicalUrls?.[captureId]) return input.canonicalUrls[captureId];
         const prefix = captureId.slice(0, captureId.indexOf("-"));
-        const detail = detailByCapture[captureId];
+        const detail = captureId.startsWith("runs-inspectors-") ? "run" : detailByCapture[captureId];
         return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
       },
       defaultSearch: (captureId: string) => {
-        if (detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
+        if (captureId.startsWith("runs-inspectors-") || detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
         if (detailByCapture[captureId] === "log" || captureId === "log-found") return `event=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
         return "";
       },
