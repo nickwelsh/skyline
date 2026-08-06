@@ -14,6 +14,10 @@ it('lists only confirmed named asynchronous Queue targets with recorded aggregat
     $response = $this->getJson('/skyline/api/queues')->assertOk()
         ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('hasAnyQueueTargets', true)
+        ->assertJsonPath('environmentSummary.queued', 0)
+        ->assertJsonPath('environmentSummary.running', 1)
+        ->assertJsonPath('environmentSummary.allocated', null)
+        ->assertJsonPath('environmentSummary.limit', null)
         ->assertJsonPath('options.connections', ['database', 'redis'])
         ->assertJsonCount(2, 'queueTargets')
         ->assertJsonPath('queueTargets.0.connection', 'database')
@@ -37,8 +41,8 @@ it('lists only confirmed named asynchronous Queue targets with recorded aggregat
 });
 
 it('filters Queue targets with server supplied URL options and explicit invalid queries', function (): void {
-    seedQueueTargetRun('billing', 'completed', 'redis', 'billing', 2_000_000);
-    seedQueueTargetRun('mail', 'completed', 'sqs', 'outbound-mail', 4_000_000);
+    seedQueueTargetRun('billing', 'queued', 'redis', 'billing', 2_000_000);
+    seedQueueTargetRun('mail', 'running', 'sqs', 'outbound-mail', 4_000_000);
 
     $page = $this->getJson('/skyline/api/queues?'.http_build_query([
         'connection' => 'redis',
@@ -47,6 +51,8 @@ it('filters Queue targets with server supplied URL options and explicit invalid 
         ->assertJsonCount(1, 'queueTargets')
         ->assertJsonPath('filters.connection', 'redis')
         ->assertJsonPath('filters.search', 'bill')
+        ->assertJsonPath('environmentSummary.queued', 1)
+        ->assertJsonPath('environmentSummary.running', 1)
         ->assertJsonPath('queueTargets.0.queue', 'billing');
 
     expect($page->json('options.connections'))->toBe(['redis', 'sqs'])

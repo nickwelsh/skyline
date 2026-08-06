@@ -294,6 +294,7 @@ function listResponse(): QueueTargetsPageDto {
     packageVersion: "fixture",
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: capabilities(),
+    environmentSummary: { queued: 1, running: 2, allocated: null, limit: null },
     queueTargets: [summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }), summary(`queue_${"b".repeat(64)}`, "mail", {})],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },

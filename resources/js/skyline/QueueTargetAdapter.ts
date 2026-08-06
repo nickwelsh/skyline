@@ -4,6 +4,7 @@ import type { QueueTargetsPresentation } from "../trigger/components/queues/Queu
 import type {
   QueueTargetDetailDto,
   QueueTargetRunsQuery,
+  QueueTargetSummary,
   QueueTargetsPageDto,
   QueueTargetsQuery,
   RunStatus,
@@ -34,35 +35,10 @@ export function queueTargetQuery(request: Request): QueueTargetRunsQuery {
 }
 
 export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPresentation {
-  const queued = page.queueTargets.reduce((total, target) => total + target.recordedRunCounts.queued, 0);
-  const running = page.queueTargets.reduce((total, target) => total + target.recordedRunCounts.running, 0);
-
   return {
     generatedAt: page.generatedAt,
-    environment: { queued, running, allocated: null, limit: null },
-    queueTargets: page.queueTargets.map((target) => ({
-      id: target.id,
-      path: `/queues/${encodeURIComponent(target.id)}`,
-      connection: target.connection,
-      queue: target.queue,
-      destination: `${target.connection} / ${target.queue}`,
-      state: busyCount(target.recordedRunCounts) > 0 ? "Busy" : "Idle",
-      queued: target.recordedRunCounts.queued,
-      running: target.recordedRunCounts.running,
-      limit: null,
-      limitedBy: null,
-      health: queueHealth(target.recordedRunCounts),
-      delayP95: formatWaitUs(target.queueTime.p95Us),
-      backlog: [],
-      recordedRuns: target.recordedRunCount.toLocaleString(),
-      recordedRunCounts: target.recordedRunCounts,
-      queueTimeSampleCount: target.queueTime.sampleCount,
-      medianQueueTime: formatWaitUs(target.queueTime.medianUs),
-      p95QueueTime: formatWaitUs(target.queueTime.p95Us),
-      maximumQueueTime: formatWaitUs(target.queueTime.maximumUs),
-      firstObservedAt: target.firstObservedAt,
-      lastObservedAt: target.lastObservedAt,
-    })),
+    environment: page.environmentSummary,
+    queueTargets: page.queueTargets.map(presentQueueTargetSummary),
     pagination: {
       previous: page.pagination.previous ?? undefined,
       next: page.pagination.next ?? undefined,
@@ -75,12 +51,7 @@ export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPres
 }
 
 export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetailPresentation {
-  const target = presentQueueTargets({
-    ...page,
-    queueTargets: [page.queueTarget],
-    options: { connections: [page.queueTarget.connection], timeRanges: page.options.timeRanges },
-    hasAnyQueueTargets: true,
-  }).queueTargets[0];
+  const target = presentQueueTargetSummary(page.queueTarget);
 
   return {
     generatedAt: page.generatedAt,
@@ -115,6 +86,32 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
     timeRanges: page.options.timeRanges,
     hasAnyRuns: page.hasAnyRuns,
     hasFilters: Object.values(page.filters).some(hasFilterValue),
+  };
+}
+
+function presentQueueTargetSummary(target: QueueTargetSummary) {
+  return {
+    id: target.id,
+    path: `/queues/${encodeURIComponent(target.id)}`,
+    connection: target.connection,
+    queue: target.queue,
+    destination: `${target.connection} / ${target.queue}`,
+    state: busyCount(target.recordedRunCounts) > 0 ? "Busy" as const : "Idle" as const,
+    queued: target.recordedRunCounts.queued,
+    running: target.recordedRunCounts.running,
+    limit: null,
+    limitedBy: null,
+    health: queueHealth(target.recordedRunCounts),
+    delayP95: formatWaitUs(target.queueTime.p95Us),
+    backlog: [],
+    recordedRuns: target.recordedRunCount.toLocaleString(),
+    recordedRunCounts: target.recordedRunCounts,
+    queueTimeSampleCount: target.queueTime.sampleCount,
+    medianQueueTime: formatWaitUs(target.queueTime.medianUs),
+    p95QueueTime: formatWaitUs(target.queueTime.p95Us),
+    maximumQueueTime: formatWaitUs(target.queueTime.maximumUs),
+    firstObservedAt: target.firstObservedAt,
+    lastObservedAt: target.lastObservedAt,
   };
 }
 

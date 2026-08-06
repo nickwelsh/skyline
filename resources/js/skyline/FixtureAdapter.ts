@@ -167,18 +167,25 @@ export class FixtureAdapter implements SkylineDtoAdapter {
   async queueTargets(query: QueueTargetsQuery = {}): Promise<QueueTargetsPageDto> {
     const grouped = Map.groupBy(scenarios[0].runs, (run) => `${run.connection}\0${run.queue}`);
     const search = query.search?.toLowerCase();
-    const queueTargets = [...grouped.values()]
-      .filter((runs) => (!query.connection || runs[0].connection === query.connection)
-        && (!search || `${runs[0].connection} ${runs[0].queue}`.toLowerCase().includes(search)))
+    const allQueueTargets = [...grouped.values()]
       .map((runs) => fixtureQueueSummary(runs))
       .sort((left, right) => `${left.connection}\0${left.queue}`.localeCompare(`${right.connection}\0${right.queue}`));
+    const queueTargets = allQueueTargets.filter((target) => (!query.connection || target.connection === query.connection)
+      && (!search || `${target.connection} ${target.queue}`.toLowerCase().includes(search)));
     const connections = [...new Set(scenarios[0].runs.map((run) => run.connection))].sort();
+    const environmentSummary = {
+      queued: allQueueTargets.reduce((total, target) => total + target.recordedRunCounts.queued, 0),
+      running: allQueueTargets.reduce((total, target) => total + target.recordedRunCounts.running, 0),
+      allocated: null,
+      limit: null,
+    };
 
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
       generatedAt: "2026-08-04T20:02:00.000000000Z",
       capabilities,
+      environmentSummary,
       queueTargets,
       pagination: { next: null, previous: null },
       filters: { connection: query.connection ?? null, search: query.search ?? null, from: query.from ?? null, to: query.to ?? null, status: [] },

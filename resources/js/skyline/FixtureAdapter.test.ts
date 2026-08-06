@@ -2,6 +2,21 @@ import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "./FixtureAdapter";
 
 describe("FixtureAdapter", () => {
+  it("keeps the environment Queue summary independent of row filters", async () => {
+    const adapter = new FixtureAdapter();
+    const unfiltered = await adapter.queueTargets();
+    const filtered = await adapter.queueTargets({ search: "missing queue target" });
+
+    expect(filtered.queueTargets).toEqual([]);
+    expect(unfiltered.environmentSummary).toEqual({
+      queued: unfiltered.queueTargets.reduce((total, target) => total + target.recordedRunCounts.queued, 0),
+      running: unfiltered.queueTargets.reduce((total, target) => total + target.recordedRunCounts.running, 0),
+      allocated: null,
+      limit: null,
+    });
+    expect(filtered.environmentSummary).toEqual(unfiltered.environmentSummary);
+  });
+
   it("applies Telemetry-event search without losing unfiltered evidence state", async () => {
     const page = await new FixtureAdapter().telemetryEvents({ search: "import delayed" });
 

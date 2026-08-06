@@ -20,7 +20,7 @@ describe("QueueTargetAdapter", () => {
   it("presents captured Queue evidence through the source list metrics seam", () => {
     const route = presentQueueTargets(listPage());
 
-    expect(route.environment).toEqual({ queued: 1, running: 1, allocated: null, limit: null });
+    expect(route.environment).toEqual({ queued: 13, running: 14, allocated: null, limit: null });
     expect(route.queueTargets[0]).toEqual(expect.objectContaining({
       path: "/queues/queue_redis",
       destination: "redis / billing",
@@ -82,6 +82,7 @@ function listPage(): QueueTargetsPageDto {
     packageVersion: "fixture",
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: {} as QueueTargetsPageDto["capabilities"],
+    environmentSummary: { queued: 13, running: 14, allocated: null, limit: null },
     queueTargets: [summary()],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },

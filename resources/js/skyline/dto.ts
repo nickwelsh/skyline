@@ -190,11 +190,18 @@ export type QueueTargetFilters = {
   to: string | null;
   status: RunStatus[];
 };
+export type QueueEnvironmentSummary = {
+  queued: number;
+  running: number;
+  allocated: number | null;
+  limit: number | null;
+};
 export type QueueTargetsPageDto = {
   schemaVersion: 1;
   packageVersion: string;
   generatedAt: string;
   capabilities: SkylineCapabilities;
+  environmentSummary: QueueEnvironmentSummary;
   queueTargets: QueueTargetSummary[];
   pagination: { next: string | null; previous: string | null };
   filters: QueueTargetFilters;

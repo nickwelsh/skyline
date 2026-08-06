@@ -28,6 +28,12 @@ final readonly class QueueTargetsQuery
         $connections = $this->connections();
         $this->validateConnection($filters, $connections);
         $rows = $this->applyTime($this->baseQuery(), $filters)->get();
+        $environmentSummary = [
+            'queued' => $rows->where('status', 'queued')->count(),
+            'running' => $rows->where('status', 'running')->count(),
+            'allocated' => null,
+            'limit' => null,
+        ];
         $groups = $rows->groupBy(fn (object $run): string => QueueTargetIdentity::fromRow($run)->groupKey())
             ->when($filters->connection !== null, fn (Collection $groups) => $groups->filter(
                 fn (Collection $runs) => $runs->first()->connection === $filters->connection,
@@ -48,6 +54,7 @@ final readonly class QueueTargetsQuery
 
         return [
             ...$this->metadata->at($observedAt),
+            'environmentSummary' => $environmentSummary,
             'queueTargets' => $groups->map(fn (Collection $runs): array => $this->statistics->summary($runs, QueueTargetIdentity::fromRow($runs->first())))->all(),
             'pagination' => ['previous' => $previous, 'next' => $next],
             'filters' => $filters->toArray(),
