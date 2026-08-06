@@ -369,9 +369,7 @@ export function omitFrameworkExtensionAccessibility(tree: NormalizedAccessibilit
 
 export function applicableFrameworkExtensions(capture: string, manifest: AllowedDifferences) {
   validateFrameworkExtensionDefinitions(manifest);
-  const definitions = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension" && region.captures.includes(capture));
-  if (definitions.length > 1) throw new Error(`Capture ${capture} has multiple framework-extension regions.`);
-  return definitions;
+  return manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension" && region.captures.includes(capture));
 }
 
 export function applicablePresenterExtensions(capture: string, manifest: AllowedDifferences) {
@@ -399,12 +397,22 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
 }
 
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
+  const frameworks = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension");
+  const presenters = manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension");
+  for (const capture of new Set([...frameworks, ...presenters].flatMap(({ captures }) => captures))) {
+    const captureFrameworks = frameworks.filter((definition) => definition.captures.includes(capture));
+    const capturePresenters = presenters.filter((definition) => definition.captures.includes(capture));
+    if (capturePresenters.length > 1 || (capturePresenters.length && captureFrameworks.length)) throw new Error(`Framework and presenter extension regions overlap capture ${capture}.`);
+    if (new Set(captureFrameworks.map(({ skylineSelector }) => skylineSelector)).size !== captureFrameworks.length) throw new Error(`Framework-extension capture ${capture} has duplicate Skyline selector ownership.`);
+    const identities = captureFrameworks.map(({ accessibleRole, accessibleName }) => `${accessibleRole}\0${accessibleName}`);
+    if (new Set(identities).size !== identities.length) throw new Error(`Framework-extension capture ${capture} has duplicate accessible identity.`);
+  }
+
   const captureOwners = new Map<string, string>();
-  const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[] }>();
+  const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[]; kind: "extension" | "anchor" | "capability"; anchorPair?: string }>();
   for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension" || region.category === "capability-omission")) {
-    for (const capture of definition.captures) {
-      const ownership = definition.category === "capability-omission" ? "capability-omission" : "extension";
-      const key = `${ownership}:${capture}`;
+    for (const capture of definition.category === "capability-omission" ? definition.captures : []) {
+      const key = `capability-omission:${capture}`;
       const owner = captureOwners.get(key);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
       captureOwners.set(key, definition.id);
@@ -414,14 +422,24 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       : definition.category === "framework-extension"
         ? [definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
         : definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
+    if (definition.category !== "capability-omission") {
+      const extensions = definition.category === "presenter-extension" ? [definition.triggerSelector, definition.skylineSelector] : [definition.skylineSelector];
+      const collision = extensions.find((selector) => selector === definition.triggerAnchorSelector || selector === definition.skylineAnchorSelector);
+      if (collision) throw new Error(`Framework-extension region ${definition.id} collides on extension and anchor selector ${collision}.`);
+    }
     if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length)) throw new Error(`Capability-omission region ${definition.id} has duplicate selector ownership.`);
+    const anchorPair = definition.category === "capability-omission" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
+      const kind = definition.category === "capability-omission" ? "capability"
+        : selector === definition.skylineSelector || (definition.category === "presenter-extension" && selector === definition.triggerSelector) ? "extension" : "anchor";
       const owner = selectorOwners.get(selector);
       const disjointCapabilityReuse = owner?.category === "capability-omission"
         && definition.category === "capability-omission"
         && !definition.captures.some((capture) => owner.captures.includes(capture));
-      if (owner && !disjointCapabilityReuse) throw new Error(`Framework-extension regions ${owner.id} and ${definition.id} collide on selector ${selector}.`);
-      if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures });
+      const sharedFrameworkAnchor = owner?.category === "framework-extension" && definition.category === "framework-extension"
+        && owner.kind === "anchor" && kind === "anchor" && owner.anchorPair === anchorPair;
+      if (owner && !disjointCapabilityReuse && !sharedFrameworkAnchor) throw new Error(`Framework-extension regions ${owner.id} and ${definition.id} collide on selector ${selector}.`);
+      if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures, kind, anchorPair });
     }
   }
 }

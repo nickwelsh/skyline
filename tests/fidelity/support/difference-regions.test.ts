@@ -165,16 +165,27 @@ describe("framework-extension fidelity regions", () => {
     expect(fingerprintComputedStyle(trigger)).not.toBe(fingerprintComputedStyle([["color", "rgb(3, 2, 1)", ""]]));
   });
 
-  test("allows multiple disjoint regions but at most one per capture", () => {
+  test("allows multiple uniquely identified framework controls on one shared anchor", () => {
     const region = definition();
+    const siblings = ["Occurrence activity", "Logs", "Errors", "Queues"].map((accessibleName, index) => ({
+      ...definition(),
+      id: `shell-control-${index}`,
+      skylineSelector: `[data-skyline-extension='shell-control-${index}']`,
+      accessibleRole: "button",
+      accessibleName,
+    }));
+    const sibling = siblings[0];
     const queue = { ...definition(), id: "queue-recorded-runs", captures: ["queue-found@1440x960-classic"], skylineSelector: "[data-skyline-extension='queue-recorded-runs']", triggerAnchorSelector: ".queue-heading", skylineAnchorSelector: ".queue-heading" };
-    expect(applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region] })).toEqual([region]);
+    expect(applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, ...siblings] })).toEqual([region, ...siblings]);
     expect(applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, queue] })).toEqual([queue]);
     expect(applicableFrameworkExtensions("errors-populated@1440x960-classic", { regions: [region] })).toEqual([]);
-    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
-    expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, captures: region.captures }] })).toThrow(/overlap|multiple/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...sibling, accessibleRole: region.accessibleRole, accessibleName: region.accessibleName }] })).toThrow(/identity/i);
     expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, skylineSelector: region.skylineSelector }] })).toThrow(/selector/i);
-    expect(() => applicableFrameworkExtensions("queue-found@1440x960-classic", { regions: [region, { ...queue, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...sibling, triggerAnchorSelector: ".other-heading" }] })).toThrow(/anchor|selector/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...sibling, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [region, { ...presenterDefinition(), captures: region.captures }] })).toThrow(/overlap|presenter/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [{ ...region, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
+    expect(() => applicableFrameworkExtensions("error-found@1440x960-classic", { regions: [{ ...region, skylineAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
   });
 
   test("omits exactly the named extension AX subtree", () => {
@@ -183,6 +194,12 @@ describe("framework-extension fidelity regions", () => {
 
     expect(omitFrameworkExtensionAccessibility(tree, "error-found@1440x960-classic", manifest)).toEqual({ role: "main", children: [{ role: "heading", name: "Error" }] });
     expect(() => omitFrameworkExtensionAccessibility({ role: "main" }, "error-found@1440x960-classic", manifest)).toThrow(/omitted 0/i);
+
+    const sibling = { ...definition(), id: "occurrence", skylineSelector: "[data-extension='occurrence']", accessibleRole: "button", accessibleName: "Occurrence activity" };
+    const multiple = { regions: [definition(), sibling] };
+    expect(omitFrameworkExtensionAccessibility({ role: "main", children: [{ role: "region", name: "Exception" }, { role: "button", name: "Occurrence activity" }] }, "error-found@1440x960-classic", multiple)).toEqual({ role: "main" });
+    expect(() => omitFrameworkExtensionAccessibility({ role: "main", children: [{ role: "region", name: "Exception" }] }, "error-found@1440x960-classic", multiple)).toThrow(/omitted 1/i);
+    expect(() => omitFrameworkExtensionAccessibility({ role: "main", children: [{ role: "region", name: "Exception" }, { role: "button", name: "Occurrence activity" }, { role: "button", name: "Occurrence activity" }] }, "error-found@1440x960-classic", multiple)).toThrow(/omitted 3/i);
   });
 
   test("locks both presenter sides while preserving their distinct evidence", () => {
