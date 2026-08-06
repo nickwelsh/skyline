@@ -174,7 +174,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   const exception = page.getByRole("region", { name: "Exception" });
   await expect(exception.locator("..")).toContainText("Retry failed differently.");
   await exception.getByRole("button", { name: "Expand exception stack trace" }).click();
-  const retryEvidence = page.getByRole("dialog", { name: "exception stack trace" });
+  const retryEvidence = page.getByRole("dialog").getByRole("region", { name: "exception stack trace" });
   await expect(retryEvidence).toContainText("app/Jobs/FinalizeInvoices.php:73");
   await expect(retryEvidence).toContainText("Show 2 frames");
   await expect(retryEvidence).not.toContainText("Source location not captured");
@@ -238,9 +238,9 @@ async function exerciseFailureSurface(page: Page) {
   const expandStack = exception.getByRole("button", { name: "Expand exception stack trace" });
   await expandStack.focus();
   await page.keyboard.press("Enter");
-  const stackDialog = page.getByRole("dialog", { name: "exception stack trace" });
+  const stackDialog = page.getByRole("dialog");
   await expect(stackDialog).toBeVisible();
-  const evidence = stackDialog;
+  const evidence = stackDialog.getByRole("region", { name: "exception stack trace" });
 
   const source = evidence.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" }).first();
   await source.focus();

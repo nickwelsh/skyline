@@ -55,7 +55,7 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
   const metadata = (
     <>
       {exception.messageTruncated && <div className="text-xs text-warning">Exception message truncated</div>}
-      <div className="flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs text-text-faint">
+      <div className={`flex min-w-0 flex-wrap items-center gap-2 font-mono text-xs ${attemptPresenter ? "text-text-dimmed" : "text-text-faint"}`}>
         {exception.location
           ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
           : <span>Source location not captured</span>}

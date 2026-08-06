@@ -187,8 +187,9 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           }}
         >
           <DialogHeader className="h-fit">
-            <DialogTitle className={fileName || rowTitle ? "absolute left-3.5 top-2.5" : "sr-only"}>
-              {fileName ?? rowTitle ?? label}
+            <DialogTitle className="absolute left-3.5 top-2.5">
+              {fileName && fileName}
+              {rowTitle && rowTitle}
             </DialogTitle>
             <button
               type="button"
@@ -199,7 +200,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               {modalCopied ? "Copied" : "Copy"}
             </button>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div aria-label={label} className="min-h-0 flex-1 overflow-y-auto" role="region">
             <HighlightCode
               theme={theme}
               code={code}
