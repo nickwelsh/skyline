@@ -44,8 +44,9 @@ test("source shell exposes only supported surfaces and persists customization", 
     await expect(page.getByRole("button", { name: label, exact: true })).toHaveCount(0);
   }
   await page.getByText("Shortcuts", { exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
-  for (const label of baseline.contract.shortcuts) await expect(page.getByText(label, { exact: true })).toBeVisible();
+  const shortcutsDialog = page.getByRole("dialog", { name: "Keyboard shortcuts" });
+  await expect(shortcutsDialog).toBeVisible();
+  for (const label of baseline.contract.shortcuts) await expect(shortcutsDialog.getByText(label, { exact: true }).first()).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Appearance" }).click();

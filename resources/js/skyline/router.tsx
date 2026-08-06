@@ -22,6 +22,7 @@ import ErrorDetailRoute, { ErrorDetailErrorBoundary } from "../trigger/routes/_a
 import LogsRoute, { LogsErrorBoundary, type LogsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
 
 export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath), preferences?: UiPreferencesAdapter) {
+  let lastPersistedRootOnlyUrl: string | null = null;
   const runsLoader = async ({ request }: LoaderFunctionArgs) => {
     const url = new URL(request.url);
     const rootOnly = url.searchParams.get("rootOnly");
@@ -33,7 +34,8 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
         : url.pathname;
       throw redirect(`${routePath}${url.search}`);
     }
-    if (!jobFiltered && rootOnly !== null && preferences) {
+    if (!jobFiltered && rootOnly !== null && preferences && lastPersistedRootOnlyUrl !== url.href) {
+      lastPersistedRootOnlyUrl = url.href;
       preferences.update((current) => ({ ...current, runs: { rootOnly: rootOnly === "true" } }));
     }
     return presentRuns(await adapter.runs(runsQuery(request)));
