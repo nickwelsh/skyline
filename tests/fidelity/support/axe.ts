@@ -101,16 +101,36 @@ export function resolveUniqueAxeTarget(root: Document | ShadowRoot, path: string
 }
 
 export function additionalAxeViolations(trigger: AxeEvidence, skyline: AxeEvidence) {
-  const upstream = multiset(trigger.flatMap((violation) => violation.nodes.map((node) => semanticNodeSignature(violation, node))));
-  return skyline.flatMap((violation) => {
-    const nodes = violation.nodes.filter((node) => {
+  const upstreamByTarget = new Map<string, string[]>();
+  for (const violation of trigger) {
+    for (const node of violation.nodes) {
+      const signature = rawNodeSignature(violation, node);
+      const bucket = upstreamByTarget.get(signature) ?? [];
+      bucket.push(semanticNodeSignature(violation, node));
+      upstreamByTarget.set(signature, bucket);
+    }
+  }
+
+  const unmatchedByTarget = skyline.map((violation) => ({
+    violation,
+    nodes: violation.nodes.filter((node) => {
+      const bucket = upstreamByTarget.get(rawNodeSignature(violation, node));
+      if (!bucket || bucket.length === 0) return true;
+      bucket.shift();
+      return false;
+    }),
+  }));
+  const upstreamBySemantics = multiset([...upstreamByTarget.values()].flat());
+
+  return unmatchedByTarget.flatMap(({ violation, nodes }) => {
+    const unmatched = nodes.filter((node) => {
       const signature = semanticNodeSignature(violation, node);
-      const count = upstream.get(signature) ?? 0;
+      const count = upstreamBySemantics.get(signature) ?? 0;
       if (count === 0) return true;
-      upstream.set(signature, count - 1);
+      upstreamBySemantics.set(signature, count - 1);
       return false;
     });
-    return nodes.length > 0 ? [{ ...violation, nodes }] : [];
+    return unmatched.length > 0 ? [{ ...violation, nodes: unmatched }] : [];
   });
 }
 
@@ -182,6 +202,14 @@ function semanticNodeSignature(rule: AxeEvidence[number], node: AxeEvidence[numb
   return JSON.stringify({
     rule: ruleSignature(rule),
     html: node.html,
+    failureSummary: node.failureSummary,
+  });
+}
+
+function rawNodeSignature(rule: AxeEvidence[number], node: AxeEvidence[number]["nodes"][number]) {
+  return JSON.stringify({
+    rule: ruleSignature(rule),
+    target: targetSignature(node.target),
     failureSummary: node.failureSummary,
   });
 }

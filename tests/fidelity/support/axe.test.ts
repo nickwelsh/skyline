@@ -38,13 +38,15 @@ describe("Axe fidelity evidence", () => {
 
   test("matches cross-app nodes by semantic evidence instead of generated selector", () => {
     expect(additionalAxeViolations(violations, violations)).toEqual([]);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], html: "<button>App-owned attributes differ</button>" }] }])).toEqual([]);
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"] }] }])).toEqual([]);
     expect(additionalAxeViolations(violations, [{ ...violations[0], impact: "critical" }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [...violations[0].nodes, violations[0].nodes[0]] }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], id: "aria-input-name" }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], tags: ["wcag2aa"] }])).toHaveLength(1);
-    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], html: "<button>Changed</button>" }] }])).toHaveLength(1);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"], html: "<button>Changed</button>" }] }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], failureSummary: "Different failure" }] }])).toHaveLength(1);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"], failureSummary: "Different failure" }] }])).toHaveLength(1);
   });
 
   test("normalizes Axe node HTML whitespace without weakening markup identity", () => {
