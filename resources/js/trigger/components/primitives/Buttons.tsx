@@ -111,6 +111,14 @@ const variant = {
   "minimal/small": createVariant("small", "minimal"),
   "minimal/medium": createVariant("medium", "minimal"),
   "danger/small": createVariant("small", "danger"),
+  "small-menu-item": {
+    textColor: "text-text-bright",
+    button: "h-[1.8rem] px-[0.4rem] text-2sm rounded-sm text-text-dimmed bg-transparent group-hover/button:bg-background-hover",
+    icon: "h-[1.125rem]",
+    iconSpacing: "gap-x-1.5",
+    shortcutVariant: "medium" as const,
+    shortcut: undefined,
+  },
 };
 
 const allVariants = {

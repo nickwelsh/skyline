@@ -97,6 +97,25 @@ describe("SideMenu capabilities", () => {
     }
   });
 
+  it("keeps the source footer anchors around the Appearance extension", () => {
+    const container = renderSideMenu(fixtureCapabilities.navigation);
+    const inner = container.querySelector<HTMLElement>('[data-testid="side-menu"] > .absolute.inset-0.grid')!;
+    const footer = inner.lastElementChild as HTMLElement;
+    const panel = footer.firstElementChild as HTMLElement;
+    const controls = panel.lastElementChild as HTMLElement;
+    const help = [...controls.querySelectorAll("button")].find((button) => button.textContent?.includes("Help & Feedback"))!;
+    const appearance = controls.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]')!;
+    const collapse = controls.querySelector<HTMLButtonElement>('button[aria-label="Collapse side menu"]')!;
+
+    expect(footer.className).toBe("");
+    expect(panel.className).toBe("flex flex-col gap-1 border-t border-grid-bright p-1");
+    expect(controls.className).toBe("flex w-full items-center justify-between");
+    expect(help.className).toBe("group flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 hover:bg-background-hover focus-custom w-full justify-between");
+    expect(help.querySelector("span > span")?.className).toBe("min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright");
+    expect(appearance.className).toContain("min-w-0 flex-1");
+    expect(collapse.className).toBe("group/button outline-hidden focus-custom");
+  });
+
   it("retains every unsupported Trigger surface behind a dormant branch", () => {
     const container = renderSideMenu({
       ...fixtureCapabilities.navigation,

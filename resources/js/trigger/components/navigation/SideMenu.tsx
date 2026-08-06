@@ -6,8 +6,6 @@
 import {
   AdjustmentsHorizontalIcon,
   ChartBarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
 import { useLocation } from "@remix-run/react";
@@ -16,13 +14,17 @@ import { BugIcon } from "~/assets/icons/BugIcon";
 import { DevEnvironmentIconSmall, ProdEnvironmentIconSmall } from "~/assets/icons/EnvironmentIcons";
 import { FolderOpenIcon } from "~/assets/icons/FolderOpenIcon";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
+import { LeftSideMenuCollapsedIcon } from "~/assets/icons/LeftSideMenuCollapsedIcon";
+import { LeftSideMenuIcon } from "~/assets/icons/LeftSideMenuIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
 import { cn } from "~/utils/cn";
 import { Dialog } from "../primitives/Dialog";
+import { Button } from "../primitives/Buttons";
 import { Popover, PopoverContent, PopoverTrigger } from "../primitives/Popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../primitives/Tooltip";
 import {
   CustomizeSidebarDialog,
   type CustomizeSidebarSection,
@@ -331,15 +333,15 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </div>
           </nav>
         </div>
-        <div className="border-t border-grid-bright p-1">
+        <div>
+          <div className={cn("flex flex-col gap-1 border-t border-grid-bright p-1", collapsed && "items-center")}>
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
-        <div className={cn("flex gap-1", collapsed ? "flex-col" : "items-center")}>
+        <div className={cn("flex w-full", collapsed ? "flex-col-reverse gap-1" : "items-center justify-between")}>
           <DormantShellActions capabilities={capabilities.shell} />
           {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} shortcutsOpen={shortcutsOpen} onOpenShortcuts={(returnFocus) => { shortcutsReturnFocusRef.current = returnFocus; setShortcutsOpen(true); }} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
-          <button type="button" aria-label={collapsed ? "Expand side menu" : "Collapse side menu"} onClick={toggleCollapsed} className="flex size-8 shrink-0 items-center justify-center rounded text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom">
-            {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
-          </button>
+          <CollapseMenuButton collapsed={collapsed} onToggle={toggleCollapsed} />
+        </div>
         </div>
         </div>
       </div>
@@ -349,6 +351,11 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} returnFocus={shortcutsReturnFocusRef.current} />
     </aside>
   );
+}
+
+function CollapseMenuButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  const [hovering, setHovering] = useState(false);
+  return <TooltipProvider disableHoverableContent><Tooltip delayDuration={collapsed ? 0 : 500}><TooltipTrigger asChild><span className={cn("inline-flex h-8", collapsed && "w-full")} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}><Button variant="small-menu-item" aria-label={collapsed ? "Expand side menu" : "Collapse side menu"} onClick={onToggle} fullWidth={collapsed} className={cn("h-full", collapsed && "justify-center")}>{collapsed ? <LeftSideMenuCollapsedIcon className={cn("size-5 transition-colors", hovering ? "text-text-bright" : "text-text-dimmed")} /> : <LeftSideMenuIcon className={cn("size-5 transition-colors", hovering ? "text-text-bright" : "text-text-dimmed")} hovered={hovering} />}</Button></span></TooltipTrigger><TooltipContent side="right" sideOffset={8} className="text-xs">{collapsed ? "Expand" : "Collapse"}</TooltipContent></Tooltip></TooltipProvider>;
 }
 
 function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active: boolean; labelOpacity: number }) {
