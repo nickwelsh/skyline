@@ -30,7 +30,6 @@ export type PresentedRun = {
   queueTarget: string;
   traceIdentity: string;
   attemptCount: number;
-  triggeredAt: string;
   startedAt?: string | null;
   queueDuration: string;
   duration: string;

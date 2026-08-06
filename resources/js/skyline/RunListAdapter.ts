@@ -34,7 +34,6 @@ export function presentRuns(page: RunsPageDto): RunsRouteData {
       queueTargets: page.options.queueTargets,
       traceIdentities: page.options.traceIdentities,
     },
-    hasAnyRuns: page.hasAnyRuns,
     hasFilters: Object.values(page.filters).some((value) => value === true || (Array.isArray(value) ? value.length > 0 : value !== null && value !== "" && value !== false)),
     polling: page.polling,
   };
@@ -51,7 +50,6 @@ export function presentRun(run: RunSummary, tableState: string) {
     queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—",
     traceIdentity: run.traceId,
     attemptCount: run.attemptCount,
-    triggeredAt: run.triggeredAt,
     startedAt: run.startedAt,
     queueDuration: formatRunDuration(run.queueDurationUs),
     duration: formatRunDuration(run.durationUs),

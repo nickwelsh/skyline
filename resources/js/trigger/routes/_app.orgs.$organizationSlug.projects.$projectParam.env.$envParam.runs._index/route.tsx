@@ -16,7 +16,6 @@ export type RunsRouteData = {
   runs: PresentedRun[];
   pagination: { previous?: string; next?: string };
   filterOptions: RunFilterOptions;
-  hasAnyRuns: boolean;
   hasFilters: boolean;
   polling: { activeRunsIntervalMs: number; newRunsIntervalMs: number };
 };
