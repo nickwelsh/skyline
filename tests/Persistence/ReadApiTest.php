@@ -6,6 +6,8 @@ use NickWelsh\Skyline\Read\EditorLink;
 use NickWelsh\Skyline\Read\ExceptionPresenter;
 use NickWelsh\Skyline\Read\Nanoseconds;
 use NickWelsh\Skyline\Telemetry\SqlCapture;
+use OpenTelemetry\API\Common\Time\Clock;
+use OpenTelemetry\API\Common\Time\ClockInterface;
 use Tests\Fixtures\Jobs\CacheJob;
 use Tests\Fixtures\Jobs\CacheStrategyJob;
 use Tests\Fixtures\Jobs\ChildJob;
@@ -487,7 +489,18 @@ it('serves captured direct Redis command arguments', function (): void {
 
 it('presents log breadcrumbs as chronological selectable nodes with details', function (): void {
     config()->set('skyline.logging.enabled', true);
-    SummaryJob::dispatchSync();
+    Clock::setDefault(new class implements ClockInterface
+    {
+        public function now(): int
+        {
+            return Nanoseconds::now() + 1_000_000_000;
+        }
+    });
+    try {
+        SummaryJob::dispatchSync();
+    } finally {
+        Clock::reset();
+    }
     $run = DB::table('skyline_runs')->where('job_name', SummaryJob::class)->first();
     $nodes = collect($this->getJson('/skyline/api/runs/'.$run->run_id)
         ->assertOk()

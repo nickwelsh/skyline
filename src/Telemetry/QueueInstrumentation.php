@@ -17,6 +17,7 @@ use Illuminate\Queue\Events\JobTimedOut;
 use Illuminate\Queue\Queue;
 use NickWelsh\Skyline\Persistence\PersistenceGuard;
 use NickWelsh\Skyline\Persistence\SkylineConnection;
+use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -544,7 +545,7 @@ final class QueueInstrumentation
 
     private function now(): int
     {
-        return (int) round(microtime(true) * 1_000_000_000);
+        return Clock::getDefault()->now();
     }
 
     private function traceId(PayloadEnvelope $envelope): ?string

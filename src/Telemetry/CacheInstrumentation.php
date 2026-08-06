@@ -25,6 +25,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Redis\Events\CommandExecuted;
 use Illuminate\Redis\Events\CommandFailed;
 use NickWelsh\Skyline\Persistence\PersistenceGuard;
+use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use Psr\Log\LoggerInterface;
@@ -393,6 +394,6 @@ final class CacheInstrumentation
 
     private function now(): int
     {
-        return (int) round(microtime(true) * 1_000_000_000);
+        return Clock::getDefault()->now();
     }
 }
