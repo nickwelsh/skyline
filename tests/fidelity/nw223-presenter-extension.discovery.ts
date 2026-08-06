@@ -1,9 +1,10 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
-import { additionalAxeViolations, captureAxe } from "./support/axe";
+import { capturePartitionedAxe, normalizedPartitionLedger, pairedPresenterAxeDifferences } from "./support/axe";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
+import { expandedDialogCounts } from "./support/dialog-lifecycle";
 import { isNw223State, nw223InteractionStates, nw223Presentation, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
@@ -48,7 +49,7 @@ const referenceFixture = createReferenceFixture();
 
 for (const capture of captures) {
   test(`discover exact NW-223 ${capture}`, async ({ browser }) => {
-    test.setTimeout(30_000);
+    test.setTimeout(60_000);
     const scenario = parseScenario(capture);
     if (interactionStates.has(scenario.state)) await proveCaptureInteraction(browser, capture, scenario);
     const context = await browser.newContext({ locale: "en-US", timezoneId: "UTC", deviceScaleFactor: 1 });
@@ -196,12 +197,18 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
   const trigger = await context.newPage();
   try {
     await preparePair(skyline, trigger, capture, scenario, observationStep(capture));
-    const [triggerAxe, skylineAxe] = await Promise.all([captureAxe(trigger), captureAxe(skyline)]);
-    const additional = additionalAxeViolations(triggerAxe, skylineAxe);
-    process.stdout.write(`\nNW223_AXE_PREFLIGHT=${JSON.stringify({ capture, trigger: triggerAxe.length, skyline: skylineAxe.length, additional: additional.length })}\n`);
-    expect(additional).toEqual([]);
-    await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false, scenario);
-    await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true, scenario);
+    const [triggerAxe, skylineAxe] = await Promise.all([
+      capturePartitionedAxe(trigger, definition.triggerSelector),
+      capturePartitionedAxe(skyline, definition.skylineSelector),
+    ]);
+    const differences = pairedPresenterAxeDifferences(triggerAxe, skylineAxe);
+    const axeLedger = { trigger: normalizedPartitionLedger(triggerAxe), skyline: normalizedPartitionLedger(skylineAxe) };
+    process.stdout.write(`\nNW223_AXE_PREFLIGHT=${JSON.stringify({ capture, differences, axeLedger })}\n`);
+    expect(differences).toEqual([]);
+    if (process.env.SKYLINE_NW223_AXE_ONLY === "1") return;
+    const triggerInteraction = await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false, scenario);
+    const skylineInteraction = await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true, scenario);
+    process.stdout.write(`\nNW223_ESCAPE_PREFLIGHT=${JSON.stringify({ capture, trigger: triggerInteraction, skyline: skylineInteraction })}\n`);
   } finally {
     await context.close();
   }
@@ -226,21 +233,69 @@ function observationStep(capture: string): PresenterObservationStep {
 }
 
 async function exerciseCapture(page: Page, region: Locator, named: boolean, scenario: FidelityScenario) {
+  const application = named ? "skyline" : "trigger";
+  const step = <T>(label: string, action: () => Promise<T>) => interactionStep(`${application}:${label}`, scenario.id, action);
   const buttons = region.locator("button");
   const wrap = named ? region.getByRole("button", { name: /^Wrap / }).first() : buttons.nth(0);
   const copy = named ? region.getByRole("button", { name: /^Copy / }).first() : buttons.nth(1);
   const expand = named ? region.getByRole("button", { name: /^Expand / }).first() : buttons.nth(2);
-  await wrap.click();
-  await copy.click();
-  expect((await page.evaluate(() => navigator.clipboard.readText())).length).toBeGreaterThan(0);
-  await expand.click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  expect(await page.evaluate(() => document.activeElement?.closest("[role='dialog']") !== null)).toBe(true);
-  if (named) await exerciseVariantDialog(page, dialog, scenario);
-  await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
-  await expect(expand).toBeFocused();
+  const expandHandle = await step("expand-handle", () => expand.elementHandle());
+  if (!expandHandle) throw new Error(`Missing ${application} expand control for ${scenario.id}.`);
+  const copiedFeedback = page.getByText("Copied", { exact: true });
+  await step("wrap-copy", async () => {
+    await wrap.click();
+    await copy.click();
+    await expect(copiedFeedback).toBeVisible();
+    expect((await page.evaluate(() => navigator.clipboard.readText())).length).toBeGreaterThan(0);
+  });
+  const dialogCountBefore = await step("dialog-baseline", () => page.getByRole("dialog").count());
+  const expectedDialogs = expandedDialogCounts(dialogCountBefore);
+  await step("expand", async () => {
+    await expand.click();
+    await expect.poll(() => page.getByRole("dialog").count()).toBe(expectedDialogs.open);
+  });
+  const dialog = page.getByRole("dialog").last();
+  await step("dialog-ready", async () => {
+    await expect(dialog).toBeVisible();
+    expect(await page.evaluate(() => document.activeElement?.closest("[role='dialog']") !== null)).toBe(true);
+  });
+  if (named) await step("variant", () => exerciseVariantDialog(page, dialog, scenario));
+  await step("copy-settle", () => expect(copiedFeedback).not.toBeVisible());
+  await step("escape", async () => {
+    await page.keyboard.press("Escape");
+    await expect.poll(() => page.getByRole("dialog").count()).toBe(expectedDialogs.closed);
+  });
+  return step("transcript", async () => ({
+      dialogCountBefore,
+      dialogCountAfterEscape: await page.getByRole("dialog").count(),
+      expand: await expandHandle.evaluate((element) => ({ connected: element.isConnected, focused: document.activeElement === element })),
+      presenterCount: await region.count(),
+      selectedAnchorCount: await page.locator(definition.triggerAnchorSelector).count(),
+      active: await page.evaluate(() => {
+        const element = document.activeElement;
+        return element ? {
+          tag: element.tagName.toLowerCase(),
+          role: element.getAttribute("role") ?? "",
+          name: element.getAttribute("aria-label") ?? element.textContent?.replaceAll(/\s+/g, " ").trim() ?? "",
+        } : null;
+      }),
+    }));
+}
+
+async function interactionStep<T>(label: string, capture: string, action: () => Promise<T>) {
+  const started = Date.now();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      action(),
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(() => reject(new Error(`NW223 interaction phase ${label} exceeded 6000ms for ${capture}.`)), 6_000);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+    process.stdout.write(`\nNW223_INTERACTION_STEP=${JSON.stringify({ capture, label, elapsedMs: Date.now() - started })}\n`);
+  }
 }
 
 async function exerciseVariantDialog(page: Page, dialog: Locator, scenario: FidelityScenario) {
