@@ -2,6 +2,7 @@ import { expect, test, type Browser, type Locator, type Page } from "@playwright
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
 import { capturePartitionedAxe, normalizedPartitionLedger, pairedPresenterAxeDifferences } from "./support/axe";
+import { closeContextAfterPages } from "./support/browser-lifecycle";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, settleStableElementPair, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
 import { expandedDialogCounts, expectedExpandedDialogTranscript } from "./support/dialog-lifecycle";
@@ -212,7 +213,10 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
     expect(skylineInteraction).toEqual(expectedExpandedDialogTranscript("skyline"));
     process.stdout.write(`\nNW223_ESCAPE_PREFLIGHT=${JSON.stringify({ capture, trigger: triggerInteraction, skyline: skylineInteraction })}\n`);
   } finally {
-    await context.close();
+    await closeContextAfterPages(context, [
+      { label: "skyline", page: skyline },
+      { label: "trigger", page: trigger },
+    ], { capture });
   }
 }
 
