@@ -345,7 +345,8 @@ function triggerErrors(page: any, layout: any) {
 
 function triggerError(detail: any, layout: any) {
   const group = detail.errorGroup;
-  return { ...layout, data: { errorGroup: group ? { errorType: detail.representative.class, errorMessage: detail.representative.message, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType, firstSeen: group.firstObservedAt, lastSeen: group.lastObservedAt, count: group.occurrenceCount, status: group.status ?? "UNRESOLVED", resolvedAt: null, ignoredUntil: null } : undefined, runList: undefined }, activity: { data: detail.activity ?? [], versions: [] }, organizationSlug: "fixture", projectParam: "fixture", envParam: "prod", fingerprint: group?.fingerprint ?? group?.id ?? "fixture-error", canCancelRuns: false, canReplayRuns: false };
+  const state = { status: group?.status ?? "UNRESOLVED", resolvedAt: null, resolvedInVersion: null, resolvedBy: null, ignoredAt: null, ignoredUntil: null, ignoredReason: null, ignoredByUserId: null, ignoredByUserDisplayName: null, ignoredUntilOccurrenceRate: null, ignoredUntilTotalOccurrences: null, ignoredAtOccurrenceCount: null };
+  return { ...layout, data: { errorGroup: group ? { errorType: detail.representative.class, errorMessage: detail.representative.message, fingerprint: group.fingerprint ?? group.id, taskIdentifier: group.jobType, firstSeen: group.firstObservedAt, lastSeen: group.lastObservedAt, count: group.occurrenceCount, affectedVersions: [], state } : undefined, runList: undefined }, activity: { data: detail.activity ?? [], versions: [] }, organizationSlug: "fixture", projectParam: "fixture", envParam: "prod", fingerprint: group?.fingerprint ?? group?.id ?? "fixture-error", canCancelRuns: false, canReplayRuns: false };
 }
 
 function triggerLogs(page: any, selected?: any) {
