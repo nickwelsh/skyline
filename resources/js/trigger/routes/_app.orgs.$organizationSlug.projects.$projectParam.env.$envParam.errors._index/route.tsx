@@ -3,7 +3,7 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Preserves FiltersBar, ErrorsList, ErrorGroupRow, table, activity, pagination,
  * and route-state composition. Server, tenant, status, assignment, alert,
- * version, search, and write-action concerns are external or capability-hidden.
+ * version and write-action concerns are external or capability-hidden.
  */
 import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
@@ -45,7 +45,7 @@ type ErrorGroup = {
 type ErrorsListData = {
   errorGroups: ErrorGroup[];
   pagination: { next?: string; previous?: string };
-  filters: { jobType: string | null; exceptionClass: string | null; period: string };
+  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: string };
   filterOptions: {
     jobTypes: string[];
     exceptionClasses: string[];
@@ -104,7 +104,7 @@ function FiltersBar({ list }: { list: ErrorsListData }) {
       className="flex items-start justify-between gap-x-2 border-b border-grid-bright p-2"
     >
       <div className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
-        <SearchInput placeholder="Search errors…" paramName="exceptionClass" />
+        <SearchInput placeholder="Search errors…" paramName="search" />
         <Filter
           label="Task"
           value={list.filters.jobType ?? ""}

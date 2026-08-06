@@ -49,6 +49,7 @@ export function errorGroupsQuery(request: Request): ErrorGroupsQuery {
   const params = new URL(request.url).searchParams;
   const requestedPeriod = params.get("period");
   return compactQuery({
+    search: queryValue(params, "search"),
     jobType: queryValue(params, "jobType"),
     exceptionClass: queryValue(params, "exceptionClass"),
     period: requestedPeriod === null ? "24h" : period(requestedPeriod),
@@ -73,7 +74,8 @@ export function presentErrorGroups(page: ErrorGroupsPageDto, request?: Request):
     filters: page.filters,
     filterOptions: page.options,
     hasAnyErrorGroups: page.hasAnyErrorGroups,
-    hasFilters: page.filters.jobType !== null
+    hasFilters: page.filters.search !== null
+      || page.filters.jobType !== null
       || page.filters.exceptionClass !== null
       || new URL(request?.url ?? "https://skyline.invalid/errors").searchParams.has("period"),
   };

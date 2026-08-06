@@ -26,7 +26,7 @@ const summary = {
 
 describe("ErrorGroupsAdapter", () => {
   it("maps URL filters and stable API links into external Errors route data", () => {
-    const query = errorGroupsQuery(new Request("https://example.test/skyline/errors?jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next"));
+    const query = errorGroupsQuery(new Request("https://example.test/skyline/errors?search=invoice&jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next"));
     const presented = presentErrorGroups({
       schemaVersion: 1,
       packageVersion: "fixture",
@@ -34,12 +34,12 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: "next", previous: null },
-      filters: { jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d" },
+      filters: { search: "invoice", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d" },
       options: { jobTypes: ["App\\Jobs\\Invoice"], exceptionClasses: ["RuntimeException"], timeRanges: [{ value: "7d", label: "Last 7 days" }] },
       hasAnyErrorGroups: true,
     });
 
-    expect(query).toEqual({ jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
+    expect(query).toEqual({ search: "invoice", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
     expect(presented.errorGroups[0]).toMatchObject({
       path: "/errors/error_abc",
       jobPath: "/jobs/job_invoice",
@@ -152,7 +152,7 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: null, previous: null },
-      filters: { jobType: null, exceptionClass: null, period: "24h" },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
       options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
       hasAnyErrorGroups: true,
     });
@@ -169,7 +169,7 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: null, previous: null },
-      filters: { jobType: null, exceptionClass: null, period: "24h" },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
       options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
       hasAnyErrorGroups: true,
     }, request);

@@ -123,6 +123,7 @@ export class HttpAdapter implements SkylineDtoAdapter {
 
   private errorGroupsQuery(query: ErrorGroupsQuery): URLSearchParams {
     const params = new URLSearchParams();
+    if (query.search) params.set("search", query.search);
     if (query.jobType) params.set("jobType", query.jobType);
     if (query.exceptionClass) params.set("exceptionClass", query.exceptionClass);
     if (query.period) params.set("period", query.period);

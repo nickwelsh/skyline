@@ -114,7 +114,7 @@ async function responseFor(path: string, search: URLSearchParams, adapter: Fixtu
   if (inspector) return { node: await adapter.inspector(decodeURIComponent(inspector[2]), decodeURIComponent(inspector[1])) };
   const run = path.match(/^runs\/([^/]+)$/);
   if (run) return adapter.trace(decodeURIComponent(run[1]), search.get("tableState") ?? undefined);
-  if (path === "errors") return adapter.errorGroups({ jobType: search.get("jobType") ?? undefined, exceptionClass: search.get("exceptionClass") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
+  if (path === "errors") return adapter.errorGroups({ search: search.get("search") ?? undefined, jobType: search.get("jobType") ?? undefined, exceptionClass: search.get("exceptionClass") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path.startsWith("errors/")) return adapter.errorGroup(decodeURIComponent(path.slice(7)), { period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path === "logs") return adapter.telemetryEvents({ search: search.get("search") ?? undefined, levels: search.getAll("levels[]") as never, jobType: search.get("jobType") ?? undefined, runId: search.get("runId") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path.startsWith("logs/")) return adapter.telemetryEvent(decodeURIComponent(path.slice(5)));

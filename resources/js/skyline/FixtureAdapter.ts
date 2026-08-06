@@ -110,6 +110,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const groups = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
       .filter((occurrences) => (!query.jobType || occurrences[0].jobType === query.jobType)
         && (!query.exceptionClass || occurrences[0].exception.class === query.exceptionClass)
+        && (!query.search || JSON.stringify(occurrences).toLowerCase().includes(query.search.toLowerCase()))
         && occurrences.some((occurrence) => withinErrorPeriod(occurrence, query.period)))
       .map(fixtureErrorSummary)
       .sort((left, right) => right.lastObservedAt.localeCompare(left.lastObservedAt));
@@ -125,7 +126,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         next: offset + pageSize < groups.length ? String(offset + pageSize) : null,
         previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
       },
-      filters: { jobType: query.jobType ?? null, exceptionClass: query.exceptionClass ?? null, period: query.period ?? "all" },
+      filters: { search: query.search ?? null, jobType: query.jobType ?? null, exceptionClass: query.exceptionClass ?? null, period: query.period ?? "all" },
       options: {
         jobTypes: [...new Set(source.map((occurrence) => occurrence.jobType))].sort(),
         exceptionClasses: [...new Set(source.map((occurrence) => occurrence.exception.class))].sort(),

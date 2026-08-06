@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 final readonly class ErrorGroupsFilters
 {
     private function __construct(
+        public ?string $search,
         public ?string $jobType,
         public ?string $exceptionClass,
         public string $period,
@@ -16,25 +17,35 @@ final readonly class ErrorGroupsFilters
 
     public static function fromRequest(Request $request, int $observedAt, string $defaultPeriod): self
     {
+        $search = self::string($request, 'search', 'Search');
         $jobType = self::string($request, 'jobType', 'Job type');
         $exceptionClass = self::string($request, 'exceptionClass', 'exception class');
         $time = JobsFilters::fromRequest($request, $observedAt, $defaultPeriod);
 
-        return new self($jobType, $exceptionClass, $time->period, $time->from);
+        return new self($search, $jobType, $exceptionClass, $time->period, $time->from);
     }
 
     public function apply(Builder $query): Builder
     {
         return $query
+            ->when($this->search !== null, function (Builder $query): void {
+                $search = strtolower($this->search);
+                $query->where(function (Builder $query) use ($search): void {
+                    PortableLike::whereContains($query, 'LOWER(skyline_attempts.exception_message)', $search);
+                    $query->orWhere(fn (Builder $query): Builder => PortableLike::whereContains($query, 'LOWER(skyline_attempts.exception_class)', $search));
+                    $query->orWhere(fn (Builder $query): Builder => PortableLike::whereContains($query, 'LOWER(skyline_attempts.exception_trace)', $search));
+                    $query->orWhere(fn (Builder $query): Builder => PortableLike::whereContains($query, 'LOWER(skyline_attempts.run_id)', $search));
+                });
+            })
             ->when($this->jobType !== null, fn (Builder $query) => $query->where('skyline_runs.job_name', $this->jobType))
             ->when($this->exceptionClass !== null, fn (Builder $query) => $query->where('skyline_attempts.exception_class', $this->exceptionClass))
             ->when($this->from !== null, fn (Builder $query) => $query->where('skyline_attempts.started_at', '>=', $this->from));
     }
 
-    /** @return array{jobType: ?string, exceptionClass: ?string, period: string} */
+    /** @return array{search: ?string, jobType: ?string, exceptionClass: ?string, period: string} */
     public function toArray(): array
     {
-        return ['jobType' => $this->jobType, 'exceptionClass' => $this->exceptionClass, 'period' => $this->period];
+        return ['search' => $this->search, 'jobType' => $this->jobType, 'exceptionClass' => $this->exceptionClass, 'period' => $this->period];
     }
 
     private static function string(Request $request, string $key, string $label): ?string

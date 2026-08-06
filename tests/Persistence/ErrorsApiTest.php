@@ -67,6 +67,27 @@ it('filters Error groups through URL state and returns server-supplied options',
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('searches Error evidence literally across messages classes operations and Run identities', function (): void {
+    seedErrorOccurrence(70, 'App\\Jobs\\Invoice', 'RuntimeException', 'Payment declined', '/srv/app/Jobs/Invoice.php', 10, 'App\\Jobs\\Invoice->handle');
+    seedErrorOccurrence(71, 'App\\Jobs\\Digest', 'DomainException', 'Digest failed', '/srv/app/Jobs/Digest.php', 20, 'App\\Jobs\\Digest->deliver');
+    seedErrorOccurrence(72, 'App\\Jobs\\Export', 'LogicException', 'Export failed', '/srv/app/Jobs/Export.php', 30, 'App\\Jobs\\Export->archive');
+    seedErrorOccurrence(73, 'App\\Jobs\\Literal', 'UnexpectedValueException', 'Literal %_ marker', '/srv/app/Jobs/Literal.php', 40, 'App\\Jobs\\Literal->handle');
+
+    foreach (['declined', 'domainexception', 'archive', 'run-73', '%_'] as $search) {
+        $this->getJson('/skyline/api/errors?'.http_build_query(['period' => 'all', 'search' => $search]))
+            ->assertOk()
+            ->assertJsonCount(1, 'errorGroups')
+            ->assertJsonPath('filters.search', $search);
+    }
+
+    $this->getJson('/skyline/api/errors?search[]=invalid')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+    $this->getJson('/skyline/api/errors?'.http_build_query(['search' => str_repeat('x', 513)]))
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+});
+
 it('defaults Error-group and occurrence evidence to the source time ranges', function (): void {
     $now = Nanoseconds::now();
     seedErrorOccurrence(60, 'App\\Jobs\\Invoice', 'RuntimeException', 'Recent failure', '/srv/app/Jobs/Invoice.php', 10, 'App\\Jobs\\Invoice->handle', $now - 3_600_000_000_000);

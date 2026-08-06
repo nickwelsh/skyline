@@ -238,7 +238,7 @@ function listResponse(url?: URL): ErrorGroupsPageDto {
   const response: ErrorGroupsPageDto = {
     schemaVersion: 1, packageVersion: "fixture", generatedAt: "2026-08-05T12:00:00.000000000Z", capabilities: capabilities(),
     errorGroups: [summary(errorId, "RuntimeException", primaryError), summary(secondaryError.id, "LogicException", secondaryError)], pagination: { previous: null, next: null },
-    filters: { jobType: null, exceptionClass: null, period: "all" },
+    filters: { search: url?.searchParams.get("search") ?? null, jobType: null, exceptionClass: null, period: "all" },
     options: { jobTypes: [jobType], exceptionClasses: ["RuntimeException", "LogicException"], timeRanges }, hasAnyErrorGroups: true,
   };
   if (url) {

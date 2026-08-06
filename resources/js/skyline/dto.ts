@@ -242,6 +242,7 @@ export type QueueTargetDetailDto = {
 };
 
 export type ErrorGroupsQuery = {
+  search?: string;
   jobType?: string;
   exceptionClass?: string;
   period?: JobsQuery["period"];
@@ -276,7 +277,7 @@ export type ErrorGroupsPageDto = {
   capabilities: SkylineCapabilities;
   errorGroups: ErrorGroupSummary[];
   pagination: { next: string | null; previous: string | null };
-  filters: { jobType: string | null; exceptionClass: string | null; period: NonNullable<JobsQuery["period"]> };
+  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: NonNullable<JobsQuery["period"]> };
   options: { jobTypes: string[]; exceptionClasses: string[]; timeRanges: TimeRangeOption[] };
   hasAnyErrorGroups: boolean;
 };

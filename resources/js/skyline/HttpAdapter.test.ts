@@ -19,10 +19,10 @@ describe("HttpAdapter", () => {
       .mockResolvedValueOnce(jsonResponse({ errorGroup: {}, failedAttempts: [] }));
     const adapter = new HttpAdapter("/monitoring");
 
-    await adapter.errorGroups({ jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
+    await adapter.errorGroups({ search: "declined payment", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
     await adapter.errorGroup("error/opaque", { period: "24h", cursor: "older" });
 
-    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/errors?jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next");
+    expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/errors?search=declined+payment&jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next");
     expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/errors/error%2Fopaque?period=24h&cursor=older");
   });
 
