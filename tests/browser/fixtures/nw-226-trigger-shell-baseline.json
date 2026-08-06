@@ -12,7 +12,7 @@
     "navigation": ["Jobs", "Runs", "Logs", "Errors", "Queues"],
     "themes": ["Classic", "System preference", "Dark", "Light"],
     "help": ["Shortcuts"],
-    "shortcuts": ["Close", "Filter", "Toggle side menu", "Favorite this page", "Navigate"],
+    "shortcuts": ["Close", "Toggle side menu"],
     "customization": ["Logs", "Errors", "Queues"]
   }
 }
