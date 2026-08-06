@@ -55,7 +55,8 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   await expect.poll(async () => (await sideMenu.boundingBox())?.width).toBe(224);
   await expect.poll(async () => (await filters.boundingBox())?.height).toBeCloseTo(40, 0);
   await expect.poll(async () => (await searchWrapper.boundingBox())?.width).toBeGreaterThanOrEqual(baseline.contract.list.searchMinWidth);
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Type", "File", "Running", "Activity (24h)", "Go to page"]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Running", "Activity (24h)", "Go to page"]);
+  await expect(page.getByRole("group", { name: "Task type" })).toHaveCount(0);
 
   await search.fill("invoice");
   await expect(search).toBeFocused();
@@ -93,7 +94,10 @@ test("Job detail tolerates long labels and missing optional observations", async
   await page.goto("/skyline/jobs/job_long");
   await expect(page.getByRole("heading", { name: longName }).first()).toBeVisible();
   await expect(page.getByText("No activity in this time range.")).toBeVisible();
-  await expect(page.getByLabel("Job details").locator("p").filter({ hasText: "–" }).first()).toBeVisible();
+  const detail = page.getByLabel("Job details");
+  for (const label of ["File path", "Type", "Version", "Concurrency", "Machine", "Max duration", "TTL", "Retry", "Payload schema"]) {
+    await expect(detail.getByText(label, { exact: true })).toHaveCount(0);
+  }
 });
 
 test("Job detail can be favorited to a persistent valid sidebar destination", async ({ page }) => {

@@ -103,7 +103,6 @@ export default function JobsRoute() {
               <div aria-label="Task filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
                 <div className="flex flex-1 items-center gap-1.5">
                   <SearchInput placeholder="Search tasks…" resetParams={["page"]} />
-                  <TaskTypeFilter />
                 </div>
                 <div className="flex items-center gap-1.5">
                   {(!data.jobGuidance || !showUsefulLinks) && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
@@ -240,15 +239,13 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
     <Table containerClassName="min-h-0 flex-1" showTopBorder>
       <TableHeader><TableRow>
         <TableHeaderCell>ID</TableHeaderCell>
-        <TableHeaderCell tooltip={<span>Standard, scheduled, and agent tasks.</span>} disableTooltipHoverableContent>Type</TableHeaderCell>
-        <TableHeaderCell>File</TableHeaderCell>
         <TableHeaderCell>Running</TableHeaderCell>
         <TableHeaderCell>Activity (24h)</TableHeaderCell>
         <TableHeaderCell hiddenLabel>Go to page</TableHeaderCell>
       </TableRow></TableHeader>
       <TableBody>
         {jobs.length ? jobs.map((job) => <TaskRow key={job.id} job={job} isPanelAnimating={isPanelAnimating} />) :
-          <TableBlankRow colSpan={6}><Paragraph variant="small">No tasks match your filters</Paragraph></TableBlankRow>}
+          <TableBlankRow colSpan={4}><Paragraph variant="small">No tasks match your filters</Paragraph></TableBlankRow>}
       </TableBody>
       {isLoading ? <caption className="sr-only">Loading Tasks</caption> : null}
     </Table>
@@ -258,8 +255,6 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
 function TaskRow({ job, isPanelAnimating }: { job: PresentedJob; isPanelAnimating: boolean }) {
   return <TableRow className="group">
     <TableCell to={job.path} isTabbableCell><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
-    <TableCell to={job.path}>Standard</TableCell>
-    <TableCell to={job.path}><code className="text-wrap rounded border border-grid-bright bg-background-bright px-1 py-0.5 font-mono text-xxs text-text-dimmed">{job.name.replaceAll("\\", "/")}.php</code></TableCell>
     <TableCell to={job.path}>{job.statusCounts.running ?? 0}</TableCell>
     <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity total={job.runCount} /></div></div></TableCell>
     <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.name)}`} className="block rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright">View runs</Link>} />
@@ -278,15 +273,6 @@ function StatusActivity({ total }: { total: number }) {
       <Bar dataKey="total" fill="var(--color-run-completed-successfully)" strokeWidth={0} isAnimationActive={false} />
     </ActivityBarChart>
   );
-}
-
-function TaskTypeFilter() {
-  return <div role="group" aria-label="Task type" className="flex h-6 overflow-hidden rounded border border-grid-bright bg-background-bright text-xs text-text-dimmed">
-    <button type="button" aria-pressed="true" className="border-r border-grid-bright px-2 text-text-bright">All</button>
-    <button type="button" aria-label="Agent tasks" className="border-r border-grid-bright px-2 text-agents">✦</button>
-    <button type="button" aria-label="Standard tasks" className="border-r border-grid-bright px-2 text-tasks"><TaskIcon className="size-3.5" /></button>
-    <button type="button" aria-label="Scheduled tasks" className="px-2 text-schedules"><ClockIcon className="size-3.5" /></button>
-  </div>;
 }
 
 function TaskPagination({ currentPage, totalPages, onPage }: { currentPage: number; totalPages: number; onPage: (page: number) => void }) {

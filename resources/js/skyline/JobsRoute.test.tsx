@@ -1,0 +1,89 @@
+import { createRoot } from "react-dom/client";
+import { act } from "react-dom/test-utils";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { OperatingSystemContextProvider } from "../trigger/components/primitives/OperatingSystemProvider";
+import { ShortcutsProvider } from "../trigger/components/primitives/ShortcutsProvider";
+import JobsRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route";
+import JobDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route";
+import { FixtureAdapter } from "./FixtureAdapter";
+import { presentJobDetail, presentJobs } from "./JobsAdapter";
+
+beforeAll(() => {
+  Object.assign(globalThis, {
+    ResizeObserver: class ResizeObserver {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    },
+  });
+});
+
+afterEach(() => document.body.replaceChildren());
+
+describe("Job detail source chrome", () => {
+  it("omits unobserved task-definition claims", async () => {
+    const adapter = new FixtureAdapter();
+    const page = await adapter.jobs();
+    const data = presentJobDetail(await adapter.job(page.jobs[0].id));
+    const router = createMemoryRouter([
+      { path: "/jobs/:jobId", loader: () => data, element: <JobDetailRoute /> },
+    ], { initialEntries: [`/jobs/${data.job.id}`] });
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    await act(async () => root.render(
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider><RouterProvider router={router} /></ShortcutsProvider>
+      </OperatingSystemContextProvider>,
+    ));
+
+    const detail = container.querySelector<HTMLElement>('aside[aria-label="Job details"]')!;
+    expect(detail.textContent).toContain("Identifier");
+    expect(detail.textContent).toContain("Queue");
+    expect(detail.textContent).toContain("Created");
+    expect(detail.textContent).not.toContain("File path");
+    expect(detail.textContent).not.toContain("Type");
+    expect(detail.textContent).not.toContain("Version");
+    expect(detail.textContent).not.toContain("Concurrency");
+    expect(detail.textContent).not.toContain("Machine");
+    expect(detail.textContent).not.toContain("Max duration");
+    expect(detail.textContent).not.toContain("TTL");
+    expect(detail.textContent).not.toContain("Retry");
+    expect(detail.textContent).not.toContain("Payload schema");
+
+    await act(async () => root.unmount());
+  });
+});
+
+describe("Jobs list source chrome", () => {
+  it("omits unobserved task-definition columns and filters", async () => {
+    const adapter = new FixtureAdapter();
+    const data = {
+      ...presentJobs(await adapter.jobs()),
+      showJobGuidance: false,
+      onJobGuidanceChange: () => {},
+    };
+    const router = createMemoryRouter([
+      { path: "/jobs", loader: () => data, element: <JobsRoute /> },
+    ], { initialEntries: ["/jobs"] });
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    await act(async () => root.render(
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider><RouterProvider router={router} /></ShortcutsProvider>
+      </OperatingSystemContextProvider>,
+    ));
+
+    expect(Array.from(container.querySelectorAll("th"), (header) => header.textContent?.trim()))
+      .toEqual(["ID", "Running", "Activity (24h)", "Go to page"]);
+    expect(container.querySelector('[role="group"][aria-label="Task type"]')).toBeNull();
+    expect(container.textContent).not.toContain("Standard");
+    expect(container.textContent).not.toContain(".php");
+
+    await act(async () => root.unmount());
+  });
+});

@@ -3,7 +3,6 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Server, tenant, test, source definition, versions, retries, schedules, deployment, payload, and queue administration are removed.
  */
-import { CpuChipIcon } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
@@ -131,15 +130,7 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
           <Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item>
-          <Property.Item><Property.Label>File path</Property.Label><Property.Value><CopyableText value={`${data.job.name.replaceAll("\\", "/")}.php`} /></Property.Value></Property.Item>
-          <Property.Item><Property.Label>Type</Property.Label><Property.Value><Paragraph variant="small">Standard task</Paragraph></Property.Value></Property.Item>
-          <Property.Item><Property.Label>Version</Property.Label><Property.Value><Paragraph variant="small" className="font-mono">20260804.1</Paragraph></Property.Value></Property.Item>
-          {queue ? <Property.Item><Property.Label>Queue</Property.Label><Property.Value><div className="flex flex-col gap-0.5"><Link to={queue.path} className="text-text-link hover:underline focus-custom">{queue.queue}</Link><Paragraph variant="extra-small">Concurrency: Unlimited</Paragraph></div></Property.Value></Property.Item> : null}
-          <Property.Item><Property.Label>Machine</Property.Label><Property.Value className="-ml-0.5"><span className="flex items-center gap-1"><CpuChipIcon className="size-5 text-success" />Small 1x</span></Property.Value></Property.Item>
-          <Property.Item><Property.Label>Max duration</Property.Label><Property.Value><Paragraph variant="small">300s (5m)</Paragraph></Property.Value></Property.Item>
-          <Property.Item><Property.Label>TTL</Property.Label><Property.Value><Paragraph variant="small">–</Paragraph></Property.Value></Property.Item>
-          <Property.Item><Property.Label>Retry</Property.Label><Property.Value><Paragraph variant="small">–</Paragraph></Property.Value></Property.Item>
-          <Property.Item><Property.Label>Payload schema</Property.Label><Property.Value><Paragraph variant="small">–</Paragraph></Property.Value></Property.Item>
+          {queue ? <Property.Item><Property.Label>Queue</Property.Label><Property.Value><Link to={queue.path} className="text-text-link hover:underline focus-custom">{queue.queue}</Link></Property.Value></Property.Item> : null}
           <Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item>
         </Property.Table>
       </div>
