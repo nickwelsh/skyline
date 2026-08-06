@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import matrix from "../matrix.json" with { type: "json" };
 import { createReferenceFixture } from "./reference";
-import { isNw223State, nw223InspectorState, nw223Presentation, nw223States, nw223TraceState } from "./nw223";
+import { isNw223State, nw223DiscoveryChunks, nw223InspectorState, nw223InteractionStates, nw223Presentation, nw223States, nw223TraceState } from "./nw223";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const queryNodeId = "span_4f24adb545b26d31";
@@ -18,6 +18,21 @@ describe("NW-223 database and state inspector states", () => {
     ]);
     expect(nw223States.every(isNw223State)).toBe(true);
     expect(isNw223State("inspectors")).toBe(false);
+  });
+
+  it("bounds full discovery to six captures per chunk", () => {
+    expect(nw223DiscoveryChunks.flat()).toEqual([...nw223States]);
+    expect(nw223DiscoveryChunks[0]).toEqual(["inspectors-sql-parameterized"]);
+    expect(nw223DiscoveryChunks.every((states) => states.length * matrix.primary.themes.length <= 6)).toBe(true);
+  });
+
+  it("covers every state with distinct modal interaction behavior", () => {
+    expect(nw223InteractionStates).toEqual([
+      "inspectors-sql-applied", "inspectors-sql-result", "inspectors-sql-long",
+      "inspectors-transaction-nesting", "inspectors-transaction-failure",
+      "inspectors-cache-success", "inspectors-cache-failure", "inspectors-cache-long", "inspectors-cache-unavailable",
+      "inspectors-redis-success", "inspectors-redis-failure", "inspectors-redis-long", "inspectors-redis-unavailable",
+    ]);
   });
 
   it("projects each state only onto the owned query node", async () => {

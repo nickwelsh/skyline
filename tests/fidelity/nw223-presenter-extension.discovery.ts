@@ -1,9 +1,10 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import matrix from "./matrix.json" with { type: "json" };
+import { additionalAxeViolations, captureAxe } from "./support/axe";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
 import { discoverPresenterExtensionObservation, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
-import { isNw223State, nw223Presentation, nw223States } from "./support/nw223";
+import { isNw223State, nw223InteractionStates, nw223Presentation, nw223States } from "./support/nw223";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath, type FidelityScenario } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -139,10 +140,7 @@ async function observeAncestorPreflight(page: Page) {
   });
 }
 
-const interactionStates = new Set([
-  "inspectors-sql-applied", "inspectors-sql-result", "inspectors-sql-long",
-  "inspectors-cache-long", "inspectors-redis-long",
-]);
+const interactionStates = new Set<string>(nw223InteractionStates);
 
 async function preparePair(skyline: Page, trigger: Page, capture: string, scenario: FidelityScenario, step: PresenterObservationStep) {
   await Promise.all([
@@ -198,6 +196,10 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
   const trigger = await context.newPage();
   try {
     await preparePair(skyline, trigger, capture, scenario, observationStep(capture));
+    const [triggerAxe, skylineAxe] = await Promise.all([captureAxe(trigger), captureAxe(skyline)]);
+    const additional = additionalAxeViolations(triggerAxe, skylineAxe);
+    process.stdout.write(`\nNW223_AXE_PREFLIGHT=${JSON.stringify({ capture, trigger: triggerAxe.length, skyline: skylineAxe.length, additional: additional.length })}\n`);
+    expect(additional).toEqual([]);
     await exerciseCapture(trigger, trigger.locator(definition.triggerSelector), false, scenario);
     await exerciseCapture(skyline, skyline.locator(definition.skylineSelector), true, scenario);
   } finally {
@@ -232,9 +234,38 @@ async function exerciseCapture(page: Page, region: Locator, named: boolean, scen
   await copy.click();
   expect((await page.evaluate(() => navigator.clipboard.readText())).length).toBeGreaterThan(0);
   await expand.click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  if (named && scenario.state === "inspectors-sql-applied") await page.getByRole("tab", { name: "With bindings" }).click();
-  if (named && scenario.state === "inspectors-sql-result") await page.getByRole("tab", { name: "Tree" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  expect(await page.evaluate(() => document.activeElement?.closest("[role='dialog']") !== null)).toBe(true);
+  if (named) await exerciseVariantDialog(page, dialog, scenario);
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(dialog).toHaveCount(0);
+  await expect(expand).toBeFocused();
+}
+
+async function exerciseVariantDialog(page: Page, dialog: Locator, scenario: FidelityScenario) {
+  const presentation = operationState(scenario.state);
+  await expect(dialog.getByRole("heading", { name: presentation.label })).toBeVisible();
+
+  if (scenario.state === "inspectors-sql-applied") {
+    const tabs = dialog.getByRole("tablist", { name: "SQL display" });
+    await tabs.getByRole("tab", { name: "Parameterized" }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.getByRole("tab", { name: "With bindings" })).toBeFocused();
+    await expect(tabs.getByRole("tab", { name: "With bindings" })).toHaveAttribute("aria-selected", "true");
+  }
+  if (scenario.state === "inspectors-sql-result") {
+    const tabs = dialog.getByRole("tablist", { name: "Result preview display" });
+    await tabs.getByRole("tab", { name: "Text" }).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.getByRole("tab", { name: "Tree" })).toBeFocused();
+    await expect(tabs.getByRole("tab", { name: "Tree" })).toHaveAttribute("aria-selected", "true");
+  }
+  if (scenario.state === "inspectors-sql-long") await expect(dialog.getByRole("button", { name: "Wrap Parameterized SQL" })).toBeVisible();
+  if (scenario.state === "inspectors-transaction-nesting") await expect(dialog.getByText("2", { exact: true })).toBeVisible();
+  if (scenario.state.endsWith("failure")) await expect(dialog.getByRole("alert")).toBeVisible();
+  if (scenario.state === "inspectors-cache-long") await expect(dialog.getByRole("button", { name: "Wrap Value" })).toBeVisible();
+  if (scenario.state === "inspectors-cache-unavailable") await expect(dialog.getByText("Value not captured", { exact: true })).toBeVisible();
+  if (scenario.state === "inspectors-redis-long") await expect(dialog.getByRole("button", { name: "Wrap Arguments" })).toBeVisible();
+  if (scenario.state === "inspectors-redis-unavailable") await expect(dialog.getByText("Arguments not captured", { exact: true })).toBeVisible();
 }

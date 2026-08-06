@@ -9,6 +9,24 @@ export const nw223States = [
 ] as const;
 
 export type Nw223State = typeof nw223States[number];
+export const nw223DiscoveryChunks: ReadonlyArray<ReadonlyArray<Nw223State>> = [
+  ["inspectors-sql-parameterized"],
+  ["inspectors-sql-applied", "inspectors-sql-missing-bindings"],
+  ["inspectors-sql-result", "inspectors-sql-source"],
+  ["inspectors-sql-long", "inspectors-sql-failed"],
+  ["inspectors-sql-capture-limited", "inspectors-transaction-nesting"],
+  ["inspectors-transaction-failure", "inspectors-cache-success"],
+  ["inspectors-cache-failure", "inspectors-cache-long"],
+  ["inspectors-cache-unavailable", "inspectors-redis-success"],
+  ["inspectors-redis-failure", "inspectors-redis-long"],
+  ["inspectors-redis-unavailable"],
+];
+export const nw223InteractionStates: ReadonlyArray<Nw223State> = [
+  "inspectors-sql-applied", "inspectors-sql-result", "inspectors-sql-long",
+  "inspectors-transaction-nesting", "inspectors-transaction-failure",
+  "inspectors-cache-success", "inspectors-cache-failure", "inspectors-cache-long", "inspectors-cache-unavailable",
+  "inspectors-redis-success", "inspectors-redis-failure", "inspectors-redis-long", "inspectors-redis-unavailable",
+];
 type Nw223Presentation = Extract<InspectorPresentation, { type: "sql" | "transaction" | "cache" | "redis" }>;
 export const nw223NodeId = "span_4f24adb545b26d31";
 
