@@ -129,12 +129,20 @@ test("capability-enabled Job guidance retains its useful-links preference", asyn
   });
 
   await page.goto("/skyline/jobs");
-  await expect(page.getByRole("complementary", { name: "Job guidance" })).toBeVisible();
+  const guidance = page.getByRole("complementary", { name: "Job guidance" });
+  await expect(guidance).toBeVisible();
+  await expect.poll(async () => (await guidance.boundingBox())?.width).toBeCloseTo(400, 0);
+  await expect(guidance.getByRole("heading").allTextContents()).resolves.toEqual([
+    "Create a new task",
+    "Chat agent",
+    "Standard task",
+    "Scheduled task",
+  ]);
+  await expect(page.getByRole("separator", { name: "Resize Handle" })).toBeVisible();
   await page.getByRole("button", { name: "Close Job guidance" }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("skyline.ui-preferences.v1:/skyline") ?? "{}").jobs?.usefulLinks)).toBe(false);
   await page.reload();
-  await expect(page.getByRole("complementary", { name: "Job guidance" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "New Job…" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New task…" })).toBeVisible();
 });
 
 test("Jobs covers empty, filtered-empty, API-error, and not-found states", async ({ page }) => {
