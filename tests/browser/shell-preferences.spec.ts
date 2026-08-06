@@ -97,6 +97,10 @@ test("preferences synchronize across tabs and restore root-only URL state", asyn
   await page.getByRole("option", { name: "Light" }).click();
   await expect(second.locator("html")).toHaveAttribute("data-theme", "light");
 
+  await page.getByRole("button", { name: "Observability" }).click();
+  await expect(page.getByRole("button", { name: "Observability" })).toHaveAttribute("aria-expanded", "false");
+  await expect(second.getByRole("button", { name: "Observability" })).toHaveAttribute("aria-expanded", "false");
+
   await page.getByLabel("Root Runs only").click();
   await expect(page).toHaveURL(/rootOnly=true/);
   await page.goto("/skyline/runs");
