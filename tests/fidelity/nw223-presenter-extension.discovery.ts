@@ -33,11 +33,11 @@ const definition: PresenterExtensionDefinition = {
   captures,
   triggerSelector: "div[translate='no']",
   skylineSelector: "[data-skyline-extension='database-state-operation-inspector']",
-  triggerAnchorSelector: "#tree [role='treeitem'][data-index='5'] p",
-  skylineAnchorSelector: "#tree [role='treeitem'][data-index='5'] p",
+  triggerAnchorSelector: "#tree [role='treeitem'][data-index='5']:has(p)",
+  skylineAnchorSelector: "#tree [role='treeitem'][data-index='5']:has(p)",
   skylineAccessibleRole: "region",
   skylineAccessibleName: "Database and state operation inspector",
-  anchorAccessibleRole: "paragraph",
+  anchorAccessibleRole: "treeitem",
   anchorAccessibleName: "",
   measurements: {},
 };
@@ -56,7 +56,10 @@ for (const capture of captures) {
     try {
       const step = observationStep(capture);
       await preparePair(skyline, trigger, capture, scenario, step);
-      const observation = await discoverPresenterExtensionObservation(trigger, skyline, definition, undefined, step);
+      const observation = await discoverPresenterExtensionObservation(trigger, skyline, {
+        ...definition,
+        anchorAccessibleName: operationState(scenario.state).label,
+      }, undefined, step);
       const measurement = {
         triggerRelativeRect: observation.triggerRelativeRect,
         skylineRelativeRect: observation.skylineRelativeRect,
@@ -105,23 +108,28 @@ async function preparePair(skyline: Page, trigger: Page, capture: string, scenar
   await step("settle:trigger", () => settleCapture(trigger));
   await step("presenter-ready:trigger", () => trigger.locator(definition.triggerSelector).waitFor());
   await step("presenter-ready:skyline", () => skyline.locator(definition.skylineSelector).waitFor());
-  const expectedLabel = operationLabel(scenario.state);
+  const expected = operationState(scenario.state);
   await Promise.all([
-    step("anchor-label:trigger", () => expectSelectedOperationLabel(trigger, expectedLabel)),
-    step("anchor-label:skyline", () => expectSelectedOperationLabel(skyline, expectedLabel)),
+    step("anchor-state:trigger", () => expectSelectedOperationState(trigger, expected)),
+    step("anchor-state:skyline", () => expectSelectedOperationState(skyline, expected)),
   ]);
 }
 
-async function expectSelectedOperationLabel(page: Page, expectedLabel: string) {
+async function expectSelectedOperationState(page: Page, expected: ReturnType<typeof operationState>) {
   const anchor = page.locator(definition.triggerAnchorSelector);
   await expect(anchor).toHaveCount(1);
-  await expect(anchor).toHaveText(expectedLabel);
+  await expect(anchor).toHaveAttribute("aria-expanded", "true");
+  await expect(anchor.locator("p")).toHaveText(expected.label);
+  await expect(anchor.locator(`svg[aria-hidden='true'].text-${expected.status}`)).toHaveCount(1);
 }
 
-function operationLabel(state: string) {
+function operationState(state: string) {
   if (!isNw223State(state)) throw new Error(`Unexpected NW-223 state: ${state}`);
-  const type = nw223Presentation(state).type;
-  return ({ sql: "SQL query", transaction: "Database transaction", cache: "Cache operation", redis: "Redis command" } as const)[type];
+  const presentation = nw223Presentation(state);
+  return {
+    label: ({ sql: "SQL query", transaction: "Database transaction", cache: "Cache operation", redis: "Redis command" } as const)[presentation.type],
+    status: presentation.failure ? "error" : "success",
+  };
 }
 
 async function proveCaptureInteraction(browser: Browser, capture: string, scenario: FidelityScenario) {
