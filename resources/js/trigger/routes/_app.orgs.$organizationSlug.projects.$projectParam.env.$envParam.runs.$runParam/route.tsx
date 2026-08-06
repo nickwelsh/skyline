@@ -588,7 +588,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   if (sourceSpan) {
     return (
       <section className="grid h-full max-h-full grid-rows-[2.5rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
-        <InspectorHeader node={node} onClose={onClose} />
+        <InspectorHeader node={node} onClose={onClose} bordered />
         <div className="scrollbar-gutter-stable overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
           {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
           {error && <div role="alert" className="p-3 text-error">{error.message}</div>}
@@ -625,9 +625,9 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   );
 }
 
-function InspectorHeader({ node, onClose }: { node?: TraceNode; onClose: () => void }) {
+function InspectorHeader({ node, onClose, bordered = false }: { node?: TraceNode; onClose: () => void; bordered?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 overflow-x-hidden border-b border-grid-bright px-3 pr-2">
+    <div className={cn("flex items-center justify-between gap-2 overflow-x-hidden px-3 pr-2", bordered && "border-b border-grid-bright")}>
       <div className="flex min-w-0 items-center gap-1">
         <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
         <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>

@@ -114,6 +114,7 @@ describe("Run detail source primitives", () => {
     expect(closeButton).toBeInstanceOf(HTMLButtonElement);
     expect(closeButton?.getAttribute("aria-label")).toBeNull();
     expect(closeButton?.querySelector("svg")).not.toBeNull();
+    expect(inspector?.firstElementChild?.className).not.toContain("border-b");
 
     await act(async () => closeButton?.click());
     expect(router.state.location.search).toBe("");
