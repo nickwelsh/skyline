@@ -56,6 +56,7 @@ for (const capture of captures) {
     try {
       const step = observationStep(capture);
       await preparePair(skyline, trigger, capture, scenario, step);
+      await reportAnchorPreflight(trigger, skyline, capture, step);
       const observation = await discoverPresenterExtensionObservation(trigger, skyline, {
         ...definition,
         anchorAccessibleName: operationState(scenario.state).label,
@@ -76,6 +77,32 @@ for (const capture of captures) {
     } finally {
       await context.close();
     }
+  });
+}
+
+async function reportAnchorPreflight(trigger: Page, skyline: Page, capture: string, step: PresenterObservationStep) {
+  const [triggerAnchor, skylineAnchor] = await Promise.all([
+    step("anchor-preflight:trigger", () => observeAnchorPreflight(trigger)),
+    step("anchor-preflight:skyline", () => observeAnchorPreflight(skyline)),
+  ]);
+  expect(triggerAnchor.rect.height).toBe(32);
+  expect(skylineAnchor.rect.height).toBe(32);
+  expect({ x: skylineAnchor.rect.x, y: skylineAnchor.rect.y }).toEqual({ x: triggerAnchor.rect.x, y: triggerAnchor.rect.y });
+  const styleDeltaIndex = Array.from({ length: Math.max(triggerAnchor.computedStyle.length, skylineAnchor.computedStyle.length) })
+    .findIndex((_, index) => JSON.stringify(triggerAnchor.computedStyle[index]) !== JSON.stringify(skylineAnchor.computedStyle[index]));
+  const firstStyleDelta = styleDeltaIndex === -1 ? null : { trigger: triggerAnchor.computedStyle[styleDeltaIndex], skyline: skylineAnchor.computedStyle[styleDeltaIndex] };
+  process.stdout.write(`\nNW223_ANCHOR_PREFLIGHT=${JSON.stringify({ capture, triggerRect: triggerAnchor.rect, skylineRect: skylineAnchor.rect, firstStyleDelta })}\n`);
+}
+
+async function observeAnchorPreflight(page: Page) {
+  return page.locator(definition.triggerAnchorSelector).evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    const computedStyle = Array.from(style)
+      .filter((property) => !property.startsWith("--"))
+      .sort()
+      .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as const);
+    return { rect: { x: box.x, y: box.y, width: box.width, height: box.height }, computedStyle };
   });
 }
 
