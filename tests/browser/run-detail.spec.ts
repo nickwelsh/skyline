@@ -520,8 +520,13 @@ test("paired database and state inspectors preserve captured, unavailable, faile
   for (const scenario of stateInspectorOracle.cases) {
     activeCase = scenario.key;
     await page.goto(`/skyline/runs/${runId}?node=${queryNodeId}&fixture=${scenario.key}`);
+    await expect(page.getByRole("tabpanel", { name: "Overview" }).getByText("Completed", { exact: true })).toBeVisible();
+    const detailTab = page.getByRole("tab", { name: "Detail", exact: true });
+    await detailTab.click();
+    await page.keyboard.press("o");
+    await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("d");
-    await expect(page.getByRole("tab", { name: "Detail", exact: true })).toHaveAttribute("aria-selected", "true");
+    await expect(detailTab).toHaveAttribute("aria-selected", "true");
     const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
     await expect(detailRegion).toBeVisible();
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
