@@ -3,7 +3,6 @@
  * Loader data crosses the external QueueTargetsPresentation seam; server and broker concerns stay external.
  */
 import { useLoaderData, useNavigation, useRouteError } from "@remix-run/react";
-import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { QueueTargetsPresenter, type QueueTargetsPresentation } from "~/components/queues/QueueTargetsPresenter";
@@ -16,7 +15,7 @@ export default function Page() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={<><QueuesIcon className="size-4 text-queues" />Queues</>} /></NavBar>
+      <NavBar><PageTitle title="Queues" /></NavBar>
       <QueueTargetsPresenter data={data} loading={navigation.state !== "idle"} />
     </PageContainer>
   );

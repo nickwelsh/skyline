@@ -2,12 +2,11 @@
  * Reached Queue-list presenter composition from Trigger.dev
  * _app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline supplies observed evidence through QueueTargetsPresentation; broker controls stay absent.
+ * Skyline supplies captured Queue evidence; broker mutations remain absent.
  */
+import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
-import { Badge } from "~/components/primitives/Badge";
-import { DateTimeShort } from "~/components/primitives/DateTime";
 import {
   Table,
   TableBody,
@@ -18,7 +17,9 @@ import {
 } from "~/components/primitives/Table";
 import { Spinner } from "~/components/primitives/Spinner";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
-import { QueueTargetFilters, type QueueTimeRangeOption } from "./QueueTargetFilters";
+import { QueueBigNumber } from "./QueueBigNumber";
+import { QueueEnvironmentCharts } from "./QueueTargetCharts";
+import { QueuePeriodFilter, QueueSearchFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
 
 export type PresentedQueueTarget = {
   id: string;
@@ -27,6 +28,13 @@ export type PresentedQueueTarget = {
   queue: string;
   destination: string;
   state: "Idle" | "Busy";
+  queued: number;
+  running: number;
+  limit: number | null;
+  limitedBy: "Environment";
+  health: "Backlogged" | "Active" | "Idle";
+  delayP95: string;
+  backlog: number[];
   recordedRuns: string;
   recordedRunCounts: Record<RunStatus, number>;
   queueTimeSampleCount: number;
@@ -39,6 +47,7 @@ export type PresentedQueueTarget = {
 
 export type QueueTargetsPresentation = {
   generatedAt: string;
+  environment: { queued: number; running: number; allocated: number | null; limit: number | null };
   queueTargets: PresentedQueueTarget[];
   pagination: { previous?: string; next?: string };
   connectionOptions: string[];
@@ -51,11 +60,25 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
   return (
     <MetricsLayout.Root>
       <MetricsLayout.Filters className="px-2">
-        <QueueTargetFilters connections={data.connectionOptions} generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
-        <ListPagination list={data} />
+        <div className="flex items-center gap-1.5"><QueueSearchFilter /></div>
+        <div className="flex items-center gap-1.5">
+          <QueuePeriodFilter generatedAt={data.generatedAt} timeRanges={data.timeRanges} />
+          <ListPagination list={data} />
+        </div>
       </MetricsLayout.Filters>
+      <MetricsLayout.Grid>
+        <QueueBigNumber title="Queued" value={data.environment.queued} />
+        <QueueBigNumber title="Running" value={data.environment.running} />
+        <QueueBigNumber title="Allocated" value={data.environment.allocated} />
+        <QueueBigNumber title="Environment limit" value={data.environment.limit} />
+      </MetricsLayout.Grid>
+      {(data.hasFilters || data.hasAnyQueueTargets) && (
+        <MetricsLayout.Grid kind="charts" columns={{ base: 2, lg: 4 }}>
+          <QueueEnvironmentCharts targets={data.queueTargets} />
+        </MetricsLayout.Grid>
+      )}
       <MetricsLayout.Content>
-        <div className="relative min-h-64">
+        <div className="relative min-h-32">
           {data.queueTargets.length > 0
             ? <QueueTargetsTable targets={data.queueTargets} loading={loading} />
             : <QueueTargetsEmpty filtered={data.hasAnyQueueTargets && data.hasFilters} />}
@@ -68,39 +91,34 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
 
 function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget[]; loading: boolean }) {
   return (
-    <Table containerClassName="border-t" variant="dimmed">
+    <Table containerClassName="border-t">
       <TableHeader>
         <TableRow>
-          <TableHeaderCell>Queue</TableHeaderCell>
-          <TableHeaderCell>Connection</TableHeaderCell>
-          <TableHeaderCell>State</TableHeaderCell>
-          <TableHeaderCell>Recorded Runs by status</TableHeaderCell>
-          <TableHeaderCell alignment="right">Recorded Runs</TableHeaderCell>
-          <TableHeaderCell alignment="right">Queue-time samples</TableHeaderCell>
-          <TableHeaderCell alignment="right">Median</TableHeaderCell>
-          <TableHeaderCell alignment="right">P95</TableHeaderCell>
-          <TableHeaderCell alignment="right">Maximum</TableHeaderCell>
-          <TableHeaderCell>First observed</TableHeaderCell>
-          <TableHeaderCell>Last observed</TableHeaderCell>
+          <TableHeaderCell>Name</TableHeaderCell>
+          <TableHeaderCell alignment="right">Queued</TableHeaderCell>
+          <TableHeaderCell alignment="right">Running</TableHeaderCell>
+          <TableHeaderCell alignment="right">Limit</TableHeaderCell>
+          <TableHeaderCell alignment="right">Limited by</TableHeaderCell>
+          <TableHeaderCell alignment="right">Health</TableHeaderCell>
+          <TableHeaderCell alignment="right">Delay p95</TableHeaderCell>
+          <TableHeaderCell alignment="right">Backlog</TableHeaderCell>
+          <TableHeaderCell className="w-[1%] pl-32"><span className="sr-only">Pause/resume</span></TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody aria-busy={loading} className={loading ? "opacity-50" : undefined}>
         {targets.map((target) => (
           <TableRow key={target.id}>
-            <TableCell to={target.path} isTabbableCell className="max-w-80">
-              <span className="block truncate font-medium text-text-bright">{target.queue}</span>
-              <span className="block truncate font-mono text-xs text-text-faint">{target.id}</span>
+            <TableCell to={target.path} isTabbableCell leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}>
+              {target.queue}
             </TableCell>
-            <TableCell className="font-mono text-text-bright">{target.connection}</TableCell>
-            <TableCell><Badge variant="small" className={target.state === "Busy" ? "text-pending" : "text-text-dimmed"}>{target.state}</Badge></TableCell>
-            <TableCell><RecordedStatusBreakdown counts={target.recordedRunCounts} /></TableCell>
-            <TableCell alignment="right" className="tabular-nums">{target.recordedRuns}</TableCell>
-            <TableCell alignment="right" className="tabular-nums">{target.queueTimeSampleCount.toLocaleString()}</TableCell>
-            <TableCell alignment="right" className="font-mono tabular-nums">{sample(target.medianQueueTime, target.queueTimeSampleCount)}</TableCell>
-            <TableCell alignment="right" className="font-mono tabular-nums">{sample(target.p95QueueTime, target.queueTimeSampleCount)}</TableCell>
-            <TableCell alignment="right" className="font-mono tabular-nums">{sample(target.maximumQueueTime, target.queueTimeSampleCount)}</TableCell>
-            <TableCell>{target.firstObservedAt ? <DateTimeShort date={target.firstObservedAt} /> : "—"}</TableCell>
-            <TableCell>{target.lastObservedAt ? <DateTimeShort date={target.lastObservedAt} /> : "—"}</TableCell>
+            <MetricCell target={target} value={target.queued} />
+            <MetricCell target={target} value={target.running} bright={target.running > 0} />
+            <MetricCell target={target} value={target.limit ?? "—"} />
+            <MetricCell target={target} value={target.limitedBy} />
+            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} /></TableCell>
+            <MetricCell target={target} value={target.queueTimeSampleCount > 0 ? target.delayP95 : "–"} bright={target.queueTimeSampleCount > 0} />
+            <TableCell to={target.path} alignment="right"><span className="sr-only">Backlog {target.queued}</span><BacklogSparkline values={target.backlog} /></TableCell>
+            <TableCell />
           </TableRow>
         ))}
       </TableBody>
@@ -108,32 +126,41 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
   );
 }
 
+function MetricCell({ target, value, bright = false }: { target: PresentedQueueTarget; value: string | number; bright?: boolean }) {
+  return <TableCell to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
+}
+
+function QueueHealthBadge({ health }: { health: PresentedQueueTarget["health"] }) {
+  const styles = health === "Backlogged"
+    ? "bg-blue-500/10 text-blue-500"
+    : health === "Active" ? "bg-success/10 text-success" : "bg-charcoal-500/10 text-text-dimmed";
+  return <span className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
+}
+
+function BacklogSparkline({ values }: { values: number[] }) {
+  const maximum = Math.max(...values, 1);
+  const points = values.map((value, index) => `${values.length === 1 ? 67 : index / (values.length - 1) * 134},${22 - value / maximum * 18}`).join(" ");
+  return (
+    <svg aria-hidden="true" viewBox="0 0 134 24" className="h-6 w-[134px]">
+      <line x1="0" x2="134" y1="23" y2="23" stroke="var(--color-border-bright)" />
+      <polyline points={points} fill="none" stroke="var(--color-queues-chart)" strokeWidth="1" />
+      {values.length === 1 && <circle cx="67" cy={22 - values[0] / maximum * 18} r="2.5" fill="var(--color-queues-chart)" />}
+    </svg>
+  );
+}
+
 export function RecordedStatusBreakdown({ counts }: { counts: Record<RunStatus, number> }) {
   return (
     <dl aria-label="Recorded Run status breakdown" className="flex items-center gap-2">
       {(["queued", "running", "retrying", "completed", "failed"] as const).map((status) => (
-        <div key={status} className="flex items-center gap-1">
-          <dt className="capitalize text-text-faint">{status}</dt>
-          <dd className="font-mono tabular-nums text-text-bright">{counts[status].toLocaleString()}</dd>
-        </div>
+        <div key={status} className="flex items-center gap-1"><dt className="capitalize text-text-faint">{status}</dt><dd className="font-mono tabular-nums text-text-bright">{counts[status].toLocaleString()}</dd></div>
       ))}
     </dl>
   );
 }
 
-function sample(value: string, count: number) {
-  return count === 0 ? <span title="No recorded queue-time samples">—</span> : value;
-}
-
 function QueueTargetsEmpty({ filtered }: { filtered: boolean }) {
-  return (
-    <div className="grid min-h-64 place-items-center text-center">
-      <div>
-        <h2 className="font-medium text-text-bright">{filtered ? "No matching Queue targets" : "No Queue targets yet"}</h2>
-        <p className="mt-1 text-sm text-text-dimmed">{filtered ? "Change or clear filters to see more Queue targets." : "Confirmed Runs with named asynchronous destinations will appear here."}</p>
-      </div>
-    </div>
-  );
+  return <div className="grid min-h-32 place-items-center py-6 text-center text-text-dimmed"><h2 className="font-medium text-text-bright">{filtered ? "No queues found matching your filters" : "No queues found"}</h2></div>;
 }
 
 function LoadingState({ label }: { label: string }) {

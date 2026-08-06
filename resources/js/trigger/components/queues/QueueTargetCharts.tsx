@@ -9,6 +9,24 @@ import type { ReactNode } from "react";
 
 type Point = { timestamp: string };
 
+export function QueueEnvironmentCharts({
+  targets,
+}: {
+  targets: Array<{ running: number; queued: number; queueTimeSampleCount: number; backlog: number[] }>;
+}) {
+  const running = targets.map((target) => target.running);
+  const backlog = targets.flatMap((target) => target.backlog);
+  const delay = targets.map((target) => target.queueTimeSampleCount);
+  return (
+    <>
+      <MetricChartCard title="Env saturation" series={[{ values: running, color: "var(--color-queues-chart)" }]} />
+      <MetricChartCard title="Backlog" series={[{ values: backlog, color: "var(--color-queues-chart)" }]} />
+      <MetricChartCard title="Scheduling delay p95" series={[{ values: delay, color: "var(--color-queues-chart)" }]} />
+      <MetricChartCard title="Throttled" series={[{ values: targets.map(() => 0), color: "var(--color-warning)" }]} />
+    </>
+  );
+}
+
 export function QueueTargetCharts({
   activity,
   queueTime,
@@ -62,11 +80,46 @@ function SeriesCard({
   );
 }
 
+export function MetricChartCard({
+  title,
+  series,
+  className,
+  legend,
+}: {
+  title: string;
+  series: Array<{ values: number[]; color: string; label?: string }>;
+  className?: string;
+  legend?: Array<{ color: string; label: string }>;
+}) {
+  return (
+    <figure className={className ?? "group h-full min-h-0 overflow-hidden rounded-lg border border-grid-bright bg-background-bright pb-2 pt-3"}>
+      <div className="mb-3 flex min-h-6 flex-col gap-1 pl-4 pr-3">
+        <Header3>{title}</Header3>
+        {legend && <div className="flex gap-2">{legend.map((item) => <span key={item.label} className="flex items-center gap-1 text-xs text-text-dimmed"><span className="size-2.5 rounded-[2px]" style={{ backgroundColor: item.color }} />{item.label}</span>)}</div>}
+      </div>
+      <svg role="img" aria-label={`${title} chart`} viewBox="0 0 400 180" className="h-[calc(100%-2.25rem)] w-full px-2">
+        <title>{title}</title>
+        <line x1="24" x2="396" y1="166" y2="166" stroke="var(--color-grid-bright)" />
+        {series.map((item, index) => <polyline key={index} points={lineFor(item.values, 400, 166)} fill="none" stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+      </svg>
+    </figure>
+  );
+}
+
 function line(values: number[]) {
   const maximum = Math.max(...values, 1);
   return values.map((value, index) => {
     const x = values.length === 1 ? 200 : (index / (values.length - 1)) * 400;
     const y = 124 - (value / maximum) * 112;
+    return `${x},${y}`;
+  }).join(" ");
+}
+
+function lineFor(values: number[], width: number, height: number) {
+  const maximum = Math.max(...values, 1);
+  return values.map((value, index) => {
+    const x = values.length <= 1 ? width / 2 : 24 + index / (values.length - 1) * (width - 28);
+    const y = height - 4 - value / maximum * (height - 24);
     return `${x},${y}`;
   }).join(" ");
 }

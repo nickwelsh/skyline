@@ -6,12 +6,85 @@
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
+import { SearchInput } from "~/components/primitives/SearchInput";
 
 export type QueueTimeRangeOption = {
   value: string;
   label: string;
   durationSeconds: number | null;
 };
+
+export function QueueSearchFilter() {
+  return <SearchInput placeholder="Search queues…" paramName="search" />;
+}
+
+export function QueuePeriodFilter({
+  generatedAt,
+  timeRanges,
+}: {
+  generatedAt: string;
+  timeRanges: QueueTimeRangeOption[];
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const update = (values: Record<string, string | undefined>) => {
+    const next = new URLSearchParams(location.search);
+    for (const [key, value] of Object.entries(values)) value ? next.set(key, value) : next.delete(key);
+    next.delete("cursor");
+    next.delete("direction");
+    navigate(`${location.pathname}${next.size ? `?${next}` : ""}`);
+  };
+
+  return (
+    <label className="flex items-center gap-1 text-xs text-text-dimmed">
+      <span>Period</span>
+      <select
+        aria-label="Period"
+        value={timeRangeValue(params, timeRanges)}
+        onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt, timeRanges))}
+        className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
+      >
+        {timeRanges.map((option) => <option key={option.value} value={option.value}>{periodLabel(option)}</option>)}
+        {params.has("from") && <option value="custom">Custom</option>}
+      </select>
+    </label>
+  );
+}
+
+export function QueueRunStatusFilter({ statuses }: { statuses: RunStatus[] }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  return (
+    <label className="flex items-center gap-1 text-xs text-text-dimmed">
+      <span>Status</span>
+      <select
+        multiple
+        aria-label="Run status"
+        value={params.getAll("status")}
+        onChange={(event) => {
+          const next = new URLSearchParams(location.search);
+          next.delete("status");
+          for (const option of event.currentTarget.selectedOptions) next.append("status", option.value);
+          next.delete("cursor");
+          next.delete("direction");
+          navigate(`${location.pathname}${next.size ? `?${next}` : ""}`);
+        }}
+        className="h-6 min-w-28 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
+      >
+        {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function periodLabel(option: QueueTimeRangeOption) {
+  if (option.value === "1h") return "1hr";
+  if (option.value === "24h") return "24hr";
+  if (option.value === "7d") return "7d";
+  return option.label;
+}
 
 export function QueueTargetFilters({
   connections,
@@ -124,7 +197,7 @@ export function QueueTargetFilters({
         <span>Time range</span>
         <select
           aria-label="Time range"
-          value={timeRangeValue(params)}
+          value={timeRangeValue(params, timeRanges)}
           onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt, timeRanges))}
           className="h-6 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
         >
@@ -136,8 +209,8 @@ export function QueueTargetFilters({
   );
 }
 
-function timeRangeValue(params: URLSearchParams) {
-  if (!params.has("from")) return "all";
+function timeRangeValue(params: URLSearchParams, options: QueueTimeRangeOption[]) {
+  if (!params.has("from")) return options.some((option) => option.value === "1h") ? "1h" : "all";
   return params.get("range") ?? "custom";
 }
 

@@ -34,8 +34,12 @@ export function queueTargetQuery(request: Request): QueueTargetRunsQuery {
 }
 
 export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPresentation {
+  const queued = page.queueTargets.reduce((total, target) => total + target.recordedRunCounts.queued, 0);
+  const running = page.queueTargets.reduce((total, target) => total + target.recordedRunCounts.running, 0);
+
   return {
     generatedAt: page.generatedAt,
+    environment: { queued, running, allocated: null, limit: null },
     queueTargets: page.queueTargets.map((target) => ({
       id: target.id,
       path: `/queues/${encodeURIComponent(target.id)}`,
@@ -43,6 +47,13 @@ export function presentQueueTargets(page: QueueTargetsPageDto): QueueTargetsPres
       queue: target.queue,
       destination: `${target.connection} / ${target.queue}`,
       state: busyCount(target.recordedRunCounts) > 0 ? "Busy" : "Idle",
+      queued: target.recordedRunCounts.queued,
+      running: target.recordedRunCounts.running,
+      limit: null,
+      limitedBy: "Environment",
+      health: queueHealth(target.recordedRunCounts),
+      delayP95: formatDuration(target.queueTime.p95Us),
+      backlog: [target.recordedRunCounts.queued],
       recordedRuns: target.recordedRunCount.toLocaleString(),
       recordedRunCounts: target.recordedRunCounts,
       queueTimeSampleCount: target.queueTime.sampleCount,
@@ -74,6 +85,14 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
   return {
     generatedAt: page.generatedAt,
     queueTarget: target,
+    stats: {
+      running: page.queueTarget.recordedRunCounts.running,
+      limit: null,
+      queued: page.queueTarget.recordedRunCounts.queued,
+      peakQueued: Math.max(0, ...page.series.activity.map((point) => point.recordedRunCounts.queued)),
+      oldestWait: "0",
+      worstWait: formatDuration(Math.max(0, ...page.series.queueTime.map((point) => point.maximumUs ?? 0))),
+    },
     activity: page.series.activity,
     queueTime: page.series.queueTime.filter((point): point is typeof point & {
       medianUs: number;
@@ -105,6 +124,12 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
 
 function busyCount(counts: Record<RunStatus, number>) {
   return counts.queued + counts.running + counts.retrying;
+}
+
+function queueHealth(counts: Record<RunStatus, number>): "Backlogged" | "Active" | "Idle" {
+  if (counts.queued > 0) return "Backlogged";
+  if (counts.running + counts.retrying > 0) return "Active";
+  return "Idle";
 }
 
 function value(params: URLSearchParams, key: string) {

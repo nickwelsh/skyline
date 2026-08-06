@@ -17,17 +17,22 @@ describe("QueueTargetAdapter", () => {
     });
   });
 
-  it("presents recorded counts and Queue-time evidence without broker claims", () => {
+  it("presents captured Queue evidence through the source list metrics seam", () => {
     const route = presentQueueTargets(listPage());
 
+    expect(route.environment).toEqual({ queued: 1, running: 1, allocated: null, limit: null });
     expect(route.queueTargets[0]).toEqual(expect.objectContaining({
       path: "/queues/queue_redis",
       destination: "redis / billing",
       state: "Busy",
+      queued: 1,
+      running: 1,
+      limit: null,
+      limitedBy: "Environment",
+      health: "Backlogged",
+      delayP95: "4.70ms",
+      backlog: [1],
       recordedRuns: "3",
-      medianQueueTime: "2.00ms",
-      p95QueueTime: "4.70ms",
-      maximumQueueTime: "5.00ms",
     }));
     expect(route.connectionOptions).toEqual(["redis", "sqs"]);
     expect(route.timeRanges).toEqual([
@@ -43,10 +48,18 @@ describe("QueueTargetAdapter", () => {
     expect(JSON.stringify(route)).not.toMatch(/brokerDepth|workers|concurrency|pause/i);
   });
 
-  it("presents detail charts and Run links at stable Skyline routes", () => {
+  it("presents captured Queue evidence through the source detail metrics seam", () => {
     const route = presentQueueTarget(detailPage());
 
     expect(route.queueTarget.destination).toBe("redis / billing");
+    expect(route.stats).toEqual({
+      running: 1,
+      limit: null,
+      queued: 1,
+      peakQueued: 0,
+      oldestWait: "0",
+      worstWait: "2.00ms",
+    });
     expect(route.activity[0]).toEqual(expect.objectContaining({ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1 }));
     expect(route.queueTime[0]).toEqual(expect.objectContaining({ medianUs: 2000, p95Us: 2000 }));
     expect(route.runs[0]).toEqual(expect.objectContaining({

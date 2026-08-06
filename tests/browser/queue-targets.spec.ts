@@ -17,17 +17,18 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
 
   await expect(page.getByRole("heading", { name: "Queues" })).toBeVisible();
   await expect(page.getByText("this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
-  await expect(page.getByText("Recorded Runs", { exact: true }).first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Recorded Runs by status" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Queue-time samples" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "First observed" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Last observed" })).toBeVisible();
-  await expect(page.getByLabel("Recorded Run status breakdown").first()).toContainText("queued1");
+  for (const metric of ["Queued", "Running", "Allocated", "Environment limit"]) {
+    await expect(page.getByRole("heading", { name: metric })).toBeVisible();
+  }
+  for (const chart of ["Env saturation", "Backlog", "Scheduling delay p95", "Throttled"]) {
+    await expect(page.getByRole("img", { name: `${chart} chart` })).toBeVisible();
+  }
+  for (const column of ["Name", "Queued", "Running", "Limit", "Limited by", "Health", "Delay p95", "Backlog"]) {
+    await expect(page.getByRole("columnheader", { name: column, exact: true })).toBeVisible();
+  }
   await expect(page.getByText("Broker depth")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
 
-  await page.getByLabel("Connection").selectOption("redis");
-  await expect(page).toHaveURL(/connection=redis/);
   await page.getByLabel("Search queues").fill("billing");
   await page.getByLabel("Search queues").press("Enter");
   await expect(page).toHaveURL(/search=billing/);
@@ -35,7 +36,7 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).not.toHaveURL(/search=/);
   await page.getByLabel("Search queues").press("Escape");
   await expect(page.getByLabel("Search queues")).not.toBeFocused();
-  await page.getByLabel("Time range").selectOption("24h");
+  await page.getByLabel("Period").selectOption("24h");
   await expect(page).toHaveURL(/from=/);
   await expect(page).toHaveURL(/to=/);
 
@@ -128,11 +129,12 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   });
 
   await page.goto("/skyline/queues");
-  await expect(page.getByText("Busy", { exact: true })).toBeVisible();
+  await expect(page.getByText("Backlogged", { exact: true })).toBeVisible();
   await expect(page.getByText("Idle", { exact: true })).toBeVisible();
 
   delayList = true;
-  await page.getByLabel("Connection").selectOption("redis");
+  await page.getByLabel("Search queues").fill("billing");
+  await page.getByLabel("Search queues").press("Enter");
   await expect(page.locator("tbody")).toHaveClass(/opacity-50/);
   delayList = false;
 

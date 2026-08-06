@@ -25,6 +25,14 @@ type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number
 export type QueueTargetDetailPresentation = {
   generatedAt: string;
   queueTarget: PresentedQueueTarget;
+  stats: {
+    running: number;
+    limit: number | null;
+    queued: number;
+    peakQueued: number;
+    oldestWait: string;
+    worstWait: string;
+  };
   activity: ActivityPoint[];
   queueTime: QueueTimePoint[];
   runs: PresentedRun[];
