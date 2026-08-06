@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Page } from "@playwright/test";
 import type { NormalizedAccessibilityNode } from "./accessibility";
+import type { DiscoveryStep } from "./discovery";
 import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
 
 type Rect = { x: number; y: number; width: number; height: number };
@@ -186,7 +187,7 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   return observation;
 }
 
-export type PresenterObservationStep = <T>(label: string, action: () => Promise<T>) => Promise<T>;
+export type PresenterObservationStep = DiscoveryStep;
 
 export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition, capture?: string, diagnosticStep?: PresenterObservationStep): Promise<PresenterExtensionObservation> {
   const step: PresenterObservationStep = diagnosticStep ?? ((_label, action) => action());
@@ -245,11 +246,12 @@ export function validatePresenterExtensionObservation(definition: PresenterExten
   return observation;
 }
 
-export async function discoverFrameworkExtensionObservation(trigger: Page, skyline: Page, definition: FrameworkExtensionDefinition): Promise<FrameworkExtensionObservation> {
+export async function discoverFrameworkExtensionObservation(trigger: Page, skyline: Page, definition: FrameworkExtensionDefinition, diagnosticStep?: DiscoveryStep): Promise<FrameworkExtensionObservation> {
+  const step: DiscoveryStep = diagnosticStep ?? ((_label, action) => action());
   const [extension, triggerAnchor, skylineAnchor] = await Promise.all([
-    observeElement(skyline, definition.id, definition.skylineSelector, "Skyline extension"),
-    observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor"),
-    observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor"),
+    step("element:skyline-extension", () => observeElement(skyline, definition.id, definition.skylineSelector, "Skyline extension")),
+    step("element:trigger-anchor", () => observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor")),
+    step("element:skyline-anchor", () => observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor")),
   ]);
   validatePairedAnchorIdentity(definition, triggerAnchor, skylineAnchor);
   if (extension.accessibleRole !== definition.accessibleRole || extension.accessibleName !== definition.accessibleName) throw new Error(`Allowed region ${definition.id} changed accessible identity.`);
