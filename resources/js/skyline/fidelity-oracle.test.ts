@@ -70,6 +70,22 @@ describe("source-fidelity oracle", () => {
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [region, { ...queueRegion, triggerAnchorSelector: region.skylineSelector }] })).toThrow(/selector/i);
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, captures: ["error-found@1440x960-dark"] }] })).toThrow(/measurement/i);
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, acceptance: "" }] })).toThrow(/incomplete/i);
+    const connection = {
+      ...queueRegion,
+      id: "queue-connection-filter",
+      acceptance: "Connection, search, and time-range filters are URL-backed and use valid server-supplied options.",
+      skylineSelector: '[data-skyline-extension="queue-connection-filter"]',
+      triggerAnchorSelector: '[data-trigger-anchor="queue-filter-controls"]',
+      skylineAnchorSelector: '[data-skyline-anchor="queue-filter-controls"]',
+      accessibleRole: "combobox",
+      accessibleName: "Connection",
+      anchorAccessibleRole: "search",
+      anchorAccessibleName: "Queue search",
+      measurements: { "queue-found@1440x960-classic": { ...queueRegion.measurements["queue-found@1440x960-classic"], accessibilitySha256: "c".repeat(64) } },
+    };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [connection] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...connection, measurements: queueRegion.measurements }] })).toThrow(/measurement/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...connection, acceptance: "Paraphrased." }] })).toThrow(/acceptance/i);
   });
 
   test("capability omissions require owned disjoint selector pairs and pinned evidence", () => {
