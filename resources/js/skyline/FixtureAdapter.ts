@@ -302,7 +302,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const search = query.search?.toLowerCase();
     const filtered = source.filter((run) => {
       const matchesSearch = !search || run.id.toLowerCase().includes(search) || run.name.toLowerCase().includes(search);
-      return matchesSearch && (!query.status || query.status.includes(run.status));
+      return matchesSearch && (!query.status?.length || query.status.includes(run.status));
     });
     const requestedOffset = Number.parseInt(query.cursor ?? "0", 10);
     const offset = Number.isFinite(requestedOffset) && requestedOffset >= 0 ? requestedOffset : 0;

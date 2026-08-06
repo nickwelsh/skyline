@@ -40,6 +40,13 @@ describe("FixtureAdapter", () => {
     });
   });
 
+  it("treats an empty status selection as no Runs filter", async () => {
+    const page = await new FixtureAdapter().runs({ status: [] });
+
+    expect(page.runs).toHaveLength(25);
+    expect(page.pagination.next).toBe("25");
+  });
+
   it("paginates fixtures and resolves every Runs row to its own trace", async () => {
     const adapter = new FixtureAdapter();
     const first = await adapter.runs();
