@@ -4,24 +4,22 @@
  * Server loaders, tenants, streaming, replay, cancellation, and deployment/runtime fields are external or omitted.
  */
 import {
-  ArrowPathIcon,
   ChevronDownIcon,
-  ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
-  XMarkIcon,
 } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { Badge } from "~/components/primitives/Badge";
-import { Button } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { Header3 } from "~/components/primitives/Headers";
-import { NavBar, PageAccessories, PageTitle } from "~/components/primitives/PageHeader";
+import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
+import { Popover, PopoverArrowTrigger, PopoverContent } from "~/components/primitives/Popover";
 import {
   RESIZABLE_PANEL_ANIMATION,
   ResizableHandle,
@@ -35,6 +33,7 @@ import { Slider } from "~/components/primitives/Slider";
 import { Spinner } from "~/components/primitives/Spinner";
 import { Switch } from "~/components/primitives/Switch";
 import * as Timeline from "~/components/primitives/Timeline";
+import { RunIcon, type NodeKind } from "~/components/runs/v3/RunIcon";
 import { TaskRunStatusCombo, TaskRunStatusIcon, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { TreeView, type FlatTree, useTree } from "~/primitives/TreeView/TreeView";
 import { cn } from "~/utils/cn";
@@ -45,7 +44,7 @@ type TraceNode = {
   id: string;
   parentId: string | null;
   runId: string;
-  kind: string;
+  kind: NodeKind;
   label: string;
   level: number;
   offsetUs: number;
@@ -133,28 +132,30 @@ export default function RunDetailRoute() {
   const revalidator = useRevalidator();
   const [params, setParams] = useSearchParams();
   const rootNodeId = data.trace.nodes[0]?.id;
-  const selectedId = params.get("node") ?? undefined;
+  const selectedParam = params.get("node") ?? undefined;
   const inspectorPanelHandle = useRef<PanelHandle>(null);
-  const rememberedSelection = useRef<{ runId: string; nodeId?: string }>({ runId: data.run.id, nodeId: selectedId });
+  const rememberedSelection = useRef<{ runId: string; nodeId?: string }>({ runId: data.run.id, nodeId: selectedParam });
 
   if (rememberedSelection.current.runId !== data.run.id) {
-    rememberedSelection.current = { runId: data.run.id, nodeId: selectedId };
+    rememberedSelection.current = { runId: data.run.id, nodeId: selectedParam };
   }
 
+  const selectedId = selectedParam ?? (rememberedSelection.current.nodeId ? undefined : rootNodeId);
+
   useEffect(() => {
-    if (selectedId) rememberedSelection.current.nodeId = selectedId;
-  }, [selectedId]);
+    if (selectedParam) rememberedSelection.current.nodeId = selectedParam;
+  }, [selectedParam]);
 
   useEffect(() => {
     void (selectedId ? inspectorPanelHandle.current?.expand() : inspectorPanelHandle.current?.collapse());
   }, [selectedId]);
 
   useEffect(() => {
-    if (selectedId || rememberedSelection.current.nodeId || !rootNodeId) return;
+    if (selectedParam || rememberedSelection.current.nodeId || !rootNodeId) return;
     const next = new URLSearchParams(params);
     next.set("node", rootNodeId);
     setParams(next, { replace: true });
-  }, [data.run.id, rootNodeId, selectedId]);
+  }, [data.run.id, rootNodeId, selectedParam]);
 
   useEffect(() => {
     if (!data.trace.polling) return;
@@ -194,24 +195,21 @@ export default function RunDetailRoute() {
         <PageTitle
           backButton={{ to: data.navigation.runsPath, text: "Runs" }}
           title={
-            <span className="flex items-center gap-2">
-              <TaskRunStatusIcon status={data.run.status} className="size-4" />
-              <CopyableText value={data.run.id} />
-            </span>
+            <div className="flex items-center gap-x-0">
+              <CopyableText
+                value={data.run.id}
+                variant="text-below"
+                className="-ml-1.75 h-6 px-1.5 font-mono text-xs hover:text-text-bright"
+              />
+              {params.get("tableState") && (
+                <div className="flex">
+                  <AdjacentLink label="Previous Run" path={data.navigation.previousPath} icon={<ChevronUpIcon />} />
+                  <AdjacentLink label="Next Run" path={data.navigation.nextPath} icon={<ChevronDownIcon />} />
+                </div>
+              )}
+            </div>
           }
         />
-        <PageAccessories>
-          <AdjacentLink label="Previous Run" path={data.navigation.previousPath} icon={<ChevronLeftIcon />} />
-          <AdjacentLink label="Next Run" path={data.navigation.nextPath} icon={<ChevronRightIcon />} />
-          <Button
-            variant="secondary/small"
-            LeadingIcon={ArrowPathIcon}
-            onClick={() => revalidator.revalidate()}
-            disabled={revalidator.state !== "idle"}
-          >
-            Refresh
-          </Button>
-        </PageAccessories>
       </NavBar>
       <PageBody scrollable={false} className="relative p-0">
         {revalidator.state !== "idle" && (
@@ -307,7 +305,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
   };
 
   return (
-    <div className="grid h-full grid-rows-[2.5rem_2rem_1fr_3.25rem] overflow-hidden">
+    <div className="grid h-full grid-rows-[2.5rem_1fr_3.25rem] overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-grid-dimmed px-1.5">
         <SearchInput placeholder="Search logs…" value={search} onValueChange={(value) => update("traceSearch", value)} />
         <div className="flex items-center gap-1.5">
@@ -315,41 +313,43 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
           <Switch variant="secondary/small" label="Errors only" checked={errorsOnly} onCheckedChange={(checked) => update("errors", checked)} />
         </div>
       </div>
-      <div className="flex items-center justify-between px-3 text-xs text-text-faint">
-        <span className="flex items-center gap-3">
-          <RelationshipLinks data={data} />
-          {data.trace.isTruncated && <span role="status" className="text-warning">Showing {data.trace.nodes.length} of {data.trace.nodeCount} nodes</span>}
-        </span>
-        {data.trace.polling && (
-          <span className="flex items-center gap-1 text-blue-500"><span className="size-2 animate-pulse rounded-full bg-blue-500" />Live reloading</span>
-        )}
-        {data.trace.rootStatus === "executing" && !data.trace.polling && (
-          <span className="text-text-faint">Live updates paused</span>
-        )}
-      </div>
       <ResizablePanelGroup autosaveId="panel-run-tree">
         <ResizablePanel id={panels.tree.tree} default="50%" min="50px">
-          <TreeView
-            parentRef={parentRef}
-            scrollRef={treeScrollRef}
-            virtualizer={state.virtualizer}
-            autoFocus
-            tree={tree}
-            nodes={state.nodes}
-            getNodeProps={state.getNodeProps}
-            getTreeProps={state.getTreeProps}
-            parentClassName="h-full pl-3"
-            onScroll={(top) => { if (timelineScrollRef.current) timelineScrollRef.current.scrollTop = top; }}
-            renderNode={({ node, state: nodeState }) => (
-              <TraceRow
-                node={node.data}
-                selected={nodeState.selected}
-                expanded={nodeState.expanded}
-                onSelect={() => state.selectNode(node.id)}
-                onToggle={(level) => level ? state.toggleExpandLevel(node.data.level) : state.toggleExpandNode(node.id)}
-              />
-            )}
-          />
+          <div className="grid h-full grid-rows-[2rem_1fr] overflow-hidden">
+            <div className="flex items-center justify-between pl-1 pr-2 text-xs text-text-faint">
+              <span className="flex min-w-0 items-center gap-3">
+                <RelationshipLinks data={data} />
+                {data.trace.isTruncated && <span role="status" className="truncate text-warning">Showing {data.trace.nodes.length} of {data.trace.nodeCount} nodes</span>}
+              </span>
+              {data.trace.polling && (
+                <span className="flex shrink-0 items-center gap-1 text-blue-500"><span className="size-2 animate-pulse rounded-full bg-blue-500" />Live reloading</span>
+              )}
+              {data.trace.rootStatus === "executing" && !data.trace.polling && (
+                <span className="shrink-0 text-text-faint">Live updates paused</span>
+              )}
+            </div>
+            <TreeView
+              parentRef={parentRef}
+              scrollRef={treeScrollRef}
+              virtualizer={state.virtualizer}
+              autoFocus
+              tree={tree}
+              nodes={state.nodes}
+              getNodeProps={state.getNodeProps}
+              getTreeProps={state.getTreeProps}
+              parentClassName="pl-3"
+              onScroll={(top) => { if (timelineScrollRef.current) timelineScrollRef.current.scrollTop = top; }}
+              renderNode={({ node, state: nodeState }) => (
+                <TraceRow
+                  node={node.data}
+                  selected={nodeState.selected}
+                  expanded={nodeState.expanded}
+                  onSelect={() => state.selectNode(node.id)}
+                  onToggle={(level) => level ? state.toggleExpandLevel(node.data.level) : state.toggleExpandNode(node.id)}
+                />
+              )}
+            />
+          </div>
         </ResizablePanel>
         <ResizableHandle id={panels.tree.handle} />
         <ResizablePanel id={panels.tree.timeline} default="50%" min="50px">
@@ -365,7 +365,18 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
         </ResizablePanel>
       </ResizablePanelGroup>
       <div className="flex items-center justify-between border-t border-grid-dimmed px-4 text-xs text-text-dimmed">
-        <span>↑ ↓ ← → Navigate · E/W Expand/collapse · 0–9 Toggle depth · Esc Close · J/K Runs</span>
+        <Popover>
+          <PopoverArrowTrigger>Shortcuts</PopoverArrowTrigger>
+          <PopoverContent className="min-w-80 p-2" align="start">
+            <Header3 spacing>Keyboard shortcuts</Header3>
+            <div className="flex flex-col gap-2 text-xs text-text-dimmed">
+              <span>↑ ↓ ← → Navigate</span>
+              <span>E / W Expand or collapse</span>
+              <span>0–9 Toggle depth</span>
+              <span>Esc Close · J / K Runs</span>
+            </div>
+          </PopoverContent>
+        </Popover>
         <Slider
           aria-label="Timeline zoom"
           variant="tertiary"
@@ -394,7 +405,9 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
       )}
       onClick={onSelect}
     >
-      <span style={{ width: `${node.level * 16}px` }} className="shrink-0" />
+      <span className="flex h-8 shrink-0">
+        {Array.from({ length: node.level }).map((_, index) => <span key={index} className="h-8 w-2 border-r border-grid-bright" />)}
+      </span>
       {node.hasChildren ? (
         <button
           type="button"
@@ -405,10 +418,13 @@ function TraceRow({ node, selected, expanded, onSelect, onToggle }: { node: Trac
           {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
         </button>
       ) : <span className="size-4 shrink-0" />}
-      <span className="ml-1.5 flex min-w-0 flex-1 items-center gap-2">
+      <span className="ml-1 flex min-w-0 flex-1 items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <RunIcon kind={node.kind} className="size-5 min-h-5 min-w-5" />
+          <span className={cn("truncate", node.isError ? "text-error" : node.kind === "attempt" ? "text-text-dimmed group-hover/spannode:text-text-bright" : "text-text-link")}>{node.label}</span>
+          {node.kind === "run" && node.level === 0 && <Badge variant="extra-small">Root</Badge>}
+        </span>
         <TaskRunStatusIcon status={nodeStatus(node)} className="size-4 shrink-0" />
-        <span className={cn("truncate", node.isError ? "text-error" : "text-text-dimmed group-hover/spannode:text-text-bright")}>{node.label}</span>
-        {node.kind === "run" && node.level === 0 && <Badge variant="extra-small">Root</Badge>}
       </span>
     </div>
   );
@@ -428,7 +444,7 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
   const queueUs = boundedQueueDuration(data, totalUs);
   const shiftUs = showQueue ? 0 : queueUs;
   const visibleUs = Math.max(1, totalUs - shiftUs);
-  const coordinateUs = visibleUs * 1.05;
+  const coordinateUs = visibleUs;
   const width = containerRef.current?.clientWidth ?? 300;
 
   return (
@@ -464,7 +480,7 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
             renderNode={({ node, state: nodeState }) => {
               const startUs = Math.max(0, node.data.offsetUs - shiftUs);
               const durationUs = Math.max(0, Math.min(node.data.durationUs ?? visibleUs - startUs, visibleUs - startUs));
-              const point = durationUs / coordinateUs < 0.002;
+              const point = durationUs / coordinateUs < 0.01;
               return (
                 <Timeline.Row
                   data-timeline-row-kind={node.data.kind}
@@ -473,17 +489,22 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
                 >
                   {point ? (
                     <Timeline.Point ms={startUs / 1_000}>
-                      {() => <span data-timeline-node-point-id={node.id} title={`${node.data.label} · Started ${formatDuration(startUs)} · Duration ${formatDuration(durationUs)}`} className={cn("block size-2 rounded-full border border-background-bright", nodeColor(node.data))} />}
+                      {() => <span className="flex items-center gap-1">
+                        <span data-timeline-node-point-id={node.id} title={`${node.data.label} · Started ${formatDuration(startUs)} · Duration ${formatDuration(durationUs)}`} className={cn("block h-4 w-0.5", nodeColor(node.data))} />
+                        <span className="whitespace-nowrap text-xxs text-text-bright">{formatDuration(durationUs)}</span>
+                      </span>}
                     </Timeline.Point>
                   ) : (
                     <Timeline.Span startMs={startUs / 1_000} durationMs={durationUs / 1_000}>
                       <motion.div
                         data-timeline-node-id={node.id}
                         title={`${node.data.label} · Started ${formatDuration(startUs)} · Duration ${formatDuration(durationUs)}`}
-                        className={cn("relative h-4 min-w-0.5 rounded-sm", nodeColor(node.data))}
+                        className={cn("relative h-4 min-w-0.5 overflow-hidden rounded-sm", nodeColor(node.data))}
+                        style={node.data.kind === "run" ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 2px, rgb(255 255 255 / 0.16) 2px 4px)" } : undefined}
                         layoutId={data.trace.rootStatus === "executing" ? node.id : undefined}
                       >
                         {node.data.isPartial && <span className="absolute inset-0 animate-pulse bg-white/10" />}
+                        <span className="relative z-10 px-1 text-xxs text-text-bright">{formatDuration(durationUs)}</span>
                       </motion.div>
                     </Timeline.Span>
                   )}
@@ -541,25 +562,31 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   const failure = data.attempts.find((attempt) => attempt.id === frozenId)?.failure;
 
   return (
-    <section className="grid h-full grid-rows-[2.5rem_auto_1fr] overflow-hidden bg-background-dimmed" aria-label="Run inspector">
-      <div className="flex items-center justify-between border-b border-grid-bright px-4">
-        <Header3>{node?.label ?? "Inspector"}</Header3>
-        <button type="button" aria-label="Close inspector" title="Close inspector (Esc)" className="rounded p-1 text-text-dimmed hover:bg-background-raised hover:text-text-bright" onClick={onClose}>
-          <XMarkIcon className="size-4" />
+    <section className="grid h-full grid-rows-[2.5rem_2rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
+      <div className="flex items-center justify-between gap-2 overflow-x-hidden px-3 pr-2">
+        <div className="flex min-w-0 items-center gap-1">
+          <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
+          <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>
+        </div>
+        <button type="button" aria-label="Close inspector" title="Close inspector (Esc)" className="flex h-6 shrink-0 items-center gap-1 rounded px-1 text-xxs text-text-faint hover:bg-background-raised hover:text-text-bright" onClick={onClose}>
+          <kbd className="rounded-sm border border-border-bright px-1 font-mono">Esc</kbd><span>→</span>
         </button>
       </div>
-      <div role="tablist" className="flex gap-6 border-b border-grid-bright px-4">
-        {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
+      <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
+        {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "context", label: "Context", key: "x" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
           <InspectorTab key={item.id} active={tab === item.id} enabled={Boolean(selectedId)} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
         ))}
       </div>
-      <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+      <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
         {error && <div role="alert" className="text-error">{error.message}</div>}
         {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />}
         {inspector && tab === "detail" && <InspectorDetails inspector={inspector} renderDetails={data.renderInspectorDetails} />}
+        {inspector && tab === "context" && (
+          <div className="py-3 text-sm text-text-dimmed">Context was not captured for this Run.</div>
+        )}
         {inspector && tab === "metadata" && (
-          <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-bright p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
+          <pre className="my-3 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
         )}
       </div>
     </section>
@@ -574,8 +601,19 @@ function InspectorOverview({ data, node, inspector, failure }: {
 }) {
   const isRouteRun = inspector.runId === data.run.id;
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
+  if (node?.kind === "run" && isRouteRun) {
+    return (
+      <div className="flex flex-col gap-4 pt-3">
+        <div className="border-b border-grid-bright pb-3">
+          <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
+        </div>
+        <RunLifecycleTimeline run={data.run} />
+        {inspector.exception && <ExceptionPreview exception={inspector.exception} />}
+      </div>
+    );
+  }
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 py-3">
       <div className="flex items-center justify-between">
         <Header3>{node?.label ?? inspector.label}</Header3>
         <TaskRunStatusCombo status={nodeStatus(inspector)} />
@@ -604,6 +642,38 @@ function InspectorOverview({ data, node, inspector, failure }: {
           </div>
         )}
     </div>
+  );
+}
+
+function RunLifecycleTimeline({ run }: { run: RouteData["run"] }) {
+  const entries = [
+    { label: "Triggered", value: run.triggeredAt },
+    { label: "Dequeued", value: run.startedAt },
+    { label: "Started", value: run.startedAt },
+    { label: "Finished", value: run.finishedAt },
+  ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value));
+
+  return (
+    <ol className="max-w-80">
+      {entries.map((entry, index) => {
+        const previous = index > 0 ? new Date(entries[index - 1].value) : null;
+        const current = new Date(entry.value);
+        const elapsed = previous ? Math.max(0, current.getTime() - previous.getTime()) : null;
+        return (
+          <li key={entry.label} className="grid min-h-11 grid-cols-[1rem_1fr_auto] gap-x-2">
+            <span className="relative flex justify-center">
+              {index < entries.length - 1 && <span className="absolute bottom-0 top-3 w-1 bg-green-500" />}
+              <span className={cn("relative z-10 mt-1 size-2 rounded-full border-2 border-green-500 bg-background-bright", index === 0 || index === entries.length - 1 ? "rounded-sm" : "")} />
+            </span>
+            <span className="text-sm text-text-bright">
+              {entry.label}
+              {elapsed !== null && <span className="block text-xs text-text-faint">{formatMilliseconds(elapsed)}</span>}
+            </span>
+            <time className="text-xs tabular-nums text-text-dimmed" dateTime={entry.value}>{formatTimestamp(current, index === 0)}</time>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -661,8 +731,8 @@ function RelationshipLinks({ data }: { data: RouteData }) {
 
 function AdjacentLink({ label, path, icon }: { label: string; path: string | null; icon: React.ReactElement }) {
   return path
-    ? <Link aria-label={label} title={label} to={path} replace className="flex size-7 items-center justify-center rounded hover:bg-background-raised">{icon}</Link>
-    : <span aria-label={`${label} unavailable`} className="flex size-7 items-center justify-center opacity-30">{icon}</span>;
+    ? <Link aria-label={label} title={label} to={path} replace className="flex size-6 max-w-6 items-center justify-center rounded hover:bg-background-raised">{icon}</Link>
+    : <span aria-label={`${label} unavailable`} className="flex size-6 max-w-6 items-center justify-center opacity-50">{icon}</span>;
 }
 
 function traceDuration(data: RouteData): number {
@@ -695,6 +765,20 @@ function formatDuration(microseconds: number | null): string {
   const milliseconds = microseconds / 1_000;
   if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
   return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
+}
+
+function formatMilliseconds(milliseconds: number): string {
+  if (milliseconds < 1_000) return `${milliseconds} milliseconds`;
+  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)} seconds`;
+}
+
+function formatTimestamp(date: Date, includeDate: boolean): string {
+  return new Intl.DateTimeFormat("en-US", {
+    ...(includeDate ? { month: "short", day: "numeric" } : {}),
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
 }
 
 function isEditable(target: EventTarget | null): boolean {

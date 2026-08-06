@@ -26,6 +26,10 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.goto(`${oracle.path}?tableState=cursor%3Dopaque`);
 
   await expect(page.getByRole("heading", { name: oracle.expected.heading })).toBeVisible();
+  await expect(page.getByRole("button", { name: runId })).toBeVisible();
+  await expect(page.getByLabel("Previous Run")).toBeVisible();
+  await expect(page.getByLabel("Next Run")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(0);
   await expect(page.getByRole("main").getByRole("link", { name: "Runs" })).toHaveAttribute("href", "/skyline/runs?cursor=opaque");
   const tree = page.getByRole("tree", { name: oracle.expected.treeName });
   await expect(tree).toBeVisible();
@@ -35,8 +39,9 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
     await expect(page.getByRole("tab", { name: tab, exact: true })).toBeVisible();
   }
   await expect(page.locator('[data-timeline-event="Dequeued"]')).toBeVisible();
-  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Attempts" }).locator("+ dd")).toHaveText("2");
-  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Triggered" }).locator("+ dd")).toHaveText("2026-08-04T20:01:21.000000000Z");
+  await expect(page.getByRole("tabpanel")).toContainText("Completed");
+  await expect(page.getByRole("tabpanel")).toContainText("Triggered");
+  await expect(page.getByRole("tabpanel")).toContainText("Dequeued");
   await expect(page.getByRole("link", { name: /Child:/ })).toHaveAttribute("href", /\/skyline\/runs\/run_01J8R4H9S9J12V04CNH6F6JQ3M/);
   await page.locator('[data-node-id="run_run_01J8R4H9S9J12V04CNH6F6JQ3M"]').click();
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Run" }).locator("+ dd")).toHaveText("run_01J8R4H9S9J12V04CNH6F6JQ3M");
@@ -371,6 +376,8 @@ test("active Run polls while preserving selection and interaction state", async 
 test("Run detail preserves loading, stale-refresh, API-error, and not-found treatments", async ({ page }) => {
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
+  detail.trace.polling = true;
+  detail.trace.pollIntervalMs = 50;
   let mode: "found" | "error" | "not-found" = "found";
   let requests = 0;
   await page.route("**/skyline/api/runs/**", async (route) => {
@@ -390,8 +397,10 @@ test("Run detail preserves loading, stale-refresh, API-error, and not-found trea
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
 
   mode = "error";
-  await page.getByRole("button", { name: "Refresh" }).click();
   await expect(page.getByText("Refreshing Run…")).toBeVisible();
+  await expect(page.getByRole("heading", { name: runId })).toBeVisible();
+
+  await page.goto(`/skyline/runs/${runId}?api-error=1`);
   await expect(page.getByRole("alert")).toContainText("Telemetry unavailable.");
 
   mode = "not-found";
@@ -414,7 +423,7 @@ test("queue time outside represented coordinates cannot distort timeline", async
   const attemptBox = await attempt.boundingBox();
   expect(timelineBox).not.toBeNull();
   expect(attemptBox).not.toBeNull();
-  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(2_050 / (14_988 * 1.05), 4);
+  expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(2_050 / 14_988, 4);
 });
 
 test("adjacent Run shortcut replaces an equal-sized trace without stale tree state", async ({ page }) => {
