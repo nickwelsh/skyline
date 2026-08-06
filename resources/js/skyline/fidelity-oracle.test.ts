@@ -9,12 +9,13 @@ describe("source-fidelity oracle", () => {
     const matrix = JSON.parse(readFileSync(join(root, "tests/fidelity/matrix.json"), "utf8"));
     const captures = expectedCaptureIds(matrix);
 
-    expect(captures).toHaveLength(367);
+    expect(captures).toHaveLength(385);
     expect(captures).toContain("runs-loading@1440x960-classic");
     expect(captures).toContain("run-stale-refresh@1440x960-dark");
     expect(captures).toContain("shell-customized@390x844-classic");
     expect(captures).toContain("log-found@1440x960-system-light");
     expect(captures).toContain("shell-live-change@1440x960-system-dark");
+    expect(captures).toContain("runs-exception-unavailable@1440x960-dark");
   });
 
   test("allowed differences require a narrow accepted category and selectors", () => {
