@@ -62,6 +62,7 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
 
   test("discovers collapsed and paginated states with full accessibility", () => {
     const discovery = readFileSync(resolve(import.meta.dirname, "../queue-recorded-runs-extension.discovery.ts"), "utf8");
+    const config = readFileSync(resolve(import.meta.dirname, "../../../playwright.discovery.config.ts"), "utf8");
     expect(discovery).toContain("expect(definition.captures).toHaveLength(19)");
     expect(discovery).toContain('step("recorded-runs:collapsed"');
     expect(discovery).toContain('step("recorded-runs:open-table"');
@@ -69,5 +70,6 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
     expect(discovery).toContain('step("recorded-runs:focus-restored"');
     expect(discovery).toContain('scenario.id === "queues-paginated-runs"');
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
+    expect(config).toContain('"**/queue-recorded-runs-extension.discovery.ts"');
   });
 });
