@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0",
+  "viewport": { "width": 1024, "height": 768 },
+  "cases": [
+    { "key": "sql-captured", "heading": "SQL query", "preview": "Parameterized SQL", "visible": ["select * from invoices where customer_id = ?", "Result preview", "Truncated"], "absent": ["Bindings not captured", "Result not captured"] },
+    { "key": "sql-unavailable", "heading": "SQL query", "preview": "Parameterized SQL", "visible": ["select 1", "Bindings not captured", "Result not captured"], "absent": ["With bindings"] },
+    { "key": "transaction-failed", "heading": "Database transaction", "preview": null, "visible": ["testing", "Depth", "2", "rolled_back", "Operation failed"], "absent": ["rollback reason"] },
+    { "key": "cache-unavailable", "heading": "Cache operation", "preview": null, "visible": ["sha256:0123456789abcdef", "Key fingerprint", "Value not captured", "Not captured"], "absent": ["customer@example.test"] },
+    { "key": "cache-long", "heading": "Cache operation", "preview": "Value", "visible": ["customer:42", "Key", "Truncated", "Not captured"], "absent": ["Value not captured"] },
+    { "key": "redis-failed", "heading": "Redis command", "preview": "Arguments", "visible": ["SET", "default", "failed", "Connection lost"], "absent": ["Arguments not captured"] },
+    { "key": "redis-unavailable", "heading": "Redis command", "preview": null, "visible": ["GET", "Arguments not captured"], "absent": ["private-key"] }
+  ]
+}

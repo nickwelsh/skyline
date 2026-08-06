@@ -6,6 +6,7 @@ import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto"
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
 import inspectorOracle from "./fixtures/nw-220-external-inspectors.json" with { type: "json" };
 import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseline.json" with { type: "json" };
+import stateInspectorOracle from "./fixtures/nw-223-database-state-inspectors.json" with { type: "json" };
 import failureScenario from "./fixtures/nw-222-failure-scenario.json" with { type: "json" };
 import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
 
@@ -482,6 +483,84 @@ test("paired external and custom inspectors preserve visible, interaction, focus
   }
 });
 
+test("paired database and state inspectors preserve captured, unavailable, failed, and long evidence", async ({ page }) => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  expect(stateInspectorOracle.sourceCommit).toBe(triggerInspectorBaseline.sourceCommit);
+  for (const source of Object.values(triggerInspectorBaseline.sourceFiles)) {
+    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
+  }
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  const queryNodeId = "span_4f24adb545b26d31";
+  let activeCase = stateInspectorOracle.cases[0].key;
+  await routeDetail(page, detail, async (nodeId) => {
+    const inspector = await adapter.inspector(nodeId, runId);
+    inspector.overview = {
+      runId,
+      attemptNumber: 1,
+      traceId: "00000000000000000000000000000001",
+      spanId: "4f24adb545b26d31",
+      parentSpanId: "4f24adb545b26d30",
+    };
+    inspector.source = { file: "app/Jobs/GenerateMonthlyInvoices.php", line: 42, href: "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42" };
+    inspector.metadata = {
+      value: {
+        attributes: { "db.namespace": "testing" },
+        events: [{ name: "query.completed", timestamp: "2026-08-05T12:00:00.125000000Z" }],
+      },
+      isTruncated: false,
+      truncated: [],
+    };
+    inspector.presentation = databaseStatePresentation(activeCase);
+    return inspector;
+  });
+  await page.setViewportSize(stateInspectorOracle.viewport);
+
+  for (const scenario of stateInspectorOracle.cases) {
+    activeCase = scenario.key;
+    await page.goto(`/skyline/runs/${runId}?node=${queryNodeId}&fixture=${scenario.key}`);
+    await page.keyboard.press("d");
+    await expect(page.getByRole("tab", { name: "Detail", exact: true })).toHaveAttribute("aria-selected", "true");
+    const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
+    await expect(detailRegion).toBeVisible();
+    for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
+    for (const value of scenario.absent) await expect(detailRegion).not.toContainText(value);
+    await expect(page.getByRole("tabpanel", { name: "Detail" })).toContainText("4f24adb545b26d30");
+    await expect(page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:42" })).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42");
+
+    if (scenario.key === "sql-captured") {
+      await page.keyboard.press("m");
+      await expect(page.getByRole("tabpanel", { name: "Metadata" })).toContainText("query.completed");
+      await page.keyboard.press("d");
+      await expect(detailRegion).toBeVisible();
+    }
+
+    if (!scenario.preview) continue;
+
+    const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
+    await wrap.click();
+    await expect(page.getByRole("button", { name: `Unwrap ${scenario.preview}` })).toBeVisible();
+    const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
+    await copy.click();
+    await expect(copy).toHaveAttribute("title", "Copied");
+    const expand = page.getByRole("button", { name: `Expand ${scenario.preview}` });
+    await expand.click();
+    const dialog = page.getByRole("dialog", { name: `Expanded ${scenario.preview}` });
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(expand).toBeFocused();
+
+    if (scenario.key === "sql-captured") {
+      await page.getByRole("tab", { name: "With bindings" }).click();
+      await expect(detailRegion).toContainText("[REDACTED]");
+      await page.getByRole("tab", { name: "Tree" }).click();
+      await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
+    }
+  }
+});
+
 async function routeDetail(
   page: Page,
   detail: TracePageDto,
@@ -523,6 +602,28 @@ function inspectorPresentation(key: string): NonNullable<InspectorDto["presentat
       return { type: "summary", summary: { resources: { peakMemoryBytes: 1_048_576, memoryDeltaBytes: 1_024, cpuTimeUs: 1_250 }, operations: { http: { count: 2, durationMs: 25 } } } };
     default:
       return { type: "generic", timing, failure: null };
+  }
+}
+
+function databaseStatePresentation(key: string): NonNullable<InspectorDto["presentation"]> {
+  const timing = { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 };
+  const captured = (value: unknown, truncated = false) => ({ type: Array.isArray(value) ? "array" : "string", value, originalBytes: JSON.stringify(value).length, truncated });
+
+  switch (key) {
+    case "sql-captured":
+      return { type: "sql", timing, failure: null, sql: { statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 44 }, bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false }, result: { kind: "rows", rows: [{ id: 42, total: "125.00" }], rowCount: 1, truncated: true } } };
+    case "sql-unavailable":
+      return { type: "sql", timing, failure: null, sql: { statement: { value: "select 1", isTruncated: false, originalBytes: 8 }, bindings: null, result: null } };
+    case "transaction-failed":
+      return { type: "transaction", timing, failure: { type: null, message: null }, transaction: { connection: "testing", driver: "sqlite", depth: 2, outcome: "rolled_back", queryTimeMs: 12.5 } };
+    case "cache-unavailable":
+      return { type: "cache", timing, failure: null, cache: { operation: "GET", store: "redis", key: "sha256:0123456789abcdef", keyCaptured: false, keyCount: 1, strategy: null, outcome: "miss", hit: false, ttlSeconds: null, freshTtlSeconds: null, forever: null, value: null } };
+    case "cache-long":
+      return { type: "cache", timing, failure: null, cache: { operation: "PUT", store: "redis", key: "customer:42", keyCaptured: true, keyCount: 1, strategy: "remember", outcome: "stored", hit: null, ttlSeconds: 60, freshTtlSeconds: null, forever: null, value: captured("long-value-".repeat(80), true) } };
+    case "redis-failed":
+      return { type: "redis", timing, failure: { type: "RedisException", message: "Connection lost" }, redis: { command: "SET", connection: "default", outcome: "failed", arguments: captured(["private-key", "private-value"]) } };
+    default:
+      return { type: "redis", timing, failure: null, redis: { command: "GET", connection: "default", outcome: "completed", arguments: null } };
   }
 }
 
