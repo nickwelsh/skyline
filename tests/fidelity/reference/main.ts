@@ -13,6 +13,7 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { LocaleContextProvider } from "~/components/primitives/LocaleProvider";
 import { OperatingSystemContextProvider } from "~/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "~/components/primitives/ShortcutsProvider";
+import { AppContainer } from "~/components/layout/AppLayout";
 import { useSystemThemeSync } from "~/hooks/useSystemThemeSync";
 import type { ThemePreference } from "~/utils/themePreference";
 import ProjectLayout, { ErrorBoundary as ProjectError } from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam/route";
@@ -146,7 +147,7 @@ function ReferenceRoot() {
     document.addEventListener("click", bridge, true);
     return () => document.removeEventListener("click", bridge, true);
   }, [navigate]);
-  return createElement(Outlet);
+  return createElement(AppContainer, null, createElement(Outlet));
 }
 
 function ReferenceSurfaceLayout() {

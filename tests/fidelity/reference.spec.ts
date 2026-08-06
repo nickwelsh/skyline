@@ -39,6 +39,14 @@ test("reference paired jobs-populated readiness", async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test("reference app shell fills the viewport", async ({ page }) => {
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/runs-populated", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page.locator("#reference > div")).toHaveCSS("height", "960px");
+  await expectReferenceHealthy(page);
+});
+
 for (const id of ["shell-populated", "runs-populated", "errors-populated", "logs-populated", "queues-populated", "run-found", "error-found", "log-found", "queue-found"]) {
   test(`reference boots ${id}`, async ({ page }) => {
     const errors: string[] = [];
