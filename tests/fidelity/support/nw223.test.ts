@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import matrix from "../matrix.json" with { type: "json" };
 import { createReferenceFixture } from "./reference";
-import { isNw223State, nw223InspectorState, nw223States, nw223TraceState } from "./nw223";
+import { isNw223State, nw223InspectorState, nw223Presentation, nw223States, nw223TraceState } from "./nw223";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const queryNodeId = "span_4f24adb545b26d31";
@@ -50,6 +50,28 @@ describe("NW-223 database and state inspector states", () => {
     expect(failed.presentation && "failure" in failed.presentation ? failed.presentation.failure : null).toEqual({ type: "RedisException", message: "Connection lost" });
     expect(cacheUnavailable.presentation?.type === "cache" && cacheUnavailable.presentation.cache.value).toBeNull();
     expect(cacheUnavailable.presentation?.type === "cache" && cacheUnavailable.presentation.cache.keyCaptured).toBe(false);
+  });
+
+  it("preserves exact recorded transaction, cache, and Redis evidence", () => {
+    const transaction = nw223Presentation("inspectors-transaction-nesting");
+    const cache = nw223Presentation("inspectors-cache-success");
+    const redis = nw223Presentation("inspectors-redis-success");
+
+    expect(transaction).toMatchObject({
+      type: "transaction",
+      timing: { durationUs: 125_000 },
+      transaction: { connection: "testing", driver: "sqlite", depth: 2, outcome: "committed", queryTimeMs: 12.5 },
+    });
+    expect(cache).toMatchObject({
+      type: "cache",
+      timing: { durationUs: 125_000 },
+      cache: { operation: "PUT", store: "redis", key: "customer:42", keyCaptured: true, outcome: "stored", ttlSeconds: 60, value: { value: { invoiceId: 42 } } },
+    });
+    expect(redis).toMatchObject({
+      type: "redis",
+      timing: { durationUs: 125_000 },
+      redis: { command: "MSET", connection: "default", outcome: "completed", arguments: { value: ["invoice:42", "paid"] } },
+    });
   });
 
   it("selects the same query identity in the trace", async () => {
