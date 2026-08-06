@@ -4,6 +4,7 @@
  * Narrowed to the run-view popover root, trigger, content, and arrow trigger.
  */
 import * as PopoverPrimitive from "@radix-ui/react-popover";
+import { EllipsisHorizontalIcon, EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import * as React from "react";
 
 import { DropdownIcon } from "../../assets/icons/DropdownIcon";
@@ -100,4 +101,35 @@ function PopoverArrowTrigger({
   );
 }
 
-export { Popover, PopoverArrowTrigger, PopoverContent, PopoverTrigger };
+const popoverEllipseVariants = {
+  minimal: {
+    trigger: "size-6 rounded-[3px] text-text-dimmed hover:bg-tertiary hover:text-text-bright",
+    icon: "size-5",
+  },
+  secondary: {
+    trigger: "size-6 rounded border border-border-bright bg-secondary text-text-bright hover:bg-surface-control hover:border-border-brighter",
+    icon: "size-4",
+  },
+  ghost: { trigger: "p-1 text-text-faint hover:text-text-bright", icon: "size-4" },
+} as const;
+
+function PopoverEllipseTrigger({
+  variant = "minimal",
+  orientation = "vertical",
+  className,
+  ...props
+}: {
+  isOpen?: boolean;
+  variant?: keyof typeof popoverEllipseVariants;
+  orientation?: "vertical" | "horizontal";
+} & React.ComponentPropsWithoutRef<typeof PopoverTrigger>) {
+  const styles = popoverEllipseVariants[variant];
+  const Icon = orientation === "horizontal" ? EllipsisHorizontalIcon : EllipsisVerticalIcon;
+  return <PopoverTrigger {...props} className={cn("group flex items-center justify-center transition focus-custom", styles.trigger, className)}>
+    <Icon className={cn(styles.icon, "transition")} />
+  </PopoverTrigger>;
+}
+
+const PopoverVerticalEllipseTrigger = PopoverEllipseTrigger;
+
+export { Popover, PopoverArrowTrigger, PopoverContent, PopoverEllipseTrigger, PopoverTrigger, PopoverVerticalEllipseTrigger };

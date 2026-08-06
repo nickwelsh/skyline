@@ -3,10 +3,14 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Skyline adaptation: run-route geometry only; Remix back link.
  */
-import { Link } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
+import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline";
+import { useHref } from "react-router-dom";
 import { type ReactNode } from "react";
+import { JobFavoriteButton } from "~/components/navigation/JobFavorites";
 import { BreadcrumbIcon } from "./BreadcrumbIcon";
 import { Header2 } from "./Headers";
+import { SimpleTooltip } from "./Tooltip";
 
 type WithChildren = {
   children: React.ReactNode;
@@ -27,13 +31,22 @@ export function NavBar({ children }: WithChildren) {
 
 type PageTitleProps = {
   title: ReactNode;
+  accessory?: ReactNode;
   backButton?: {
     to: string;
     text: string;
   };
 };
 
-export function PageTitle({ title, backButton }: PageTitleProps) {
+export function PageTitle({ title, backButton, accessory }: PageTitleProps) {
+  const titleText = typeof title === "string" ? title : undefined;
+  const rootHref = useHref("/");
+  const location = useLocation();
+  const basename = rootHref === "/" ? "" : rootHref.replace(/\/$/, "");
+  const favoritePath = location.pathname.startsWith(basename)
+    ? location.pathname.slice(basename.length) || "/"
+    : location.pathname;
+
   return (
     <div className="flex items-center gap-1.5">
       {backButton && (
@@ -48,6 +61,15 @@ export function PageTitle({ title, backButton }: PageTitleProps) {
         </div>
       )}
       <Header2 className="flex items-center gap-1">{title}</Header2>
+      {accessory !== undefined ? <span className="ml-px flex items-center">{typeof accessory === "string" ? (
+        <SimpleTooltip
+          button={<QuestionMarkCircleIcon className="size-4 text-text-dimmed" />}
+          content={accessory}
+          className="max-w-xs"
+          disableHoverableContent
+        />
+      ) : accessory}</span> : null}
+      {titleText ? <JobFavoriteButton id={`page:${favoritePath}`} label={titleText} path={favoritePath} /> : null}
     </div>
   );
 }

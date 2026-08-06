@@ -102,6 +102,7 @@ function createVariant(sizeName: Size, themeName: Theme) {
 }
 
 const variant = {
+  "primary/small": createVariant("small", "primary"),
   "primary/medium": createVariant("medium", "primary"),
   "secondary/small": createVariant("small", "secondary"),
   "secondary/small-icon": createVariant("small-icon", "secondary"),

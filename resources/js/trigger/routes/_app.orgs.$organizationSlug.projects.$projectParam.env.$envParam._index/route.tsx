@@ -7,9 +7,10 @@ import { ClockIcon, PlusIcon, SparklesIcon } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import type { PanelHandle } from "@window-splitter/react";
 import { useCallback, useRef, useState } from "react";
+import { Bar } from "recharts";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
+import { ActivityBarChart } from "~/components/metrics/ActivityBarChart";
 import { Button } from "~/components/primitives/Buttons";
-import { DateTimeShort } from "~/components/primitives/DateTime";
 import { Header2 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import { Paragraph } from "~/components/primitives/Paragraph";
@@ -22,7 +23,16 @@ import {
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
-import { getRunStatusChartColor, TaskRunStatusCombo } from "~/components/runs/v3/TaskRunStatus";
+import {
+  Table,
+  TableBlankRow,
+  TableBody,
+  TableCell,
+  TableCellMenu,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+} from "~/components/primitives/Table";
 import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { CodeBlock } from "~/CodeBlock";
@@ -59,6 +69,11 @@ export default function JobsRoute() {
   const usefulLinksPanelRef = useRef<PanelHandle>(null);
   const isLoading = navigation.state !== "idle";
   const hasItems = data.jobs.length > 0;
+  const pageSize = 25;
+  const requestedPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const totalPages = Math.max(1, Math.ceil(data.jobs.length / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const jobs = data.jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const toggleUsefulLinks = useCallback((show: boolean) => {
     setShowUsefulLinks(show);
     setIsPanelAnimating(true);
@@ -71,38 +86,33 @@ export default function JobsRoute() {
     }
     data.onJobGuidanceChange(show);
   }, [data]);
-  const updatePeriod = (period: string) => {
+  const setPage = (page: number) => {
     const next = new URLSearchParams(searchParams);
-    period === "all" ? next.delete("period") : next.set("period", period);
-    next.delete("cursor");
+    page <= 1 ? next.delete("page") : next.set("page", String(page));
     setSearchParams(next);
   };
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={<><TaskIcon className="size-4 text-tasks" />Jobs</>} />{data.testJob && <button type="button" className="rounded px-2 py-1 text-xs text-tests hover:bg-background-hover focus-custom">Test</button>}</NavBar>
-      <PageBody scrollable={false} className="min-h-0 p-0">
+      <NavBar><PageTitle title="Tasks" accessory="What is a task?" /></NavBar>
+      <PageBody scrollable={false}>
         <ResizablePanelGroup orientation="horizontal" className="max-h-full">
           <ResizablePanel id="jobs-main" min="100px" className="max-h-full">
-            <div className="grid h-full min-w-0 grid-rows-[auto_1fr]">
-              <div aria-label="Job filters" className="flex h-12 items-center justify-between gap-2 border-b border-grid-bright p-2">
-                <SearchInput placeholder="Search Jobs…" />
+            <div className="grid h-full min-w-0 grid-rows-1">
+              {hasItems ? <div className="flex min-w-0 max-w-full flex-col overflow-hidden">
+              <div aria-label="Task filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
+                <div className="flex flex-1 items-center gap-1.5">
+                  <SearchInput placeholder="Search tasks…" resetParams={["page"]} />
+                  <TaskTypeFilter />
+                </div>
                 <div className="flex items-center gap-1.5">
-                  {data.jobGuidance && !showUsefulLinks && hasItems && <button type="button" onClick={() => toggleUsefulLinks(true)} className="flex h-6 items-center gap-1 rounded border border-indigo-500 bg-indigo-600 px-2 text-xs text-white hover:bg-indigo-500 focus-custom"><PlusIcon className="size-3.5" />New task…</button>}
-                  <select
-                    aria-label="Time range"
-                    className="h-8 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright"
-                    value={searchParams.get("period") ?? "all"}
-                    onChange={(event) => updatePeriod(event.currentTarget.value)}
-                  >
-                    {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
+                  {(!data.jobGuidance || !showUsefulLinks) && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
+                  <TaskPagination currentPage={currentPage} totalPages={totalPages} onPage={setPage} />
                 </div>
               </div>
-              <div className="relative min-h-0 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-                {hasItems ? <JobsTable jobs={data.jobs} isPanelAnimating={isPanelAnimating} /> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
-                {isLoading && !hasItems ? <LoadingState /> : null}
-              </div>
+              <JobsTable jobs={jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
+              </div> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
+              {isLoading && !hasItems ? <LoadingState /> : null}
             </div>
           </ResizablePanel>
           {data.jobGuidance && <>
@@ -225,69 +235,65 @@ function PromptCard({ icon, title, description, code }: { icon: React.ReactNode;
   );
 }
 
-function JobsTable({ jobs, isPanelAnimating }: { jobs: PresentedJob[]; isPanelAnimating: boolean }) {
+function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]; isPanelAnimating: boolean; isLoading: boolean }) {
   return (
-    <table className="w-full whitespace-nowrap">
-      <thead className="sticky top-0 z-10 bg-background-dimmed">
-        <tr className="border-b border-grid-dimmed text-left">
-          <HeaderCell>Job</HeaderCell>
-          <HeaderCell>Recent status</HeaderCell>
-          <HeaderCell>Activity</HeaderCell>
-          <HeaderCell>Runs</HeaderCell>
-          <HeaderCell>First observed</HeaderCell>
-          <HeaderCell>Last observed</HeaderCell>
-          <HeaderCell>Latest Run</HeaderCell>
-        </tr>
-      </thead>
-      <tbody>
-        {jobs.map((job) => (
-          <tr key={job.id} className="group border-b border-grid-dimmed">
-            <Cell className="max-w-md">
-              <Link to={job.path} className="flex min-w-0 items-center gap-2 rounded outline-hidden focus-custom">
-                <TaskIcon className="size-4 shrink-0 text-tasks" />
-                <span className="truncate font-medium text-text-bright group-hover:underline">{shortName(job.name)}</span>
-              </Link>
-              <div className="ml-6 truncate font-mono text-xs text-text-faint">{job.name}</div>
-            </Cell>
-            <Cell><TaskRunStatusCombo status={job.latestRun.status} /></Cell>
-            <Cell><div hidden={isPanelAnimating}><StatusActivity counts={job.statusCounts} /></div></Cell>
-            <Cell className="font-mono tabular-nums text-text-bright">{job.runCount.toLocaleString()}</Cell>
-            <Cell><DateTimeShort date={job.firstObservedAt} /></Cell>
-            <Cell><DateTimeShort date={job.lastObservedAt} /></Cell>
-            <Cell>
-              <Link to={job.latestRun.path} className="rounded font-mono text-text-bright hover:underline focus-custom">{job.latestRun.id}</Link>
-            </Cell>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <Table containerClassName="min-h-0 flex-1" showTopBorder>
+      <TableHeader><TableRow>
+        <TableHeaderCell>ID</TableHeaderCell>
+        <TableHeaderCell tooltip={<span>Standard, scheduled, and agent tasks.</span>} disableTooltipHoverableContent>Type</TableHeaderCell>
+        <TableHeaderCell>File</TableHeaderCell>
+        <TableHeaderCell>Running</TableHeaderCell>
+        <TableHeaderCell>Activity (24h)</TableHeaderCell>
+        <TableHeaderCell hiddenLabel>Go to page</TableHeaderCell>
+      </TableRow></TableHeader>
+      <TableBody>
+        {jobs.length ? jobs.map((job) => <TaskRow key={job.id} job={job} isPanelAnimating={isPanelAnimating} />) :
+          <TableBlankRow colSpan={6}><Paragraph variant="small">No tasks match your filters</Paragraph></TableBlankRow>}
+      </TableBody>
+      {isLoading ? <caption className="sr-only">Loading Tasks</caption> : null}
+    </Table>
   );
 }
 
-function StatusActivity({ counts }: { counts: PresentedJob["statusCounts"] }) {
-  const entries = Object.entries(counts).filter(([, count]) => count > 0);
-  const peak = Math.max(1, ...entries.map(([, count]) => count));
+function TaskRow({ job, isPanelAnimating }: { job: PresentedJob; isPanelAnimating: boolean }) {
+  return <TableRow className="group">
+    <TableCell to={job.path} isTabbableCell><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
+    <TableCell to={job.path}>Standard</TableCell>
+    <TableCell to={job.path}><code className="text-wrap rounded border border-grid-bright bg-background-bright px-1 py-0.5 font-mono text-xxs text-text-dimmed">{job.name.replaceAll("\\", "/")}.php</code></TableCell>
+    <TableCell to={job.path}>{job.statusCounts.running ?? 0}</TableCell>
+    <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity total={job.runCount} /></div></div></TableCell>
+    <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.name)}`} className="block rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright">View runs</Link>} />
+  </TableRow>;
+}
+
+function StatusActivity({ total }: { total: number }) {
   return (
-    <div role="img" aria-label="Recorded Runs by status" className="flex h-5 w-32 items-end gap-px">
-      {entries.length > 0 ? entries.map(([status, count]) => (
-        <span
-          key={status}
-          data-status={status}
-          title={`${status}: ${count}`}
-          className="min-w-2 flex-1"
-          style={{ backgroundColor: getRunStatusChartColor(status), height: `${Math.max(20, count / peak * 100)}%` }}
-        />
-      )) : <span className="h-px w-full bg-grid-bright" />}
-    </div>
+    <ActivityBarChart
+      data={[{ total }]}
+      max={total}
+      tooltip={<span />}
+      peak={total.toLocaleString()}
+      peakTooltip="Peak runs in a single hour"
+    >
+      <Bar dataKey="total" fill="var(--color-run-completed-successfully)" strokeWidth={0} isAnimationActive={false} />
+    </ActivityBarChart>
   );
 }
 
-function HeaderCell({ children }: { children: React.ReactNode }) {
-  return <th className="px-3 py-2.5 text-sm font-normal text-text-dimmed">{children}</th>;
+function TaskTypeFilter() {
+  return <div role="group" aria-label="Task type" className="flex h-6 overflow-hidden rounded border border-grid-bright bg-background-bright text-xs text-text-dimmed">
+    <button type="button" aria-pressed="true" className="border-r border-grid-bright px-2 text-text-bright">All</button>
+    <button type="button" aria-label="Agent tasks" className="border-r border-grid-bright px-2 text-agents">✦</button>
+    <button type="button" aria-label="Standard tasks" className="border-r border-grid-bright px-2 text-tasks"><TaskIcon className="size-3.5" /></button>
+    <button type="button" aria-label="Scheduled tasks" className="px-2 text-schedules"><ClockIcon className="size-3.5" /></button>
+  </div>;
 }
 
-function Cell({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-3 py-3 text-xs group-hover:bg-background-bright ${className}`}>{children}</td>;
+function TaskPagination({ currentPage, totalPages, onPage }: { currentPage: number; totalPages: number; onPage: (page: number) => void }) {
+  return <div className="flex h-6 items-center overflow-hidden rounded border border-grid-bright bg-background-bright text-xs">
+    <button type="button" aria-label="Previous page" disabled={currentPage <= 1} onClick={() => onPage(currentPage - 1)} className="h-full border-r border-grid-bright px-2 text-text-dimmed disabled:opacity-30">‹</button>
+    <button type="button" aria-label="Next page" disabled={currentPage >= totalPages} onClick={() => onPage(currentPage + 1)} className="h-full px-2 text-text-dimmed disabled:opacity-30">›</button>
+  </div>;
 }
 
 function EmptyState({ filtered }: { filtered: boolean }) {
@@ -308,8 +314,4 @@ export function JobsErrorBoundary() {
   return (
     <PageContainer><NavBar><PageTitle title="Jobs" /></NavBar><PageBody className="grid place-items-center"><div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center"><h1 className="font-medium text-text-bright">Unable to load Jobs</h1><p className="mt-1 text-sm text-text-dimmed">{message}</p></div></PageBody></PageContainer>
   );
-}
-
-function shortName(name: string) {
-  return name.split("\\").at(-1) ?? name;
 }

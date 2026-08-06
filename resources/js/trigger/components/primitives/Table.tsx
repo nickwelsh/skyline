@@ -1,7 +1,8 @@
 import { ChevronDownIcon, ChevronUpDownIcon, ChevronUpIcon } from "@heroicons/react/20/solid";
 import { Link } from "@remix-run/react";
-import React, { type ReactNode, createContext, forwardRef, useContext } from "react";
+import React, { type ReactNode, createContext, forwardRef, useContext, useState } from "react";
 import { cn } from "~/utils/cn";
+import { Popover, PopoverContent, PopoverVerticalEllipseTrigger } from "./Popover";
 import { InfoIconTooltip } from "./Tooltip";
 
 /*!
@@ -476,17 +477,32 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
 
 export const TableCellMenu = forwardRef<
   HTMLTableCellElement,
-  Pick<TableCellProps, "className"> & { hiddenButtons: ReactNode }
->(({ className, hiddenButtons }, ref) => {
+  TableCellProps & {
+    visibleButtons?: ReactNode;
+    hiddenButtons?: ReactNode;
+    popoverContent?: ReactNode | ((close: () => void) => ReactNode);
+  }
+>(({ className, isSticky, onClick, visibleButtons, hiddenButtons, popoverContent, isSelected }, ref) => {
+  const [isOpen, setIsOpen] = useState(false);
   const { variant } = useContext(TableContext);
+  const resolvedContent = typeof popoverContent === "function"
+    ? popoverContent(() => setIsOpen(false))
+    : popoverContent;
 
   return (
-    <TableCell className={className} ref={ref} alignment="right" hasAction>
+    <TableCell className={className} isSticky={isSticky} onClick={onClick} ref={ref} alignment="right" hasAction isSelected={isSelected}>
       <div className="relative h-full p-1">
         <div className={cn("absolute right-0 top-1/2 mr-1 flex -translate-y-1/2 items-center justify-end gap-0.5 rounded-[0.25rem] p-0.5 group-hover/table-row:ring-1", variants[variant].menuButton)}>
-          <div data-hidden-buttons className="hidden group-hover/table-row:block">
+          {hiddenButtons ? <div data-hidden-buttons className={cn("hidden group-hover/table-row:block", resolvedContent && "pr-0.5 group-hover/table-row:border-r", variants[variant].menuButtonDivider)}>
             <div className="flex items-center gap-x-0.5 divide-x divide-grid-bright">{hiddenButtons}</div>
-          </div>
+          </div> : null}
+          {visibleButtons}
+          {resolvedContent ? <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverVerticalEllipseTrigger isOpen={isOpen} className="duration-0 group-hover/table-row:text-text-bright" />
+            <PopoverContent className="min-w-40 max-w-80 overflow-y-auto p-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control" align="end">
+              {typeof popoverContent === "function" ? resolvedContent : <div className="flex flex-col gap-1 p-1">{resolvedContent}</div>}
+            </PopoverContent>
+          </Popover> : null}
         </div>
       </div>
     </TableCell>
