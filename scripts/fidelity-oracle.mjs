@@ -152,6 +152,7 @@ export function validateAllowedDifferences(differences) {
       for (const measurement of Object.values(region.measurements)) {
         const hashes = ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256"];
         const valid = hashes.every((key) => /^[a-f0-9]{64}$/.test(measurement[key] ?? ""))
+          && typeof measurement.anchorAccessibleName === "string" && measurement.anchorAccessibleName.length > 0
           && [measurement.triggerRelativeRect, measurement.skylineRelativeRect, measurement.anchorRect].every((rect) => ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])))
           && JSON.stringify(measurement.triggerRelativeRect) === JSON.stringify(measurement.skylineRelativeRect);
         if (!valid) fail(`Invalid presenter-extension measurement: ${region.id}`);

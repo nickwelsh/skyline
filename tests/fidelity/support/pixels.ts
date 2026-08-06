@@ -33,7 +33,7 @@ type PresenterExtensionObservation = {
   triggerRect: Rect; skylineRect: Rect; triggerRelativeRect: Rect; skylineRelativeRect: Rect;
   triggerComputedStyleSha256: string; skylineComputedStyleSha256: string;
   triggerAccessibilitySha256: string; skylineAccessibilitySha256: string;
-  anchorRect: Rect; anchorComputedStyleSha256: string; anchorAccessibilitySha256: string;
+  anchorRect: Rect; anchorComputedStyleSha256: string; anchorAccessibilitySha256: string; anchorAccessibleName: string;
 };
 export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion;
 
@@ -76,14 +76,18 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
     return [boundedRect(region.id, region.extension.rect, imageWidth, imageHeight)];
   }
   if (region.kind === "presenter-extension") {
-    for (const key of ["triggerSelector", "skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "skylineAccessibleRole", "skylineAccessibleName", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256"] as const) {
+    for (const key of ["triggerSelector", "skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "skylineAccessibleRole", "skylineAccessibleName", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256", "anchorAccessibleName"] as const) {
       if (region.presenter[key] !== region.expected[key]) throw new Error(`Allowed region ${region.id} changed ${key}.`);
     }
     for (const key of ["triggerRelativeRect", "skylineRelativeRect", "anchorRect"] as const) {
       if (JSON.stringify(region.presenter[key]) !== JSON.stringify(region.expected[key])) throw new Error(`Allowed region ${region.id} changed ${key}.`);
     }
-    if (JSON.stringify(region.presenter.triggerRect) !== JSON.stringify(region.presenter.skylineRect)
-      || JSON.stringify(region.presenter.triggerRelativeRect) !== JSON.stringify(region.presenter.skylineRelativeRect)) throw new Error(`Allowed region ${region.id} changed equal outer geometry.`);
+    if (JSON.stringify(region.expected.triggerRelativeRect) !== JSON.stringify(region.expected.skylineRelativeRect)
+      || JSON.stringify(region.presenter.triggerRect) !== JSON.stringify(region.presenter.skylineRect)) throw new Error(`Allowed region ${region.id} changed cross-side geometry.`);
+    for (const [label, rect, relative] of [["Trigger", region.presenter.triggerRect, region.expected.triggerRelativeRect], ["Skyline", region.presenter.skylineRect, region.expected.skylineRelativeRect]] as const) {
+      const expectedRect = { x: region.expected.anchorRect.x + relative.x, y: region.expected.anchorRect.y + relative.y, width: relative.width, height: relative.height };
+      if (JSON.stringify(rect) !== JSON.stringify(expectedRect)) throw new Error(`Allowed region ${region.id} changed ${label} outer geometry.`);
+    }
     return uniqueRects([
       boundedRect(region.id, region.presenter.triggerRect, imageWidth, imageHeight),
       boundedRect(region.id, region.presenter.skylineRect, imageWidth, imageHeight),

@@ -9,7 +9,7 @@ import { observeAction } from "./support/actions";
 import { captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
-import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
+import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences, waitForDifferenceRegions } from "./support/difference-regions";
 import { measurePixels } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
@@ -48,6 +48,7 @@ for (const capture of captures) {
       await page.clock.runFor(10);
     }
     await Promise.all([exposeOwnedState(page, scenario), exposeOwnedState(reference, scenario)]);
+    await waitForDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
     await Promise.all([applyLiveSystemChange(page, capture), applyLiveSystemChange(reference, capture)]);
     await Promise.all([settleCapture(page), settleCapture(reference)]);
     await Promise.all([assertFixedCanvas(page, capture), assertFixedCanvas(reference, capture)]);

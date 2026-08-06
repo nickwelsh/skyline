@@ -1,4 +1,5 @@
-import { describe, expect, test } from "vitest";
+import type { Page } from "@playwright/test";
+import { describe, expect, test, vi } from "vitest";
 import {
   applicableCapabilityOmissions,
   applicableFrameworkExtensions,
@@ -11,6 +12,7 @@ import {
   validateCapabilityOmissionObservation,
   validatePairedAnchor,
   validatePresenterExtensionObservation,
+  waitForDifferenceRegions,
   type CapabilityOmissionDefinition,
   type FrameworkExtensionDefinition,
   type PresenterExtensionDefinition,
@@ -90,10 +92,12 @@ describe("framework-extension fidelity regions", () => {
     };
 
     expect(validatePresenterExtensionObservation(expected, observed, expected.captures[0])).toBe(observed);
+    const retry = { ...expected, measurements: { [expected.captures[0]]: { ...expected.measurements[expected.captures[0]], anchorAccessibleName: "LogicException" } } };
+    expect(validatePresenterExtensionObservation(retry, { ...observed, anchorAccessibleName: "LogicException" }, expected.captures[0])).toMatchObject({ anchorAccessibleName: "LogicException" });
     expect(() => validatePresenterExtensionObservation(expected, { ...observed, triggerComputedStyleSha256: "0".repeat(64) }, expected.captures[0])).toThrow(/triggerComputedStyleSha256/i);
     expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineAccessibilitySha256: "0".repeat(64) }, expected.captures[0])).toThrow(/skylineAccessibilitySha256/i);
     expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineRelativeRect: { ...observed.skylineRelativeRect, y: 99 } }, expected.captures[0])).toThrow(/Skyline anchor-relative geometry/i);
-    expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineRect: { ...observed.skylineRect, height: 41 } }, expected.captures[0])).toThrow(/outer geometry/i);
+    expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineRect: { ...observed.skylineRect, height: 41 } }, expected.captures[0])).toThrow(/geometry/i);
   });
 
   test("allows one presenter extension and identifies both AX omission selectors", () => {
@@ -103,6 +107,18 @@ describe("framework-extension fidelity regions", () => {
     expect(accessibilityOmissionSelectors([observed], "trigger")).toEqual([region.triggerSelector]);
     expect(accessibilityOmissionSelectors([observed], "skyline")).toEqual([region.skylineSelector]);
     expect(() => applicablePresenterExtensions(region.captures[0], { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
+  });
+
+  test("waits for every presenter selector before capture settling", async () => {
+    const region = presenterDefinition();
+    const trigger = waitingPage();
+    const skyline = waitingPage();
+
+    await waitForDifferenceRegions(trigger.page, skyline.page, region.captures[0], { regions: [region] });
+
+    expect(trigger.locator.mock.calls.map(([selector]) => selector)).toEqual([region.triggerAnchorSelector, region.triggerSelector]);
+    expect(skyline.locator.mock.calls.map(([selector]) => selector)).toEqual([region.skylineAnchorSelector, region.skylineSelector]);
+    expect([...trigger.wait.mock.calls, ...skyline.wait.mock.calls]).toEqual(Array(4).fill([{ state: "attached" }]));
   });
 
   test("locks every capability-omission selector pair and omits both AX subtrees", () => {
@@ -176,6 +192,7 @@ function presenterDefinition(): PresenterExtensionDefinition {
         anchorRect: { x: 9, y: 10, width: 32, height: 80 },
         anchorComputedStyleSha256: "e".repeat(64),
         anchorAccessibilitySha256: "f".repeat(64),
+        anchorAccessibleName: "Illuminate\\Database\\DeadlockException",
       },
     },
   };
@@ -202,4 +219,10 @@ function capabilityDefinition(): CapabilityOmissionDefinition {
       }])) as CapabilityOmissionDefinition["measurements"][string],
     },
   };
+}
+
+function waitingPage() {
+  const wait = vi.fn((_options: { state: string }) => Promise.resolve());
+  const locator = vi.fn((_selector: string) => ({ first: () => ({ waitFor: wait }) }));
+  return { page: { locator } as unknown as Page, locator, wait };
 }

@@ -72,7 +72,7 @@ function presenterRegion(): Extract<DifferenceRegion, { kind: "presenter-extensi
     skylineAccessibleRole: "region", skylineAccessibleName: "Exception",
     triggerRelativeRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRelativeRect: { x: 0, y: 0, width: 2, height: 1 },
     triggerComputedStyleSha256: "a".repeat(64), skylineComputedStyleSha256: "b".repeat(64), triggerAccessibilitySha256: "c".repeat(64), skylineAccessibilitySha256: "d".repeat(64),
-    anchorRect: { x: 0, y: 0, width: 2, height: 1 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64),
+    anchorRect: { x: 0, y: 0, width: 2, height: 1 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64), anchorAccessibleName: "Illuminate\\Database\\DeadlockException",
   };
   return { kind: "presenter-extension", id: "attempt-exception-evidence", expected, presenter: { ...expected, triggerRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRect: { x: 0, y: 0, width: 2, height: 1 } } };
 }

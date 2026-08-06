@@ -51,6 +51,7 @@ export type PresenterExtensionMeasurement = {
   anchorRect: Rect;
   anchorComputedStyleSha256: string;
   anchorAccessibilitySha256: string;
+  anchorAccessibleName: string;
 };
 export type CapabilityOmissionMeasurement = {
   triggerRect: Rect;
@@ -110,7 +111,7 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
       continue;
     }
     if (definition.category === "presenter-extension") {
-      const resolved = validatePresenterExtensionObservation(definition, await discoverPresenterExtensionObservation(trigger, skyline, definition), capture);
+      const resolved = validatePresenterExtensionObservation(definition, await discoverPresenterExtensionObservation(trigger, skyline, definition, capture), capture);
       regions.push({ kind: "presenter-extension", id: definition.id, presenter: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies PresenterExtensionRegion);
       continue;
     }
@@ -118,6 +119,30 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
     regions.push({ kind: "capability-omission", id: definition.id, omissions: resolved.selectorPairs, expected: definition.measurements[capture] } satisfies CapabilityOmissionRegion);
   }
   return regions;
+}
+
+export async function waitForDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences) {
+  const waits: Promise<void>[] = [];
+  for (const definition of applicableExtensionDefinitions(capture, manifest)) {
+    if (definition.category === "framework-extension") {
+      waits.push(trigger.locator(definition.triggerAnchorSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineAnchorSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineSelector).first().waitFor({ state: "attached" }));
+      continue;
+    }
+    if (definition.category === "presenter-extension") {
+      waits.push(trigger.locator(definition.triggerAnchorSelector).first().waitFor({ state: "attached" }));
+      waits.push(trigger.locator(definition.triggerSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineAnchorSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineSelector).first().waitFor({ state: "attached" }));
+      continue;
+    }
+    for (const pair of definition.selectorPairs) {
+      waits.push(trigger.locator(pair.triggerSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(pair.skylineSelector).first().waitFor({ state: "attached" }));
+    }
+  }
+  await Promise.all(waits);
 }
 
 export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition): Promise<CapabilityOmissionObservation> {
@@ -161,7 +186,7 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   return observation;
 }
 
-export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition): Promise<PresenterExtensionObservation> {
+export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition, capture?: string): Promise<PresenterExtensionObservation> {
   const triggerPresenterDom = await observeElementDom(trigger, definition.id, definition.triggerSelector, "Trigger presenter");
   const triggerAnchorDom = await observeElementDom(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor");
   const skylinePresenterDom = await observeElementDom(skyline, definition.id, definition.skylineSelector, "Skyline presenter");
@@ -170,7 +195,8 @@ export async function discoverPresenterExtensionObservation(trigger: Page, skyli
   const triggerAnchor = await observeElementAccessibility(trigger, definition.triggerAnchorSelector, triggerAnchorDom);
   const skylinePresenter = await observeElementAccessibility(skyline, definition.skylineSelector, skylinePresenterDom);
   const skylineAnchor = await observeElementAccessibility(skyline, definition.skylineAnchorSelector, skylineAnchorDom);
-  validatePairedAnchorIdentity(definition, triggerAnchor, skylineAnchor);
+  const anchorAccessibleName = capture ? definition.measurements[capture]?.anchorAccessibleName ?? definition.anchorAccessibleName : definition.anchorAccessibleName;
+  validatePairedAnchorIdentity({ ...definition, anchorAccessibleName }, triggerAnchor, skylineAnchor);
   if (triggerAnchor.accessibilitySha256 !== skylineAnchor.accessibilitySha256) throw new Error(`Allowed region ${definition.id} anchor changed accessibility.`);
   if (skylinePresenter.accessibleRole !== definition.skylineAccessibleRole || skylinePresenter.accessibleName !== definition.skylineAccessibleName) throw new Error(`Allowed region ${definition.id} changed Skyline accessible identity.`);
   return {
@@ -191,6 +217,7 @@ export async function discoverPresenterExtensionObservation(trigger: Page, skyli
     anchorRect: skylineAnchor.rect,
     anchorComputedStyleSha256: skylineAnchor.computedStyleSha256,
     anchorAccessibilitySha256: skylineAnchor.accessibilitySha256,
+    anchorAccessibleName: skylineAnchor.accessibleName,
   };
 }
 
@@ -200,15 +227,18 @@ export function validatePresenterExtensionObservation(definition: PresenterExten
   for (const key of ["triggerSelector", "skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "skylineAccessibleRole", "skylineAccessibleName"] as const) {
     if (observation[key] !== definition[key]) throw new Error(`Allowed region ${definition.id} changed ${key}.`);
   }
-  for (const key of ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256"] as const) {
+  for (const key of ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256", "anchorAccessibleName"] as const) {
     if (observation[key] !== measurement[key]) throw new Error(`Allowed region ${definition.id} changed ${key}.`);
   }
   for (const [label, key] of [["Trigger", "triggerRelativeRect"], ["Skyline", "skylineRelativeRect"]] as const) {
     if (JSON.stringify(observation[key]) !== JSON.stringify(measurement[key])) throw new Error(`Allowed region ${definition.id} changed ${label} anchor-relative geometry.`);
   }
-  if (JSON.stringify(observation.triggerRect) !== JSON.stringify(observation.skylineRect)
-    || JSON.stringify(observation.triggerRelativeRect) !== JSON.stringify(observation.skylineRelativeRect)) throw new Error(`Allowed region ${definition.id} changed equal outer geometry.`);
+  if (JSON.stringify(measurement.triggerRelativeRect) !== JSON.stringify(measurement.skylineRelativeRect)
+    || JSON.stringify(observation.triggerRect) !== JSON.stringify(observation.skylineRect)) throw new Error(`Allowed region ${definition.id} changed cross-side geometry.`);
   if (JSON.stringify(observation.anchorRect) !== JSON.stringify(measurement.anchorRect)) throw new Error(`Allowed region ${definition.id} anchor changed locked geometry.`);
+  for (const [label, rectKey, relativeKey] of [["Trigger", "triggerRect", "triggerRelativeRect"], ["Skyline", "skylineRect", "skylineRelativeRect"]] as const) {
+    if (JSON.stringify(observation[rectKey]) !== JSON.stringify(absoluteRect(measurement[relativeKey], measurement.anchorRect))) throw new Error(`Allowed region ${definition.id} changed ${label} outer geometry.`);
+  }
   return observation;
 }
 
@@ -343,6 +373,7 @@ async function observeElement(page: Page, id: string, selector: string, label: s
 
 async function observeElementDom(page: Page, id: string, selector: string, label: string) {
   const locator = page.locator(selector);
+  await locator.first().waitFor({ state: "attached" });
   requireSingleMatch(await locator.count(), id, label);
   const observation = await locator.evaluate((element) => {
     const box = element.getBoundingClientRect();
@@ -383,6 +414,10 @@ export function fingerprintAccessibility(snapshot: string) {
 
 function relativeRect(rect: Rect, anchor: Rect): Rect {
   return { x: rect.x - anchor.x, y: rect.y - anchor.y, width: rect.width, height: rect.height };
+}
+
+function absoluteRect(rect: Rect, anchor: Rect): Rect {
+  return { x: anchor.x + rect.x, y: anchor.y + rect.y, width: rect.width, height: rect.height };
 }
 
 function firstStyleDifference(trigger?: ComputedStyleEntry[], skyline?: ComputedStyleEntry[]) {
