@@ -71,13 +71,23 @@ for (const capture of captures) {
 }
 
 async function exposeQueueFilteringState(page: Page, application: "skyline" | "trigger", step: DiscoveryStep) {
-  const filter = page.getByLabel("Connection");
+  const filter = application === "trigger" ? page.getByPlaceholder("Search queues…") : page.getByLabel("Connection");
   const count = await step(`filter:${application}:count`, () => filter.count());
   if (count !== 1) throw new Error(`${application} Queue connection filter must match once; observed ${count}.`);
   await step(`filter:${application}:visible`, () => filter.waitFor({ state: "visible" }));
+  if (application === "trigger") {
+    await step("filter:trigger:fill", () => filter.fill("reports", { timeout: 1_500 }));
+    const value = await step("filter:trigger:value", () => filter.inputValue());
+    if (value !== "reports") throw new Error("Trigger Queue search filter did not retain its selection.");
+    await step("filter:trigger:navigation", () => page.waitForURL((url) => url.searchParams.get("query") === "reports", { timeout: 1_500 }));
+    await step("filter:trigger:ready", () => page.locator('[data-trigger-capability="queue-target-queue_3ac9ae5d-limit"]').waitFor());
+    return;
+  }
   const options = await step(`filter:${application}:options`, () => filter.locator("option").allTextContents());
   if (options.length < 2) throw new Error(`${application} Queue connection filter lacks a selectable connection.`);
   await step(`filter:${application}:select`, () => filter.selectOption({ index: 1 }, { timeout: 1_500 }));
   const value = await step(`filter:${application}:value`, () => filter.inputValue());
   if (!value) throw new Error(`${application} Queue connection filter did not retain its selection.`);
+  await step("filter:skyline:navigation", () => page.waitForURL((url) => url.searchParams.get("connection") === value, { timeout: 1_500 }));
+  await step("filter:skyline:ready", () => page.locator('[data-skyline-capability="queue-target-queue_3ac9ae5d-limit"]').waitFor());
 }
