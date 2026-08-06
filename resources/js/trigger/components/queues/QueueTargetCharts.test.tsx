@@ -16,6 +16,7 @@ describe("QueueEnvironmentCharts", () => {
     expect(container.querySelectorAll('[role="img"]')).toHaveLength(4);
     expect(container.querySelectorAll(".recharts-responsive-container")).toHaveLength(0);
     expect(container.textContent?.match(/No activity/g)).toHaveLength(4);
+    expect(Array.from(container.querySelectorAll("h3")).every((header) => header.querySelector(":scope > div > .min-h-6"))).toBe(true);
 
     flushSync(() => root.unmount());
   });
