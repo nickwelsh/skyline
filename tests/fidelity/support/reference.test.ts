@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities } from "../reference/capability-adapters";
-import { createReferenceFixture, referenceQueueMetricKey } from "./reference";
+import { createReferenceFixture, referenceQueueMetricKey, triggerJobs } from "./reference";
 
 describe("pinned Trigger Errors fixture", () => {
   test("conditions unavailable detail versions and bulk replay without editing pinned source", () => {
@@ -148,5 +148,33 @@ describe("pinned Trigger Queues fixture", () => {
       }],
       live: [],
     }));
+  });
+});
+
+describe("Trigger Jobs reference fixture", () => {
+  test("maps observed hourly status activity without fabricating successes", () => {
+    const fixture = triggerJobs({
+      jobs: [{
+        name: "App\\Jobs\\Invoice",
+        runCount: 7,
+        statusCounts: { queued: 1, running: 1, retrying: 1, completed: 2, failed: 2 },
+        activity: [{
+          timestamp: "2026-08-05T12:00:00Z",
+          total: 5,
+          statusCounts: { queued: 1, running: 1, retrying: 1, completed: 0, failed: 2 },
+        }],
+      }],
+    });
+
+    expect(fixture.hourlyActivity["App\\Jobs\\Invoice"]).toEqual([expect.objectContaining({
+      date: "2026-08-05T12:00:00Z",
+      total: 5,
+      PENDING: 1,
+      EXECUTING: 1,
+      RETRYING_AFTER_FAILURE: 1,
+      COMPLETED_SUCCESSFULLY: 0,
+      COMPLETED_WITH_ERRORS: 2,
+      CANCELED: 0,
+    })]);
   });
 });

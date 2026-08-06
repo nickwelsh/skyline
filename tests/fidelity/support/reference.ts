@@ -291,11 +291,18 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
   }, fixture);
 }
 
-function triggerJobs(page: any) {
-  const statuses = ["DELAYED", "PENDING", "PENDING_VERSION", "EXECUTING", "RETRYING_AFTER_FAILURE", "WAITING_TO_RESUME", "COMPLETED_SUCCESSFULLY", "CANCELED", "COMPLETED_WITH_ERRORS", "INTERRUPTED", "SYSTEM_FAILURE", "PAUSED", "CRASHED", "EXPIRED", "TIMED_OUT"];
+const triggerJobStatusMap = { queued: "PENDING", running: "EXECUTING", retrying: "RETRYING_AFTER_FAILURE", completed: "COMPLETED_SUCCESSFULLY", failed: "COMPLETED_WITH_ERRORS" } as const;
+const triggerJobStatuses = ["DELAYED", "PENDING", "PENDING_VERSION", "EXECUTING", "RETRYING_AFTER_FAILURE", "WAITING_TO_RESUME", "COMPLETED_SUCCESSFULLY", "CANCELED", "COMPLETED_WITH_ERRORS", "INTERRUPTED", "SYSTEM_FAILURE", "PAUSED", "CRASHED", "EXPIRED", "TIMED_OUT"];
+
+export function triggerJobs(page: any) {
   return {
     items: page.jobs.map((job: any) => ({ slug: job.name, filePath: job.name.replaceAll("\\", "/") + ".php", exportName: job.name, triggerSource: "STANDARD", kind: "STANDARD", agentType: null })),
-    hourlyActivity: Object.fromEntries(page.jobs.map((job: any) => [job.name, [{ date: "2026-08-04T20:00:00.000Z", total: job.runCount, ...Object.fromEntries(statuses.map((status) => [status, status === "COMPLETED_SUCCESSFULLY" ? job.runCount : 0])) }]])),
+    hourlyActivity: Object.fromEntries(page.jobs.map((job: any) => [job.name, job.activity.map((point: any) => ({
+      date: point.timestamp,
+      total: point.total,
+      ...Object.fromEntries(triggerJobStatuses.map((status) => [status, 0])),
+      ...Object.fromEntries(Object.entries(triggerJobStatusMap).map(([status, triggerStatus]) => [triggerStatus, point.statusCounts[status] ?? 0])),
+    }))])),
     runningStates: Object.fromEntries(page.jobs.map((job: any) => [job.name, { running: job.statusCounts.running ?? 0 }])),
     usefulLinksPreference: false,
   };
@@ -303,11 +310,10 @@ function triggerJobs(page: any) {
 
 function triggerJob(detail: any) {
   const list = triggerRunList({ runs: detail.runs, pagination: detail.pagination, hasAnyRuns: detail.hasAnyRuns });
-  const statusMap = { queued: "PENDING", running: "EXECUTING", retrying: "RETRYING_AFTER_FAILURE", completed: "COMPLETED_SUCCESSFULLY", failed: "COMPLETED_WITH_ERRORS" } as const;
-  const statuses = Object.values(statusMap);
+  const statuses = Object.values(triggerJobStatusMap);
   return {
     task: { slug: detail.job.name, filePath: detail.job.name.replaceAll("\\", "/") + ".php", exportName: detail.job.name, description: null, workerVersion: "20260804.1", machinePreset: "small-1x", maxDurationInSeconds: 300, ttl: null, hasPayloadSchema: false, retry: null, createdAt: detail.job.firstObservedAt, queue: detail.queueTargets[0] ? { friendlyId: detail.queueTargets[0].id, name: detail.queueTargets[0].queue, concurrencyLimit: null, paused: false } : null },
-    activity: { data: detail.activity.map((point: any) => ({ bucket: point.timestamp, total: point.total, ...Object.fromEntries(Object.entries(statusMap).map(([status, triggerStatus]) => [triggerStatus, point.statusCounts[status] ?? 0])) })), statuses },
+    activity: { data: detail.activity.map((point: any) => ({ bucket: point.timestamp, total: point.total, ...Object.fromEntries(Object.entries(triggerJobStatusMap).map(([status, triggerStatus]) => [triggerStatus, point.statusCounts[status] ?? 0])) })), statuses },
     runList: list,
     queueMetrics: null,
   };
