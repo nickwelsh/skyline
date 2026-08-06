@@ -1,42 +1,22 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const destination = join(root, "dist/licenses");
-const packages = [
-  "@heroicons/react",
-  "@radix-ui/react-dialog",
-  "@radix-ui/react-popover",
-  "@radix-ui/react-slider",
-  "@radix-ui/react-switch",
-  "@radix-ui/react-tooltip",
-  "@tabler/icons-react",
-  "@tanstack/react-virtual",
-  "@tailwindcss/forms",
-  "@tailwindcss/typography",
-  "@window-splitter/react",
-  "@window-splitter/state",
-  "assert-never",
-  "clsx",
-  "framer-motion",
-  "lucide-react",
-  "non.geist",
-  "prism-react-renderer",
-  "react",
-  "react-dom",
-  "react-hotkeys-hook",
-  "react-router",
-  "react-router-dom",
-  "@remix-run/router",
-  "tailwind-scrollbar",
-  "tailwind-scrollbar-hide",
-  "tailwindcss",
-  "tailwind-merge",
-  "tw-animate-css",
-  "zod",
-];
+const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+const packages = Object.keys(packageJson.dependencies).sort();
 
+rmSync(destination, { force: true, recursive: true });
 mkdirSync(destination, { recursive: true });
 cpSync(join(root, "THIRD_PARTY_NOTICES.md"), join(root, "dist/THIRD_PARTY_NOTICES.md"));
 cpSync(join(root, "licenses/trigger.dev-APACHE-2.0.txt"), join(destination, "trigger.dev-APACHE-2.0.txt"));
@@ -44,7 +24,9 @@ cpSync(join(root, "licenses/geist-OFL-1.1.txt"), join(destination, "geist-OFL-1.
 
 for (const packageName of packages) {
   const directory = join(root, "node_modules", packageName);
-  const license = readdirSync(directory).find((file) => /^licen[cs]e/i.test(file) && statSync(join(directory, file)).isFile());
+  const license = readdirSync(directory)
+    .sort()
+    .find((file) => /^licen[cs]e/i.test(file) && statSync(join(directory, file)).isFile());
   const packageLabel = packageName.replaceAll("/", "-");
   if (license && existsSync(join(directory, license))) {
     const contents = readFileSync(join(directory, license), "utf8").replaceAll("\r\n", "\n");
