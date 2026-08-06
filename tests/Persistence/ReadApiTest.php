@@ -798,6 +798,8 @@ it('uses the host Gate for JSON outside local environments', function (): void {
 });
 
 it('confines read failure details to logs', function (): void {
+    $migration = require dirname(__DIR__, 2).'/database/migrations/2026_08_05_000000_create_skyline_telemetry_events_table.php';
+    $migration->down();
     $migration = require dirname(__DIR__, 2).'/database/migrations/2026_08_04_000000_create_skyline_telemetry_tables.php';
     $migration->down();
 
