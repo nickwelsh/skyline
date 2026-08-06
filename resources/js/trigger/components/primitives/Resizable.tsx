@@ -24,7 +24,7 @@ const ResizablePanelGroup = ({ className, autosaveId, children, orientation = "h
   const itemIds = React.Children.toArray(children).flatMap((child) =>
     React.isValidElement(child) && child.type === ResizablePanel && typeof child.props.id === "string" ? [child.props.id] : []
   );
-  const saved = autosaveId ? persistence?.readPanel(autosaveId) : undefined;
+  const saved = useMemo(() => autosaveId ? persistence?.readPanel(autosaveId) : undefined, [autosaveId, persistence]);
   const compatible = saved?.orientation === orientation && saved.itemIds.length === itemIds.length && saved.itemIds.every((id, index) => id === itemIds[index]);
   const latestSizes = useRef<Record<string, number>>({});
   const persistentChildren = useMemo(() => React.Children.map(children, (child) => {
