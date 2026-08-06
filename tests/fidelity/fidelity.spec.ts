@@ -4,12 +4,12 @@ import { expect, test } from "@playwright/test";
 import { expectedCaptureIds, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import allowedDifferences from "./allowed-differences.json" with { type: "json" };
 import matrix from "./matrix.json" with { type: "json" };
-import { captureAccessibilityTree } from "./support/accessibility";
+import { captureAccessibilityTree, captureAccessibilityTreeOmitting } from "./support/accessibility";
 import { observeAction } from "./support/actions";
 import { captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
-import { observeDifferenceRegions, omitFrameworkExtensionAccessibility, type AllowedDifferences } from "./support/difference-regions";
+import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
 import { measurePixels } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
@@ -63,12 +63,15 @@ for (const capture of captures) {
       observeAction(reference, "captured"),
       observeAction(page, "captured"),
     ]);
-    const skylineTree = omitFrameworkExtensionAccessibility(rawSkylineTree, capture, allowedDifferences as unknown as AllowedDifferences);
+    const [comparedTriggerTree, comparedSkylineTree] = regions.length ? await Promise.all([
+      captureAccessibilityTreeOmitting(reference, accessibilityOmissionSelectors(regions, "trigger")),
+      captureAccessibilityTreeOmitting(page, accessibilityOmissionSelectors(regions, "skyline")),
+    ]) : [triggerTree, rawSkylineTree];
     const comparison = measurePixels(triggerPng, skylinePng, regions);
     assertNoFidelityDifferences(collectFidelityDifferences({
       differingPixels: comparison.differingPixels,
-      triggerTree,
-      skylineTree,
+      triggerTree: comparedTriggerTree,
+      skylineTree: comparedSkylineTree,
       additionalAxeViolations: additionalAxeViolations(triggerAxe, skylineAxe),
       triggerInteractions: [triggerInteraction],
       skylineInteractions: [skylineInteraction],
@@ -79,7 +82,7 @@ for (const capture of captures) {
     proof(`${directory}/skyline.png`, skylinePng);
     proof(`${directory}/comparison.json`, json(comparison));
     const accessibilityProof = regions.length
-      ? { trigger: triggerTree, skyline: rawSkylineTree, comparedSkyline: skylineTree, allowedRegions: regions.map(({ id }) => id), axe: { trigger: triggerAxe, skyline: skylineAxe } }
+      ? { trigger: triggerTree, skyline: rawSkylineTree, comparedTrigger: comparedTriggerTree, comparedSkyline: comparedSkylineTree, allowedRegions: regions.map(({ id }) => id), axe: { trigger: triggerAxe, skyline: skylineAxe } }
       : { trigger: triggerTree, skyline: rawSkylineTree, axe: { trigger: triggerAxe, skyline: skylineAxe } };
     proof(`${directory}/accessibility.json`, json(accessibilityProof));
     proof(`${directory}/interactions.json`, json({ trigger: triggerInteraction, skyline: skylineInteraction }));

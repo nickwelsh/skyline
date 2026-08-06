@@ -26,6 +26,15 @@ describe("paired fidelity pixels", () => {
     expect(comparePixels(trigger, skyline, [extension])).toMatchObject({ differingPixels: 0, maskedPixels: 1 });
     expect(() => comparePixels(trigger, skyline, [{ ...extension, extension: { ...extension.extension, accessibleName: "Changed" } }])).toThrow(/accessibleName/i);
   });
+
+  test("masks the union of paired presenter subregions and rejects drift", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]], [1, 0, [0, 0, 0, 255]]]);
+    const presenter = presenterRegion();
+
+    expect(comparePixels(trigger, skyline, [presenter])).toMatchObject({ differingPixels: 0, maskedPixels: 2 });
+    expect(() => comparePixels(trigger, skyline, [{ ...presenter, presenter: { ...presenter.presenter, skylineAccessibilitySha256: "0".repeat(64) } }])).toThrow(/skylineAccessibilitySha256/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
@@ -43,4 +52,15 @@ function region(skyline: Partial<Extract<DifferenceRegion, { kind?: "paired" }>[
 function extensionRegion(): Extract<DifferenceRegion, { kind: "framework-extension" }> {
   const expected = { skylineSelector: "[data-extension]", triggerAnchorSelector: "[data-anchor]", skylineAnchorSelector: "[data-anchor]", accessibleRole: "region", accessibleName: "Exception", relativeRect: { x: 0, y: 1, width: 1, height: 1 }, computedStyleSha256: "a".repeat(64), anchorRect: { x: 0, y: 0, width: 1, height: 1 }, anchorComputedStyleSha256: "b".repeat(64) };
   return { kind: "framework-extension", id: "php-exception-evidence", expected, extension: { ...expected, rect: { x: 0, y: 0, width: 1, height: 1 } } };
+}
+
+function presenterRegion(): Extract<DifferenceRegion, { kind: "presenter-extension" }> {
+  const expected = {
+    triggerSelector: "[translate='no']", skylineSelector: "[data-presenter]", triggerAnchorSelector: "[data-anchor]", skylineAnchorSelector: "[data-anchor]",
+    skylineAccessibleRole: "region", skylineAccessibleName: "Exception",
+    triggerRelativeRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRelativeRect: { x: 0, y: 0, width: 2, height: 1 },
+    triggerComputedStyleSha256: "a".repeat(64), skylineComputedStyleSha256: "b".repeat(64), triggerAccessibilitySha256: "c".repeat(64), skylineAccessibilitySha256: "d".repeat(64),
+    anchorRect: { x: 0, y: 0, width: 2, height: 1 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64),
+  };
+  return { kind: "presenter-extension", id: "attempt-exception-evidence", expected, presenter: { ...expected, triggerRect: { x: 0, y: 0, width: 2, height: 1 }, skylineRect: { x: 0, y: 0, width: 2, height: 1 } } };
 }

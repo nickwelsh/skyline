@@ -17,6 +17,28 @@ export async function captureAccessibilityTree(page: Page) {
   }
 }
 
+export async function captureAccessibilityTreeOmitting(page: Page, selectors: string[]) {
+  if (selectors.length === 0) return captureAccessibilityTree(page);
+  const previous = await page.evaluate((targets) => targets.map((selector) => {
+    const element = document.querySelector(selector);
+    if (!element) throw new Error(`Accessibility omission selector did not resolve: ${selector}`);
+    const ariaHidden = element.getAttribute("aria-hidden");
+    element.setAttribute("aria-hidden", "true");
+    return { selector, ariaHidden };
+  }), selectors);
+  try {
+    return await captureAccessibilityTree(page);
+  } finally {
+    await page.evaluate((entries) => {
+      for (const { selector, ariaHidden } of entries) {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Accessibility omission selector disappeared: ${selector}`);
+        ariaHidden === null ? element.removeAttribute("aria-hidden") : element.setAttribute("aria-hidden", ariaHidden);
+      }
+    }, previous);
+  }
+}
+
 export function normalizeAccessibilityTree(nodes: RawAccessibilityNode[]): NormalizedAccessibilityNode | null {
   const visible = nodes.filter((node) => !node.ignored && typeof node.role?.value === "string");
   if (visible.length === 0) return null;

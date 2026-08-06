@@ -113,7 +113,7 @@ function bundleFixtureHash(root) {
 }
 
 export function validateAllowedDifferences(differences) {
-  const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension"]);
+  const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
   const frameworkExtensions = [];
@@ -136,6 +136,27 @@ export function validateAllowedDifferences(differences) {
         if (!valid) fail(`Invalid framework-extension measurement: ${region.id}`);
       }
       frameworkExtensions.push(region);
+    } else if (region.category === "presenter-extension") {
+      const complete = region.triggerSelector && region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
+        && region.skylineAccessibleRole && region.skylineAccessibleName && region.anchorAccessibleRole && region.anchorAccessibleName
+        && region.decision && Array.isArray(region.acceptance) && region.acceptance.length > 0
+        && Array.isArray(region.citations) && region.citations.length > 0
+        && Array.isArray(region.captures) && region.captures.length > 0
+        && region.measurements && typeof region.measurements === "object";
+      if (!complete) fail(`Incomplete presenter-extension region: ${region.id}`);
+      if (!region.citations.every((citation) => /^https:\/\/github\.com\/triggerdotdev\/trigger\.dev\/blob\/[a-f0-9]{40}\/apps\/webapp\/.+#L\d+-L\d+$/.test(citation))) fail(`Invalid presenter-extension citation: ${region.id}`);
+      if (!region.captures.every((capture) => typeof capture === "string" && capture.includes("@"))) fail(`Invalid presenter-extension capture: ${region.id}`);
+      if (new Set(region.captures).size !== region.captures.length) fail(`Duplicate presenter-extension capture: ${region.id}`);
+      const measurements = Object.keys(region.measurements);
+      if (measurements.length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing presenter-extension measurement: ${region.id}`);
+      for (const measurement of Object.values(region.measurements)) {
+        const hashes = ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256"];
+        const valid = hashes.every((key) => /^[a-f0-9]{64}$/.test(measurement[key] ?? ""))
+          && [measurement.triggerRelativeRect, measurement.skylineRelativeRect, measurement.anchorRect].every((rect) => ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])))
+          && JSON.stringify(measurement.triggerRelativeRect) === JSON.stringify(measurement.skylineRelativeRect);
+        if (!valid) fail(`Invalid presenter-extension measurement: ${region.id}`);
+      }
+      frameworkExtensions.push(region);
     } else if (!region.triggerSelector || !region.skylineSelector || !region.accessibleName || !region.decision) fail(`Incomplete allowed-difference region: ${region.id}`);
   }
   const captureOwners = new Map();
@@ -146,7 +167,10 @@ export function validateAllowedDifferences(differences) {
       if (owner) fail(`Framework-extension regions ${owner} and ${region.id} overlap capture ${capture}.`);
       captureOwners.set(capture, region.id);
     }
-    for (const selector of new Set([region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector])) {
+    const selectors = region.category === "presenter-extension"
+      ? [region.triggerSelector, region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector]
+      : [region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector];
+    for (const selector of new Set(selectors)) {
       const owner = selectorOwners.get(selector);
       if (owner) fail(`Framework-extension regions ${owner} and ${region.id} collide on selector ${selector}.`);
       selectorOwners.set(selector, region.id);

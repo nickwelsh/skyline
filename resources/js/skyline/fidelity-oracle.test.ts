@@ -72,10 +72,41 @@ describe("source-fidelity oracle", () => {
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["framework-extension"], regions: [{ ...region, acceptance: "" }] })).toThrow(/incomplete/i);
   });
 
+  test("presenter extensions require paired evidence locks and pinned citations", () => {
+    const region = {
+      id: "attempt-exception-evidence",
+      category: "presenter-extension",
+      decision: "NW-222",
+      acceptance: ["Failed-Attempt detail exposes captured exception evidence."],
+      citations: ["https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/resources.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.runs.%24runParam.spans.%24spanParam/route.tsx#L1446-L1513"],
+      captures: ["runs-exception@1440x960-classic"],
+      triggerSelector: ".attempt-error > [translate='no']",
+      skylineSelector: "[data-skyline-extension='attempt-exception-evidence']",
+      triggerAnchorSelector: ".attempt-error",
+      skylineAnchorSelector: ".attempt-error",
+      skylineAccessibleRole: "region",
+      skylineAccessibleName: "Exception",
+      anchorAccessibleRole: "heading",
+      anchorAccessibleName: "Illuminate\\Database\\DeadlockException",
+      measurements: {
+        "runs-exception@1440x960-classic": {
+          triggerRelativeRect: { x: 1, y: 1, width: 300, height: 60 }, skylineRelativeRect: { x: 1, y: 1, width: 300, height: 60 },
+          triggerComputedStyleSha256: "a".repeat(64), skylineComputedStyleSha256: "b".repeat(64),
+          triggerAccessibilitySha256: "c".repeat(64), skylineAccessibilitySha256: "d".repeat(64),
+          anchorRect: { x: 1, y: 1, width: 300, height: 100 }, anchorComputedStyleSha256: "e".repeat(64), anchorAccessibilitySha256: "f".repeat(64),
+        },
+      },
+    };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["presenter-extension"], regions: [region] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["presenter-extension"], regions: [{ ...region, citations: [] }] })).toThrow(/citation|incomplete/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["presenter-extension"], regions: [{ ...region, measurements: { "runs-exception@1440x960-classic": { ...region.measurements["runs-exception@1440x960-classic"], skylineAccessibilitySha256: "bad" } } }] })).toThrow(/measurement/i);
+  });
+
   test("the runner applies allowed pixels and AX omissions instead of raw empty masks", () => {
     const runner = readFileSync(join(root, "tests/fidelity/fidelity.spec.ts"), "utf8");
     expect(runner).toContain("observeDifferenceRegions(reference, page, capture");
-    expect(runner).toContain("omitFrameworkExtensionAccessibility(rawSkylineTree, capture");
+    expect(runner).toContain('captureAccessibilityTreeOmitting(reference, accessibilityOmissionSelectors(regions, "trigger"))');
+    expect(runner).toContain('captureAccessibilityTreeOmitting(page, accessibilityOmissionSelectors(regions, "skyline"))');
     expect(runner).toContain("measurePixels(triggerPng, skylinePng, regions)");
     expect(runner).not.toContain("measurePixels(triggerPng, skylinePng, [])");
   });

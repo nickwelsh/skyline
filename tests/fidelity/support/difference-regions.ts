@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Page } from "@playwright/test";
 import type { NormalizedAccessibilityNode } from "./accessibility";
-import type { DifferenceRegion, FrameworkExtensionRegion } from "./pixels";
+import type { DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
 
 type Rect = { x: number; y: number; width: number; height: number };
 export type FrameworkExtensionDefinition = {
@@ -24,7 +24,36 @@ export type FrameworkExtensionDefinition = {
     anchorComputedStyleSha256: string;
   }>;
 };
-export type AllowedDifferences = { regions: FrameworkExtensionDefinition[] };
+export type PresenterExtensionDefinition = {
+  id: string;
+  category: "presenter-extension";
+  decision: string;
+  acceptance: string[];
+  citations: string[];
+  captures: string[];
+  triggerSelector: string;
+  skylineSelector: string;
+  triggerAnchorSelector: string;
+  skylineAnchorSelector: string;
+  skylineAccessibleRole: string;
+  skylineAccessibleName: string;
+  anchorAccessibleRole: string;
+  anchorAccessibleName: string;
+  measurements: Record<string, PresenterExtensionMeasurement>;
+};
+export type PresenterExtensionMeasurement = {
+  triggerRelativeRect: Rect;
+  skylineRelativeRect: Rect;
+  triggerComputedStyleSha256: string;
+  skylineComputedStyleSha256: string;
+  triggerAccessibilitySha256: string;
+  skylineAccessibilitySha256: string;
+  anchorRect: Rect;
+  anchorComputedStyleSha256: string;
+  anchorAccessibilitySha256: string;
+};
+export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition;
+export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
 export type FrameworkExtensionObservation = {
   skylineSelector: string;
   triggerAnchorSelector: string;
@@ -38,14 +67,77 @@ export type FrameworkExtensionObservation = {
   anchorComputedStyleSha256: string;
 };
 type ComputedStyleEntry = [string, string, string];
-type ElementObservation = { rect: Rect; accessibleRole: string; accessibleName: string; computedStyleSha256: string; computedStyle?: ComputedStyleEntry[] };
+type ElementObservation = { rect: Rect; accessibleRole: string; accessibleName: string; computedStyleSha256: string; accessibilitySha256: string; computedStyle?: ComputedStyleEntry[] };
+export type PresenterExtensionObservation = {
+  triggerSelector: string;
+  skylineSelector: string;
+  triggerAnchorSelector: string;
+  skylineAnchorSelector: string;
+  skylineAccessibleRole: string;
+  skylineAccessibleName: string;
+  triggerRect: Rect;
+  skylineRect: Rect;
+} & PresenterExtensionMeasurement;
 
 export async function observeDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences): Promise<DifferenceRegion[]> {
-  const definitions = applicableFrameworkExtensions(capture, manifest);
+  const definitions = applicableExtensionDefinitions(capture, manifest);
   return Promise.all(definitions.map(async (definition) => {
-    const resolved = validateFrameworkExtensionObservation(definition, await discoverFrameworkExtensionObservation(trigger, skyline, definition), capture);
-    return { kind: "framework-extension", id: definition.id, extension: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies FrameworkExtensionRegion;
+    if (definition.category === "framework-extension") {
+      const resolved = validateFrameworkExtensionObservation(definition, await discoverFrameworkExtensionObservation(trigger, skyline, definition), capture);
+      return { kind: "framework-extension", id: definition.id, extension: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies FrameworkExtensionRegion;
+    }
+    const resolved = validatePresenterExtensionObservation(definition, await discoverPresenterExtensionObservation(trigger, skyline, definition), capture);
+    return { kind: "presenter-extension", id: definition.id, presenter: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies PresenterExtensionRegion;
   }));
+}
+
+export async function discoverPresenterExtensionObservation(trigger: Page, skyline: Page, definition: PresenterExtensionDefinition): Promise<PresenterExtensionObservation> {
+  const [triggerPresenter, skylinePresenter, triggerAnchor, skylineAnchor] = await Promise.all([
+    observeElement(trigger, definition.id, definition.triggerSelector, "Trigger presenter"),
+    observeElement(skyline, definition.id, definition.skylineSelector, "Skyline presenter"),
+    observeElement(trigger, definition.id, definition.triggerAnchorSelector, "Trigger anchor"),
+    observeElement(skyline, definition.id, definition.skylineAnchorSelector, "Skyline anchor"),
+  ]);
+  validatePairedAnchorIdentity(definition, triggerAnchor, skylineAnchor);
+  if (triggerAnchor.accessibilitySha256 !== skylineAnchor.accessibilitySha256) throw new Error(`Allowed region ${definition.id} anchor changed accessibility.`);
+  if (skylinePresenter.accessibleRole !== definition.skylineAccessibleRole || skylinePresenter.accessibleName !== definition.skylineAccessibleName) throw new Error(`Allowed region ${definition.id} changed Skyline accessible identity.`);
+  return {
+    triggerSelector: definition.triggerSelector,
+    skylineSelector: definition.skylineSelector,
+    triggerAnchorSelector: definition.triggerAnchorSelector,
+    skylineAnchorSelector: definition.skylineAnchorSelector,
+    skylineAccessibleRole: skylinePresenter.accessibleRole,
+    skylineAccessibleName: skylinePresenter.accessibleName,
+    triggerRect: triggerPresenter.rect,
+    skylineRect: skylinePresenter.rect,
+    triggerRelativeRect: relativeRect(triggerPresenter.rect, triggerAnchor.rect),
+    skylineRelativeRect: relativeRect(skylinePresenter.rect, skylineAnchor.rect),
+    triggerComputedStyleSha256: triggerPresenter.computedStyleSha256,
+    skylineComputedStyleSha256: skylinePresenter.computedStyleSha256,
+    triggerAccessibilitySha256: triggerPresenter.accessibilitySha256,
+    skylineAccessibilitySha256: skylinePresenter.accessibilitySha256,
+    anchorRect: skylineAnchor.rect,
+    anchorComputedStyleSha256: skylineAnchor.computedStyleSha256,
+    anchorAccessibilitySha256: skylineAnchor.accessibilitySha256,
+  };
+}
+
+export function validatePresenterExtensionObservation(definition: PresenterExtensionDefinition, observation: PresenterExtensionObservation, capture: string) {
+  const measurement = definition.measurements[capture];
+  if (!measurement) throw new Error(`Allowed region ${definition.id} lacks measurement for ${capture}.`);
+  for (const key of ["triggerSelector", "skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "skylineAccessibleRole", "skylineAccessibleName"] as const) {
+    if (observation[key] !== definition[key]) throw new Error(`Allowed region ${definition.id} changed ${key}.`);
+  }
+  for (const key of ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256", "anchorComputedStyleSha256", "anchorAccessibilitySha256"] as const) {
+    if (observation[key] !== measurement[key]) throw new Error(`Allowed region ${definition.id} changed ${key}.`);
+  }
+  for (const [label, key] of [["Trigger", "triggerRelativeRect"], ["Skyline", "skylineRelativeRect"]] as const) {
+    if (JSON.stringify(observation[key]) !== JSON.stringify(measurement[key])) throw new Error(`Allowed region ${definition.id} changed ${label} anchor-relative geometry.`);
+  }
+  if (JSON.stringify(observation.triggerRect) !== JSON.stringify(observation.skylineRect)
+    || JSON.stringify(observation.triggerRelativeRect) !== JSON.stringify(observation.skylineRelativeRect)) throw new Error(`Allowed region ${definition.id} changed equal outer geometry.`);
+  if (JSON.stringify(observation.anchorRect) !== JSON.stringify(measurement.anchorRect)) throw new Error(`Allowed region ${definition.id} anchor changed locked geometry.`);
+  return observation;
 }
 
 export async function discoverFrameworkExtensionObservation(trigger: Page, skyline: Page, definition: FrameworkExtensionDefinition): Promise<FrameworkExtensionObservation> {
@@ -91,7 +183,7 @@ export function validatePairedAnchor(definition: FrameworkExtensionDefinition, t
   if (JSON.stringify(skyline.rect) !== JSON.stringify(measurement.anchorRect) || skyline.computedStyleSha256 !== measurement.anchorComputedStyleSha256) throw new Error(`Allowed region ${definition.id} anchor changed locked observation.`);
 }
 
-export function validatePairedAnchorIdentity(definition: FrameworkExtensionDefinition, trigger: ElementObservation, skyline: ElementObservation) {
+export function validatePairedAnchorIdentity(definition: FrameworkExtensionDefinition | PresenterExtensionDefinition, trigger: ElementObservation, skyline: ElementObservation) {
   if (JSON.stringify(trigger.rect) !== JSON.stringify(skyline.rect)) throw new Error(`Allowed region ${definition.id} anchor changed geometry.`);
   if (trigger.computedStyleSha256 !== skyline.computedStyleSha256) {
     const difference = firstStyleDifference(trigger.computedStyle, skyline.computedStyle);
@@ -119,21 +211,44 @@ export function omitFrameworkExtensionAccessibility(tree: NormalizedAccessibilit
 
 export function applicableFrameworkExtensions(capture: string, manifest: AllowedDifferences) {
   validateFrameworkExtensionDefinitions(manifest);
-  const definitions = manifest.regions.filter((region) => region.category === "framework-extension" && region.captures.includes(capture));
+  const definitions = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension" && region.captures.includes(capture));
   if (definitions.length > 1) throw new Error(`Capture ${capture} has multiple framework-extension regions.`);
   return definitions;
+}
+
+export function applicablePresenterExtensions(capture: string, manifest: AllowedDifferences) {
+  validateFrameworkExtensionDefinitions(manifest);
+  return manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension" && region.captures.includes(capture));
+}
+
+function applicableExtensionDefinitions(capture: string, manifest: AllowedDifferences) {
+  validateFrameworkExtensionDefinitions(manifest);
+  const definitions = manifest.regions.filter((region) => region.captures.includes(capture));
+  if (definitions.length > 1) throw new Error(`Capture ${capture} has multiple allowed extension regions.`);
+  return definitions;
+}
+
+export function accessibilityOmissionSelectors(regions: DifferenceRegion[], application: "trigger" | "skyline") {
+  return regions.flatMap((region) => {
+    if (region.kind === "framework-extension") return application === "skyline" ? [region.extension.skylineSelector] : [];
+    if (region.kind === "presenter-extension") return [application === "trigger" ? region.expected.triggerSelector : region.expected.skylineSelector];
+    return [];
+  });
 }
 
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
   const captureOwners = new Map<string, string>();
   const selectorOwners = new Map<string, string>();
-  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension")) {
+  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension")) {
     for (const capture of definition.captures) {
       const owner = captureOwners.get(capture);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
       captureOwners.set(capture, definition.id);
     }
-    for (const selector of new Set([definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector])) {
+    const selectors = definition.category === "presenter-extension"
+      ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
+      : [definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector];
+    for (const selector of new Set(selectors)) {
       const owner = selectorOwners.get(selector);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} collide on selector ${selector}.`);
       selectorOwners.set(selector, definition.id);
@@ -144,7 +259,7 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
 async function observeElement(page: Page, id: string, selector: string, label: string) {
   const locator = page.locator(selector);
   requireSingleMatch(await locator.count(), id, label);
-  const [observation, accessibility] = await Promise.all([locator.evaluate((element) => {
+  const [observation, accessibility, accessibilitySnapshot] = await Promise.all([locator.evaluate((element) => {
     const box = element.getBoundingClientRect();
     const style = getComputedStyle(element);
     const computedStyle = Array.from(style).sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)] as [string, string, string]);
@@ -152,9 +267,9 @@ async function observeElement(page: Page, id: string, selector: string, label: s
       rect: { x: box.x, y: box.y, width: box.width, height: box.height },
       computedStyle,
     };
-  }), observeAccessibleIdentity(page, selector)]);
+  }), observeAccessibleIdentity(page, selector), locator.ariaSnapshot()]);
   const computedStyle = standardComputedStyleEntries(observation.computedStyle);
-  return { ...observation, ...accessibility, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle) };
+  return { ...observation, ...accessibility, computedStyle, computedStyleSha256: fingerprintComputedStyle(computedStyle), accessibilitySha256: fingerprintAccessibility(accessibilitySnapshot) };
 }
 
 export function requireSingleMatch(count: number, id: string, label: string) {
@@ -168,6 +283,14 @@ export function standardComputedStyleEntries(entries: ComputedStyleEntry[]) {
 
 export function fingerprintComputedStyle(entries: ComputedStyleEntry[]) {
   return createHash("sha256").update(JSON.stringify(standardComputedStyleEntries(entries))).digest("hex");
+}
+
+export function fingerprintAccessibility(snapshot: string) {
+  return createHash("sha256").update(snapshot).digest("hex");
+}
+
+function relativeRect(rect: Rect, anchor: Rect): Rect {
+  return { x: rect.x - anchor.x, y: rect.y - anchor.y, width: rect.width, height: rect.height };
 }
 
 function firstStyleDifference(trigger?: ComputedStyleEntry[], skyline?: ComputedStyleEntry[]) {

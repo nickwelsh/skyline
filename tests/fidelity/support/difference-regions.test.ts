@@ -1,12 +1,16 @@
 import { describe, expect, test } from "vitest";
 import {
   applicableFrameworkExtensions,
+  applicablePresenterExtensions,
+  accessibilityOmissionSelectors,
   fingerprintComputedStyle,
   omitFrameworkExtensionAccessibility,
   requireSingleMatch,
   validateFrameworkExtensionObservation,
   validatePairedAnchor,
+  validatePresenterExtensionObservation,
   type FrameworkExtensionDefinition,
+  type PresenterExtensionDefinition,
 } from "./difference-regions";
 
 describe("framework-extension fidelity regions", () => {
@@ -32,7 +36,7 @@ describe("framework-extension fidelity regions", () => {
   test("fails on duplicate selectors or paired anchor drift", () => {
     const expected = definition();
     const measurement = expected.measurements[expected.captures[0]];
-    const anchor = { rect: measurement.anchorRect, accessibleRole: "heading", accessibleName: "Details", computedStyleSha256: measurement.anchorComputedStyleSha256 };
+    const anchor = { rect: measurement.anchorRect, accessibleRole: "heading", accessibleName: "Details", computedStyleSha256: measurement.anchorComputedStyleSha256, accessibilitySha256: "c".repeat(64) };
 
     expect(() => requireSingleMatch(2, expected.id, "Skyline extension")).toThrow(/exactly one/i);
     expect(() => validatePairedAnchor(expected, anchor, { ...anchor, rect: { ...anchor.rect, x: 11 } }, expected.captures[0])).toThrow(/geometry/i);
@@ -67,6 +71,36 @@ describe("framework-extension fidelity regions", () => {
     expect(omitFrameworkExtensionAccessibility(tree, "error-found@1440x960-classic", manifest)).toEqual({ role: "main", children: [{ role: "heading", name: "Error" }] });
     expect(() => omitFrameworkExtensionAccessibility({ role: "main" }, "error-found@1440x960-classic", manifest)).toThrow(/omitted 0/i);
   });
+
+  test("locks both presenter sides while preserving their distinct evidence", () => {
+    const expected = presenterDefinition();
+    const observed = {
+      triggerSelector: expected.triggerSelector,
+      skylineSelector: expected.skylineSelector,
+      triggerAnchorSelector: expected.triggerAnchorSelector,
+      skylineAnchorSelector: expected.skylineAnchorSelector,
+      skylineAccessibleRole: expected.skylineAccessibleRole,
+      skylineAccessibleName: expected.skylineAccessibleName,
+      triggerRect: { x: 10, y: 20, width: 30, height: 40 },
+      skylineRect: { x: 10, y: 20, width: 30, height: 40 },
+      ...expected.measurements[expected.captures[0]],
+    };
+
+    expect(validatePresenterExtensionObservation(expected, observed, expected.captures[0])).toBe(observed);
+    expect(() => validatePresenterExtensionObservation(expected, { ...observed, triggerComputedStyleSha256: "0".repeat(64) }, expected.captures[0])).toThrow(/triggerComputedStyleSha256/i);
+    expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineAccessibilitySha256: "0".repeat(64) }, expected.captures[0])).toThrow(/skylineAccessibilitySha256/i);
+    expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineRelativeRect: { ...observed.skylineRelativeRect, y: 99 } }, expected.captures[0])).toThrow(/Skyline anchor-relative geometry/i);
+    expect(() => validatePresenterExtensionObservation(expected, { ...observed, skylineRect: { ...observed.skylineRect, height: 41 } }, expected.captures[0])).toThrow(/outer geometry/i);
+  });
+
+  test("allows one presenter extension and identifies both AX omission selectors", () => {
+    const region = presenterDefinition();
+    expect(applicablePresenterExtensions(region.captures[0], { regions: [region] })).toEqual([region]);
+    const observed = { kind: "presenter-extension", id: region.id, presenter: {} as never, expected: { triggerSelector: region.triggerSelector, skylineSelector: region.skylineSelector } as never } as const;
+    expect(accessibilityOmissionSelectors([observed], "trigger")).toEqual([region.triggerSelector]);
+    expect(accessibilityOmissionSelectors([observed], "skyline")).toEqual([region.skylineSelector]);
+    expect(() => applicablePresenterExtensions(region.captures[0], { regions: [region, { ...region, id: "duplicate" }] })).toThrow(/overlap|multiple/i);
+  });
 });
 
 function definition(): FrameworkExtensionDefinition {
@@ -89,6 +123,38 @@ function definition(): FrameworkExtensionDefinition {
         computedStyleSha256: "a".repeat(64),
         anchorRect: { x: 10, y: 10, width: 300, height: 24 },
         anchorComputedStyleSha256: "b".repeat(64),
+      },
+    },
+  };
+}
+
+function presenterDefinition(): PresenterExtensionDefinition {
+  return {
+    id: "attempt-exception-evidence",
+    category: "presenter-extension",
+    decision: "NW-222",
+    acceptance: ["Failed-Attempt detail exposes captured exception evidence."],
+    citations: ["https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/resources.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.runs.%24runParam.spans.%24spanParam/route.tsx#L1446-L1513"],
+    captures: ["runs-exception@1440x960-classic"],
+    triggerSelector: "[translate='no']",
+    skylineSelector: "[data-skyline-extension='attempt-exception-evidence']",
+    triggerAnchorSelector: ".attempt-error",
+    skylineAnchorSelector: ".attempt-error",
+    skylineAccessibleRole: "region",
+    skylineAccessibleName: "Exception",
+    anchorAccessibleRole: "heading",
+    anchorAccessibleName: "Illuminate\\Database\\DeadlockException",
+    measurements: {
+      "runs-exception@1440x960-classic": {
+        triggerRelativeRect: { x: 1, y: 10, width: 30, height: 40 },
+        skylineRelativeRect: { x: 1, y: 10, width: 30, height: 40 },
+        triggerComputedStyleSha256: "a".repeat(64),
+        skylineComputedStyleSha256: "b".repeat(64),
+        triggerAccessibilitySha256: "c".repeat(64),
+        skylineAccessibilitySha256: "d".repeat(64),
+        anchorRect: { x: 9, y: 10, width: 32, height: 80 },
+        anchorComputedStyleSha256: "e".repeat(64),
+        anchorAccessibilitySha256: "f".repeat(64),
       },
     },
   };
