@@ -1,3 +1,7 @@
+/*!
+ * Adapted from Trigger.dev components/primitives/charts/ChartRoot.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ */
 import React, { useMemo } from "react";
 import type * as RechartsPrimitive from "recharts";
 import type { AggregationType } from "./aggregation";

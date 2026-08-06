@@ -1,3 +1,7 @@
+/*!
+ * Adapted from Trigger.dev components/primitives/charts/ChartLegendCompound.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ */
 import React, { useMemo } from "react";
 import type { AggregationType } from "./aggregation";
 import { useActivePayload, useChartContext } from "./ChartContext";

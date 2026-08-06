@@ -1,3 +1,8 @@
+/*!
+ * Derived from Trigger.dev QueueMetricCards chart treatment
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Skyline adaptation: static captured metric points replace live metric queries.
+ */
 import { useMemo } from "react";
 import { buildActivityTimeAxis } from "~/components/primitives/charts/activityTimeAxis";
 import {
