@@ -28,6 +28,8 @@ export type JobsRouteData = {
   timeRanges: TimeRangeOption[];
   hasAnyJobs: boolean;
   hasFilters: boolean;
+  jobGuidance: boolean;
+  testJob: boolean;
 };
 
 export type JobDetailRouteData = {
@@ -64,6 +66,8 @@ export function presentJobs(page: JobsPageDto): JobsRouteData {
     timeRanges: page.options.timeRanges,
     hasAnyJobs: page.hasAnyJobs,
     hasFilters: page.filters.search !== null || page.filters.period !== "all",
+    jobGuidance: page.capabilities.shell.jobGuidance,
+    testJob: page.capabilities.jobs.testJob,
   };
 }
 

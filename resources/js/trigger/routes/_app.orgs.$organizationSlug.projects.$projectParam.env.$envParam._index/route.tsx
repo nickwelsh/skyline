@@ -1,7 +1,7 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Server, tenant, deployment, Job guidance, test, schedule, and source-definition concerns are external or capability-hidden.
+ * Server, tenant, deployment, schedule, and source-definition concerns are external; Job guidance and test remain capability-dormant.
  */
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
@@ -28,6 +28,8 @@ type JobsRouteData = {
   timeRanges: Array<{ value: string; label: string }>;
   hasAnyJobs: boolean;
   hasFilters: boolean;
+  jobGuidance: boolean;
+  testJob: boolean;
 };
 
 export default function JobsRoute() {
@@ -44,7 +46,7 @@ export default function JobsRoute() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={<><TaskIcon className="size-4 text-tasks" />Jobs</>} /></NavBar>
+      <NavBar><PageTitle title={<><TaskIcon className="size-4 text-tasks" />Jobs</>} />{data.jobGuidance && <button type="button" className="rounded px-2 py-1 text-xs text-text-dimmed hover:bg-background-hover focus-custom">Job guidance</button>}{data.testJob && <button type="button" className="rounded px-2 py-1 text-xs text-tests hover:bg-background-hover focus-custom">Test</button>}</NavBar>
       <PageBody scrollable={false} className="grid min-h-0 grid-rows-[auto_1fr] p-0">
         <div aria-label="Job filters" className="flex h-12 items-center justify-between gap-2 border-b border-grid-bright p-2">
           <SearchInput placeholder="Search Jobs…" />

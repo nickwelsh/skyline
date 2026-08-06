@@ -6,7 +6,7 @@
 import { Outlet } from "@remix-run/react";
 import { AppContainer } from "~/components/layout/AppLayout";
 import { FavoritesProvider, type JobFavorite } from "~/components/navigation/JobFavorites";
-import { SideMenu, type AppearancePreference, type SideMenuPreferences } from "~/components/navigation/SideMenu";
+import { SideMenu, type AppearancePreference, type SideMenuCapabilities, type SideMenuPreferences } from "~/components/navigation/SideMenu";
 import type { SidebarCustomizationPayload } from "~/components/navigation/CustomizeSidebarDialog";
 import { PanelPersistenceProvider } from "~/components/primitives/Resizable";
 
@@ -14,11 +14,7 @@ type TriggerShellProps = {
   applicationName: string;
   brandMark: React.ReactNode;
   environmentLabel: string;
-  capabilities: {
-    navigation: Record<string, boolean>;
-    shell: Record<string, boolean>;
-    help: Record<string, boolean>;
-  };
+  capabilities: SideMenuCapabilities;
   preferences: SideMenuPreferences;
   appearance: AppearancePreference;
   favorites: JobFavorite[];

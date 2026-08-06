@@ -8,29 +8,18 @@ import {
   ChartBarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ComputerDesktopIcon,
-  MoonIcon,
   PlayIcon,
-  QuestionMarkCircleIcon,
-  SunIcon,
-  SwatchIcon,
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
 import { Link, useLocation } from "@remix-run/react";
 import { type CSSProperties, type FunctionComponent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { KeyboardIcon } from "~/assets/icons/KeyboardIcon";
 import { BugIcon } from "~/assets/icons/BugIcon";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { QueuesIcon } from "~/assets/icons/QueuesIcon";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
 import { cn } from "~/utils/cn";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../primitives/Dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "../primitives/Popover";
-import { Label } from "../primitives/Label";
-import { Select, SelectItem } from "../primitives/Select";
-import { ShortcutKey } from "../primitives/ShortcutKey";
-import { Slider } from "../primitives/Slider";
+import { Dialog } from "../primitives/Dialog";
 import {
   CustomizeSidebarDialog,
   type CustomizeSidebarSection,
@@ -39,6 +28,9 @@ import {
 import { useJobFavorites } from "./JobFavorites";
 import { SideMenuSection } from "./SideMenuSection";
 import { isItemHidden, orderByPreference } from "./sideMenuTypes";
+import { AppearanceMenu, type AppearancePreference } from "./AppearanceMenu";
+import { HelpMenu, type HelpCapabilities } from "./HelpMenu";
+import { ShortcutsDialog } from "./ShortcutsDialog";
 
 const COLLAPSED_WIDTH = 44;
 const DEFAULT_WIDTH = 224;
@@ -53,22 +45,47 @@ export type SideMenuPreferences = {
   sectionItemOrder: Record<string, string[]>;
 };
 
-export type AppearancePreference = {
-  theme: "classic" | "system" | "dark" | "light";
-  contrast: number;
+export type { AppearancePreference } from "./AppearanceMenu";
+
+type ShellCapabilities = {
+  appearance: boolean;
+  sidebarCustomization: boolean;
+  favorites: boolean;
+  panelPersistence: boolean;
+  shortcuts: boolean;
+  account: boolean;
+  notifications: boolean;
+  jobGuidance: boolean;
+  organizationSwitching: boolean;
+  projectSwitching: boolean;
+  environmentSwitching: boolean;
+  accountOpening: boolean;
 };
 
-const themePreferences: AppearancePreference["theme"][] = ["classic", "system", "dark", "light"];
+export type SideMenuCapabilities = {
+  navigation: {
+    jobs: boolean;
+    runs: boolean;
+    errors: boolean;
+    logs: boolean;
+    queues: boolean;
+    query: boolean;
+    dashboards: boolean;
+    deployments: boolean;
+    schedules: boolean;
+    waitpoints: boolean;
+    alerts: boolean;
+    settings: boolean;
+  };
+  shell: ShellCapabilities;
+  help: HelpCapabilities;
+};
 
 type SideMenuProps = {
   applicationName: string;
   brandMark: React.ReactNode;
   environmentLabel: string;
-  capabilities: {
-    navigation: Record<string, boolean>;
-    shell: Record<string, boolean>;
-    help: Record<string, boolean>;
-  };
+  capabilities: SideMenuCapabilities;
   preferences: SideMenuPreferences;
   appearance: AppearancePreference;
   warning: string | null;
@@ -83,7 +100,7 @@ type MenuItem = {
   to: string;
   icon: FunctionComponent<{ className?: string }>;
   activeIconColor: string;
-  capability: string;
+  capability: keyof SideMenuCapabilities["navigation"];
   defaultHidden?: boolean;
 };
 
@@ -167,6 +184,11 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
     { id: "query", name: "Query", to: "/query", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "query" },
     { id: "queues", name: "Queues", to: "/queues", icon: QueuesIcon, activeIconColor: "text-queues", capability: "queues" },
     { id: "dashboards", name: "Dashboards", to: "/dashboards", icon: ChartBarIcon, activeIconColor: "text-text-bright", capability: "dashboards" },
+    { id: "deployments", name: "Deployments", to: "/deployments", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "deployments" },
+    { id: "schedules", name: "Schedules", to: "/schedules", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "schedules" },
+    { id: "waitpoints", name: "Waitpoints", to: "/waitpoints", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "waitpoints" },
+    { id: "alerts", name: "Alerts", to: "/alerts", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "alerts" },
+    { id: "settings", name: "Settings", to: "/settings", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "settings" },
   ];
   const visibleObservability = orderByPreference(observabilityItems, preferences.sectionItemOrder.metrics)
     .filter((item) => capabilities.navigation[item.capability] === true && !isItemHidden(item, preferences.hiddenItems));
@@ -214,7 +236,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       <div className="border-t border-grid-bright p-1">
         {warning && <div role="status" className="mb-1 rounded bg-warning/10 px-2 py-1 text-xs text-warning" style={{ opacity: labelOpacity }}>{warning}</div>}
         <div className={cn("flex gap-1", collapsed ? "flex-col" : "items-center")}>
-          {capabilities.help.menu && <HelpMenu collapsed={collapsed} shortcuts={capabilities.help.shortcuts} onOpenShortcuts={() => setShortcutsOpen(true)} labelOpacity={labelOpacity} />}
+          <DormantShellActions capabilities={capabilities.shell} />
+          {capabilities.help.menu && <HelpMenu collapsed={collapsed} capabilities={capabilities.help} onOpenShortcuts={() => setShortcutsOpen(true)} labelOpacity={labelOpacity} />}
           {capabilities.shell.appearance && <AppearanceMenu appearance={appearance} onChange={onAppearanceChange} collapsed={collapsed} labelOpacity={labelOpacity} />}
           <button type="button" aria-label={collapsed ? "Expand side menu" : "Collapse side menu"} onClick={toggleCollapsed} className="flex size-8 shrink-0 items-center justify-center rounded text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom">
             {collapsed ? <ChevronRightIcon className="size-4" /> : <ChevronLeftIcon className="size-4" />}
@@ -238,49 +261,16 @@ function NavigationLink({ item, active, labelOpacity }: { item: MenuItem; active
   </Link>;
 }
 
-function HelpMenu({ collapsed, shortcuts, onOpenShortcuts, labelOpacity }: { collapsed: boolean; shortcuts: boolean; onOpenShortcuts: () => void; labelOpacity: number }) {
-  return <Popover><PopoverTrigger className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom", collapsed ? "w-8" : "min-w-0 flex-1")}>
-    <QuestionMarkCircleIcon className="size-5 min-w-5 text-success" /><span className="truncate text-[0.90625rem] font-medium" style={{ opacity: labelOpacity }}>Help &amp; Feedback</span>
-  </PopoverTrigger><PopoverContent side={collapsed ? "right" : "top"} align="start" className="min-w-56 p-1">
-    {shortcuts && <button type="button" onClick={onOpenShortcuts} className="flex h-8 w-full items-center gap-2 rounded px-2 text-left hover:bg-background-hover focus-custom"><KeyboardIcon className="size-5 text-text-dimmed" /><span className="flex-1">Shortcuts</span><ShortcutKey shortcut={{ modifiers: ["shift"], key: "?" }} variant="medium" /></button>}
-  </PopoverContent></Popover>;
-}
+function DormantShellActions({ capabilities }: { capabilities: ShellCapabilities }) {
+  const actions = [
+    [capabilities.notifications, "Notifications"],
+    [capabilities.account || capabilities.accountOpening, "Account"],
+    [capabilities.organizationSwitching, "Switch organization"],
+    [capabilities.projectSwitching, "Switch project"],
+    [capabilities.environmentSwitching, "Switch environment"],
+  ] as const;
 
-function AppearanceMenu({ appearance, onChange, collapsed, labelOpacity }: { appearance: AppearancePreference; onChange: (value: Partial<AppearancePreference>) => void; collapsed: boolean; labelOpacity: number }) {
-  return <Popover><PopoverTrigger aria-label="Appearance" className={cn("flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom", collapsed ? "w-8" : "min-w-0 flex-1")}>
-    {themeIcon(appearance.theme)}<span className="truncate text-[0.90625rem] font-medium" style={{ opacity: labelOpacity }}>Appearance</span>
-  </PopoverTrigger><PopoverContent side={collapsed ? "right" : "top"} align="start" className="w-64 p-3">
-    <div className="flex items-center justify-between gap-4"><Label>Interface theme</Label><Select<AppearancePreference["theme"], AppearancePreference["theme"]>
-      aria-label="Interface theme"
-      value={appearance.theme}
-      setValue={(value) => onChange({ theme: value as AppearancePreference["theme"] })}
-      variant="secondary/small"
-      dropdownIcon
-      items={themePreferences}
-      text={(value) => <span className="flex items-center gap-1.5">{themeIcon(value)}{themeLabel(value)}</span>}
-      className="w-44"
-    >
-      {(items) => items.map((item) => <SelectItem key={item} value={item} icon={themeIcon(item)}>{themeLabel(item)}</SelectItem>)}
-    </Select></div>
-    {appearance.theme !== "classic" && <div className="mt-4 flex items-center justify-between gap-4"><Label>Contrast</Label><Slider variant="settings" className="w-44" aria-label="Contrast" min={0} max={100} step={5} value={[appearance.contrast]} onValueChange={(values) => onChange({ contrast: values[0] ?? 50 })} /></div>}
-  </PopoverContent></Popover>;
-}
-
-function themeLabel(theme: AppearancePreference["theme"]) {
-  return { classic: "Classic", system: "System preference", dark: "Dark", light: "Light" }[theme];
-}
-
-function themeIcon(theme: AppearancePreference["theme"]) {
-  if (theme === "classic") return <SwatchIcon className="size-5 min-w-5 text-text-dimmed" />;
-  if (theme === "system") return <ComputerDesktopIcon className="size-5 min-w-5 text-text-dimmed" />;
-  if (theme === "dark") return <span className="grid size-5 min-w-5 place-items-center"><MoonIcon className="size-4 text-text-dimmed" /></span>;
-  return <SunIcon className="size-5 min-w-5 text-text-dimmed" />;
-}
-
-function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-w-md p-4"><DialogHeader className="h-7"><DialogTitle className="flex items-center gap-2"><KeyboardIcon className="size-5" />Keyboard shortcuts</DialogTitle></DialogHeader><div className="mt-5 space-y-3"><ShortcutRow name="Close"><ShortcutKey shortcut={{ key: "esc" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Filter"><ShortcutKey shortcut={{ key: "f" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Toggle side menu"><ShortcutKey shortcut={{ modifiers: ["mod"], key: "b" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Favorite this page"><ShortcutKey shortcut={{ modifiers: ["alt"], key: "f" }} variant="medium/bright" /></ShortcutRow><ShortcutRow name="Navigate"><ShortcutKey shortcut={{ key: "arrowup" }} variant="medium/bright" /><ShortcutKey shortcut={{ key: "arrowdown" }} variant="medium/bright" /></ShortcutRow></div></DialogContent></Dialog>;
-}
-
-function ShortcutRow({ name, children }: { name: string; children: React.ReactNode }) {
-  return <div className="flex items-center justify-between gap-2"><span className="text-sm text-text-dimmed">{name}</span><span className="flex gap-0.5">{children}</span></div>;
+  return <>{actions.map(([available, label]) => available
+    ? <button key={label} type="button" className="flex h-8 items-center rounded px-2 text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom">{label}</button>
+    : null)}</>;
 }

@@ -32,7 +32,7 @@ export function SkylineShell({ bootstrap }: { bootstrap: SkylineBootstrap }) {
     capabilities={{
       navigation,
       shell: bootstrap.capabilities.shell,
-      help: bootstrap.capabilities.help ?? {},
+      help: bootstrap.capabilities.help,
     }}
     preferences={preferences.sidebar}
     appearance={{ theme: preferences.theme, contrast: preferences.contrast }}
