@@ -93,5 +93,19 @@ describe("ErrorGroupsAdapter", () => {
       attemptPath: "/runs/run_latest?node=attempt_run_latest_2",
       exception: { message: "Invoice 42 failed" },
     });
+    expect(presented.failedRuns[0]).toEqual({
+      id: "run_latest",
+      path: "/runs/run_latest?node=attempt_run_latest_2",
+      isRoot: true,
+      jobType: "App\\Jobs\\Invoice",
+      status: "failed",
+      queueTarget: "default",
+      traceIdentity: "span_run_latest",
+      attemptCount: 2,
+      startedAt: summary.lastObservedAt,
+      queueDuration: "—",
+      duration: "0µs",
+      activeDuration: "0µs",
+    });
   });
 });

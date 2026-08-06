@@ -7,16 +7,16 @@
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
 import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
-import { BugIcon } from "~/assets/icons/BugIcon";
+import { useMemo } from "react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
 import { CopyableText } from "~/components/primitives/CopyableText";
-import { DateTime, DateTimeShort } from "~/components/primitives/DateTime";
+import { DateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
-import { Paragraph } from "~/components/primitives/Paragraph";
 import * as Property from "~/components/primitives/PropertyTable";
 import {
   ResizableHandle,
@@ -24,14 +24,7 @@ import {
   ResizablePanelGroup,
 } from "~/components/primitives/Resizable";
 import { Spinner } from "~/components/primitives/Spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-} from "~/components/primitives/Table";
+import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 
 type ErrorGroupSummary = {
   id: string;
@@ -45,21 +38,11 @@ type ErrorGroupSummary = {
   occurrenceCount: number;
 };
 
-type FailedAttempt = {
-  id: string;
-  runId: string;
-  attemptNumber: number;
-  observedAt: string;
-  runPath: string;
-  attemptPath: string;
-  exception: ExceptionPreviewData;
-};
-
 type ErrorGroupDetailData = {
   errorGroup: ErrorGroupSummary;
   representative: ExceptionPreviewData;
   activity: Array<{ timestamp: string; occurrences: number }>;
-  failedAttempts: FailedAttempt[];
+  failedRuns: PresentedRun[];
   pagination: { next?: string; previous?: string };
   filters: { period: string };
   filterOptions: { timeRanges: Array<{ value: string; label: string }> };
@@ -77,7 +60,7 @@ export default function Page() {
           title={<span className="font-mono text-xs">{data.errorGroup.fingerprint.slice(-8)}</span>}
         />
       </NavBar>
-      <PageBody scrollable={false} className="p-0">
+      <PageBody scrollable={false}>
         <ErrorGroupDetail data={data} />
       </PageBody>
     </PageContainer>
@@ -99,7 +82,7 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
     <ResizablePanelGroup orientation="horizontal" className="max-h-full">
       <ResizablePanel id="error-main" min="300px">
         <div className="grid h-full grid-rows-[12rem_1fr] overflow-hidden">
-          <section aria-label="Occurrence activity" className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4">
+          <div className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-text-dimmed">Occurred</span>
               <select
@@ -114,20 +97,19 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
               </select>
             </div>
             <ActivityChart activity={data.activity} />
-          </section>
+          </div>
 
-          <section
-            aria-labelledby="runs-heading"
-            className="flex min-h-0 flex-col gap-1 overflow-y-hidden"
-          >
+          <div className="flex min-h-0 flex-col gap-1 overflow-y-hidden">
             <div className="flex items-center justify-between pl-3 pr-2 pt-1">
               <Header3 id="runs-heading" className="mb-1 mt-2">Runs</Header3>
               <ListPagination list={data} />
             </div>
             <div className="relative min-h-0 flex-1 overflow-hidden">
-              {data.failedAttempts.length > 0
-                ? <FailedAttemptsTable attempts={data.failedAttempts} />
-                : <FailedAttemptsBlankState filtered={data.hasAnyOccurrences} />}
+              <TaskRunsTable
+                total={data.failedRuns.length}
+                hasFilters={data.filters.period !== "all"}
+                runs={data.failedRuns}
+              />
               {navigation.state !== "idle" && (
                 <div
                   aria-label="Loading Error group"
@@ -137,7 +119,7 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
                 </div>
               )}
             </div>
-          </section>
+          </div>
         </div>
       </ResizablePanel>
 
@@ -150,89 +132,61 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
 }
 
 function ActivityChart({ activity }: { activity: ErrorGroupDetailData["activity"] }) {
-  const peak = Math.max(1, ...activity.map((point) => point.occurrences));
+  const data = useMemo(() => activity.map((point) => ({
+    ...point,
+    __timestamp: new Date(point.timestamp).getTime(),
+  })), [activity]);
+  const ticks = useMemo(() => data
+    .filter((point) => {
+      const date = new Date(point.__timestamp);
+      return date.getHours() === 0 && date.getMinutes() === 0;
+    })
+    .map((point) => point.__timestamp), [data]);
 
   if (activity.length === 0) {
     return <ActivityChartBlankState />;
   }
 
   return (
-    <div
-      role="img"
-      aria-label="Error occurrences over time"
-      className="flex min-h-0 flex-1 items-end gap-1 border-b border-l border-grid-bright px-2 pt-4"
-    >
-      {activity.map((point) => (
-        <div
-          key={point.timestamp}
-          title={`${point.timestamp}: ${point.occurrences} occurrences`}
-          className="flex h-full min-w-2 flex-1 items-end"
-        >
-          <span
-            className="w-full bg-indigo-500"
-            style={{ height: `${Math.max(3, point.occurrences / peak * 100)}%` }}
-          />
-        </div>
-      ))}
-    </div>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+        <CartesianGrid vertical={false} stroke="var(--color-grid-bright)" strokeDasharray="3 3" />
+        <XAxis
+          dataKey="__timestamp"
+          tickFormatter={(value: number) => new Date(value).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })}
+          ticks={ticks}
+          height={24}
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "var(--color-text-dimmed)" }}
+        />
+        <YAxis
+          width={30}
+          tickMargin={4}
+          axisLine={false}
+          tickLine={false}
+          tick={{ fontSize: 11, fill: "var(--color-text-dimmed)" }}
+          domain={["auto", (maximum: number) => maximum * 1.15]}
+        />
+        <Tooltip animationDuration={0} content={() => null} />
+        <Bar dataKey="occurrences" fill="#6c5ce7" strokeWidth={0} isAnimationActive={false} />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }
 
 function ActivityChartBlankState() {
   return (
-    <div className="grid flex-1 place-items-center text-sm text-text-dimmed">
-      No occurrences in this time range.
-    </div>
-  );
-}
-
-function FailedAttemptsTable({ attempts }: { attempts: FailedAttempt[] }) {
-  return (
-    <Table containerClassName="max-h-full pb-10" showTopBorder={false} variant="dimmed">
-      <TableHeader>
-        <TableRow>
-          <TableHeaderCell>Attempt</TableHeaderCell>
-          <TableHeaderCell>Run</TableHeaderCell>
-          <TableHeaderCell>Error</TableHeaderCell>
-          <TableHeaderCell>Observed</TableHeaderCell>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {attempts.map((attempt) => (
-          <TableRow key={attempt.id}>
-            <TableCell to={attempt.attemptPath} isTabbableCell>
-              <span className="font-mono">Attempt {attempt.attemptNumber}</span>
-            </TableCell>
-            <TableCell to={attempt.runPath}>
-              <span className="font-mono">{attempt.runId}</span>
-            </TableCell>
-            <TableCell to={attempt.attemptPath} className="max-w-96 font-mono">
-              <span className="block max-w-96 truncate" title={attempt.exception.message}>
-                {attempt.exception.message}
-              </span>
-            </TableCell>
-            <TableCell to={attempt.attemptPath}>
-              <DateTimeShort date={attempt.observedAt} />
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function FailedAttemptsBlankState({ filtered }: { filtered: boolean }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-      <BugIcon className="size-16 text-secondary" />
-      <div>
-        <h3 className="font-medium text-text-bright">
-          {filtered ? "No matching failed Attempts" : "No failed Attempts"}
-        </h3>
-        <Paragraph className="mt-1 text-text-dimmed">
-          {filtered ? "Change the time range to see more occurrences." : "No occurrence evidence is available."}
-        </Paragraph>
-      </div>
+    <div className="flex min-h-0 flex-1 items-end gap-px rounded-sm">
+      {[...Array(42)].map((_, index) => (
+        <div key={index} className="h-full flex-1 bg-background-dimmed" />
+      ))}
     </div>
   );
 }
@@ -291,7 +245,9 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
               <Property.Value><RelativeDateTime date={data.errorGroup.lastObservedAt} /></Property.Value>
             </Property.Item>
           </Property.Table>
-          <ExceptionPreview exception={data.representative} />
+          <div data-skyline-extension="error-exception-evidence">
+            <ExceptionPreview exception={data.representative} />
+          </div>
         </div>
       </div>
     </aside>

@@ -4,6 +4,7 @@ import type {
   ErrorGroupsQuery,
   ErrorOccurrencesQuery,
 } from "./dto";
+import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
 import { compactQuery, queryValue } from "./QueryParams";
 
 export type PresentedErrorGroup = Omit<ErrorGroupsPageDto["errorGroups"][number], "href" | "jobHref" | "latest"> & {
@@ -31,6 +32,7 @@ export type ErrorGroupDetailRouteData = {
   representative: ErrorGroupDetailDto["representative"];
   activity: ErrorGroupDetailDto["activity"];
   failedAttempts: Array<Omit<ErrorGroupDetailDto["failedAttempts"][number], "runHref" | "attemptHref"> & { runPath: string; attemptPath: string }>;
+  failedRuns: PresentedRun[];
   pagination: { next?: string; previous?: string };
   filters: ErrorGroupDetailDto["filters"];
   filterOptions: ErrorGroupDetailDto["options"];
@@ -75,10 +77,33 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
       runPath: routePath(runHref, "runs"),
       attemptPath: routePath(attemptHref, "runs"),
     })),
+    failedRuns: page.failedAttempts.map((attempt) => presentFailedRun(attempt)),
     pagination: pagination(page.pagination),
     filters: page.filters,
     filterOptions: page.options,
     hasAnyOccurrences: page.hasAnyOccurrences,
+  };
+}
+
+function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]): PresentedRun {
+  const durationUs = Math.max(
+    0,
+    new Date(attempt.finishedAt ?? attempt.observedAt).getTime() - new Date(attempt.startedAt).getTime()
+  ) * 1_000;
+
+  return {
+    id: attempt.runId,
+    path: routePath(attempt.attemptHref, "runs"),
+    isRoot: true,
+    jobType: attempt.jobType,
+    status: "failed",
+    queueTarget: "default",
+    traceIdentity: `span_${attempt.runId}`,
+    attemptCount: attempt.attemptNumber,
+    startedAt: attempt.startedAt,
+    queueDuration: "—",
+    duration: formatDuration(durationUs),
+    activeDuration: formatDuration(durationUs),
   };
 }
 
@@ -108,4 +133,11 @@ function routePath(href: string, segment: string) {
 
 function period(value: string | null): ErrorGroupsQuery["period"] {
   return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as ErrorGroupsQuery["period"] : undefined;
+}
+
+function formatDuration(microseconds: number): string {
+  if (microseconds < 1_000) return `${microseconds}µs`;
+  const milliseconds = microseconds / 1_000;
+  if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
+  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
 }
