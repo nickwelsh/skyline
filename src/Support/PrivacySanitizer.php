@@ -4,6 +4,20 @@ namespace NickWelsh\Skyline\Support;
 
 final class PrivacySanitizer
 {
+    /** @var list<string> */
+    private const SAFE_CACHE_ATTRIBUTES = [
+        'cache.operation',
+        'cache.store',
+        'cache.key_captured',
+        'cache.ttl',
+        'cache.forever',
+        'cache.strategy',
+        'cache.fresh_ttl',
+        'cache.key_count',
+        'cache.outcome',
+        'cache.hit',
+    ];
+
     private int $remaining;
 
     /** @var list<array{path: string, originalBytes: int}> */
@@ -93,6 +107,10 @@ final class PrivacySanitizer
     {
         if ($key === 'exception.stacktrace') {
             return false;
+        }
+
+        if (str_starts_with($key, 'cache.')) {
+            return in_array($key, self::SAFE_CACHE_ATTRIBUTES, true);
         }
 
         foreach (['skyline.', 'db.', 'messaging.', 'laravel.', 'exception.type'] as $prefix) {

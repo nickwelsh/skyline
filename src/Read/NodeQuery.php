@@ -544,6 +544,8 @@ final readonly class NodeQuery
             $attributes['db.query.text'],
             $attributes['cache.key'],
             $attributes['cache.value'],
+            $attributes['skyline.cache.source.file'],
+            $attributes['skyline.cache.source.line'],
             $attributes['db.operation.arguments'],
             $attributes['skyline.http.request.headers'],
             $attributes['skyline.http.request.body'],

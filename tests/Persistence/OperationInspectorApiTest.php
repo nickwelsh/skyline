@@ -127,6 +127,65 @@ it('projects cache and Redis state without widening capture', function (): void 
         ->assertJsonPath('node.presentation.failure.message', 'Redis command failed');
 });
 
+it('exposes only explicit non-sensitive cache metadata and strips raw source roots', function (): void {
+    CacheJob::dispatchSync();
+    $span = DB::table('skyline_spans')
+        ->where('role', 'cache')
+        ->where('attributes', 'like', '%"cache.operation":"PUT"%')
+        ->first();
+    $attributes = json_decode($span->attributes, true, flags: JSON_THROW_ON_ERROR);
+    $localRoot = base_path();
+    $attributes = [
+        ...$attributes,
+        'cache.operation' => 'PUT',
+        'cache.store' => 'redis',
+        'cache.key' => 'raw-private-key',
+        'cache.key_captured' => true,
+        'cache.value' => 'raw-private-value',
+        'cache.ttl' => 60,
+        'cache.forever' => false,
+        'cache.strategy' => 'remember',
+        'cache.fresh_ttl' => 30,
+        'cache.key_count' => 2,
+        'cache.outcome' => 'stored',
+        'cache.hit' => true,
+        'cache.future_private' => 'must-not-pass',
+        'skyline.cache.source.file' => base_path('tests/Fixtures/Jobs/CacheJob.php'),
+        'skyline.cache.source.line' => 42,
+    ];
+    DB::table('skyline_spans')->where('id', $span->id)->update(['attributes' => json_encode($attributes, JSON_THROW_ON_ERROR)]);
+    config()->set('skyline.editor', ['name' => 'vscode', 'base_path' => '/workspace']);
+
+    $response = $this->getJson('/skyline/api/runs/'.$span->run_id.'/nodes/span_'.$span->span_id)->assertOk();
+
+    expect($response->json('node.source'))->toMatchArray([
+        'line' => 42,
+        'href' => 'vscode://file//workspace/tests/Fixtures/Jobs/CacheJob.php:42',
+    ])->and($response->json('node.source.file'))->not->toStartWith('/')
+        ->and($response->json('node.metadata.value.attributes'))->toMatchArray([
+            'cache.operation' => 'PUT',
+            'cache.store' => 'redis',
+            'cache.key_captured' => true,
+            'cache.ttl' => 60,
+            'cache.forever' => false,
+            'cache.strategy' => 'remember',
+            'cache.fresh_ttl' => 30,
+            'cache.key_count' => 2,
+            'cache.outcome' => 'stored',
+            'cache.hit' => true,
+        ])->not->toHaveKeys([
+            'cache.key',
+            'cache.value',
+            'cache.future_private',
+            'skyline.cache.source.file',
+            'skyline.cache.source.line',
+        ])->and($response->getContent())
+        ->not->toContain($localRoot)
+        ->not->toContain('raw-private-key')
+        ->not->toContain('raw-private-value')
+        ->not->toContain('must-not-pass');
+});
+
 it('reapplies current privacy gates and byte limits to persisted inspector captures', function (): void {
     config()->set('skyline.sql.capture_bindings', true);
     config()->set('skyline.sql.capture_results', true);
