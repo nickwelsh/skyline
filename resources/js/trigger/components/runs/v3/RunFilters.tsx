@@ -44,7 +44,12 @@ export function RunsFilters({ options }: { options: RunFilterOptions }) {
       <FilterSelect label="Status" value={searchParams.get("status") ?? ""} onChange={(value) => update("status", value)}>
         {options.statuses.map((status) => <option key={status} value={status}>{status}</option>)}
       </FilterSelect>
-      <FilterSelect label="Job type" value={searchParams.get("job") ?? ""} onChange={(value) => update("job", value)}>
+      <FilterSelect label="Job type" value={searchParams.get("job") ?? ""} onChange={(value) => {
+        const next = new URLSearchParams(searchParams);
+        value ? next.set("job", value) : next.delete("job");
+        if (value) next.delete("rootOnly");
+        commit(next);
+      }}>
         {options.jobTypes.map((job) => <option key={job} value={job}>{job}</option>)}
       </FilterSelect>
       <FilterSelect label="Queue target" value={queueValue(searchParams)} onChange={(value) => {
@@ -66,14 +71,14 @@ export function RunsFilters({ options }: { options: RunFilterOptions }) {
       <FilterSelect label="Trace" value={searchParams.get("trace") ?? ""} onChange={(value) => update("trace", value)}>
         {options.traceIdentities.map((trace) => <option key={trace} value={trace}>{trace}</option>)}
       </FilterSelect>
-      <label className="flex h-8 items-center gap-2 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright">
+      {!searchParams.has("job") && <label className="flex h-8 items-center gap-2 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright">
         <input
           type="checkbox"
           checked={searchParams.get("rootOnly") === "true"}
-          onChange={(event) => update("rootOnly", event.currentTarget.checked ? "true" : "")}
+          onChange={(event) => update("rootOnly", event.currentTarget.checked ? "true" : "false")}
         />
         Root Runs only
-      </label>
+      </label>}
       <label className="flex items-center gap-1 text-xs text-text-dimmed">From<input aria-label="Triggered from" type="datetime-local" className="h-8 rounded border border-grid-bright bg-input-bg px-2" value={toLocal(searchParams.get("triggeredFrom"))} onChange={(event) => update("triggeredFrom", fromLocal(event.currentTarget.value))} /></label>
       <label className="flex items-center gap-1 text-xs text-text-dimmed">To<input aria-label="Triggered to" type="datetime-local" className="h-8 rounded border border-grid-bright bg-input-bg px-2" value={toLocal(searchParams.get("triggeredTo"))} onChange={(event) => update("triggeredTo", fromLocal(event.currentTarget.value))} /></label>
     </div>

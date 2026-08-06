@@ -78,6 +78,17 @@ test("preferences synchronize across tabs and restore root-only URL state", asyn
   await page.goto("/skyline/runs");
   await expect(page).toHaveURL(/rootOnly=true/);
   await expect(page.getByLabel("Root Runs only")).toBeChecked();
+
+  await page.getByLabel("Root Runs only").click();
+  await expect(page).toHaveURL(/rootOnly=false/);
+  await page.goto("/skyline/runs");
+  await expect(page).not.toHaveURL(/rootOnly=/);
+  await expect(page.getByLabel("Root Runs only")).not.toBeChecked();
+
+  await page.getByLabel("Root Runs only").click();
+  await page.getByLabel("Job type").selectOption("App\\Jobs\\GenerateMonthlyInvoices");
+  await expect(page).not.toHaveURL(/rootOnly=/);
+  await expect(page.getByLabel("Root Runs only")).toHaveCount(0);
   await second.close();
 });
 
