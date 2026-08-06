@@ -4,6 +4,9 @@ import { fixtureCatalog } from "./skyline";
 
 export type ReferenceFixture = {
   loaders: Record<string, unknown>;
+  resources?: {
+    spans?: Record<string, unknown>;
+  };
   context?: {
     root?: Record<string, unknown>;
     organization?: Record<string, unknown>;
@@ -24,6 +27,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
     adapter.queueTarget(catalog.queue),
   ]);
   const runList = triggerRunList(runs);
+  const runDetail = triggerRun(run);
   const errorLayout = {
     alertData: { channels: [], emailEnabled: false, slackEnabled: false },
     projectRef: "proj_fixture", projectId: "project", environmentType: "PRODUCTION",
@@ -36,7 +40,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       job: triggerJob(job),
       runs: { data: runList, rootOnlyDefault: false, filters: runList.filters, canCancelRuns: false, canReplayRuns: false },
       shell: { data: runList, rootOnlyDefault: false, filters: runList.filters, canCancelRuns: false, canReplayRuns: false },
-      run: triggerRun(run),
+      run: runDetail,
       "errors:layout": errorLayout,
       errors: triggerErrors(errors, errorLayout),
       "error:layout": errorLayout,
@@ -46,6 +50,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       queues: triggerQueues(queues),
       queue: triggerQueue(queue),
     },
+    resources: { spans: { [runDetail.run.spanId]: triggerSpanRun(run) } },
     canonicalUrls: {
       "jobs-populated": "/skyline/jobs", "job-found": `/skyline/jobs/${catalog.job}`,
       "runs-populated": "/skyline/runs", "run-found": `/skyline/runs/${catalog.run}`,
@@ -167,6 +172,26 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
       },
       defaultSearch: (captureId: string) => detailByCapture[captureId] === "run" || captureId === "run-found" ? `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}` : "",
+      resource: (
+        kind: string,
+        params: Record<string, string | undefined>,
+      ) => {
+        if (kind !== "span") throw new Error(`Unsupported Trigger reference resource: ${kind}`);
+        const value = input.resources?.spans?.[params.spanParam ?? ""];
+        if (value === undefined) {
+          throw new Response("Deterministic telemetry evidence was not found.", {
+            status: 404,
+            statusText: "Not Found",
+          });
+        }
+        const cloned = structuredClone(value) as any;
+        if (cloned.type === "run") {
+          for (const key of ["createdAt", "startedAt", "executedAt", "updatedAt", "expiredAt", "completedAt", "delayUntil", "logsDeletedAt"]) {
+            if (cloned.run[key]) cloned.run[key] = new Date(cloned.run[key]);
+          }
+        }
+        return cloned;
+      },
       load: ({ captureId, surface, state, phase, route }: { captureId: string; surface: string; state: string; phase: string; route: "layout" | "page" }) => {
         state = sessionStorage.getItem(fixtureStateKey) ?? state;
         const routeKey = `${surface}:${route}`;
@@ -258,6 +283,59 @@ function triggerRun(detail: any) {
     },
     maximumLiveReloadingSetting: 1_000, resizable: { parent: undefined, tree: undefined }, runsList: null,
     canReplayRun: false, canCancelRun: false,
+  };
+}
+
+function triggerSpanRun(detail: any) {
+  const summary = triggerRunSummary(detail.run);
+  const createdAt = detail.run.triggeredAt;
+  const startedAt = detail.run.startedAt ?? null;
+  const completedAt = detail.run.finishedAt ?? null;
+
+  return {
+    type: "run",
+    run: {
+      id: summary.id,
+      friendlyId: summary.friendlyId,
+      status: summary.status,
+      createdAt,
+      startedAt,
+      executedAt: startedAt,
+      updatedAt: completedAt ?? startedAt ?? createdAt,
+      delayUntil: null,
+      expiredAt: null,
+      completedAt,
+      logsDeletedAt: null,
+      ttl: null,
+      taskIdentifier: summary.taskIdentifier,
+      isTest: false,
+      queue: { name: detail.run.queueTarget.queue ?? "default", isCustomQueue: true, concurrencyKey: null },
+      tags: [],
+      baseCostInCents: 0,
+      costInCents: 0,
+      totalCostInCents: 0,
+      usageDurationMs: Math.round(
+        (detail.run.durationUs ?? detail.run.activeDurationUs ?? 0) / 1_000,
+      ),
+      isFinished: summary.hasFinished,
+      isRunning: !summary.hasFinished,
+      isError: summary.status === "COMPLETED_WITH_ERRORS",
+      isAgentRun: false,
+      isScheduled: false,
+      outputType: "application/json",
+      relationships: {},
+      context: "{}",
+      maxDurationInSeconds: undefined,
+      engine: "V1",
+      region: null,
+      workerQueue: detail.run.queueTarget.queue ?? "default",
+      traceId: detail.run.traceId,
+      spanId: summary.spanId,
+      isCached: false,
+      isBuffered: false,
+      taskEventStore: "fixture",
+    },
+    queueMetrics: null,
   };
 }
 

@@ -64,6 +64,9 @@ const routes = createBrowserRouter([
       path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/runs/live",
       loader: () => ({ runs: [] }),
     }, {
+      path: "resources/orgs/:organizationSlug/projects/:projectParam/env/:envParam/runs/:runParam/spans/:spanParam",
+      loader: ({ params }: { params: Record<string, string | undefined> }) => referencePort().resource?.("span", params),
+    }, {
       id: "routes/_app.orgs.$organizationSlug",
       path: "oracle",
       loader: () => referencePort().context.organization,
@@ -202,6 +205,7 @@ type ReferencePort = {
   context: ReferenceContext;
   canonicalUrl?(captureId: string): string;
   defaultSearch?(captureId: string): string;
+  resource?(kind: "span", params: Record<string, string | undefined>): unknown | Promise<unknown>;
   load(input: ReferenceLoad): unknown | Promise<unknown>;
 };
 
