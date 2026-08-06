@@ -5,13 +5,14 @@ import manifest from "../allowed-differences.json" with { type: "json" };
 import matrix from "../matrix.json" with { type: "json" };
 import { queueCapabilityDefinitions } from "./queue-capabilities";
 import { queueConnectionExtensionDefinition } from "./queue-connection-extension";
+import { queueRecordedRunsExtensionDefinition } from "./queue-recorded-runs-extension";
 import type { CapabilityOmissionDefinition, CapabilityOmissionMeasurement, FrameworkExtensionDefinition } from "./difference-regions";
 
 const hash = /^[a-f0-9]{64}$/;
 
 describe("NW-221 exact Queue ledger", () => {
   type QueueLedgerRegion = CapabilityOmissionDefinition | FrameworkExtensionDefinition;
-  const expected = [...queueCapabilityDefinitions(matrix as unknown as FidelityMatrix), queueConnectionExtensionDefinition(matrix as unknown as FidelityMatrix)];
+  const expected = [...queueCapabilityDefinitions(matrix as unknown as FidelityMatrix), queueConnectionExtensionDefinition(matrix as unknown as FidelityMatrix), queueRecordedRunsExtensionDefinition(matrix as unknown as FidelityMatrix)];
   const regions = manifest.regions.filter((region) => region.id.startsWith("queue-")) as unknown as QueueLedgerRegion[];
 
   test("owns exactly the measured definitions, captures, and selectors", () => {
@@ -20,7 +21,7 @@ describe("NW-221 exact Queue ledger", () => {
       const region = regions.find(({ id }) => id === definition.id)!;
       expect({ ...region, measurements: {} }).toEqual(definition);
       expect(Object.keys(region.measurements).sort()).toEqual([...definition.captures].sort());
-      expect(JSON.stringify(region)).not.toMatch(/\*|information|shell|recorded.runs/i);
+      expect(JSON.stringify(region)).not.toMatch(/\*|information|shell/i);
     }
   });
 
@@ -40,8 +41,8 @@ describe("NW-221 exact Queue ledger", () => {
       .not.toBe(connection.measurements["queues-populated@1440x960-classic"]!.accessibilitySha256);
   });
 
-  test("pins the reviewed 57-observation ledger", () => {
+  test("pins the reviewed 76-observation ledger", () => {
     expect(createHash("sha256").update(JSON.stringify(regions)).digest("hex"))
-      .toBe("95bc288151555ecc7285d030d4343f7e1c0f74e9477c866d5047b4fd2524a3f5");
+      .toBe("887bb71508dee0b474bf261085ba504beb47b7443b5bc214bd5d9a905e2a8f6b");
   });
 });

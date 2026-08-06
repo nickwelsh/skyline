@@ -7493,952 +7493,952 @@
       }
     },
     {
-      "id": "queue-detail-capabilities",
-      "category": "capability-omission",
-      "decision": "NW-221",
-      "acceptance": [
-        "Scope only source-visible Queue capability data unavailable from Skyline evidence.",
-        "Keep each Trigger and Skyline node uniquely paired by semantic marker and exact geometry/style.",
-        "Lock exact subtree accessibility text/state, including explicit null and empty sentinels; accessible Queue surface ownership remains outside the omission."
-      ],
-      "citations": [
-        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L1053-L1220",
-        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L396-L519"
-      ],
-      "captures": [
-        "queue-found@1024x768-classic",
-        "queue-found@1440x960-classic",
-        "queue-found@1440x960-dark",
-        "queue-found@1440x960-light",
-        "queue-found@1440x960-system-dark",
-        "queue-found@1440x960-system-light",
-        "queue-found@390x844-classic",
-        "queues-activity-wait-history@1440x960-classic",
-        "queues-activity-wait-history@1440x960-dark",
-        "queues-activity-wait-history@1440x960-light",
-        "queues-busy@1440x960-classic",
-        "queues-busy@1440x960-dark",
-        "queues-busy@1440x960-light",
-        "queues-idle@1440x960-classic",
-        "queues-idle@1440x960-dark",
-        "queues-idle@1440x960-light"
-      ],
-      "selectorPairs": [
-        {
-          "id": "queue-detail-concurrency",
-          "triggerSelector": "[data-trigger-capability=\"queue-detail-concurrency\"]",
-          "skylineSelector": "[data-skyline-capability=\"queue-detail-concurrency\"]"
-        },
-        {
-          "id": "queue-detail-concurrency-limit",
-          "triggerSelector": "[data-trigger-capability=\"queue-detail-concurrency-limit\"]",
-          "skylineSelector": "[data-skyline-capability=\"queue-detail-concurrency-limit\"]"
-        },
-        {
-          "id": "queue-detail-throttled",
-          "triggerSelector": "[data-trigger-capability=\"queue-detail-throttled\"]",
-          "skylineSelector": "[data-skyline-capability=\"queue-detail-throttled\"]"
+        "id": "queue-detail-capabilities",
+        "category": "capability-omission",
+        "decision": "NW-221",
+        "acceptance": [
+          "Scope only source-visible Queue capability data unavailable from Skyline evidence.",
+          "Keep each Trigger and Skyline node uniquely paired by semantic marker and exact geometry/style.",
+          "Lock exact subtree accessibility text/state, including explicit null and empty sentinels; accessible Queue surface ownership remains outside the omission."
+        ],
+        "citations": [
+          "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L1053-L1220",
+          "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues_.%24queueParam/route.tsx#L396-L519"
+        ],
+        "captures": [
+          "queue-found@1024x768-classic",
+          "queue-found@1440x960-classic",
+          "queue-found@1440x960-dark",
+          "queue-found@1440x960-light",
+          "queue-found@1440x960-system-dark",
+          "queue-found@1440x960-system-light",
+          "queue-found@390x844-classic",
+          "queues-activity-wait-history@1440x960-classic",
+          "queues-activity-wait-history@1440x960-dark",
+          "queues-activity-wait-history@1440x960-light",
+          "queues-busy@1440x960-classic",
+          "queues-busy@1440x960-dark",
+          "queues-busy@1440x960-light",
+          "queues-idle@1440x960-classic",
+          "queues-idle@1440x960-dark",
+          "queues-idle@1440x960-light"
+        ],
+        "selectorPairs": [
+          {
+            "id": "queue-detail-concurrency",
+            "triggerSelector": "[data-trigger-capability=\"queue-detail-concurrency\"]",
+            "skylineSelector": "[data-skyline-capability=\"queue-detail-concurrency\"]"
+          },
+          {
+            "id": "queue-detail-concurrency-limit",
+            "triggerSelector": "[data-trigger-capability=\"queue-detail-concurrency-limit\"]",
+            "skylineSelector": "[data-skyline-capability=\"queue-detail-concurrency-limit\"]"
+          },
+          {
+            "id": "queue-detail-throttled",
+            "triggerSelector": "[data-trigger-capability=\"queue-detail-throttled\"]",
+            "skylineSelector": "[data-skyline-capability=\"queue-detail-throttled\"]"
+          }
+        ],
+        "measurements": {
+          "queue-found@1024x768-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 219.328125,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 219.328125,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "13fa179e5ec5529b4e2206b54cf4fe82f745ecfa7e61702b58b257dcc405401d",
+              "skylineComputedStyleSha256": "13fa179e5ec5529b4e2206b54cf4fe82f745ecfa7e61702b58b257dcc405401d",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 366,
+                "height": 118
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 366,
+                "height": 118
+              },
+              "triggerComputedStyleSha256": "fdac3dcda8ee829676d8b851fe04189c975006849a43d5a64d5938ed6436729b",
+              "skylineComputedStyleSha256": "fdac3dcda8ee829676d8b851fe04189c975006849a43d5a64d5938ed6436729b",
+              "triggerAccessibilitySha256": "80f070610a4672eabb165c5b5201f23f8c437954b647200bd27da3e5cac53384",
+              "skylineAccessibilitySha256": "d3825175ebc975840a501ddf37b15517e81390cf17cb1410f50c253d08ebd3e6"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 691,
+                "width": 762,
+                "height": 137
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 691,
+                "width": 762,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "454776a721e3a33edeabbca0daf4f2a0023fda3987e2cdf5ef870118054d3d58",
+              "skylineComputedStyleSha256": "9c9132d0383132eadb2c18556341490588fffe330431e32d8b3b67c8157806a1",
+              "triggerAccessibilitySha256": "ed37c66818eb39228dfc78779e59515dc1b5ff07c1d511f85cb7b64569b34b51",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@1440x960-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
+              "skylineComputedStyleSha256": "b39d7d1962c717ecf33148f4f0587649731d8e3cc1beef996201a41af1344190",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@1440x960-dark": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
+              "skylineComputedStyleSha256": "efb9269750cd841e7bfbf5b357d0918a5bf259f452872061634c463e6bdd9f0a",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@1440x960-light": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
+              "skylineComputedStyleSha256": "c40597188b119da1dded9cd4b97e3e829d934ef0f6b56fd2a16d457baec535ac",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@1440x960-system-dark": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
+              "skylineComputedStyleSha256": "efb9269750cd841e7bfbf5b357d0918a5bf259f452872061634c463e6bdd9f0a",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@1440x960-system-light": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
+              "skylineComputedStyleSha256": "c40597188b119da1dded9cd4b97e3e829d934ef0f6b56fd2a16d457baec535ac",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queue-found@390x844-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 746,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 746,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4b393ca052398cc034c276b9956decf106ccd1a197bac41273c8167f5b7ae403",
+              "skylineComputedStyleSha256": "4b393ca052398cc034c276b9956decf106ccd1a197bac41273c8167f5b7ae403",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 579,
+                "width": 762,
+                "height": 316
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 579,
+                "width": 762,
+                "height": 316
+              },
+              "triggerComputedStyleSha256": "5b06c2f473803dd12352995eeb9ccad862ee4aa0d6bcfff41915e21ff7290122",
+              "skylineComputedStyleSha256": "5b06c2f473803dd12352995eeb9ccad862ee4aa0d6bcfff41915e21ff7290122",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 2171,
+                "width": 762,
+                "height": 332
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 2171,
+                "width": 762,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "64c97caf5dd55d1d7887846c29212e1ccdbeae33e1222beb91601f91f4e6033d",
+              "skylineComputedStyleSha256": "9c9132d0383132eadb2c18556341490588fffe330431e32d8b3b67c8157806a1",
+              "triggerAccessibilitySha256": "4583731fa9f140001fb907895ba310cad602df648325acdf74f445a14c4167ee",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-activity-wait-history@1440x960-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
+              "skylineComputedStyleSha256": "b39d7d1962c717ecf33148f4f0587649731d8e3cc1beef996201a41af1344190",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-activity-wait-history@1440x960-dark": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
+              "skylineComputedStyleSha256": "efb9269750cd841e7bfbf5b357d0918a5bf259f452872061634c463e6bdd9f0a",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-activity-wait-history@1440x960-light": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
+              "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
+              "skylineComputedStyleSha256": "c40597188b119da1dded9cd4b97e3e829d934ef0f6b56fd2a16d457baec535ac",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-busy@1440x960-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
+              "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
+              "skylineComputedStyleSha256": "b39d7d1962c717ecf33148f4f0587649731d8e3cc1beef996201a41af1344190",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-busy@1440x960-dark": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
+              "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
+              "skylineComputedStyleSha256": "efb9269750cd841e7bfbf5b357d0918a5bf259f452872061634c463e6bdd9f0a",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-busy@1440x960-light": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
+              "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
+              "skylineComputedStyleSha256": "c40597188b119da1dded9cd4b97e3e829d934ef0f6b56fd2a16d457baec535ac",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-idle@1440x960-classic": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
+              "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
+              "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
+              "skylineComputedStyleSha256": "b39d7d1962c717ecf33148f4f0587649731d8e3cc1beef996201a41af1344190",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-idle@1440x960-dark": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
+              "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
+              "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
+              "skylineComputedStyleSha256": "efb9269750cd841e7bfbf5b357d0918a5bf259f452872061634c463e6bdd9f0a",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          },
+          "queues-idle@1440x960-light": {
+            "queue-detail-concurrency": {
+              "triggerRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "skylineRect": {
+                "x": 251,
+                "y": 147,
+                "width": 358,
+                "height": 60
+              },
+              "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
+              "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
+              "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
+            },
+            "queue-detail-concurrency-limit": {
+              "triggerRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 299,
+                "width": 574,
+                "height": 222
+              },
+              "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
+              "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
+              "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
+            },
+            "queue-detail-throttled": {
+              "triggerRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 241
+              },
+              "skylineRect": {
+                "x": 243,
+                "y": 899,
+                "width": 1178,
+                "height": 150
+              },
+              "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
+              "skylineComputedStyleSha256": "c40597188b119da1dded9cd4b97e3e829d934ef0f6b56fd2a16d457baec535ac",
+              "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
+              "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
+            }
+          }
         }
-      ],
-      "measurements": {
-        "queue-found@1024x768-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 219.328125,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 219.328125,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "13fa179e5ec5529b4e2206b54cf4fe82f745ecfa7e61702b58b257dcc405401d",
-            "skylineComputedStyleSha256": "13fa179e5ec5529b4e2206b54cf4fe82f745ecfa7e61702b58b257dcc405401d",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 366,
-              "height": 118
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 366,
-              "height": 118
-            },
-            "triggerComputedStyleSha256": "fdac3dcda8ee829676d8b851fe04189c975006849a43d5a64d5938ed6436729b",
-            "skylineComputedStyleSha256": "fdac3dcda8ee829676d8b851fe04189c975006849a43d5a64d5938ed6436729b",
-            "triggerAccessibilitySha256": "80f070610a4672eabb165c5b5201f23f8c437954b647200bd27da3e5cac53384",
-            "skylineAccessibilitySha256": "d3825175ebc975840a501ddf37b15517e81390cf17cb1410f50c253d08ebd3e6"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 691,
-              "width": 762,
-              "height": 137
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 687,
-              "width": 762,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "454776a721e3a33edeabbca0daf4f2a0023fda3987e2cdf5ef870118054d3d58",
-            "skylineComputedStyleSha256": "da99a9d538530d59dadb2dc9bf51a37dc392bc1bc57774a34062625b3af4b22b",
-            "triggerAccessibilitySha256": "ed37c66818eb39228dfc78779e59515dc1b5ff07c1d511f85cb7b64569b34b51",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@1440x960-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
-            "skylineComputedStyleSha256": "07c2a5ea14bfb1154389bcf07a6f146649a8a88f199eef1647b3f71eb1d20f11",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@1440x960-dark": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
-            "skylineComputedStyleSha256": "25bdf838a828c71f8a4084756ae70324920b7d3404b5fe1eaa16c873ebf9f564",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@1440x960-light": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
-            "skylineComputedStyleSha256": "19e7a810b39ef53bf3e4d3e70e8f21767b7a7cf1076e432936b93967f9d959b1",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@1440x960-system-dark": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
-            "skylineComputedStyleSha256": "25bdf838a828c71f8a4084756ae70324920b7d3404b5fe1eaa16c873ebf9f564",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@1440x960-system-light": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
-            "skylineComputedStyleSha256": "19e7a810b39ef53bf3e4d3e70e8f21767b7a7cf1076e432936b93967f9d959b1",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queue-found@390x844-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 746,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 746,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4b393ca052398cc034c276b9956decf106ccd1a197bac41273c8167f5b7ae403",
-            "skylineComputedStyleSha256": "4b393ca052398cc034c276b9956decf106ccd1a197bac41273c8167f5b7ae403",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 579,
-              "width": 762,
-              "height": 316
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 579,
-              "width": 762,
-              "height": 316
-            },
-            "triggerComputedStyleSha256": "5b06c2f473803dd12352995eeb9ccad862ee4aa0d6bcfff41915e21ff7290122",
-            "skylineComputedStyleSha256": "5b06c2f473803dd12352995eeb9ccad862ee4aa0d6bcfff41915e21ff7290122",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 2171,
-              "width": 762,
-              "height": 332
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 2167,
-              "width": 762,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "64c97caf5dd55d1d7887846c29212e1ccdbeae33e1222beb91601f91f4e6033d",
-            "skylineComputedStyleSha256": "da99a9d538530d59dadb2dc9bf51a37dc392bc1bc57774a34062625b3af4b22b",
-            "triggerAccessibilitySha256": "4583731fa9f140001fb907895ba310cad602df648325acdf74f445a14c4167ee",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-activity-wait-history@1440x960-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
-            "skylineComputedStyleSha256": "07c2a5ea14bfb1154389bcf07a6f146649a8a88f199eef1647b3f71eb1d20f11",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-activity-wait-history@1440x960-dark": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
-            "skylineComputedStyleSha256": "25bdf838a828c71f8a4084756ae70324920b7d3404b5fe1eaa16c873ebf9f564",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-activity-wait-history@1440x960-light": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "triggerAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a",
-            "skylineAccessibilitySha256": "cc3ab725d7d3fcb262200d5c0405946c6c16458c1e9083825a730d9cb29b054a"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
-            "skylineComputedStyleSha256": "19e7a810b39ef53bf3e4d3e70e8f21767b7a7cf1076e432936b93967f9d959b1",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-busy@1440x960-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
-            "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
-            "skylineComputedStyleSha256": "07c2a5ea14bfb1154389bcf07a6f146649a8a88f199eef1647b3f71eb1d20f11",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-busy@1440x960-dark": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
-            "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
-            "skylineComputedStyleSha256": "25bdf838a828c71f8a4084756ae70324920b7d3404b5fe1eaa16c873ebf9f564",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-busy@1440x960-light": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "triggerAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020",
-            "skylineAccessibilitySha256": "0c3a26a8707c7212d323ec9b5076f3359198d004e4a94825019828b4493e9020"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
-            "skylineComputedStyleSha256": "19e7a810b39ef53bf3e4d3e70e8f21767b7a7cf1076e432936b93967f9d959b1",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-idle@1440x960-classic": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "skylineComputedStyleSha256": "82b0998693142c2755aad23844c6227a9d916819028a910cd093ab972b612985",
-            "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
-            "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "skylineComputedStyleSha256": "979de96461bb5420e5ec488b3b637bc0b4a4fea7983d8bf74f4ed28d4e722c25",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "ce11a11eb23fb603a7ca9dfee8e5d19db9f9209af028a10b219cb1ee83c83004",
-            "skylineComputedStyleSha256": "07c2a5ea14bfb1154389bcf07a6f146649a8a88f199eef1647b3f71eb1d20f11",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-idle@1440x960-dark": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "skylineComputedStyleSha256": "e54c8552bfc4d2edb84c27a3d52eff70324eb37ba364dbdba179fd62cb69f41e",
-            "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
-            "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "skylineComputedStyleSha256": "432ddbf3b9cc64bdba28f01b5402fba06e0f443b7c3feb3f953b31e938e29381",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "f0e564f307817dfd4a396e216151a5f193be2288e5fe5af542ae436824b91298",
-            "skylineComputedStyleSha256": "25bdf838a828c71f8a4084756ae70324920b7d3404b5fe1eaa16c873ebf9f564",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        },
-        "queues-idle@1440x960-light": {
-          "queue-detail-concurrency": {
-            "triggerRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "skylineRect": {
-              "x": 251,
-              "y": 147,
-              "width": 358,
-              "height": 60
-            },
-            "triggerComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "skylineComputedStyleSha256": "4568af764c1a17806746afe7bf6fe8e2f3668cff8dd652925ab37db186fc9782",
-            "triggerAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4",
-            "skylineAccessibilitySha256": "2e1a3053b3aa14a1ed5cddc93c10d2c5564c95061fd0e507e1218a0c41867cf4"
-          },
-          "queue-detail-concurrency-limit": {
-            "triggerRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 299,
-              "width": 574,
-              "height": 222
-            },
-            "triggerComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "skylineComputedStyleSha256": "40fb221227b63a9fcc0e59270f7a51a7490fb21c82d05e050f751e45d2c177ec",
-            "triggerAccessibilitySha256": "3b1cfe0f38982c5122e4be52eb16b9d0f05df129757d0121258993684466d0f0",
-            "skylineAccessibilitySha256": "bdf78bb52ef2373ee9b39fbc23cd8454c0fb59ebb6df182dd981ec703318f19b"
-          },
-          "queue-detail-throttled": {
-            "triggerRect": {
-              "x": 243,
-              "y": 899,
-              "width": 1178,
-              "height": 241
-            },
-            "skylineRect": {
-              "x": 243,
-              "y": 895,
-              "width": 1178,
-              "height": 154
-            },
-            "triggerComputedStyleSha256": "12d4b8bf90590d556629b8e86cba71a2bccedda2b085fb9ac105a0bfe4b72d4d",
-            "skylineComputedStyleSha256": "19e7a810b39ef53bf3e4d3e70e8f21767b7a7cf1076e432936b93967f9d959b1",
-            "triggerAccessibilitySha256": "10a2168021243d0af768202b18b5a8c4e572677e0e3299fe1eecca136cdf30ab",
-            "skylineAccessibilitySha256": "ca61e86a9595f15156ee5dfa59321e030f670a623400ae254cf3dc1c3110e471"
-          }
-        }
-      }
-    },
+      },
     {
       "id": "queue-detail-paginated-capabilities",
       "category": "capability-omission",
@@ -8945,6 +8945,365 @@
         }
       }
     },
+      {
+        "id": "queue-recorded-runs",
+        "category": "framework-extension",
+        "decision": "NW-221",
+        "acceptance": "Detail adds queue-time/activity series and cursor-paginated filtered Runs.",
+        "captures": [
+          "queue-found@1024x768-classic",
+          "queue-found@1440x960-classic",
+          "queue-found@1440x960-dark",
+          "queue-found@1440x960-light",
+          "queue-found@1440x960-system-dark",
+          "queue-found@1440x960-system-light",
+          "queue-found@390x844-classic",
+          "queues-activity-wait-history@1440x960-classic",
+          "queues-activity-wait-history@1440x960-dark",
+          "queues-activity-wait-history@1440x960-light",
+          "queues-busy@1440x960-classic",
+          "queues-busy@1440x960-dark",
+          "queues-busy@1440x960-light",
+          "queues-idle@1440x960-classic",
+          "queues-idle@1440x960-dark",
+          "queues-idle@1440x960-light",
+          "queues-paginated-runs@1440x960-classic",
+          "queues-paginated-runs@1440x960-dark",
+          "queues-paginated-runs@1440x960-light"
+        ],
+        "skylineSelector": "[data-skyline-extension=\"queue-recorded-runs\"]",
+        "triggerAnchorSelector": "[data-trigger-anchor=\"queue-period-filter\"]",
+        "skylineAnchorSelector": "[data-skyline-anchor=\"queue-period-filter\"]",
+        "accessibleRole": "region",
+        "accessibleName": "Recorded runs",
+        "anchorAccessibleRole": "combobox",
+        "anchorAccessibleName": "Period: 1 hr",
+        "measurements": {
+          "queue-found@1024x768-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 917.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queue-found@1440x960-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queue-found@1440x960-dark": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "e21859b05b4b23cefb42a8a9c071da38163ecdd466c29d72ee7ea93877c99ed6",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queue-found@1440x960-light": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "8cc79f93515c3b9a926f6711a8b29be59cf7da5942696e40d214c107915417b8",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          },
+          "queue-found@1440x960-system-dark": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "e21859b05b4b23cefb42a8a9c071da38163ecdd466c29d72ee7ea93877c99ed6",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queue-found@1440x960-system-light": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "8cc79f93515c3b9a926f6711a8b29be59cf7da5942696e40d214c107915417b8",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          },
+          "queue-found@390x844-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 917.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queues-activity-wait-history@1440x960-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queues-activity-wait-history@1440x960-dark": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "e21859b05b4b23cefb42a8a9c071da38163ecdd466c29d72ee7ea93877c99ed6",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queues-activity-wait-history@1440x960-light": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "8cc79f93515c3b9a926f6711a8b29be59cf7da5942696e40d214c107915417b8",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          },
+          "queues-busy@1440x960-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queues-busy@1440x960-dark": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "e21859b05b4b23cefb42a8a9c071da38163ecdd466c29d72ee7ea93877c99ed6",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queues-busy@1440x960-light": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "8cc79f93515c3b9a926f6711a8b29be59cf7da5942696e40d214c107915417b8",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          },
+          "queues-idle@1440x960-classic": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "1774e3e15e821af9285babb5583624917bbf1ac0e44646fb533a4b7b84e40741",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queues-idle@1440x960-dark": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "e21859b05b4b23cefb42a8a9c071da38163ecdd466c29d72ee7ea93877c99ed6",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queues-idle@1440x960-light": {
+            "relativeRect": {
+              "x": -109.25,
+              "y": -0.5,
+              "width": 103.25,
+              "height": 25
+            },
+            "computedStyleSha256": "8cc79f93515c3b9a926f6711a8b29be59cf7da5942696e40d214c107915417b8",
+            "accessibilitySha256": "fed022725092e058d78deb8f2080ad525a98d03b54dbec39446ba71f42a00108",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          },
+          "queues-paginated-runs@1440x960-classic": {
+            "relativeRect": {
+              "x": -1099.53125,
+              "y": 802.5,
+              "width": 1196,
+              "height": 208
+            },
+            "computedStyleSha256": "50086571bd26ce31dd7ccb538f31d847d9470669e18e04f27c0169cce5a150b9",
+            "accessibilitySha256": "783949750374127dcfcccb6263de312dc603a821e970cc710e7bad7b9d8c6ba7",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0812740867dcf2fc1cfb7ae7bed552062ba88633730f6a0cfd58cfbf5649722a"
+          },
+          "queues-paginated-runs@1440x960-dark": {
+            "relativeRect": {
+              "x": -1099.53125,
+              "y": 802.5,
+              "width": 1196,
+              "height": 208
+            },
+            "computedStyleSha256": "f29f0ec06e0978ab5ebc3e818f87c5f0d5a6f5d98b1b32ef7f47f4546a9483e5",
+            "accessibilitySha256": "783949750374127dcfcccb6263de312dc603a821e970cc710e7bad7b9d8c6ba7",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "0c027b2c27f33f8e9e4409b43aa8db910d96d5052da232ff849e549faf70cc61"
+          },
+          "queues-paginated-runs@1440x960-light": {
+            "relativeRect": {
+              "x": -1099.53125,
+              "y": 802.5,
+              "width": 1196,
+              "height": 208
+            },
+            "computedStyleSha256": "4be0c998ec157547b2d505dbbd48d72c656727a4938b827424a49c1d0af38627",
+            "accessibilitySha256": "783949750374127dcfcccb6263de312dc603a821e970cc710e7bad7b9d8c6ba7",
+            "anchorRect": {
+              "x": 1333.53125,
+              "y": 47.5,
+              "width": 98.46875,
+              "height": 24
+            },
+            "anchorComputedStyleSha256": "55c4e2c197ae93b7dbb1fd14eb83c6cbfb943a4710ce464228cfe559d7e999e0"
+          }
+        }
+      },
     {
       "id": "attempt-exception-evidence",
       "category": "presenter-extension",
