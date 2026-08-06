@@ -8,6 +8,7 @@ describe("JobsAdapter", () => {
     expect(jobsQuery(new Request("https://example.test/jobs?search=invoice&period=24h")))
       .toEqual({ search: "invoice", period: "24h" });
     expect(jobsQuery(new Request("https://example.test/jobs?period=invalid"))).toEqual({});
+    expect(jobRunsQuery(new Request("https://example.test/jobs/id"))).toEqual({ period: "7d" });
     expect(jobRunsQuery(new Request("https://example.test/jobs/id?status=failed&status=unknown&cursor=opaque&period=7d")))
       .toEqual({ status: ["failed"], cursor: "opaque", period: "7d" });
   });

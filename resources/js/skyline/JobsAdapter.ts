@@ -55,7 +55,7 @@ export function jobRunsQuery(request: Request): JobRunsQuery {
   return compactQuery({
     cursor: queryValue(params, "cursor"),
     status: queryStatuses(params),
-    period: period(params.get("period")),
+    period: period(params.get("period")) ?? "7d",
   });
 }
 
