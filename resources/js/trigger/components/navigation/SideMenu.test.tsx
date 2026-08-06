@@ -121,6 +121,12 @@ describe("SideMenu capabilities", () => {
     expect(container.querySelectorAll('button[aria-label="Collapse side menu"]')).toHaveLength(1);
     expect(help.className).toBe("group flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 hover:bg-background-hover focus-custom w-full justify-between");
     expect(help.querySelector("span > span")?.className).toBe("min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright");
+    const helpIcon = help.querySelector("svg")!;
+    expect(helpIcon.className.baseVal).toBe("size-5 min-w-5 shrink-0 text-success");
+    expect(helpIcon.getAttribute("viewBox")).toBe("0 0 24 24");
+    expect(helpIcon.querySelector('circle[cx="12"][cy="12.0232"][r="9"]')).not.toBeNull();
+    expect(helpIcon.querySelector('path[d="M9.27051 8.7533C9.7438 7.71876 10.788 7 12 7C13.6569 7 15 8.34315 15 10C15 11.6569 13.6569 13 12 13V14.5"]')).not.toBeNull();
+    expect(helpIcon.querySelector('circle[cx="12"][cy="17"][r="1"]')).not.toBeNull();
     expect(appearance.className).toContain("w-full");
     expect(appearance.textContent).toBe("Appearance");
     expect(appearance.getAttribute("data-skyline-extension")).toBe("shell-appearance");

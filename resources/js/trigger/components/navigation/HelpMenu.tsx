@@ -3,9 +3,9 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Server-backed help actions remain dormant behind explicit capabilities.
  */
-import { QuestionMarkCircleIcon } from "@heroicons/react/20/solid";
 import { DropdownIcon } from "~/assets/icons/DropdownIcon";
 import { KeyboardIcon } from "~/assets/icons/KeyboardIcon";
+import { QuestionMarkIcon } from "~/assets/icons/QuestionMarkIcon";
 import { cn } from "~/utils/cn";
 import { useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../primitives/Popover";
@@ -26,7 +26,7 @@ export function HelpMenu({ collapsed, capabilities, shortcutsOpen, onOpenShortcu
   const [open, setOpen] = useState(false);
   const preserveOpenRef = useRef(false);
   return <div className={collapsed ? undefined : "min-w-0 flex-1"}><Popover open={open} onOpenChange={(next) => { if (!next && preserveOpenRef.current) return; setOpen(next); }}><PopoverTrigger onPointerDown={() => { if (open && !shortcutsOpen) preserveOpenRef.current = false; }} className={cn("group flex h-8 items-center gap-1.5 rounded pl-1.75 pr-2 hover:bg-background-hover focus-custom", collapsed ? "w-full" : "w-full justify-between")}>
-    <span className="flex min-w-0 items-center gap-1.5 overflow-hidden"><QuestionMarkCircleIcon className="size-5 min-w-5 shrink-0 text-success" /><span className="min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright" style={{ maxWidth: "calc(var(--sm-label-opacity, 1) * 150px)", opacity: labelOpacity }}>Help &amp; Feedback</span></span>
+    <span className="flex min-w-0 items-center gap-1.5 overflow-hidden"><QuestionMarkIcon className="size-5 min-w-5 shrink-0 text-success" /><span className="min-w-0 overflow-hidden whitespace-nowrap text-[0.90625rem] font-medium tracking-[-0.01em] text-text-dimmed group-hover:text-text-bright" style={{ maxWidth: "calc(var(--sm-label-opacity, 1) * 150px)", opacity: labelOpacity }}>Help &amp; Feedback</span></span>
     {!collapsed && <span className="overflow-hidden opacity-0 group-hover:opacity-100" style={{ maxWidth: "calc(var(--sm-label-opacity, 1) * 16px)" }}><DropdownIcon className="size-4 min-w-4 text-text-dimmed group-hover:text-text-bright" /></span>}
   </PopoverTrigger><PopoverContent side={collapsed ? "right" : "top"} align="start" onPointerDownOutside={() => { preserveOpenRef.current = false; }} onEscapeKeyDown={() => { if (!shortcutsOpen) preserveOpenRef.current = false; }} className="min-w-56 p-1">
     {capabilities.askAi && <HelpButton name="Ask AI" />}
