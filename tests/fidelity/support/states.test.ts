@@ -15,7 +15,10 @@ describe("owned fidelity state", () => {
     expect(harness.waitFor).toHaveBeenCalledWith({ state: "visible" });
     expect(harness.isEnabled).toHaveBeenCalledOnce();
     expect(harness.click).toHaveBeenCalledOnce();
-    expect(harness.locator).toHaveBeenCalledWith('[id="exception-trace"]');
+    expect(harness.locator).toHaveBeenNthCalledWith(1, '[aria-controls="exception-trace"]');
+    expect(harness.locator).toHaveBeenNthCalledWith(2, '[id="exception-trace"]');
+    expect(harness.stableCount).toHaveBeenCalledOnce();
+    expect(harness.stableGetAttribute).toHaveBeenCalledWith("aria-expanded");
     expect(harness.traceWaitFor).toHaveBeenCalledWith({ state: "visible" });
   });
 
@@ -45,10 +48,17 @@ function stackDisclosurePage(enabled: boolean) {
   const waitFor = vi.fn(async () => undefined);
   const isEnabled = vi.fn(async () => enabled);
   const click = vi.fn(async () => { expanded = true; });
-  const getAttribute = vi.fn(async (name: string) => name === "aria-expanded" ? String(expanded) : name === "aria-controls" ? "exception-trace" : null);
+  const getAttribute = vi.fn(async (name: string) => {
+    if (name === "aria-expanded" && expanded) throw new Error("The accessible-name locator no longer matches after expansion.");
+    return name === "aria-controls" ? "exception-trace" : name === "aria-expanded" ? String(expanded) : null;
+  });
   const disclosure = { count, waitFor, isEnabled, click, getAttribute };
   const getByRole = vi.fn(() => disclosure);
+  const stableCount = vi.fn(async () => 1);
+  const stableGetAttribute = vi.fn(async () => "true");
   const traceWaitFor = vi.fn(async () => undefined);
-  const locator = vi.fn(() => ({ waitFor: traceWaitFor }));
-  return { page: { getByRole, locator } as unknown as Page, getByRole, locator, count, waitFor, isEnabled, click, traceWaitFor };
+  const locator = vi.fn((selector: string) => selector.startsWith("[aria-controls=")
+    ? { count: stableCount, getAttribute: stableGetAttribute }
+    : { waitFor: traceWaitFor });
+  return { page: { getByRole, locator } as unknown as Page, getByRole, locator, count, waitFor, isEnabled, click, stableCount, stableGetAttribute, traceWaitFor };
 }

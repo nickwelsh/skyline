@@ -42,7 +42,10 @@ export async function exposeOwnedState(page: Page, scenario: FidelityScenario, a
     const controlledId = await disclosure.getAttribute("aria-controls");
     if (!controlledId) throw new Error("Stack expansion disclosure must control the trace.");
     await disclosure.click();
-    if (await disclosure.getAttribute("aria-expanded") !== "true") throw new Error("Stack expansion disclosure must be expanded.");
+    const expandedDisclosure = page.locator(`[aria-controls=${JSON.stringify(controlledId)}]`);
+    const expandedCount = await expandedDisclosure.count();
+    if (expandedCount !== 1) throw new Error(`Expanded stack disclosure must match exactly once; observed ${expandedCount}.`);
+    if (await expandedDisclosure.getAttribute("aria-expanded") !== "true") throw new Error("Stack expansion disclosure must be expanded.");
     await page.locator(`[id=${JSON.stringify(controlledId)}]`).waitFor({ state: "visible" });
   }
   if (scenario.id === "runs-inspectors" || scenario.id.startsWith("runs-exception")) {
