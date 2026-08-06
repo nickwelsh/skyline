@@ -47,6 +47,16 @@ describe("fidelity difference aggregation", () => {
       expect.objectContaining({ axis: "persistence" }),
     ]);
   });
+
+  it("does not normalize non-Attempt or conflicting route state", () => {
+    const base = observation("initial", "/runs/run_1?span=span_root", "Copy", {}, []);
+    const differentMechanism = observation("initial", "/skyline/runs/run_1?node=span_root", "Copy", {}, []);
+    const differentAttempt = observation("initial", "/skyline/runs/run_1?node=attempt_run_1_2", "Copy", {}, []);
+    const attempt = { ...base, url: "/runs/run_1?span=attempt_run_1_1" };
+
+    expect(collectFidelityDifferences({ triggerInteractions: [base], skylineInteractions: [differentMechanism] })).toEqual([expect.objectContaining({ axis: "url" })]);
+    expect(collectFidelityDifferences({ triggerInteractions: [attempt], skylineInteractions: [differentAttempt] })).toEqual([expect.objectContaining({ axis: "url" })]);
+  });
 });
 
 function observation(step: string, url: string, name: string, storage: Record<string, string>, visible: string[]) {

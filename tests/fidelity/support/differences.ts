@@ -46,10 +46,11 @@ function normalizeRouterUrl(value: string) {
   const url = new URL(prefixed, "https://fidelity.invalid");
   const span = url.searchParams.get("span");
   const node = url.searchParams.get("node");
-  if (span !== null || node !== null) {
+  const selection = span ?? node;
+  if ((span === null) !== (node === null) && /^\/runs\/[^/]+$/.test(url.pathname) && selection?.startsWith("attempt_")) {
     url.searchParams.delete("span");
     url.searchParams.delete("node");
-    url.searchParams.set("attempt-selection", span ?? node ?? "");
+    url.searchParams.set("attempt-selection", selection);
   }
   url.searchParams.sort();
   return `${url.pathname}${url.search}${url.hash}`;
