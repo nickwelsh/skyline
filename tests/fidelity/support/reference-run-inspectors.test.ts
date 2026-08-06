@@ -1,0 +1,78 @@
+import { describe, expect, test } from "vitest";
+import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import { triggerRunInspectorResources } from "./reference-run-inspectors";
+
+const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
+const failedAttemptId = `attempt_${runId}_1`;
+const queryId = "span_4f24adb545b26d31";
+
+describe("pinned Trigger Run inspector resources", () => {
+  test("maps captured failed Attempt evidence into the original TaskRunError seam", async () => {
+    const { detail, inspectors } = await fixture();
+    const resources = triggerRunInspectorResources(detail, inspectors, baseRunResource(detail));
+    const failed = resources[failedAttemptId] as any;
+
+    expect(failed).toMatchObject({
+      type: "run",
+      run: {
+        friendlyId: runId,
+        status: "COMPLETED_WITH_ERRORS",
+        isError: true,
+        error: {
+          type: "BUILT_IN_ERROR",
+          name: "Illuminate\\Database\\DeadlockException",
+          message: "Deadlock found when trying to get lock; retry transaction",
+          stackTrace: expect.stringContaining("app/Jobs/GenerateMonthlyInvoices.php:58"),
+        },
+      },
+    });
+    expect(failed.run.error.stackTrace).toContain("vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php:124");
+    expect(JSON.stringify(failed)).not.toMatch(/\/workspace|\/Users\//);
+  });
+
+  test("maps query nodes into pinned span-detail resources", async () => {
+    const { detail, inspectors } = await fixture();
+    const resources = triggerRunInspectorResources(detail, inspectors, baseRunResource(detail));
+
+    expect(resources[queryId]).toMatchObject({
+      type: "span",
+      span: {
+        spanId: queryId,
+        message: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)",
+        isError: false,
+        entity: null,
+        triggeredRuns: [],
+      },
+    });
+  });
+});
+
+async function fixture() {
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  const inspectors = Object.fromEntries(await Promise.all(detail.trace.nodes.map(async (node) => [
+    node.id,
+    await adapter.inspector(node.id, runId),
+  ])));
+  return { detail, inspectors };
+}
+
+function baseRunResource(detail: Awaited<ReturnType<FixtureAdapter["trace"]>>) {
+  return {
+    type: "run" as const,
+    run: {
+      friendlyId: detail.run.id,
+      status: "COMPLETED_SUCCESSFULLY",
+      isFinished: true,
+      isRunning: false,
+      isError: false,
+      createdAt: detail.run.triggeredAt,
+      startedAt: detail.run.startedAt,
+      executedAt: detail.run.startedAt,
+      updatedAt: detail.run.finishedAt,
+      completedAt: detail.run.finishedAt,
+      error: undefined,
+    },
+    queueMetrics: null,
+  };
+}
