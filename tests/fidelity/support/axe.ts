@@ -12,6 +12,7 @@ export async function captureAxe(page: Page) {
     tags: [...violation.tags].sort(),
     nodes: violation.nodes.map((node) => ({
       target: normalizeTargetPath(node.target),
+      html: normalizeAxeHtml(node.html),
       failureSummary: node.failureSummary?.replaceAll(/\s+/g, " ").trim(),
     })).sort((left, right) => JSON.stringify(left.target).localeCompare(JSON.stringify(right.target))),
   })).sort((left, right) => left.id.localeCompare(right.id));
@@ -22,7 +23,7 @@ export type AxeEvidence = Array<{
   id: string;
   impact: string | null | undefined;
   tags: string[];
-  nodes: Array<{ target: string[]; failureSummary: string | undefined }>;
+  nodes: Array<{ target: string[]; html: string; failureSummary: string | undefined }>;
 }>;
 
 export type PartitionedAxeEvidence = { outside: AxeEvidence; inside: AxeEvidence };
@@ -77,6 +78,10 @@ export function normalizeTargetPath(target: unknown[]) {
   return target.map(String);
 }
 
+export function normalizeAxeHtml(html: string) {
+  return html.replaceAll(/\s+/g, " ").trim();
+}
+
 export function resolveUniqueAxeTarget(root: Document | ShadowRoot, path: string[]) {
   let queryRoot = root;
   let target: Element | null = null;
@@ -96,8 +101,17 @@ export function resolveUniqueAxeTarget(root: Document | ShadowRoot, path: string
 }
 
 export function additionalAxeViolations(trigger: AxeEvidence, skyline: AxeEvidence) {
-  const upstream = new Set(trigger.map((violation) => JSON.stringify(violation)));
-  return skyline.filter((violation) => !upstream.has(JSON.stringify(violation)));
+  const upstream = multiset(trigger.flatMap((violation) => violation.nodes.map((node) => semanticNodeSignature(violation, node))));
+  return skyline.flatMap((violation) => {
+    const nodes = violation.nodes.filter((node) => {
+      const signature = semanticNodeSignature(violation, node);
+      const count = upstream.get(signature) ?? 0;
+      if (count === 0) return true;
+      upstream.set(signature, count - 1);
+      return false;
+    });
+    return nodes.length > 0 ? [{ ...violation, nodes }] : [];
+  });
 }
 
 export function partitionAxeEvidence(evidence: AxeEvidence, insideTargets: ReadonlySet<string>): PartitionedAxeEvidence {
@@ -162,6 +176,14 @@ function ruleSignature(rule: { id: string; impact: string | null | undefined; ta
 
 function targetSignature(target: string[]) {
   return JSON.stringify(target);
+}
+
+function semanticNodeSignature(rule: AxeEvidence[number], node: AxeEvidence[number]["nodes"][number]) {
+  return JSON.stringify({
+    rule: ruleSignature(rule),
+    html: node.html,
+    failureSummary: node.failureSummary,
+  });
 }
 
 function multiset(values: string[]) {

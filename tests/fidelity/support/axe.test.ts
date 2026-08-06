@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { additionalAxeViolations, normalizedPartitionLedger, normalizeRadixTargets, normalizeTargetPath, pairedPresenterAxeDifferences, partitionAxeEvidence, resolveUniqueAxeTarget } from "./axe";
+import { additionalAxeViolations, normalizedPartitionLedger, normalizeAxeHtml, normalizeRadixTargets, normalizeTargetPath, pairedPresenterAxeDifferences, partitionAxeEvidence, resolveUniqueAxeTarget } from "./axe";
 
 const violations = [
   violation("aria-dialog-name", "#radix-\\:r9\\:"),
@@ -36,12 +36,20 @@ describe("Axe fidelity evidence", () => {
     expect(resolveUniqueAxeTarget(document, ["#host", "button:first-child"])?.textContent).toBe("one");
   });
 
-  test("requires identical rule, target structure, count, and impact", () => {
+  test("matches cross-app nodes by semantic evidence instead of generated selector", () => {
     expect(additionalAxeViolations(violations, violations)).toEqual([]);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"] }] }])).toEqual([]);
     expect(additionalAxeViolations(violations, [{ ...violations[0], impact: "critical" }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [...violations[0].nodes, violations[0].nodes[0]] }])).toHaveLength(1);
-    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], target: ["[role='dialog']"] }] }])).toHaveLength(1);
     expect(additionalAxeViolations(violations, [{ ...violations[0], id: "aria-input-name" }])).toHaveLength(1);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], tags: ["wcag2aa"] }])).toHaveLength(1);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], html: "<button>Changed</button>" }] }])).toHaveLength(1);
+    expect(additionalAxeViolations(violations, [{ ...violations[0], nodes: [{ ...violations[0].nodes[0], failureSummary: "Different failure" }] }])).toHaveLength(1);
+  });
+
+  test("normalizes Axe node HTML whitespace without weakening markup identity", () => {
+    expect(normalizeAxeHtml("  <div>\n  1 hr\n</div>  ")).toBe("<div> 1 hr </div>");
+    expect(normalizeAxeHtml("<div>1 hr</div>")).not.toBe(normalizeAxeHtml("<span>1 hr</span>"));
   });
 
   test("partitions nodes without weakening normalized evidence", () => {
@@ -78,6 +86,6 @@ function violation(id: string, selector: string) {
     id,
     impact: "serious",
     tags: ["best-practice"],
-    nodes: [{ target: [selector], failureSummary: "Fix it" }],
+    nodes: [{ target: [selector], html: `<button data-rule="${id}">Fix it</button>`, failureSummary: "Fix it" }],
   };
 }
