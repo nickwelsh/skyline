@@ -1,7 +1,8 @@
 /*!
  * Derived from Trigger.dev QueueMetricCards chart treatment
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: static observed Run/Queue-time series, no live broker metrics.
+ * Skyline adaptation: static observed Run/Queue-time series plus the source-composed
+ * recorded-Runs card replacement, with no live broker metrics.
  */
 import { Header3 } from "~/components/primitives/Headers";
 import type { ReactNode } from "react";

@@ -1,7 +1,7 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/components/primitives/Buttons.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Narrowed to run-view variants and browser-native anchor navigation.
+ * Narrowed to reached variants, browser-native anchor navigation, and reached ARIA toggle state.
  */
 import React, {
   forwardRef,
