@@ -7,7 +7,7 @@ import { QueueConnectionFilter, QueuePeriodFilter } from "./QueueTargetFilters";
 describe("QueuePeriodFilter", () => {
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("matches source chrome while keeping shareable native selection", () => {
+  it("matches the source Select trigger while keeping shareable URL selection", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
@@ -19,23 +19,26 @@ describe("QueuePeriodFilter", () => {
           { value: "24h", label: "Last 24 hours", durationSeconds: 86_400 },
         ]} />
         <LocationProbe />
+        <HistoryControls />
       </MemoryRouter>,
     ));
 
     expect(container.textContent).toContain("Period:1hr");
     const anchor = container.querySelector<HTMLElement>('[data-skyline-anchor="queue-period-filter"]')!;
+    expect(anchor.getAttribute("role")).toBe("combobox");
+    expect(anchor.getAttribute("aria-haspopup")).toBe("listbox");
     const chrome = anchor.querySelector<HTMLElement>(".flex.items-center.transition")!;
     expect(chrome.className).toContain("bg-secondary");
     expect(chrome.className).toContain("pl-1.5");
     expect(chrome.className).toContain("pr-2");
     expect(chrome.querySelector("svg")?.getAttribute("class")).toContain("size-4");
-    const select = container.querySelector<HTMLSelectElement>('select[aria-label="Period"]')!;
-    expect(select.value).toBe("1h");
+    expect(container.querySelector("select")).toBeNull();
 
     flushSync(() => {
-      select.value = "24h";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
+      anchor.click();
     });
+    const option = document.querySelector<HTMLElement>('[role="option"][data-value="24h"]')!;
+    flushSync(() => option.click());
 
     expect(container.textContent).toContain("Period:24hr");
     const query = new URLSearchParams(container.querySelector("output")!.textContent ?? "");
@@ -44,6 +47,11 @@ describe("QueuePeriodFilter", () => {
     expect(query.has("direction")).toBe(false);
     expect(query.get("from")).toBe("2026-08-04T12:00:00.000Z");
     expect(query.get("to")).toBe("2026-08-05T12:00:00.000Z");
+
+    flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Back"]')!.click());
+    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("1hr");
+    flushSync(() => container.querySelector<HTMLButtonElement>('[aria-label="Forward"]')!.click());
+    expect(container.querySelector('[data-skyline-anchor="queue-period-filter"]')!.textContent).toContain("24hr");
 
     flushSync(() => root.unmount());
   });

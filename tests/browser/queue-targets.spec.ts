@@ -56,7 +56,10 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).not.toHaveURL(/search=/);
   await queueSearch.press("Escape");
   await expect(queueSearch).not.toBeFocused();
-  await page.getByLabel("Period").selectOption("24h");
+  const period = page.getByRole("combobox", { name: "Period: 1hr" });
+  await period.focus();
+  await period.press("ArrowDown");
+  await page.getByRole("option", { name: "24hr" }).click();
   await expect(page).toHaveURL(/from=/);
   await expect(page).toHaveURL(/to=/);
 

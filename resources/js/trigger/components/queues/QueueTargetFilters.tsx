@@ -4,10 +4,12 @@
  * Skyline adaptation: observed connection/status options and React Router URL state.
  */
 import { CalendarDaysIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/20/solid";
+import * as Ariakit from "@ariakit/react";
 import { useLocation, useNavigate } from "@remix-run/react";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { SearchInput } from "~/components/primitives/SearchInput";
+import { SelectPopover, SelectProvider } from "~/components/primitives/Select";
 
 export type QueueTimeRangeOption = {
   value: string;
@@ -67,18 +69,30 @@ export function QueuePeriodFilter({
   };
 
   return (
-    <label data-skyline-anchor="queue-period-filter" className="group relative block h-6 rounded text-xs text-text-dimmed focus-within:outline focus-within:-outline-offset-1 focus-within:outline-text-link">
-      <span aria-hidden="true" className="block"><AppliedFilter icon={<CalendarDaysIcon className="size-4" />} label="Period" value={selectedLabel} removable={false} /></span>
-      <select
-        aria-label="Period"
-        value={selected}
-        onChange={(event) => update(timeRange(event.currentTarget.value, generatedAt, timeRanges))}
-        className="absolute inset-0 h-6 w-full cursor-pointer opacity-0 focus-custom"
-      >
-        {timeRanges.map((option) => <option key={option.value} value={option.value}>{periodLabel(option)}</option>)}
-        {params.has("from") && <option value="custom">Custom</option>}
-      </select>
-    </label>
+    <SelectProvider<string>
+      value={selected}
+      setValue={(value) => update(timeRange(value, generatedAt, timeRanges))}
+    >
+      <Ariakit.TooltipProvider timeout={200}>
+        <Ariakit.TooltipAnchor
+          render={
+            <Ariakit.Select
+              render={<div data-skyline-anchor="queue-period-filter" className="group cursor-pointer focus-custom" />}
+            />
+          }
+        >
+          <AppliedFilter icon={<CalendarDaysIcon className="size-4" />} label="Period" value={selectedLabel} removable={false} />
+        </Ariakit.TooltipAnchor>
+      </Ariakit.TooltipProvider>
+      <SelectPopover>
+        {timeRanges.map((option) => (
+          <Ariakit.SelectItem key={option.value} value={option.value} data-value={option.value} className="cursor-pointer px-3 py-2 text-xs text-text-dimmed focus-custom hover:bg-surface-control hover:text-text-bright">
+            {periodLabel(option)}
+          </Ariakit.SelectItem>
+        ))}
+        {params.has("from") && <Ariakit.SelectItem value="custom" data-value="custom" className="cursor-pointer px-3 py-2 text-xs text-text-dimmed focus-custom hover:bg-surface-control hover:text-text-bright">Custom</Ariakit.SelectItem>}
+      </SelectPopover>
+    </SelectProvider>
   );
 }
 
