@@ -2,6 +2,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 import { describe, expect, test } from "vitest";
 import policy from "./reference-capabilities.json" with { type: "json" };
 import { conditionQueueControls, conditionQueueListMetricResources, conditionQueueMetricResources, conditionSideMenuItems, conditionSideMenuSections, conditionSideMenuShell } from "./reference/vite.config";
@@ -78,6 +79,8 @@ describe("pinned shell capability adapters", () => {
       expect(list).toContain(marker);
     }
     for (const marker of ["queue-detail-concurrency", "queue-detail-concurrency-limit", "queue-detail-throttled"]) expect(detail).toContain(marker);
+    const diagnostics = ts.transpileModule(list, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX }, reportDiagnostics: true }).diagnostics ?? [];
+    expect(diagnostics.filter(({ category }) => category === ts.DiagnosticCategory.Error)).toEqual([]);
     expect(number).toContain("data-trigger-capability={capabilityMarker}");
     expect(cells).toContain("data-trigger-capability={capabilityMarker}");
     expect(sparkline.match(/data-trigger-capability={capabilityMarker}/g)).toHaveLength(2);
