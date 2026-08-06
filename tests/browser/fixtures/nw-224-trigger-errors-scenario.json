@@ -1,0 +1,89 @@
+{
+  "errorGroups": [
+    {
+      "id": "err_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "fingerprint": "fp:err_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "taskIdentifier": "App\\Jobs\\GenerateMonthlyInvoicesForEveryActiveEnterpriseTenantAndReconcileOutstandingAdjustments",
+      "errorMessage": "Connection timed out while generating monthly invoices for tenant 7413 after the upstream accounting provider accepted the request but failed to return a response before the configured deadline; the captured occurrence keeps this complete evidence instead of folding dynamic text into the Error-group identity.",
+      "count": 321,
+      "status": "UNRESOLVED",
+      "firstSeen": "2026-08-04T10:00:00Z",
+      "lastSeen": "2026-08-05T11:59:00Z",
+      "affectedVersions": [],
+      "state": {
+        "status": "UNRESOLVED"
+      }
+    },
+    {
+      "id": "err_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fingerprint": "fp:err_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "taskIdentifier": "App\\Jobs\\SendReceipt",
+      "errorMessage": "Receipt destination rejected the message.",
+      "count": 1,
+      "status": "UNRESOLVED",
+      "firstSeen": "2026-08-05T11:58:00Z",
+      "lastSeen": "2026-08-05T11:58:00Z",
+      "affectedVersions": [],
+      "state": {
+        "status": "UNRESOLVED"
+      }
+    }
+  ],
+  "occurrences": {
+    "data": {}
+  },
+  "activity": {
+    "data": [],
+    "versions": []
+  },
+  "representative": {
+    "class": "RuntimeException",
+    "message": "Connection timed out while generating monthly invoices for tenant 7413 after the upstream accounting provider accepted the request but failed to return a response before the configured deadline; the captured occurrence keeps this complete evidence instead of folding dynamic text into the Error-group identity.",
+    "messageTruncated": false,
+    "messageOriginalBytes": 286,
+    "code": "504",
+    "location": {
+      "file": "/srv/application/app/Jobs/GenerateMonthlyInvoices.php",
+      "line": 42,
+      "href": null
+    },
+    "frames": [
+      {
+        "file": "/srv/application/app/Jobs/GenerateMonthlyInvoices.php",
+        "line": 42,
+        "class": "App\\Jobs\\GenerateMonthlyInvoicesForEveryActiveEnterpriseTenantAndReconcileOutstandingAdjustments",
+        "type": "->",
+        "function": "handle",
+        "isVendor": false,
+        "href": null,
+        "snippet": {
+          "code": "public function handle(): void\n{\n    throw new RuntimeException('timeout');\n}",
+          "startingLine": 40,
+          "highlightedLine": 42
+        }
+      },
+      {
+        "file": "/srv/application/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php",
+        "line": 36,
+        "class": "Illuminate\\Container\\BoundMethod",
+        "type": "::",
+        "function": "call",
+        "isVendor": true,
+        "href": null,
+        "snippet": null
+      },
+      {
+        "file": "/srv/application/vendor/laravel/framework/src/Illuminate/Queue/CallQueuedHandler.php",
+        "line": 123,
+        "class": "Illuminate\\Queue\\CallQueuedHandler",
+        "type": "->",
+        "function": "call",
+        "isVendor": true,
+        "href": null,
+        "snippet": null
+      }
+    ],
+    "framesTruncated": false,
+    "markdown": "# RuntimeException\n\nConnection timed out while generating monthly invoices for tenant 7413."
+  }
+}

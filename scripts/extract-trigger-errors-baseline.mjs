@@ -43,8 +43,7 @@ const baseline = {
     navigation: { errorGroup: true, jobType: true, run: true, attempt: true },
     url: { jobType: true, exceptionClass: true, period: true, cursor: true },
     actions: { upstreamMutationControls: true, skylineMutationControls: false },
-    accessibility: { semanticTable: true, tabbableDetailLink: true },
-    geometry: { listFilterHeight: 40, detailActivityHeight: 192, detailSidebarWidth: 380 },
+    accessibility: { semanticTable: true, upstreamRowLinksTabbable: false },
   },
 };
 const rendered = `${JSON.stringify(baseline, null, 2)}\n`;

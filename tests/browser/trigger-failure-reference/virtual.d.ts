@@ -9,6 +9,16 @@ declare module "virtual:pinned-trigger-run-error" {
   }): React.JSX.Element;
 }
 
+declare module "virtual:pinned-trigger-errors" {
+  export function PinnedTriggerErrors({
+    scenario,
+    detail,
+  }: {
+    scenario: Record<string, unknown>;
+    detail: boolean;
+  }): React.JSX.Element;
+}
+
 declare module "virtual:pinned-trigger-state-inspector" {
   export function PinnedTriggerStateInspector({ scenario }: {
     scenario: "sql-captured" | "transaction-committed" | "cache-long" | "redis-truncated";
