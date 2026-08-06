@@ -50,7 +50,7 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
   if (trigger.width !== skyline.width || trigger.height !== skyline.height) throw new Error("Paired screenshots have different dimensions.");
 
   const regionMasks = regions.map((region) => validateRegion(region, trigger.width, trigger.height));
-  rejectOverlaps(regionMasks);
+  rejectOverlaps(regionMasks, trigger.width, trigger.height);
   const masks = regionMasks.flat();
   const visited = new Uint8Array(trigger.width * trigger.height);
   let maskedPixels = 0;
@@ -110,7 +110,7 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
         boundedMask(`${region.id}:${pair.id}:skyline`, pair.skylineRect, "skyline", imageWidth, imageHeight),
       ];
     });
-    rejectOverlaps(pairMasks);
+    rejectOverlaps(pairMasks, imageWidth, imageHeight);
     return pairMasks.flat();
   }
   const triggerRect = integerRect(region.trigger.rect);
@@ -140,18 +140,63 @@ function integerRect(rect: Rect): Rect {
   return { x: Math.floor(rect.x), y: Math.floor(rect.y), width: Math.ceil(rect.width), height: Math.ceil(rect.height) };
 }
 
-function rejectOverlaps(regions: Mask[][]) {
+function rejectOverlaps(regions: Mask[][], imageWidth: number, imageHeight: number) {
   for (let left = 0; left < regions.length; left += 1) {
     for (let right = left + 1; right < regions.length; right += 1) {
       for (const a of regions[left]) for (const b of regions[right]) {
-        if (sameCoordinateSpace(a, b) && overlaps(a.rect, b.rect) && overlaps(a.source, b.source)) throw new Error("Allowed-difference regions overlap.");
+        if (sameCoordinateSpace(a, b) && overlaps(a.rect, b.rect) && overlaps(a.source, b.source)
+          && !isEdgeOccluded(a, b, imageWidth, imageHeight)
+          && !isEdgeOccluded(b, a, imageWidth, imageHeight)) throw new Error("Allowed-difference regions overlap.");
       }
     }
   }
 }
 
+type Edge = "left" | "right" | "top" | "bottom";
+
+function isEdgeOccluded(child: Mask, owner: Mask, imageWidth: number, imageHeight: number) {
+  if (!hasArea(child.rect) || !hasArea(owner.rect) || !contains(owner.rect, child.rect)) return false;
+  const childEdges = crossingEdges(child.source, imageWidth, imageHeight);
+  const ownerEdges = crossingEdges(owner.source, imageWidth, imageHeight);
+  const qualifyingEdges = childEdges.filter((edge) => !ownerEdges.includes(edge) && isPinned(owner.source, edge, imageWidth, imageHeight));
+  if (qualifyingEdges.length !== 1) return false;
+  const occlusionEdge = qualifyingEdges[0];
+  return sameEdges(childEdges.filter((edge) => edge !== occlusionEdge), ownerEdges);
+}
+
+function crossingEdges(rect: Rect, imageWidth: number, imageHeight: number): Edge[] {
+  if (!hasArea(rect)) return [];
+  const edges: Edge[] = [];
+  if (rect.x < 0 && rect.x + rect.width > 0) edges.push("left");
+  if (rect.x < imageWidth && rect.x + rect.width > imageWidth) edges.push("right");
+  if (rect.y < 0 && rect.y + rect.height > 0) edges.push("top");
+  if (rect.y < imageHeight && rect.y + rect.height > imageHeight) edges.push("bottom");
+  return edges;
+}
+
+function isPinned(rect: Rect, edge: Edge, imageWidth: number, imageHeight: number) {
+  if (edge === "left") return rect.x === 0;
+  if (edge === "right") return rect.x + rect.width === imageWidth;
+  if (edge === "top") return rect.y === 0;
+  return rect.y + rect.height === imageHeight;
+}
+
+function sameEdges(left: Edge[], right: Edge[]) {
+  return left.length === right.length && left.every((edge) => right.includes(edge));
+}
+
+function contains(owner: Rect, child: Rect) {
+  return child.x >= owner.x && child.y >= owner.y
+    && child.x + child.width <= owner.x + owner.width
+    && child.y + child.height <= owner.y + owner.height;
+}
+
+function hasArea(rect: Rect) {
+  return rect.width > 0 && rect.height > 0;
+}
+
 function overlaps(a: Rect, b: Rect) {
-  return a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0
+  return hasArea(a) && hasArea(b)
     && a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 

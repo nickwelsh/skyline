@@ -100,6 +100,64 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, trigger, [singleCapabilityRect({ x: -90, y: 0, width: 100, height: 2 })]))
       .toThrow(/too broad/i);
   });
+
+  test("unions an edge-clipped child fully occluded by a same-edge pinned owner", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image(
+      [255, 0, 0, 255],
+      10,
+      10,
+      Array.from({ length: 12 }, (_, index) => [7 + (index % 3), 2 + Math.floor(index / 3), [0, 0, 0, 255]] as [number, number, [number, number, number, number]]),
+    );
+    const region = capabilityOmissionWithRects([
+      { triggerRect: { x: 8.25, y: 3, width: 3, height: 2 }, skylineRect: { x: 0, y: 0, width: 1, height: 1 } },
+      { triggerRect: { x: 7, y: 2, width: 3, height: 4 }, skylineRect: { x: 4, y: 0, width: 1, height: 1 } },
+    ]);
+
+    expect(comparePixels(trigger, skyline, [region])).toMatchObject({ differingPixels: 0, maskedPixels: 12 });
+  });
+
+  test.each([
+    ["left", { x: -1.25, y: 3, width: 3, height: 2 }, { x: 0, y: 2, width: 3, height: 4 }],
+    ["right", { x: 8.25, y: 3, width: 3, height: 2 }, { x: 7, y: 2, width: 3, height: 4 }],
+    ["top", { x: 3, y: -1.25, width: 2, height: 3 }, { x: 2, y: 0, width: 4, height: 3 }],
+    ["bottom", { x: 3, y: 8.25, width: 2, height: 3 }, { x: 2, y: 7, width: 4, height: 3 }],
+  ])("allows exact %s-edge occlusion", (_edge, child, owner) => {
+    const screenshot = image([255, 0, 0, 255], 10, 10);
+    const region = capabilityOmissionWithRects([
+      { triggerRect: child, skylineRect: { x: 0, y: 5, width: 1, height: 1 } },
+      { triggerRect: owner, skylineRect: { x: 4, y: 5, width: 1, height: 1 } },
+    ]);
+
+    expect(comparePixels(screenshot, screenshot, [region])).toMatchObject({ differingPixels: 0 });
+  });
+
+  test("allows matching orthogonal clipping around one occlusion edge", () => {
+    const screenshot = image([255, 0, 0, 255], 10, 10);
+    const region = capabilityOmissionWithRects([
+      { triggerRect: { x: 8.25, y: 8, width: 3, height: 3 }, skylineRect: { x: 0, y: 0, width: 1, height: 1 } },
+      { triggerRect: { x: 7, y: 7, width: 3, height: 4 }, skylineRect: { x: 4, y: 0, width: 1, height: 1 } },
+    ]);
+
+    expect(comparePixels(screenshot, screenshot, [region])).toMatchObject({ differingPixels: 0 });
+  });
+
+  test.each([
+    ["partial containment", { x: 8.25, y: 1, width: 3, height: 3 }, { x: 7, y: 2, width: 3, height: 4 }],
+    ["crossing owner", { x: 8.25, y: 3, width: 3, height: 2 }, { x: 7, y: 2, width: 4, height: 4 }],
+    ["rounded but unpinned owner", { x: 8.25, y: 3, width: 3, height: 2 }, { x: 7, y: 2, width: 2.5, height: 4 }],
+    ["interior containment", { x: 8, y: 3, width: 1, height: 1 }, { x: 7, y: 2, width: 3, height: 4 }],
+    ["multiple-edge crossing", { x: 8.25, y: -1, width: 3, height: 4 }, { x: 7, y: 0, width: 3, height: 4 }],
+    ["ambiguous pinned edges", { x: 8.25, y: 8.25, width: 3, height: 3 }, { x: 7, y: 7, width: 3, height: 3 }],
+  ])("rejects %s as edge occlusion", (_label, child, owner) => {
+    const screenshot = image([255, 0, 0, 255], 10, 10);
+    const region = capabilityOmissionWithRects([
+      { triggerRect: child, skylineRect: { x: 0, y: 0, width: 1, height: 1 } },
+      { triggerRect: owner, skylineRect: { x: 4, y: 0, width: 1, height: 1 } },
+    ]);
+
+    expect(() => comparePixels(screenshot, screenshot, [region])).toThrow(/overlap/i);
+  });
 });
 
 function image(color: [number, number, number, number], width: number, height: number, changes: Array<[number, number, [number, number, number, number]]> = []) {
