@@ -3,7 +3,7 @@ import oracle from "./playwright.oracle.config";
 
 export default defineConfig({
   ...oracle,
-  testMatch: ["**/framework-extension.discovery.ts", "**/presenter-extension.discovery.ts"],
+  testMatch: ["**/framework-extension.discovery.ts", "**/presenter-extension.discovery.ts", "**/nw223-presenter-extension.discovery.ts"],
   reporter: "line",
   timeout: 10 * 60_000,
 });
