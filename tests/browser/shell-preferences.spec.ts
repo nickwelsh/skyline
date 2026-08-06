@@ -1,34 +1,20 @@
 import { createHash } from "node:crypto";
-import { execFileSync } from "node:child_process";
-import { readFileSync, readlinkSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { RunsPageDto } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import fixture from "./fixtures/nw-217-runs.json" with { type: "json" };
 import baseline from "./fixtures/nw-226-trigger-shell-baseline.json" with { type: "json" };
+import { pinnedTriggerCommit, readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 const storageKey = "skyline.ui-preferences.v1:/skyline";
-const triggerSourceRoot = new URL("../../../trigger.dev/", import.meta.url);
-
 test.beforeEach(async ({ page }) => {
   await page.route("**/skyline/api/runs**", (route) => route.fulfill({ json: runsResponse() }));
 });
 
 test("source shell exposes only supported surfaces and persists customization", async ({ page }) => {
-  expect(execFileSync("git", ["-C", triggerSourceRoot.pathname, "rev-parse", "HEAD"], { encoding: "utf8" }).trim()).toBe(baseline.sourceCommit);
-  const tree = execFileSync("git", ["-C", triggerSourceRoot.pathname, "ls-tree", "-r", "-z", baseline.sourceCommit, "--", "apps/webapp/app", "packages", "internal-packages"], { encoding: "utf8" });
-  const changedSources = tree.split("\0").filter(Boolean).flatMap((entry) => {
-    const tab = entry.indexOf("\t");
-    const [mode, type, expected] = entry.slice(0, tab).split(" ");
-    if (type !== "blob") return [];
-    const path = entry.slice(tab + 1);
-    const contents = mode === "120000" ? Buffer.from(readlinkSync(new URL(path, triggerSourceRoot))) : readFileSync(new URL(path, triggerSourceRoot));
-    const actual = createHash("sha1").update(`blob ${contents.byteLength}\0`).update(contents).digest("hex");
-    return actual === expected ? [] : [path];
-  });
-  expect(changedSources, "Pinned Trigger application/package source graph must match its Git tree").toEqual([]);
+  expect(pinnedTriggerCommit()).toBe(baseline.sourceCommit);
   for (const source of Object.values(baseline.sourceFiles)) {
-    const contents = readFileSync(new URL(source.path, triggerSourceRoot));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
   await page.addInitScript(({ key }) => {

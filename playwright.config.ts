@@ -23,7 +23,7 @@ export default defineConfig({
       url: "http://127.0.0.1:4174/skyline",
     },
     {
-      command: "bunx vite tests/browser/trigger-failure-reference --host 127.0.0.1 --port 4175",
+      command: "pnpm exec vite preview tests/browser/trigger-failure-reference --host 127.0.0.1 --port 4175 --strictPort",
       reuseExistingServer: true,
       timeout: 30_000,
       url: "http://127.0.0.1:4175",

@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { JobDetailDto, JobsPageDto, SkylineCapabilities } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-219-trigger-jobs-baseline.json" with { type: "json" };
+import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 test("Jobs list and detail keep observed activity in basename URLs", async ({ page }) => {
   await routeJobs(page);
@@ -45,7 +45,7 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
 
 test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus, and semantics", async ({ page }) => {
   for (const source of Object.values(baseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
 

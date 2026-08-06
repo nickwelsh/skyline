@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { FixtureAdapter } from "../../resources/js/skyline/FixtureAdapter";
 import type { InspectorDto, TracePageDto } from "../../resources/js/skyline/dto";
 import oracle from "./fixtures/nw-218-trigger-run-detail.json" with { type: "json" };
@@ -9,13 +8,14 @@ import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseli
 import stateInspectorOracle from "./fixtures/nw-223-database-state-inspectors.json" with { type: "json" };
 import failureScenario from "./fixtures/nw-222-failure-scenario.json" with { type: "json" };
 import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
+import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const rootNodeId = `run_${runId}`;
 const failedAttemptId = `attempt_${runId}_1`;
 
 test("paired Run detail scenario preserves navigation, URL state, focus, semantics, and geometry", async ({ page }) => {
-  const sourceRoute = readFileSync(new URL("../../../trigger.dev/apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx", import.meta.url));
+  const sourceRoute = readPinnedTriggerSource("apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx");
   expect(createHash("sha256").update(sourceRoute).digest("hex")).toBe(oracle.sourceRouteSha256);
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId, "cursor=opaque");
@@ -117,7 +117,7 @@ test("Run panel layout persists through the external preference adapter", async 
 test("paired failed Attempt inspection preserves captured evidence and Trigger interactions", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   for (const source of Object.values(triggerFailureBaseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
 
@@ -464,7 +464,7 @@ test("long inspector metadata remains readable in the constrained panel", async 
 test("paired external and custom inspectors preserve visible, interaction, focus, and accessibility behavior", async ({ page }) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   for (const source of Object.values(triggerInspectorBaseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
   const adapter = new FixtureAdapter();
@@ -516,7 +516,7 @@ test("paired database and state inspectors preserve captured, unavailable, faile
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   expect(stateInspectorOracle.sourceCommit).toBe(triggerInspectorBaseline.sourceCommit);
   for (const source of Object.values(triggerInspectorBaseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
   const adapter = new FixtureAdapter();

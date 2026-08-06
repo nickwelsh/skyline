@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import type { ErrorGroupDetailDto, ErrorGroupsPageDto, ExceptionDetails, SkylineCapabilities } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import errorsScenario from "./fixtures/nw-224-trigger-errors-scenario.json" with { type: "json" };
 import baseline from "./fixtures/nw-224-trigger-errors-baseline.json" with { type: "json" };
+import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 const primaryError = errorsScenario.errorGroups[0];
 const secondaryError = errorsScenario.errorGroups[1];
@@ -13,7 +13,7 @@ const jobType = primaryError.taskIdentifier;
 
 test("paired pinned Trigger Errors contract preserves geometry, filters, evidence, and observed links", async ({ page }) => {
   for (const source of Object.values(baseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
 

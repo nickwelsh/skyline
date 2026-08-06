@@ -1,15 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import type { QueueTargetDetailDto, QueueTargetsPageDto, RunStatus } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-221-trigger-queues-baseline.json" with { type: "json" };
+import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 const queueId = `queue_${"a".repeat(64)}`;
 
 test("Queues preserve URL filters, keyboard clearing, detail charts, pagination, and Run navigation", async ({ page }) => {
   for (const source of Object.values(baseline.sourceFiles)) {
-    const contents = readFileSync(new URL(`../../../trigger.dev/${source.path}`, import.meta.url));
+    const contents = readPinnedTriggerSource(source.path);
     expect(createHash("sha256").update(contents).digest("hex")).toBe(source.sha256);
   }
   await routeQueues(page);
