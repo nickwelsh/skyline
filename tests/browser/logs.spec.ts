@@ -17,11 +17,19 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await reference.goto("http://127.0.0.1:4175/logs");
   await expect(reference.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   const referenceList = await visuals(reference);
+  await expect(reference.locator("table")).toMatchAriaSnapshot(`
+    - table:
+      - rowgroup:
+        - row "Time Run Task Level Message"
+      - rowgroup:
+        - row
+        - row
+  `);
   await reference.locator("tbody tr").first().hover();
   await expect(reference.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/runs/run_invoice?span=span_job");
-  await reference.locator("tbody tr").first().getByRole("button").first().focus();
+  await reference.locator("tbody tr").nth(1).getByRole("button").first().focus();
   await reference.keyboard.press("Enter");
-  await expect(reference).toHaveURL(/log=log_info/);
+  await expect(reference).toHaveURL(/log=log_error/);
   await expect(reference.getByRole("region", { name: "Pinned log detail" })).toBeVisible();
   const referenceDetail = await detailVisuals(reference, "Pinned log detail");
 
@@ -31,27 +39,40 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Job type", "Level", "Message"]);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
+  await expect(page.locator("table")).toMatchAriaSnapshot(`
+    - table:
+      - rowgroup:
+        - row "Time Run Job type Level Message"
+      - rowgroup:
+        - row
+        - row
+  `);
   await expect(page.getByLabel("Application-log capture")).toContainText("warning, error");
   await page.locator("tbody tr").first().hover();
   await expect(page.locator("tbody tr").first().getByRole("link", { name: "View run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
 
-  await page.locator("tbody tr").first().getByRole("button").first().focus();
+  await page.locator("tbody tr").nth(1).getByRole("button").first().focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`event=${operationId}`));
+  await expect(page).toHaveURL(new RegExp(`event=${logId}`));
   const detail = page.getByRole("region", { name: "Telemetry-event detail" });
-  await expect(detail).toContainText("SELECT invoices");
+  await expect(detail).toContainText("Application log context");
   await expect(detail).toContainText("trace_invoice");
   await expect(detail).toContainText("parent_job");
   await expect(detail.getByRole("link", { name: "View full Run" })).toHaveAttribute("href", "/skyline/runs/run_invoice");
   await expect(detail.getByRole("link", { name: "Attempt 2" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=attempt_2");
   await expect(detail.getByRole("link", { name: "View Job" })).toHaveAttribute("href", "/skyline/jobs/job_invoice");
-  await expect(detail.getByRole("link", { name: "Inspect operation" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=span_operation");
-  await expect(detail.getByRole("link", { name: "View Error group" })).toHaveAttribute("href", "/skyline/errors/error_invoice");
-  await expect(detail).toContainText("Captured operation detail was truncated");
   expect(await detailVisuals(page, "Telemetry-event detail")).toEqual(referenceDetail);
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/event=/);
   await expect(detail).toHaveCount(0);
+  await reference.keyboard.press("Escape");
+  await expect(reference).not.toHaveURL(/log=/);
+  await page.locator("tbody tr").first().getByRole("button").first().focus();
+  await page.keyboard.press("Enter");
+  const operationDetail = page.getByRole("region", { name: "Telemetry-event detail" });
+  await expect(operationDetail.getByRole("link", { name: "Inspect operation" })).toHaveAttribute("href", "/skyline/runs/run_invoice?node=span_operation");
+  await expect(operationDetail.getByRole("link", { name: "View Error group" })).toHaveAttribute("href", "/skyline/errors/error_invoice");
+  await expect(operationDetail).toContainText("Captured operation detail was truncated");
   await expect(page.getByRole("button", { name: /replay|cancel|delete|retry/i })).toHaveCount(0);
   await reference.close();
 });
@@ -82,11 +103,13 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
   let mode: "populated" | "initial-empty" | "filtered-empty" | "capture-disabled" | "error" = "populated";
   let detailMode: "normal" | "error" | "not-found" = "normal";
   let delay = false;
+  let detailDelay = false;
   await page.route("**/skyline/api/logs**", async (route) => {
     const url = new URL(route.request().url());
     if (delay) await new Promise((resolve) => setTimeout(resolve, 200));
     const id = url.pathname.match(/\/api\/logs\/([^/]+)$/)?.[1];
     if (id) {
+      if (detailDelay) await new Promise((resolve) => setTimeout(resolve, 250));
       if (detailMode === "not-found") return route.fulfill({ status: 404, json: { error: { code: "not_found", message: "Telemetry event missing." } } });
       if (detailMode === "error") return route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Telemetry detail unavailable." } } });
       return route.fulfill({ json: detailResponse(id) });
@@ -107,11 +130,19 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
   await page.getByLabel("TRACE", { exact: true }).click();
   await expect(page.getByLabel("Loading Telemetry events")).toBeVisible();
   delay = false;
+  detailDelay = true;
   await page.goto(`/skyline/logs?event=${logId}`);
   const logDetail = page.getByRole("region", { name: "Telemetry-event detail" });
   await expect(logDetail).toContainText("Application log context ");
+  await expect(page.getByLabel("Loading Telemetry-event detail")).toBeVisible();
+  await expect(logDetail).toContainText("Application log context ");
   await expect(logDetail).toContainText("stack");
   await expect(logDetail).not.toContainText("Captured operation detail was truncated");
+  await page.getByLabel("TRACE", { exact: true }).click();
+  await expect(page.getByLabel("Refreshing Telemetry-event detail")).toBeVisible();
+  await expect(logDetail).toContainText("Application log context ");
+  await expect(page.getByLabel("Refreshing Telemetry-event detail")).toHaveCount(0);
+  detailDelay = false;
 
   mode = "capture-disabled";
   await page.goto("/skyline/logs");
@@ -189,7 +220,9 @@ async function visuals(page: Page) {
 
 async function detailVisuals(page: Page, label: string) {
   return page.getByRole("region", { name: label }).evaluate((detail) => {
-    const panel = detail.parentElement!; const handle = panel.previousElementSibling!;
+    let panel = detail.parentElement!;
+    while (panel.previousElementSibling?.getAttribute("role") !== "separator" && panel.parentElement) panel = panel.parentElement;
+    const handle = panel.previousElementSibling!;
     const title = detail.querySelector("h2")!; const style = getComputedStyle(title);
     return { width: Math.round(panel.getBoundingClientRect().width), handleWidth: getComputedStyle(handle).width, titleFontSize: style.fontSize, titleFontWeight: style.fontWeight, rows: getComputedStyle(detail).gridTemplateRows.split(" ").length };
   });

@@ -49,14 +49,18 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
   const logsLoader = async ({ request }: LoaderFunctionArgs): Promise<LogsRouteData> => {
     const list = presentTelemetryEvents(await adapter.telemetryEvents(telemetryEventsQuery(request)));
     const eventId = new URL(request.url).searchParams.get("event");
-    if (!eventId) return { ...list, selected: null };
-
-    try {
-      return { ...list, selected: { state: "found", data: presentTelemetryEventDetail(await adapter.telemetryEvent(eventId)) } };
-    } catch (error) {
-      const notFound = error instanceof SkylineApiError && error.status === 404;
-      return { ...list, selected: { state: notFound ? "not-found" : "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." } };
-    }
+    return {
+      ...list,
+      selectedSummary: eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null,
+      loadDetail: async (id, signal) => {
+        try {
+          return { state: "found" as const, data: presentTelemetryEventDetail(await adapter.telemetryEvent(id, signal)) };
+        } catch (error) {
+          const notFound = error instanceof SkylineApiError && error.status === 404;
+          return { state: (notFound ? "not-found" : "error") as "not-found" | "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." };
+        }
+      },
+    };
   };
 
   return createBrowserRouter([

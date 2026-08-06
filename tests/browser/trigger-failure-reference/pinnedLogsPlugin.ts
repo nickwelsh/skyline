@@ -35,6 +35,7 @@ function tableModule(): string {
   return `
 import { ArrowPathIcon } from "@heroicons/react/20/solid";
 import { useEffect, useRef, useState } from "react";
+import { RunsIcon } from ${path("assets/icons/RunsIcon.tsx")};
 import { LogLevelTooltipInfo } from ${path("components/LogLevelTooltipInfo.tsx")};
 import { Button, LinkButton } from ${path("components/primitives/Buttons.tsx")};
 import { DateTimeAccurate } from ${path("components/primitives/DateTime.tsx")};
@@ -43,7 +44,6 @@ import { Spinner } from ${path("components/primitives/Spinner.tsx")};
 import { Table, TableBlankRow, TableBody, TableCell, TableCellMenu, TableHeader, TableHeaderCell, TableRow, type TableVariant } from ${path("components/primitives/Table.tsx")};
 import { LogLevel } from ${path("components/logs/LogLevel.tsx")};
 import { cn } from ${path("utils/cn.ts")};
-const RunsIcon = () => null;
 const useOrganization = () => ({ slug: "reference" });
 const useProject = () => ({ slug: "reference" });
 const useEnvironment = () => ({ slug: "dev" });
@@ -64,6 +64,7 @@ function detailModule(): string {
 
   return `
 import { useEffect, useState, type ReactNode } from "react";
+import { ExitIcon } from ${path("assets/icons/ExitIcon.tsx")};
 import { Button, LinkButton } from ${path("components/primitives/Buttons.tsx")};
 import { CopyableText } from ${path("components/primitives/CopyableText.tsx")};
 import { DateTimeAccurate } from ${path("components/primitives/DateTime.tsx")};
@@ -73,8 +74,7 @@ import * as Property from ${path("components/primitives/PropertyTable.tsx")};
 import { Spinner } from ${path("components/primitives/Spinner.tsx")};
 import { SimpleTooltip } from ${path("components/primitives/Tooltip.tsx")};
 import { LogLevel } from ${path("components/logs/LogLevel.tsx")};
-const ExitIcon = () => null;
-const PacketDisplay = ({ data, title }: { data: string; title: string; [key: string]: unknown }) => <pre aria-label={title} className="mt-3 whitespace-pre-wrap border border-grid-bright p-2 font-mono text-xs">{data}</pre>;
+import { PacketDisplay } from ${path("components/runs/v3/PacketDisplay.tsx")};
 const TaskRunStatusCombo = () => null;
 const descriptionForTaskRunStatus = () => "";
 const useOrganization = () => ({ slug: "reference" });

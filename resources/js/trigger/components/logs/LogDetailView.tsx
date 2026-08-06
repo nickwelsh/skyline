@@ -3,14 +3,14 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Fetching, tenant paths, and execution state are external; source detail composition remains.
  */
-import { XMarkIcon } from "@heroicons/react/20/solid";
+import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { Button, LinkButton } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTimeAccurate } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import * as Property from "~/components/primitives/PropertyTable";
-import { CodeBlock } from "~/CodeBlock";
+import { PacketDisplay } from "~/components/runs/v3/PacketDisplay";
 import { LogLevel, type LogLevelValue } from "./LogLevel";
 
 type LogDetailShared = {
@@ -39,7 +39,7 @@ export function LogDetailView({ log, onClose }: { log: LogDetailEntry; onClose: 
     <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
       <div className="flex items-center justify-between overflow-hidden border-b border-grid-dimmed py-2 pl-3 pr-2">
         <Header2 className="truncate">{title}</Header2>
-        <Button aria-label="Close Telemetry-event detail" onClick={onClose} variant="minimal/small" TrailingIcon={XMarkIcon} shortcut={{ key: "esc" }} shortcutPosition="before-trailing-icon" className="pl-1" />
+        <Button aria-label="Close Telemetry-event detail" onClick={onClose} variant="minimal/small" TrailingIcon={ExitIcon} shortcut={{ key: "esc" }} shortcutPosition="before-trailing-icon" className="pl-1" />
       </div>
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
@@ -90,5 +90,5 @@ function Item({ label, children }: { label: string; children: React.ReactNode })
 
 function Capture({ title, value, language = "json" }: { title: string; value: unknown; language?: "json" | "text" }) {
   const code = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-  return <div className="mb-6 mt-3"><CodeBlock label={title} code={code} language={language} showLineNumbers={false} showCopyButton showTextWrapping showOpenInModal /></div>;
+  return <div className="mb-6 mt-3"><PacketDisplay data={code} dataType={language === "text" ? "text/plain" : "application/json"} title={title} wrap={language === "text"} /></div>;
 }

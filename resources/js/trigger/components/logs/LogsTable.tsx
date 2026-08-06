@@ -4,6 +4,7 @@
  * Tenant path-building and streaming are external; source table geometry and selection remain.
  */
 import { LogLevelTooltipInfo } from "~/components/LogLevelTooltipInfo";
+import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { LinkButton } from "~/components/primitives/Buttons";
 import { DateTimeAccurate } from "~/components/primitives/DateTime";
 import { Paragraph } from "~/components/primitives/Paragraph";
@@ -49,7 +50,7 @@ export function LogsTable({ logs, selectedLogId, onLogSelect, loading, hasAnyTel
                 <TableCell onClick={select} hasAction className="min-w-32"><span className="font-mono text-xs">{log.jobType}</span></TableCell>
                 <TableCell onClick={select} hasAction><LogLevel level={log.level} /></TableCell>
                 <TableCell onClick={select} hasAction className="max-w-0 truncate"><span className="block truncate font-mono text-xs" title={message}>{message}</span></TableCell>
-                <TableCellMenu className="pl-32" hiddenButtons={<LinkButton to={log.runPath} variant="minimal/small" className="h-5.5 px-2"><span className="text-[0.6875rem] text-text-bright">View run</span></LinkButton>} />
+                <TableCellMenu className="pl-32" hiddenButtons={<LinkButton to={log.runPath} variant="minimal/small" TrailingIcon={RunsIcon} trailingIconClassName="text-text-bright" className="h-5.5 pl-1.5 pr-2"><span className="text-[0.6875rem] text-text-bright">View run</span></LinkButton>} />
               </TableRow>
             );
           })}

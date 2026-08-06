@@ -5,7 +5,7 @@
  * tenant context, streaming, and server fetching remain external adapter concerns.
  */
 import { XMarkIcon } from "@heroicons/react/20/solid";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { ListPagination } from "~/components/ListPagination";
@@ -32,14 +32,21 @@ export type LogsRouteData = {
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
-  selected: null | { state: "found"; data: { telemetryEvent: LogDetailEntry } } | { state: "not-found" | "error"; message: string };
+  selectedSummary: LogsTableEntry | null;
+  loadDetail: (id: string, signal?: AbortSignal) => Promise<{ state: "found"; data: { telemetryEvent: LogDetailEntry } } | { state: "not-found" | "error"; message: string }>;
 };
+
+type DetailState =
+  | { id: string; state: "found"; data: { telemetryEvent: LogDetailEntry }; refreshing: boolean }
+  | { id: string; state: "loading" }
+  | { id: string; state: "not-found" | "error"; message: string };
 
 export default function Page() {
   const data = useLoaderData() as LogsRouteData;
   const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get("event") ?? undefined;
+  const [detail, setDetail] = useState<DetailState>();
   const setSelected = (id?: string) => {
     const next = new URLSearchParams(searchParams);
     id ? next.set("event", id) : next.delete("event");
@@ -53,6 +60,27 @@ export default function Page() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [selectedId, searchParams]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setDetail(undefined);
+      return;
+    }
+    const controller = new AbortController();
+    setDetail((current) => current?.id === selectedId && current.state === "found"
+      ? { ...current, refreshing: true }
+      : { id: selectedId, state: "loading" });
+    data.loadDetail(selectedId, controller.signal).then(
+      (value) => setDetail(value.state === "found"
+        ? { id: selectedId, state: "found", data: value.data, refreshing: false }
+        : { id: selectedId, state: value.state, message: value.message }),
+      (error) => {
+        if (controller.signal.aborted) return;
+        setDetail({ id: selectedId, state: "error", message: error instanceof Error ? error.message : "Telemetry-event detail could not be loaded." });
+      },
+    );
+    return () => controller.abort();
+  }, [selectedId, data.loadDetail]);
 
   return (
     <PageContainer>
@@ -69,15 +97,22 @@ export default function Page() {
             </ResizablePanel>
             <ResizableHandle id="logs-detail-handle" className={collapsibleHandleClassName(Boolean(selectedId))} />
             {selectedId && <ResizablePanel id="logs-detail" min="430px" default="430px" max="600px" collapseAnimation={RESIZABLE_PANEL_ANIMATION} isStaticAtRest>
-              {data.selected?.state === "found"
-                ? <LogDetailView log={data.selected.data.telemetryEvent} onClose={() => setSelected()} />
-                : <DetailFailure state={data.selected?.state ?? "error"} message={data.selected?.message ?? "Telemetry-event detail could not be loaded."} onClose={() => setSelected()} />}
+              {detail?.state === "found"
+                ? <div className="relative h-full"><LogDetailView log={detail.data.telemetryEvent} onClose={() => setSelected()} />{detail.refreshing && <div aria-label="Refreshing Telemetry-event detail" className="pointer-events-none absolute right-3 top-3"><Spinner /></div>}</div>
+                : detail?.state === "not-found" || detail?.state === "error"
+                  ? <DetailFailure state={detail.state} message={detail.message} onClose={() => setSelected()} />
+                  : <DetailPreview log={data.selectedSummary} onClose={() => setSelected()} />}
             </ResizablePanel>}
           </ResizablePanelGroup>
         </div>
       </PageBody>
     </PageContainer>
   );
+}
+
+function DetailPreview({ log, onClose }: { log: LogsTableEntry | null; onClose: () => void }) {
+  const title = log ? (log.variant === "operation" ? log.name : log.message) : "Log Details";
+  return <section aria-label="Telemetry-event detail" className="grid h-full grid-rows-[auto_1fr]"><div className="flex items-center justify-between border-b border-grid-dimmed py-2 pl-3 pr-2"><h2 className="truncate font-medium text-text-bright">{title}</h2><Button onClick={onClose} variant="minimal/small">Close</Button></div><div aria-label="Loading Telemetry-event detail" className="grid place-items-center"><Spinner /></div></section>;
 }
 
 function FiltersBar({ data }: { data: LogsRouteData }) {

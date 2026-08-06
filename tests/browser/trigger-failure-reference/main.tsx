@@ -1,6 +1,6 @@
 import "non.geist";
 import "non.geist/mono";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, useLocation } from "react-router-dom";
 import { PinnedTriggerErrors } from "virtual:pinned-trigger-errors";
@@ -64,6 +64,11 @@ function PinnedLogs() {
     url.searchParams.delete("log");
     window.history.replaceState(null, "", url);
   };
+  useEffect(() => {
+    const handle = (event: KeyboardEvent) => event.key === "Escape" && selectedId && close();
+    window.addEventListener("keydown", handle);
+    return () => window.removeEventListener("keydown", handle);
+  }, [selectedId]);
 
   return <div className="h-screen w-screen overflow-hidden bg-background-dimmed"><ResizablePanelGroup orientation="horizontal" className="h-screen max-h-full"><ResizablePanel id="logs-main" min="200px"><PinnedTriggerLogsTable logs={referenceLogs} selectedLogId={selectedId} onLogSelect={select} /></ResizablePanel><ResizableHandle id="logs-handle" className={selected ? "" : "pointer-events-none opacity-0"} />{selected ? <ResizablePanel id="log-detail" default="430px" min="430px" max="600px"><PinnedTriggerLogDetail log={selected} onClose={close} /></ResizablePanel> : null}</ResizablePanelGroup></div>;
 }
