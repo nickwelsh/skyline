@@ -146,6 +146,8 @@ export function canonicalSourceRunFilterUrl(url: string) {
 export function canonicalRunInspectorActionUrl(url: string) {
   const parsed = new URL(url, "https://fidelity.invalid");
   if (parsed.searchParams.get("queue") !== "true") return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  const tab = parsed.searchParams.get("tab");
+  if (tab !== "detail") throw new Error(`Unmapped inspector queue tab: ${tab ?? "missing"}`);
   parsed.searchParams.delete("queue");
   parsed.searchParams.delete("tab");
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;

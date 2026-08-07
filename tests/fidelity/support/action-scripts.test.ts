@@ -99,6 +99,12 @@ describe("semantic fidelity actions", () => {
     expect(canonicalRunInspectorActionUrl("/runs/run_1?node=run_run_1&tab=detail")).toBe(
       "/runs/run_1?node=run_run_1&tab=detail",
     );
+    expect(() => canonicalRunInspectorActionUrl("/runs/run_1?node=run_run_1&tab=overview&queue=true")).toThrow(
+      "Unmapped inspector queue tab: overview",
+    );
+    expect(() => canonicalRunInspectorActionUrl("/runs/run_1?node=run_run_1&queue=true")).toThrow(
+      "Unmapped inspector queue tab: missing",
+    );
   });
 
   test("rejects panel-persistence exclusion outside its exact action", () => {
