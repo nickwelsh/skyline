@@ -32,13 +32,14 @@ export function NavBar({ children }: WithChildren) {
 type PageTitleProps = {
   title: ReactNode;
   accessory?: ReactNode;
+  protectedMarker?: string;
   backButton?: {
     to: string;
     text: string;
   };
 };
 
-export function PageTitle({ title, backButton, accessory }: PageTitleProps) {
+export function PageTitle({ title, backButton, accessory, protectedMarker }: PageTitleProps) {
   const titleText = typeof title === "string" ? title : undefined;
   const rootHref = useHref("/");
   const location = useLocation();
@@ -48,7 +49,7 @@ export function PageTitle({ title, backButton, accessory }: PageTitleProps) {
     : location.pathname;
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div data-skyline-protected={protectedMarker} className="flex items-center gap-1.5">
       {backButton && (
         <div className="group -ml-1.5 flex items-center gap-0">
           <Link

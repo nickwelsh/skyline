@@ -58,8 +58,8 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Recorded queued" value={data.environment.queued} suffix="Runs" />
-        <QueueBigNumber title="Recorded running" value={data.environment.running} suffix="Runs" />
+        <QueueBigNumber title="Recorded queued" value={data.environment.queued} suffix="Runs" protectedMarker="queue-root-recorded-queued" capabilityBoundary="queue-root-environment-limit" />
+        <QueueBigNumber title="Recorded running" value={data.environment.running} suffix="Runs" protectedMarker="queue-root-recorded-running" capabilityBoundary="queue-root-running" />
       </MetricsLayout.Grid>
       <MetricsLayout.Content>
         <div className="relative min-h-32">
@@ -75,7 +75,7 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
 
 function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget[]; loading: boolean }) {
   return (
-    <Table containerClassName="border-t">
+    <div data-skyline-protected="queue-list-target-evidence"><Table containerClassName="border-t">
       <TableHeader>
         <TableRow>
           <TableHeaderCell>Name</TableHeaderCell>
@@ -93,20 +93,21 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
             <TableCell
               to={target.path}
               isTabbableCell
+              capabilityBoundary={target.recordedRunCounts.queued > 0 ? `queue-target-${target.id}-warning` : undefined}
               leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}
             >
               {target.destination}
             </TableCell>
-            <MetricCell target={target} value={target.recordedRuns} />
-            <TableCell to={target.path}><RecordedStatusBreakdown counts={target.recordedRunCounts} /></TableCell>
-            <MetricCell target={target} value={target.queueTimeSampleCount} />
+            <TableCell to={target.path} alignment="right" capabilityBoundary={`queue-target-${target.id}-limit`} actionClassName="pl-16 tabular-nums" className="w-[1%]">{target.recordedRuns}</TableCell>
+            <TableCell to={target.path} capabilityBoundary={`queue-target-${target.id}-limited-by`}><RecordedStatusBreakdown counts={target.recordedRunCounts} /></TableCell>
+            <TableCell to={target.path} alignment="right" capabilityBoundary={`queue-target-${target.id}-backlog`} actionClassName="pl-16 tabular-nums" className="w-[1%]">{target.queueTimeSampleCount}</TableCell>
             <MetricCell target={target} value={target.medianQueueTime} bright={target.queueTimeSampleCount > 0} />
-            <MetricCell target={target} value={target.p95QueueTime} bright={target.queueTimeSampleCount > 0} />
-            <MetricCell target={target} value={target.maximumQueueTime} bright={target.queueTimeSampleCount > 0} />
+            <TableCell to={target.path} alignment="right" capabilityBoundary={target.recordedRunCounts.queued > 0 ? `queue-target-${target.id}-health` : undefined} actionClassName="pl-16 tabular-nums" className={target.queueTimeSampleCount > 0 ? "w-[1%] text-text-bright" : "w-[1%]"}>{target.p95QueueTime}</TableCell>
+            <TableCell to={target.path} alignment="right" capabilityBoundary={`queue-target-${target.id}-pause-resume`} actionClassName="pl-16 tabular-nums" className={target.queueTimeSampleCount > 0 ? "w-[1%] text-text-bright" : "w-[1%]"}>{target.maximumQueueTime}</TableCell>
           </TableRow>
         ))}
       </TableBody>
-    </Table>
+    </Table></div>
   );
 }
 

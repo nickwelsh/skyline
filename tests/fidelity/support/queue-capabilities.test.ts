@@ -8,7 +8,7 @@ import { queueCapabilityDefinitions } from "./queue-capabilities";
 describe("NW-221 Queue capability discovery definitions", () => {
   const definitions = queueCapabilityDefinitions(matrix as unknown as FidelityMatrix);
 
-  test("locks exact semantic markers without broad chrome or Recorded Runs", () => {
+  test("pairs exact source markers to empty Skyline boundaries", () => {
     expect(definitions.map(({ id }) => id)).toEqual([
       "queue-root-capabilities",
       "queue-root-filtering-capabilities",
@@ -47,11 +47,18 @@ describe("NW-221 Queue capability discovery definitions", () => {
       "queue-detail-concurrency-limit",
       "queue-detail-throttled",
     ]);
+    expect(uniquePairs.every((pair) => pair.skylineBoundary === true)).toBe(true);
+    expect(uniquePairs.every((pair) => pair.skylineSelector === `[data-skyline-capability-boundary=${JSON.stringify(pair.id)}]`)).toBe(true);
     for (const [index, definition] of definitions.entries()) for (const other of definitions.slice(index + 1)) {
       const reused = definition.selectorPairs.some(({ id }) => other.selectorPairs.some((pair) => pair.id === id));
       if (reused) expect(definition.captures.some((capture) => other.captures.includes(capture))).toBe(false);
     }
-    expect(JSON.stringify(definitions)).not.toMatch(/information|shell|recorded.runs/i);
+    expect(JSON.stringify(definitions)).not.toMatch(/information|shell/i);
+    expect(definitions.every((definition) => (definition.protectedSelectors?.length ?? 0) > 0 && Object.keys(definition.protectedMeasurements ?? {}).length === 0)).toBe(true);
+    expect(definitions.flatMap((definition) => definition.protectedSelectors ?? []).map(({ id }) => id)).toEqual(expect.arrayContaining([
+      "connection", "queue-identities", "root-recorded-queued", "root-recorded-running",
+      "detail-identity", "detail-status-counts", "detail-activity", "detail-recorded-runs",
+    ]));
   });
 
   test("locks capture families around present capability nodes", () => {

@@ -18,7 +18,7 @@ export type QueueTimeRangeOption = {
 };
 
 export function QueueSearchFilter() {
-  return <div data-skyline-anchor="queue-filter-controls" role="search" aria-label="Queue search"><SearchInput placeholder="Search queues…" paramName="search" /></div>;
+  return <div data-skyline-anchor="queue-filter-controls" data-skyline-protected="queue-list-search" role="search" aria-label="Queue search"><SearchInput placeholder="Search queues…" paramName="search" /></div>;
 }
 
 export function QueueConnectionFilter({ connections }: { connections: string[] }) {
@@ -29,6 +29,7 @@ export function QueueConnectionFilter({ connections }: { connections: string[] }
     <label data-skyline-extension="queue-connection-filter" className="flex items-center gap-1 text-xs text-text-dimmed">
       <span>Connection</span>
       <select
+        data-skyline-protected="queue-list-connection"
         aria-label="Connection"
         value={params.get("connection") ?? ""}
         onChange={(event) => {
@@ -77,7 +78,7 @@ export function QueuePeriodFilter({
           render={
             <Ariakit.Select
               aria-label={`Period: ${selectedLabel}`}
-              render={<div data-skyline-anchor="queue-period-filter" className="group cursor-pointer focus-custom" />}
+              render={<div data-skyline-anchor="queue-period-filter" data-skyline-protected="queue-period" className="group cursor-pointer focus-custom" />}
             />
           }
         >

@@ -27,7 +27,7 @@ describe("QueueTargetCharts", () => {
     expect(container.querySelector('[role="img"][aria-label="Scheduling delay chart"]')).not.toBeNull();
     for (const label of ["Queued", "Running", "Retrying", "Completed", "Failed", "p50", "p95", "Max"]) expect(container.textContent).toContain(label);
     expect(container.textContent).not.toMatch(/Concurrency|Queue depth|Throttled|Backlog|Throughput|Started|Falling behind|p99/);
-    expect(container.querySelector("[aria-label='Queue-target activity']")?.lastElementChild?.className).toBe("h-52 sm:col-span-2");
+    expect(container.querySelector("[aria-label='Queue-target activity']")?.lastElementChild?.className).toBe("relative h-52 sm:col-span-2");
     expect(Array.from(container.querySelectorAll("h3")).every((header) => header.querySelector(":scope > div > .min-h-6"))).toBe(true);
 
     flushSync(() => root.unmount());

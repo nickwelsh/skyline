@@ -33,7 +33,7 @@ describe("NW-221 Queue Connection framework extension", () => {
 
   test("coexists with Queue capability omissions", () => {
     expect(() => validateFrameworkExtensionDefinitions({
-      regions: [definition, ...queueCapabilityDefinitions(matrix as unknown as FidelityMatrix)],
+      regions: [definition, ...withProtectedEvidence(queueCapabilityDefinitions(matrix as unknown as FidelityMatrix))],
     })).not.toThrow();
   });
 
@@ -49,3 +49,11 @@ describe("NW-221 Queue Connection framework extension", () => {
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
   });
 });
+
+function withProtectedEvidence(definitions: ReturnType<typeof queueCapabilityDefinitions>) {
+  const evidence = { rect: { x: 0, y: 0, width: 1, height: 1 }, computedStyleSha256: "a".repeat(64), accessibilitySha256: "b".repeat(64), crop: { status: "visible" as const, rect: { x: 0, y: 0, width: 1, height: 1 }, screenshotSha256: "c".repeat(64) } };
+  return definitions.map((definition) => ({
+    ...definition,
+    protectedMeasurements: Object.fromEntries(definition.captures.map((capture) => [capture, Object.fromEntries((definition.protectedSelectors ?? []).map(({ id }) => [id, evidence]))])),
+  }));
+}

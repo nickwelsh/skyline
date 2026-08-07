@@ -58,7 +58,7 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         <div />
         <div className="flex items-center gap-1.5">
           {!showRecordedRuns && (
-            <section data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs">
+            <section data-skyline-extension="queue-recorded-runs" data-skyline-protected="queue-detail-recorded-runs" aria-label="Recorded runs">
               <Button ref={recordedRunsControl} variant="secondary/small" aria-controls="queue-recorded-runs-content" aria-expanded={false} onClick={() => setShowRecordedRuns(true)}>Recorded runs</Button>
             </section>
           )}
@@ -66,14 +66,14 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Recorded Runs" formattedValue={data.queueTarget.recordedRuns} />
-        <QueueBigNumber title="Queue-time samples" value={data.queueTarget.queueTimeSampleCount} />
-        <QueueBigNumber title="Median queue time" formattedValue={data.queueTarget.medianQueueTime} />
-        <QueueBigNumber title="Queue time p95" formattedValue={data.queueTarget.p95QueueTime} />
-        <QueueBigNumber title="Maximum queue time" formattedValue={data.queueTarget.maximumQueueTime} />
+        <QueueBigNumber title="Recorded Runs" formattedValue={data.queueTarget.recordedRuns} protectedMarker="queue-detail-recorded-runs-stat" capabilityBoundary="queue-detail-concurrency" />
+        <QueueBigNumber title="Queue-time samples" value={data.queueTarget.queueTimeSampleCount} protectedMarker="queue-detail-queue-time-samples" />
+        <QueueBigNumber title="Median queue time" formattedValue={data.queueTarget.medianQueueTime} protectedMarker="queue-detail-median" />
+        <QueueBigNumber title="Queue time p95" formattedValue={data.queueTarget.p95QueueTime} protectedMarker="queue-detail-p95" />
+        <QueueBigNumber title="Maximum queue time" formattedValue={data.queueTarget.maximumQueueTime} protectedMarker="queue-detail-maximum" />
       </MetricsLayout.Grid>
       <MetricsLayout.Content inset>
-        <section className="rounded-lg border border-grid-bright bg-background-bright px-4 py-3">
+        <section data-skyline-protected="queue-detail-status-counts" className="rounded-lg border border-grid-bright bg-background-bright px-4 py-3">
           <Header3 className="mb-2">Recorded Run status counts</Header3>
           <RecordedStatusBreakdown counts={data.queueTarget.recordedRunCounts} />
         </section>
@@ -87,7 +87,7 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
 
 function RecordedRunsCard({ data, loading, onClose }: { data: QueueTargetDetailPresentation; loading: boolean; onClose: () => void }) {
   return (
-    <section id="queue-recorded-runs-panel" data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs" className="h-52 min-w-0 sm:col-span-2" onKeyDown={(event) => {
+    <section id="queue-recorded-runs-panel" data-skyline-extension="queue-recorded-runs" data-skyline-protected="queue-detail-recorded-runs" aria-label="Recorded runs" className="h-52 min-w-0 sm:col-span-2" onKeyDown={(event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopPropagation();

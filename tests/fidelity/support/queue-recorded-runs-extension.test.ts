@@ -55,7 +55,7 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
       regions: [
         queueConnectionExtensionDefinition(fidelityMatrix),
         definition,
-        ...queueCapabilityDefinitions(fidelityMatrix),
+        ...withProtectedEvidence(queueCapabilityDefinitions(fidelityMatrix)),
       ],
     })).not.toThrow();
   });
@@ -74,3 +74,11 @@ describe("NW-221 Queue Recorded Runs framework extension", () => {
     expect(config).toContain('"**/queue-recorded-runs-extension.discovery.ts"');
   });
 });
+
+function withProtectedEvidence(definitions: ReturnType<typeof queueCapabilityDefinitions>) {
+  const evidence = { rect: { x: 0, y: 0, width: 1, height: 1 }, computedStyleSha256: "a".repeat(64), accessibilitySha256: "b".repeat(64), crop: { status: "visible" as const, rect: { x: 0, y: 0, width: 1, height: 1 }, screenshotSha256: "c".repeat(64) } };
+  return definitions.map((definition) => ({
+    ...definition,
+    protectedMeasurements: Object.fromEntries(definition.captures.map((capture) => [capture, Object.fromEntries((definition.protectedSelectors ?? []).map(({ id }) => [id, evidence]))])),
+  }));
+}
