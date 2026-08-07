@@ -20,7 +20,7 @@ export function parseScenario(capture: string): FidelityScenario {
 
 export async function fixtureCatalog(adapter = new FixtureAdapter()): Promise<FixtureCatalog> {
   const [jobs, runs, errors, logs, queues] = await Promise.all([
-    adapter.jobs(), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
+    adapter.jobs({ search: fixture.values.jobType }), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
   ]);
   return {
     job: required(jobs.jobs.find((job) => job.name === fixture.values.jobType), "Job").id,
@@ -98,8 +98,8 @@ async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: Fix
   }
 }
 
-async function responseFor(path: string, search: URLSearchParams, adapter: FixtureAdapter): Promise<unknown> {
-  if (path === "jobs") return adapter.jobs({ search: search.get("search") ?? undefined, period: period(search) });
+export async function responseFor(path: string, search: URLSearchParams, adapter: FixtureAdapter): Promise<unknown> {
+  if (path === "jobs") return adapter.jobs({ search: search.get("search") ?? undefined, period: period(search), cursor: search.get("cursor") ?? undefined });
   if (path.startsWith("jobs/")) {
     const statuses = search.getAll("status[]");
     return adapter.job(decodeURIComponent(path.slice(5)), {

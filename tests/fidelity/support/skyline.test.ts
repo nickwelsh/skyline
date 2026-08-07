@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import fixture from "../fixtures.json" with { type: "json" };
-import { fixtureCatalog, parseScenario, scenarioPath, type FixtureCatalog } from "./skyline";
+import type { JobsPageDto, JobsQuery } from "../../../resources/js/skyline/dto";
+import { fixtureCatalog, parseScenario, responseFor, scenarioPath, type FixtureCatalog } from "./skyline";
 
 const catalog: FixtureCatalog = { job: "job-1", run: "run-1", error: "error-1", log: "log-1", queue: "queue-1" };
 
@@ -19,7 +20,7 @@ describe("packaged Skyline fidelity fixture", () => {
   test("uses the reviewed seed values", async () => {
     const adapter = new FixtureAdapter();
     const [jobs, runs, errors, logs, queues] = await Promise.all([
-      adapter.jobs(), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
+      adapter.jobs({ search: fixture.values.jobType }), adapter.runs(), adapter.errorGroups(), adapter.telemetryEvents(), adapter.queueTargets(),
     ]);
     const catalog = await fixtureCatalog(adapter);
     expect({
@@ -30,6 +31,22 @@ describe("packaged Skyline fidelity fixture", () => {
       connection: queues.queueTargets.find(({ id }) => id === catalog.queue)?.connection,
       queue: queues.queueTargets.find(({ id }) => id === catalog.queue)?.queue,
     }).toEqual(fixture.values);
+  });
+
+  test("forwards Job-list cursors into the deterministic adapter", async () => {
+    class RecordingAdapter extends FixtureAdapter {
+      query: JobsQuery | undefined;
+
+      override jobs(query: JobsQuery = {}): Promise<JobsPageDto> {
+        this.query = query;
+        return super.jobs(query);
+      }
+    }
+    const adapter = new RecordingAdapter();
+
+    await responseFor("jobs", new URLSearchParams("search=invoice&period=24h&cursor=opaque-next"), adapter);
+
+    expect(adapter.query).toEqual({ search: "invoice", period: "24h", cursor: "opaque-next" });
   });
 
   test.each([

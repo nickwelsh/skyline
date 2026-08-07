@@ -19,8 +19,14 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(listActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
 
   const pagination = page.locator('[data-skyline-protected="jobs-list-pagination"]');
-  await pagination.locator("a").last().click();
+  await pagination.getByRole("link", { name: "Next" }).click();
   await expect(page).toHaveURL(/cursor=next-jobs/);
+  await expect(page.getByText("App\\Jobs\\ReconcilePayments", { exact: true })).toBeVisible();
+  await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toHaveCount(0);
+  await expectJobsOmissionMarkers(page);
+  await pagination.getByRole("link", { name: "Previous" }).click();
+  await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  await expectJobsOmissionMarkers(page);
   await page.getByLabel("Time range").selectOption("24h");
   await expect(page).toHaveURL(/period=24h/);
   await expect(page).not.toHaveURL(/cursor=/);
@@ -215,9 +221,30 @@ test("Jobs covers empty, filtered-empty, API-error, and not-found states", async
 async function routeJobs(page: Page) {
   await page.route("**/skyline/api/jobs**", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 350));
-    const pathname = new URL(route.request().url()).pathname;
-    return route.fulfill({ json: pathname.endsWith("/api/jobs") ? jobsPage() : jobDetail() });
+    const url = new URL(route.request().url());
+    if (!url.pathname.endsWith("/api/jobs")) return route.fulfill({ json: jobDetail() });
+    const response = jobsPage();
+    if (url.searchParams.get("cursor") === "next-jobs") {
+      response.jobs = [jobSummary({ id: "job_reconcile", name: "App\\Jobs\\ReconcilePayments" })];
+      response.pagination = { previous: "previous-jobs", next: null };
+    }
+    return route.fulfill({ json: response });
   });
+}
+
+async function expectJobsOmissionMarkers(page: Page) {
+  const markers = page.locator('[data-skyline-capability-boundary^="jobs-list-"]');
+  await expect(markers).toHaveCount(5);
+  expect(await markers.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-skyline-capability-boundary")))).toEqual([
+    "jobs-list-task-type-filter",
+    "jobs-list-type-header",
+    "jobs-list-file-header",
+    "jobs-list-type-row-1",
+    "jobs-list-file-row-1",
+  ]);
+  expect(await markers.evaluateAll((nodes) => nodes.every((node) => node.getAttribute("aria-hidden") === "true" && !node.querySelector("a, button, input, svg")))).toBe(true);
+  await expect(page.locator('[data-skyline-protected="jobs-list-search"]')).toBeVisible();
+  await expect(page.locator('[data-skyline-protected="jobs-list-pagination"]')).toBeVisible();
 }
 
 function jobsPage(): JobsPageDto {
@@ -260,11 +287,13 @@ function jobDetail(): JobDetailDto {
   };
 }
 
-function jobSummary() {
+function jobSummary(overrides: { id?: string; name?: string } = {}) {
+  const id = overrides.id ?? "job_invoice";
+  const name = overrides.name ?? "App\\Jobs\\GenerateMonthlyInvoices";
   return {
-    id: "job_invoice",
-    name: "App\\Jobs\\GenerateMonthlyInvoices",
-    href: "/skyline/jobs/job_invoice",
+    id,
+    name,
+    href: `/skyline/jobs/${id}`,
     firstObservedAt: "2026-08-01T12:00:00.000000000Z",
     lastObservedAt: "2026-08-05T12:00:00.000000000Z",
     runCount: 3,
