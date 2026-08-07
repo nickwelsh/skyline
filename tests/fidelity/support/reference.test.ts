@@ -9,7 +9,7 @@ describe("pinned Trigger Errors fixture", () => {
     const root = resolve(import.meta.dirname, "../reference/vendor");
     const detail = conditionErrorDetailCapabilities(
       readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx"), "utf8"),
-      { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailMachines: false, detailPlatformColumns: false, detailBulkReplay: false },
+      { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailMachines: false, detailPlatformColumns: false, detailPagination: false, detailBulkReplay: false },
     );
     const table = conditionErrorRunTableCapabilities(
       readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
@@ -18,6 +18,7 @@ describe("pinned Trigger Errors fixture", () => {
 
     expect(detail).toContain("errorCapabilityPolicy.detailVersions ? <LogsVersionFilter /> : null");
     expect(detail).toContain("errorCapabilityPolicy.detailVersions && errorGroup.affectedVersions.length > 0");
+    expect(detail).toContain("errorCapabilityPolicy.detailPagination ? <ListPagination list={runList} /> : null");
     expect(detail).toContain("errorCapabilityPolicy.detailBulkReplay ? (");
     expect(table).toContain("showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null");
     expect(table).toContain("showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null");

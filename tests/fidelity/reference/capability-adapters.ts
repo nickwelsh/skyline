@@ -3,6 +3,7 @@ type ErrorCapabilityPolicy = {
   detailVersions?: boolean;
   detailMachines?: boolean;
   detailPlatformColumns?: boolean;
+  detailPagination?: boolean;
   detailBulkReplay?: boolean;
 };
 
@@ -22,6 +23,10 @@ export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapa
   const affectedVersions = "            {errorGroup.affectedVersions.length > 0 && (";
   if (!adapted.includes(affectedVersions)) throw new Error("Pinned Trigger Error detail affected Versions changed; capability adapter must be reviewed.");
   adapted = adapted.replace(affectedVersions, "            {errorCapabilityPolicy.detailVersions && errorGroup.affectedVersions.length > 0 && (");
+
+  const pagination = "                  <ListPagination list={runList} />";
+  if (!adapted.includes(pagination)) throw new Error("Pinned Trigger Error detail pagination changed; capability adapter must be reviewed.");
+  adapted = adapted.replace(pagination, "                  {errorCapabilityPolicy.detailPagination ? <ListPagination list={runList} /> : null}");
 
   const bulkStart = adapted.indexOf("                  <PermissionLink\n                    hasPermission={canReplayRuns}");
   const bulkEnd = adapted.indexOf("                  </PermissionLink>", bulkStart);
