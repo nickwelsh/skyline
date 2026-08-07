@@ -13,9 +13,8 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { LocaleContextProvider } from "~/components/primitives/LocaleProvider";
 import { OperatingSystemContextProvider } from "~/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "~/components/primitives/ShortcutsProvider";
-import { AppContainer, PageBody, PageContainer } from "~/components/layout/AppLayout";
+import { AppContainer } from "~/components/layout/AppLayout";
 import { RouteErrorDisplay } from "~/components/ErrorDisplay";
-import { Spinner } from "~/components/primitives/Spinner";
 import { useSystemThemeSync } from "~/hooks/useSystemThemeSync";
 import type { ThemePreference } from "~/utils/themePreference";
 import ProjectLayout from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam/route";
@@ -30,6 +29,7 @@ import ErrorDetail from "~/routes/_app.orgs.$organizationSlug.projects.$projectP
 import Logs from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
 import Queues from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
 import QueueDetail from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
+import { ReferenceInitialLoadingPage, referenceInitialLoadingCanonicalCapture, referenceInitialLoadingRoute } from "./ReferenceInitialLoadingPage";
 import "~/tailwind.css";
 
 const fixtureVersion = "nw-227-v1" as const;
@@ -91,7 +91,7 @@ const routes = createBrowserRouter([
           id: surfacePageRouteId,
           index: true,
           loader: ({ request }: { request: Request }) => loadCapture(request, "page"),
-          hydrateFallbackElement: createElement(ReferenceInitialLoadingPage),
+          hydrateFallbackElement: createElement(ReferenceInitialLoadingBoundary),
           element: createElement(ReferenceSurfacePage),
         }],
       }],
@@ -166,7 +166,11 @@ function ReferenceRoot() {
   return createElement(AppContainer, { className: "min-w-[1024px]" }, createElement(Outlet));
 }
 
-function ReferenceInitialLoadingPage() {
+function ReferenceInitialLoadingBoundary() {
+  const capture = captureFromPath(location.pathname);
+  const canonicalCapture = referenceInitialLoadingCanonicalCapture(capture.surface);
+  const canonicalUrl = referencePort().canonicalUrl?.(canonicalCapture) ?? "/skyline/runs";
+  const route = referenceInitialLoadingRoute(canonicalUrl);
   useEffect(() => {
     let cancelled = false;
     void document.fonts.ready.then(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))).then(() => {
@@ -175,13 +179,7 @@ function ReferenceInitialLoadingPage() {
     return () => { cancelled = true; };
   }, []);
 
-  return createElement(PageContainer, null,
-    createElement(PageBody, { scrollable: false, className: "relative p-0" },
-      createElement("div", { "aria-label": "Loading", className: "absolute inset-0 grid place-items-center bg-background-dimmed" },
-        createElement(Spinner),
-      ),
-    ),
-  );
+  return createElement(ReferenceInitialLoadingPage, { route });
 }
 
 function ReferenceSurfaceLayout() {

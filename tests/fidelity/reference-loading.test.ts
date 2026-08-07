@@ -1,25 +1,42 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { describe, expect, test } from "vitest";
+import { createElement } from "react";
+import { createRoot } from "react-dom/client";
+import { act } from "react-dom/test-utils";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { afterEach, describe, expect, test } from "vitest";
+import {
+  ReferenceInitialLoadingPage,
+  referenceInitialLoadingRoute,
+} from "./reference/ReferenceInitialLoadingPage";
 
-const root = resolve(import.meta.dirname, "../..");
-const main = readFileSync(resolve(root, "tests/fidelity/reference/main.ts"), "utf8");
-const support = readFileSync(resolve(root, "tests/fidelity/support/reference.ts"), "utf8");
+afterEach(() => {
+  document.body.replaceChildren();
+});
 
-describe("pinned reference loading lifecycle", () => {
-  test("hydrates the pinned shell/layout while the page loader remains pending", () => {
-    expect(main).toContain("v7_partialHydration: true");
-    expect(main).toContain("hydrateFallbackElement: createElement(ReferenceInitialLoadingPage)");
-    expect(main).toContain("createElement(PageContainer");
-    expect(main).toContain("createElement(PageBody");
-    expect(main).toContain("createElement(Spinner)");
-    expect(main).not.toContain('createElement("aside"');
-    expect(main).not.toContain("referenceLoadingRoute");
-  });
+describe("pinned reference initial loading page", () => {
+  test.each([
+    ["jobs", "/skyline/jobs", "Jobs", "Loading Jobs", undefined],
+    ["run", "/skyline/runs/run-01", "run-01", "Loading Run", "Runs"],
+    ["queue", "/skyline/queues/redis%3Adefault", "redis:default", "Loading Queue target", "Queues"],
+  ] as const)("renders %s with Skyline's canonical route header", async (surface, canonicalUrl, title, loadingLabel, backLabel) => {
+    const route = referenceInitialLoadingRoute(canonicalUrl);
+    const router = createMemoryRouter([{
+      path: "*",
+      element: createElement(ReferenceInitialLoadingPage, { route }),
+    }], { initialEntries: [`/oracle/${surface}-loading`] });
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
 
-  test("keeps initial loading distinct from stale refresh", () => {
-    expect(support).toContain('state === "loading" && phase === "initial"');
-    expect(support).toContain('state === "stale-refresh" && phase === "refresh"');
-    expect(main).toContain('const refreshState = capture.state === "stale-refresh"');
+    await act(async () => root.render(createElement(RouterProvider, { router })));
+
+    expect(container.querySelector("h2")?.textContent).toBe(title);
+    expect(container.querySelector(`[aria-label="${loadingLabel}"]`)).not.toBeNull();
+    expect(container.querySelector('[aria-label="Loading"]')).toBeNull();
+    expect(container.firstElementChild?.getAttribute("class")).toContain("overflow-hidden");
+    if (backLabel) expect(container.querySelector("a")?.textContent).toBe(backLabel);
+    else expect(container.querySelector("a")).toBeNull();
+
+    router.dispose();
+    await act(async () => root.unmount());
   });
 });

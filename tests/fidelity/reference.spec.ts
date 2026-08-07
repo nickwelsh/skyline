@@ -40,6 +40,35 @@ test("reference environment boundary owns API errors", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Skyline" })).toHaveCount(0);
 });
 
+test("reference initial hydration exposes Skyline's route-specific loading page", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const fixture = await createReferenceFixture();
+  const runId = (fixture.loaders.run as { run: { friendlyId: string } }).run.friendlyId;
+  await installReferenceFixture(page, fixture);
+  await page.goto("http://127.0.0.1:4185/oracle/run-loading", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+
+  await expect(page.getByRole("heading", { name: runId, exact: true })).toBeVisible();
+  await expect(page.getByLabel("Loading Run", { exact: true })).toHaveCount(1);
+  await expect(page.getByLabel("Loading", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Runs", exact: true }).last()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("reference stale refresh keeps resolved content instead of initial loading fallback", async ({ page }) => {
+  const fixture = await createReferenceFixture();
+  const runId = (fixture.loaders.run as { run: { friendlyId: string } }).run.friendlyId;
+  await installReferenceFixture(page, fixture);
+  await page.goto("http://127.0.0.1:4185/oracle/run-stale-refresh", { waitUntil: "domcontentloaded", timeout: 10_000 });
+
+  await expect.poll(() => page.evaluate(() => (window as Window & {
+    __oracleRouter?: { state?: { navigation?: { state?: string } } };
+  }).__oracleRouter?.state?.navigation?.state)).toBe("loading");
+  await expect(page.getByRole("heading", { name: runId, exact: true })).toBeVisible();
+  await expect(page.getByLabel("Loading Run", { exact: true })).toHaveCount(0);
+});
+
 test("reference paired jobs-populated readiness", async ({ page }) => {
   const capture = "jobs-populated@1440x960-classic";
   const errors: string[] = [];
