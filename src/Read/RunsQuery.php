@@ -40,6 +40,7 @@ final readonly class RunsQuery
             if (! in_array($direction, ['next', 'previous'], true)
                 || ! is_int($decoded['triggeredAt'] ?? null)
                 || ! is_string($decoded['runId'] ?? null)
+                || ($decoded['filters'] ?? null) !== $this->filterKey($filters)
             ) {
                 throw new InvalidQuery('The cursor is invalid.');
             }
@@ -68,10 +69,10 @@ final readonly class RunsQuery
             'runs' => $runs,
             'pagination' => [
                 'previous' => $first !== null && $this->existsBefore($filters, $first)
-                    ? $this->cursor('previous', $first)
+                    ? $this->cursor('previous', $first, $filters)
                     : null,
                 'next' => $last !== null && $this->existsAfter($filters, $last)
-                    ? $this->cursor('next', $last)
+                    ? $this->cursor('next', $last, $filters)
                     : null,
             ],
             'pollCursor' => $this->cursors->encode('runs-poll', ['observedAt' => $observedAt]),
@@ -236,13 +237,22 @@ final readonly class RunsQuery
         return $query->exists();
     }
 
-    private function cursor(string $direction, object $row): string
+    private function cursor(string $direction, object $row, RunsFilters $filters): string
     {
         return $this->cursors->encode('runs', [
             'direction' => $direction,
             'triggeredAt' => (int) $row->triggered_at,
             'runId' => $row->run_id,
+            'filters' => $this->filterKey($filters),
         ]);
+    }
+
+    private function filterKey(RunsFilters $filters): string
+    {
+        $state = $filters->toArray();
+        sort($state['status']);
+
+        return hash('sha256', json_encode($state, JSON_THROW_ON_ERROR));
     }
 
     /** @return list<array<string, mixed>> */

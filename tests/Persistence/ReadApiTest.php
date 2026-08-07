@@ -58,6 +58,42 @@ it('serves stable 25-row opaque cursor pages and filter options', function (): v
         ->and(collect($first->json('runs'))->pluck('id'))->not->toContain('run-99');
 });
 
+it('binds Run cursors to canonical filter state', function (): void {
+    foreach (range(0, 26) as $index) {
+        seedReadRun($index, $index % 2 === 0 ? 'completed' : 'failed');
+    }
+
+    $filters = ['status' => ['completed', 'failed']];
+    $first = $this->getJson('/skyline/api/runs?'.http_build_query($filters))
+        ->assertOk()
+        ->assertJsonCount(25, 'runs');
+    $next = $first->json('pagination.next');
+
+    expect($next)->toBeString();
+
+    $this->getJson('/skyline/api/runs?'.http_build_query([
+        'status' => ['failed', 'completed'],
+        'cursor' => $next,
+    ]))->assertOk()->assertJsonCount(2, 'runs');
+
+    foreach ([
+        ['status' => ['completed']],
+        ['job' => 'App\\Jobs\\Job01'],
+        ['connection' => 'redis', 'queue' => 'default'],
+        ['trace' => sprintf('%032x', 1)],
+        ['rootOnly' => true],
+        ['triggeredFrom' => '2026-08-05T00:00:00Z'],
+        ['triggeredTo' => '2026-08-06T00:00:00Z'],
+        ['search' => 'Job'],
+    ] as $changed) {
+        $this->getJson('/skyline/api/runs?'.http_build_query([
+            ...$filters,
+            ...$changed,
+            'cursor' => $next,
+        ]))->assertStatus(422)->assertJsonPath('error.code', 'invalid_query');
+    }
+});
+
 it('filters Runs and rejects invalid query state explicitly', function (): void {
     seedReadRun(1, 'completed', true, 'App\\Jobs\\Alpha', 'redis', 'mail');
     seedReadRun(2, 'failed', true, 'App\\Jobs\\Beta', 'database', 'default');
