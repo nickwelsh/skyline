@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { captureEnvironment } from "./capture";
+import { captureEnvironment, installDeterministicSplineViewer } from "./capture";
 
 describe("fidelity capture environment", () => {
   test.each([
@@ -8,5 +8,18 @@ describe("fidelity capture environment", () => {
     ["shell-live-change@1440x960-system-light", { width: 1440, height: 960, theme: "system", colorScheme: "light" }],
   ])("parses %s", (capture, expected) => {
     expect(captureEnvironment(capture)).toEqual(expected);
+  });
+
+  test("pins external Spline artwork to one inert browser element", () => {
+    installDeterministicSplineViewer();
+    const constructor = customElements.get("spline-viewer");
+
+    installDeterministicSplineViewer();
+    const element = document.createElement("spline-viewer");
+    document.body.append(element);
+
+    expect(customElements.get("spline-viewer")).toBe(constructor);
+    expect(element.getAttribute("data-fidelity-static-artwork")).toBe("");
+    expect(element.childElementCount).toBe(0);
   });
 });

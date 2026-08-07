@@ -14,12 +14,31 @@ export function captureEnvironment(capture: string): CaptureEnvironment {
   };
 }
 
+export function installDeterministicSplineViewer() {
+  const elementName = "spline-viewer";
+  const marker = "__skylineFidelityStaticArtwork";
+  const existing = customElements.get(elementName) as (CustomElementConstructor & Record<string, unknown>) | undefined;
+  if (existing) {
+    if (existing[marker] !== true) throw new Error("External Spline renderer registered before the fidelity fixture.");
+    return;
+  }
+
+  class StaticSplineViewer extends HTMLElement {
+    connectedCallback() {
+      this.setAttribute("data-fidelity-static-artwork", "");
+    }
+  }
+  Object.defineProperty(StaticSplineViewer, marker, { value: true });
+  customElements.define(elementName, StaticSplineViewer);
+}
+
 export async function prepareCapture(page: Page, capture: string, basePath: string) {
   const environment = captureEnvironment(capture);
   await page.setViewportSize({ width: environment.width, height: environment.height });
   const initialScheme = capture.includes("shell-live-change") ? opposite(environment.colorScheme) : environment.colorScheme;
   await page.emulateMedia({ colorScheme: initialScheme, reducedMotion: "reduce" });
   await page.clock.install({ time: new Date("2026-08-05T12:00:00.000Z") });
+  await page.addInitScript(installDeterministicSplineViewer);
   await page.addInitScript(({ key, theme }) => {
     localStorage.setItem(key, JSON.stringify({ version: 1, theme, contrast: 70 }));
   }, { key: `skyline.ui-preferences.v1:${basePath}`, theme: environment.theme });
