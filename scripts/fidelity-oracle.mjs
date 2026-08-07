@@ -10,6 +10,9 @@ const oracleDecision = "NW-216";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const fail = (message) => { throw new Error(message); };
+const validProtectedSelectorViewportPolicy = ({ allowBelowViewport, allowRightOfViewport } = {}) =>
+  (allowBelowViewport === undefined || allowBelowViewport === true)
+  && (allowRightOfViewport === undefined || allowRightOfViewport === true);
 
 export function verifyFidelityBundle(root = scriptRoot) {
   const fidelity = join(root, "tests/fidelity");
@@ -192,7 +195,7 @@ export function validateAllowedDifferences(differences) {
       const protectedSelectors = region.protectedSelectors ?? [];
       const protectedIds = protectedSelectors.map((entry) => entry.id);
       const ownedSelectors = [...pairSelectors, ...protectedSelectors.map((entry) => entry.selector)];
-      if (new Set(pairIds).size !== pairIds.length || new Set(protectedIds).size !== protectedIds.length || new Set(ownedSelectors).size !== ownedSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector || (pair.skylineBoundary !== undefined && pair.skylineBoundary !== true)) || protectedSelectors.some((entry) => !entry.id || !entry.selector || !["trigger", "skyline"].includes(entry.application) || (entry.allowBelowViewport !== undefined && entry.allowBelowViewport !== true) || (entry.allowRightOfViewport !== undefined && entry.allowRightOfViewport !== true))) fail(`Invalid capability-omission selector pair: ${region.id}`);
+      if (new Set(pairIds).size !== pairIds.length || new Set(protectedIds).size !== protectedIds.length || new Set(ownedSelectors).size !== ownedSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector || (pair.skylineBoundary !== undefined && pair.skylineBoundary !== true)) || protectedSelectors.some((entry) => !entry.id || !entry.selector || !["trigger", "skyline"].includes(entry.application) || !validProtectedSelectorViewportPolicy(entry))) fail(`Invalid capability-omission selector pair: ${region.id}`);
       if (region.selectorPairs.some((pair) => pair.skylineBoundary) && protectedSelectors.length === 0) fail(`Missing protected capability-omission selectors: ${region.id}`);
       const measurements = Object.keys(region.measurements);
       if (measurements.length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing capability-omission measurement: ${region.id}`);

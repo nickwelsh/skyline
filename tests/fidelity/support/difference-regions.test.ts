@@ -15,6 +15,7 @@ import {
   observeElementDom,
   requireSingleMatch,
   resolveFrameworkExtensionAccessibilitySelector,
+  skylineProtectedSelector,
   settleStableElementPair,
   validateFrameworkExtensionObservation,
   validateCapabilityOmissionObservation,
@@ -341,7 +342,7 @@ describe("framework-extension fidelity regions", () => {
   test("locks protected reflow evidence including element screenshots", () => {
     const region = capabilityDefinition();
     region.selectorPairs[0] = { ...region.selectorPairs[0], skylineBoundary: true };
-    region.protectedSelectors = [{ id: "search", application: "skyline", selector: "[data-protected='search']" }];
+    region.protectedSelectors = [skylineProtectedSelector("search", "[data-protected='search']", { allowRightOfViewport: true })];
     region.protectedMeasurements = {
       [region.captures[0]]: {
         search: {
@@ -360,6 +361,7 @@ describe("framework-extension fidelity regions", () => {
     };
 
     expect(validateCapabilityOmissionObservation(region, observed, region.captures[0])).toBe(observed);
+    expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], allowRightOfViewport: undefined }] }, region.captures[0])).toThrow(/allowRightOfViewport/i);
     expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], crop: { status: "visible", rect: { x: 4, y: 5, width: 20, height: 24 }, screenshotSha256: "2".repeat(64) } }] }, region.captures[0])).toThrow(/crop/i);
     expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], accessibilitySha256: "2".repeat(64) }] }, region.captures[0])).toThrow(/accessibilitySha256/i);
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, protectedSelectors: [{ ...region.protectedSelectors![0], selector: region.selectorPairs[0].skylineSelector }] }] })).toThrow(/selector ownership/i);
@@ -377,12 +379,22 @@ describe("framework-extension fidelity regions", () => {
     expect(captureProtectedElementCrop(screenshot(false), { width: 2, height: 2 }, rect))
       .not.toEqual(captureProtectedElementCrop(screenshot(true), { width: 2, height: 2 }, rect));
     expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 })).toThrow(/below the viewport/i);
-    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, true)).toEqual({ status: "below-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, true)).toThrow(/outside the viewport/i);
-    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, undefined, true)).toEqual({ status: "right-of-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, undefined, true)).toThrow(/below the viewport/i);
-    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, true, true)).toEqual({ status: "right-of-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: -3, y: 0, width: 1, height: 1 }, true, true)).toThrow(/outside the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, { allowBelowViewport: true })).toEqual({ status: "below-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true })).toThrow(/outside the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, { allowRightOfViewport: true })).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, { allowRightOfViewport: true })).toThrow(/below the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, { allowBelowViewport: true, allowRightOfViewport: true })).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: -3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true, allowRightOfViewport: true })).toThrow(/outside the viewport/i);
+  });
+
+  test("builds Skyline protected selectors with named viewport policy", () => {
+    expect(skylineProtectedSelector("activity", "[data-skyline-protected='activity']", { allowBelowViewport: true, allowRightOfViewport: true })).toEqual({
+      id: "activity",
+      application: "skyline",
+      selector: "[data-skyline-protected='activity']",
+      allowBelowViewport: true,
+      allowRightOfViewport: true,
+    });
   });
 
   test("rejects protected elements without positive visible presentation", () => {

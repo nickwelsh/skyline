@@ -75,7 +75,11 @@ export type ProtectedSelectorMeasurement = {
   accessibilitySha256: string;
   crop: ProtectedSelectorCrop;
 };
-export type ProtectedSelectorDefinition = { id: string; application: "trigger" | "skyline"; selector: string; allowBelowViewport?: true; allowRightOfViewport?: true };
+export type ProtectedSelectorViewportPolicy = { allowBelowViewport?: true; allowRightOfViewport?: true };
+export type ProtectedSelectorDefinition = { id: string; application: "trigger" | "skyline"; selector: string } & ProtectedSelectorViewportPolicy;
+export function skylineProtectedSelector(id: string, selector: string, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorDefinition {
+  return { id, application: "skyline", selector, ...policy };
+}
 export type CapabilityOmissionDefinition = {
   id: string;
   category: "capability-omission";
@@ -252,9 +256,9 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
     if (applicationSelectors.length === 0) continue;
     const viewport = page.viewportSize();
     if (!viewport) throw new Error("Protected selector requires a fixed viewport.");
-    const hasVisibleCrop = applicationSelectors.some((selector) => protectedSelectorCropStatus(viewport, selector.rect, selector.allowBelowViewport, selector.allowRightOfViewport) === "visible");
+    const hasVisibleCrop = applicationSelectors.some((selector) => protectedSelectorCropStatus(viewport, selector.rect, selector) === "visible");
     const screenshot = hasVisibleCrop ? await page.screenshot({ animations: "disabled", caret: "hide" }) : undefined;
-    for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector.allowBelowViewport, protectedSelector.allowRightOfViewport);
+    for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector);
   }
   return { selectorPairs, protectedSelectors };
 }
@@ -279,6 +283,9 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
     const observed = observedProtected[index];
     const expected = protectedMeasurement[protectedSelector.id];
     if (!observed || !expected || observed.id !== protectedSelector.id || observed.application !== protectedSelector.application || observed.selector !== protectedSelector.selector) throw new Error(`Allowed region ${definition.id} changed protected selector ${protectedSelector.id}.`);
+    for (const key of ["allowBelowViewport", "allowRightOfViewport"] as const) {
+      if (observed[key] !== protectedSelector[key]) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
+    }
     for (const key of ["rect", "computedStyleSha256", "accessibilitySha256", "crop"] as const) {
       if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
     }
@@ -286,8 +293,8 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   return observation;
 }
 
-export function captureProtectedElementCrop(screenshot: Buffer | undefined, viewport: { width: number; height: number }, rect: Rect, allowBelowViewport?: true, allowRightOfViewport?: true): ProtectedSelectorCrop {
-  const status = protectedSelectorCropStatus(viewport, rect, allowBelowViewport, allowRightOfViewport);
+export function captureProtectedElementCrop(screenshot: Buffer | undefined, viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorCrop {
+  const status = protectedSelectorCropStatus(viewport, rect, policy);
   if (status !== "visible") return { status };
   const x = Math.max(0, Math.floor(rect.x));
   const y = Math.max(0, Math.floor(rect.y));
@@ -309,7 +316,8 @@ export function validateProtectedElementPresentation(definitionId: string, selec
   if (["display", "visibility", "opacity"].some((property) => value(property) === undefined) || value("display") === "none" || ["hidden", "collapse"].includes(value("visibility") ?? "") || value("content-visibility") === "hidden" || Number(value("opacity")) === 0) throw new Error(`Allowed region ${definitionId} protected selector ${selectorId} is not visibly painted.`);
 }
 
-function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, allowBelowViewport?: true, allowRightOfViewport?: true): ProtectedSelectorCrop["status"] {
+function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorCrop["status"] {
+  const { allowBelowViewport, allowRightOfViewport } = policy;
   if (rect.x >= viewport.width) {
     if (!allowRightOfViewport) throw new Error("Protected selector is unexpectedly outside the viewport.");
     if (rect.y >= viewport.height && !allowBelowViewport) throw new Error("Protected selector is unexpectedly below the viewport.");
@@ -527,7 +535,7 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
     }
     if (definition.category === "capability-omission") {
       const protectedSelectors = definition.protectedSelectors ?? [];
-      if (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(protectedSelectors.map(({ id }) => id)).size !== protectedSelectors.length || new Set(selectors).size !== selectors.length || definition.selectorPairs.some((pair) => pair.skylineBoundary !== undefined && pair.skylineBoundary !== true) || protectedSelectors.some((selector) => (selector.allowBelowViewport !== undefined && selector.allowBelowViewport !== true) || (selector.allowRightOfViewport !== undefined && selector.allowRightOfViewport !== true))) throw new Error(`Capability-omission region ${definition.id} has invalid selector ownership.`);
+      if (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(protectedSelectors.map(({ id }) => id)).size !== protectedSelectors.length || new Set(selectors).size !== selectors.length || definition.selectorPairs.some((pair) => pair.skylineBoundary !== undefined && pair.skylineBoundary !== true) || protectedSelectors.some((selector) => !hasValidProtectedSelectorViewportPolicy(selector))) throw new Error(`Capability-omission region ${definition.id} has invalid selector ownership.`);
       if (definition.selectorPairs.some((pair) => pair.skylineBoundary) && (protectedSelectors.length === 0 || !definition.protectedMeasurements || definition.captures.some((capture) => {
         const measurement = definition.protectedMeasurements?.[capture];
         return !measurement || Object.keys(measurement).length !== protectedSelectors.length || protectedSelectors.some(({ id }) => !measurement[id]);
@@ -549,6 +557,11 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures, kind, anchorPair });
     }
   }
+}
+
+function hasValidProtectedSelectorViewportPolicy(policy: ProtectedSelectorViewportPolicy) {
+  return (policy.allowBelowViewport === undefined || policy.allowBelowViewport === true)
+    && (policy.allowRightOfViewport === undefined || policy.allowRightOfViewport === true);
 }
 
 async function observeElement(page: Page, id: string, selector: string, label: string) {

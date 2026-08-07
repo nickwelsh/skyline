@@ -40,7 +40,7 @@ describe("NW-226 shell extension discovery", () => {
     expect(definitions.every(({ captures }) => captures === definitions[0].captures)).toBe(true);
   });
 
-  test("anchors above the intentional Application and project identity reflow", () => {
+  test("anchors above the intentional Application identity reflow", () => {
     for (const definition of definitions) {
       expect(definition.triggerAnchorSelector).toBe(shellAnchor);
       expect(definition.skylineAnchorSelector).toBe(shellAnchor);
