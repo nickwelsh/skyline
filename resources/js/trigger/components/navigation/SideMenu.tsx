@@ -12,7 +12,6 @@ import { useLocation } from "@remix-run/react";
 import { type CSSProperties, type FunctionComponent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { BugIcon } from "~/assets/icons/BugIcon";
 import { DevEnvironmentIconSmall, ProdEnvironmentIconSmall } from "~/assets/icons/EnvironmentIcons";
-import { FolderOpenIcon } from "~/assets/icons/FolderOpenIcon";
 import { LogsIcon } from "~/assets/icons/LogsIcon";
 import { LeftSideMenuCollapsedIcon } from "~/assets/icons/LeftSideMenuCollapsedIcon";
 import { LeftSideMenuIcon } from "~/assets/icons/LeftSideMenuIcon";
@@ -294,18 +293,12 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </span>
         </div>
         </div>
-        <div data-testid="side-menu-project" className="border-b border-grid-bright pb-2.5 pt-1" style={{ paddingLeft: sideMenuPadding, paddingRight: sideMenuPadding }}>
+        <div data-testid="side-menu-application" className="border-b border-grid-bright pb-2.5 pt-1" style={{ paddingLeft: sideMenuPadding, paddingRight: sideMenuPadding }}>
         <div className="w-full space-y-1">
           <div className="flex h-4 items-center overflow-hidden pl-1.5 text-xs">
-            <span className="whitespace-nowrap">Proj<span style={{ opacity: labelOpacity }}>ect</span></span>
+            <span className="whitespace-nowrap">App<span style={{ opacity: labelOpacity }}>lication</span></span>
           </div>
           <div className="space-y-1">
-            <div className={cn("flex h-8 items-center rounded border pl-1.75", collapsed ? "justify-center border-transparent pr-0.5" : "border-grid-bright pr-1")}>
-              <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-                <FolderOpenIcon className="size-5 shrink-0 text-text-bright" />
-                <span className="min-w-0 truncate text-[0.90625rem] font-medium tracking-[-0.01em] text-text-bright" style={{ opacity: labelOpacity }}>{applicationName}</span>
-              </span>
-            </div>
             <div className={cn("flex h-8 items-center rounded pl-1.75", collapsed ? "justify-center pr-0.5" : "pr-1")}>
               <span className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
                 <EnvironmentIcon environmentLabel={environmentLabel} />
