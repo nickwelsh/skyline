@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { canonicalSourceRunFilterUrl, validateActionScripts } from "./action-scripts";
+import { canonicalRunInspectorActionUrl, canonicalSourceRunFilterUrl, validateActionScripts } from "./action-scripts";
 
 describe("semantic fidelity actions", () => {
   test("cover every required interaction family without application-specific commands", () => {
@@ -37,12 +37,75 @@ describe("semantic fidelity actions", () => {
     ]);
   });
 
+  test("proves inspector selection, timeline state, and copied operation text through shared semantics", () => {
+    const actions = JSON.parse(readFileSync(resolve(import.meta.dirname, "../actions.json"), "utf8"));
+    const inspector = actions.scripts.find(({ id }: { id: string }) => id === "selection-inspector-timeline-copy");
+
+    expect(inspector.comparePanelPersistence).toBe(false);
+    expect(inspector.steps).toEqual([
+      {
+        action: "click",
+        target: { role: "treeitem", name: "GenerateMonthlyInvoices Root" },
+        proof: {
+          selection: "run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+          focus: { withinRole: "tree", name: "run-trace" },
+        },
+      },
+      {
+        action: "press",
+        key: "d",
+        proof: { tab: "detail", focus: { withinRole: "tree", name: "run-trace" } },
+      },
+      {
+        action: "click",
+        target: { role: "switch", name: "Queue time" },
+        proof: {
+          checked: { target: { role: "switch", name: "Queue time" }, value: true },
+          focus: { target: { role: "switch", name: "Queue time" }, name: "queue-time" },
+        },
+      },
+      {
+        action: "click",
+        target: { role: "treeitem", name: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)" },
+        proof: {
+          selection: "span_4f24adb545b26d31",
+          visible: [{ role: "button", name: "Copy" }],
+          focus: { withinRole: "tree", name: "run-trace" },
+        },
+      },
+      {
+        action: "click",
+        target: { role: "button", name: "Copy" },
+        proof: {
+          clipboard: "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)",
+          focus: { target: { role: "button", name: "Copy" }, name: "copy-message" },
+        },
+      },
+    ]);
+  });
+
   test("canonicalizes only the exercised source failed-status query", () => {
     expect(canonicalSourceRunFilterUrl("/runs?statuses=COMPLETED_WITH_ERRORS")).toBe("/runs?status=failed");
     expect(canonicalSourceRunFilterUrl("/runs?cursor=next&direction=forward&statuses=COMPLETED_WITH_ERRORS")).toBe(
       "/runs?cursor=next&direction=forward&status=failed",
     );
     expect(() => canonicalSourceRunFilterUrl("/runs?statuses=EXECUTING")).toThrow("Unmapped source status query: EXECUTING");
+  });
+
+  test("canonicalizes only adapter-encoded timeline state after the shared switch", () => {
+    expect(canonicalRunInspectorActionUrl("/runs/run_1?node=run_run_1&tab=detail&queue=true")).toBe(
+      "/runs/run_1?node=run_run_1",
+    );
+    expect(canonicalRunInspectorActionUrl("/runs/run_1?node=run_run_1&tab=detail")).toBe(
+      "/runs/run_1?node=run_run_1&tab=detail",
+    );
+  });
+
+  test("rejects panel-persistence exclusion outside its exact action", () => {
+    const actions = JSON.parse(readFileSync(resolve(import.meta.dirname, "../actions.json"), "utf8"));
+    actions.scripts[0].comparePanelPersistence = false;
+
+    expect(() => validateActionScripts(actions)).toThrow("Panel persistence exclusion is limited to inspector selection.");
   });
 
   test("rejects an inexact text fallback", () => {

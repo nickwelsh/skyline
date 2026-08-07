@@ -38,7 +38,11 @@ export function collectFidelityDifferences(evidence: FidelityEvidence): Fidelity
 function normalizeObservation(observation: ActionObservation, application: QueueUrlApplication): ActionObservation {
   const url = normalizeRouterUrl(observation.url, application);
   const storage = normalizeStorage(observation.storage);
-  const activeElement = observation.activeElement?.tag === "BODY" ? { ...observation.activeElement, name: "" } : observation.activeElement;
+  const activeElement = observation.activeElement?.tag === "BODY"
+    ? { ...observation.activeElement, name: "" }
+    : observation.activeElement?.role === "tree"
+      ? { ...observation.activeElement, name: "run-trace" }
+      : observation.activeElement;
   return { ...observation, url, storage, activeElement };
 }
 
@@ -48,10 +52,10 @@ function normalizeRouterUrl(value: string, application: QueueUrlApplication) {
   const span = url.searchParams.get("span");
   const node = url.searchParams.get("node");
   const selection = span ?? node;
-  if ((span === null) !== (node === null) && /^\/runs\/[^/]+$/.test(url.pathname) && selection?.startsWith("attempt_")) {
+  if ((span === null) !== (node === null) && /^\/runs\/[^/]+$/.test(url.pathname) && selection) {
     url.searchParams.delete("span");
     url.searchParams.delete("node");
-    url.searchParams.set("attempt-selection", selection);
+    url.searchParams.set("selection", selection.startsWith("span_run_") ? `run_${selection.slice("span_".length)}` : selection);
   }
   url.searchParams.sort();
   return normalizeQueueFilterUrl(`${url.pathname}${url.search}${url.hash}`, application);

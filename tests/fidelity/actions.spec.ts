@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { actionCaptureId, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import actionFile from "./actions.json" with { type: "json" };
 import matrixFile from "./matrix.json" with { type: "json" };
-import { canonicalSourceRunFilterUrl, runActionScript, type ActionScript } from "./support/action-scripts";
+import { canonicalRunInspectorActionUrl, canonicalSourceRunFilterUrl, runActionScript, type ActionScript } from "./support/action-scripts";
 import { prepareCapture, settleCapture } from "./support/capture";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
@@ -21,6 +21,7 @@ test.describe.configure({ mode: "serial" });
 for (const script of actionFile.scripts as ActionScript[]) {
   test(`shared actions: ${script.id}`, async ({ page, context }) => {
     test.setTimeout(60_000);
+    if (script.id === "selection-inspector-timeline-copy") await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const capture = actionCaptureId(matrix, script.start);
     const scenario = parseScenario(capture);
     const reference = await context.newPage();
@@ -34,19 +35,32 @@ for (const script of actionFile.scripts as ActionScript[]) {
     ]);
     await reference.locator("html[data-oracle-ready='true']").waitFor();
     await Promise.all([settleCapture(page), settleCapture(reference)]);
+    if (script.id === "selection-inspector-timeline-copy") {
+      await Promise.all([page.evaluate(() => navigator.clipboard.writeText("")), reference.evaluate(() => navigator.clipboard.writeText(""))]);
+    }
 
     const [trigger, skyline] = await Promise.all([
       runActionScript(reference, script, {
         basePath: "/oracle",
         fixtureState: (state) => reference.evaluate((value) => (window as Window & { __oracleSetFixtureState?: (state: string) => void }).__oracleSetFixtureState?.(value), state),
-        canonicalizeUrl: script.id === "filters-pagination" ? canonicalSourceRunFilterUrl : undefined,
+        canonicalizeUrl: canonicalizeActionUrl(script.id),
       }),
-      runActionScript(page, script, { basePath: "/skyline", fixtureState: async (state) => fixture.setState(state) }),
+      runActionScript(page, script, {
+        basePath: "/skyline",
+        fixtureState: async (state) => fixture.setState(state),
+        canonicalizeUrl: canonicalizeActionUrl(script.id),
+      }),
     ]);
     assertNoFidelityDifferences(collectFidelityDifferences({ triggerInteractions: trigger, skylineInteractions: skyline }));
     proof(resolve(root, "tests/fidelity/oracle/actions", `${script.id}.json`), `${JSON.stringify({ trigger, skyline }, null, 2)}\n`);
     await reference.close();
   });
+}
+
+function canonicalizeActionUrl(scriptId: string) {
+  if (scriptId === "filters-pagination") return canonicalSourceRunFilterUrl;
+  if (scriptId === "selection-inspector-timeline-copy") return canonicalRunInspectorActionUrl;
+  return undefined;
 }
 
 function proof(path: string, contents: string) {

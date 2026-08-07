@@ -8,8 +8,16 @@ type Effect = {
   hidden: Target[];
   focus: string;
 };
-type Step = { action: "click" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
-export type ActionScript = { id: string; start: string; steps: Step[] };
+type Proof = {
+  selection?: string;
+  tab?: string;
+  visible?: Target[];
+  checked?: { target: Target; value: boolean };
+  clipboard?: string;
+  focus?: { target?: Target; withinRole?: string; name: string };
+};
+type Step = { action: "click" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; proof?: Proof; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
+export type ActionScript = { id: string; start: string; comparePanelPersistence?: boolean; steps: Step[] };
 type ActionFile = { schemaVersion: number; scripts: ActionScript[] };
 
 const required = ["navigation-history", "dialogs-menus", "filters-pagination", "selection-inspector-timeline-copy", "preferences", "live-error-recovery", "keyboard-focus-shortcuts"];
@@ -21,6 +29,9 @@ export function validateActionScripts(value: ActionFile) {
   if (JSON.stringify(ids) !== JSON.stringify(required)) throw new Error("Action-script coverage drifted.");
   for (const script of value.scripts) {
     if (!script.start || script.steps.length === 0) throw new Error(`Action script ${script.id} is empty.`);
+    if (script.comparePanelPersistence === false && script.id !== "selection-inspector-timeline-copy") {
+      throw new Error("Panel persistence exclusion is limited to inspector selection.");
+    }
     for (const step of script.steps) {
       if (!actions.has(step.action)) throw new Error(`Action script ${script.id} has an unknown action.`);
       if (step.target?.exactText !== undefined && step.target.exactText.trim() !== step.target.exactText) {
@@ -35,15 +46,24 @@ export function validateActionScripts(value: ActionFile) {
 }
 
 export async function runActionScript(page: Page, script: ActionScript, options: { basePath: string; fixtureState(state: string): Promise<void>; canonicalizeUrl?(url: string): string }) {
-  const transcript: ActionObservation[] = [await observeAction(page, "initial")];
+  const initial = await observeAction(page, "initial");
+  if (script.comparePanelPersistence === false) initial.storage = withoutPanelPersistence(initial.storage);
+  const transcript: ActionObservation[] = [initial];
   let effect: Effect | undefined;
   for (const [index, step] of script.steps.entries()) {
     await perform(page, step, options.fixtureState);
+    const proof = step.proof ? await assertProof(page, step.proof) : undefined;
     effect = step.effect ?? effect;
     const observation = await observeAction(page, `${index + 1}:${step.action}`);
+    if (script.comparePanelPersistence === false) observation.storage = withoutPanelPersistence(observation.storage);
     if (effect) {
       observation.visible = await assertEffect(page, effect);
       observation.activeElement = { tag: "SEMANTIC", role: "combobox", name: effect.focus };
+    }
+    if (proof) {
+      observation.visible = proof.visible;
+      if (proof.focus) observation.activeElement = { tag: "SEMANTIC", role: proof.focus.role, name: proof.focus.name };
+      observation.clipboard = proof.clipboard;
     }
     transcript.push(observation);
   }
@@ -51,6 +71,64 @@ export async function runActionScript(page: Page, script: ActionScript, options:
   return options.canonicalizeUrl
     ? normalized.map((observation) => ({ ...observation, url: options.canonicalizeUrl!(observation.url) }))
     : normalized;
+}
+
+function withoutPanelPersistence(storage: Record<string, string>) {
+  return Object.fromEntries(Object.entries(storage).flatMap(([key, value]) => {
+    if (key === "panel-run-parent-v3" || key === "panel-run-tree") return [];
+    if (!key.startsWith("skyline.ui-preferences.v1:")) return [[key, value]];
+    const preferences = JSON.parse(value);
+    delete preferences.panels;
+    return [[key, JSON.stringify(preferences)]];
+  }));
+}
+
+async function assertProof(page: Page, proof: Proof) {
+  const visible: string[] = [];
+  if (proof.selection) {
+    await expect.poll(() => semanticSelection(page.url())).toBe(proof.selection);
+    visible.push(`selection:${proof.selection}`);
+  }
+  if (proof.tab) {
+    await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(proof.tab);
+    visible.push(`tab:${proof.tab}`);
+  }
+  for (const target of proof.visible ?? []) {
+    await expect(locator(page, target)).toBeVisible();
+    visible.push(`visible:${target.role}:${target.name}`);
+  }
+  if (proof.checked) {
+    const control = locator(page, proof.checked.target);
+    await expect(control).toBeChecked({ checked: proof.checked.value });
+    visible.push(`checked:${proof.checked.target.role}:${proof.checked.target.name}=${proof.checked.value}`);
+  }
+  if (proof.clipboard !== undefined) {
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(proof.clipboard);
+    visible.push("clipboard:exact");
+  }
+  if (proof.focus) {
+    if (proof.focus.target) {
+      await expect(locator(page, proof.focus.target)).toBeFocused();
+    } else if (proof.focus.withinRole) {
+      await expect.poll(() => page.evaluate((role) => {
+        const active = document.activeElement;
+        return active instanceof Element && (active.getAttribute("role") === role || active.closest(`[role=${JSON.stringify(role)}]`) !== null);
+      }, proof.focus!.withinRole!)).toBe(true);
+    } else {
+      throw new Error("Semantic focus proof target missing.");
+    }
+  }
+  return {
+    visible,
+    focus: proof.focus ? { role: proof.focus.target?.role ?? proof.focus.withinRole ?? null, name: proof.focus.name } : undefined,
+    clipboard: proof.clipboard ?? null,
+  };
+}
+
+function semanticSelection(url: string) {
+  const params = new URL(url).searchParams;
+  const selection = params.get("span") ?? params.get("node");
+  return selection?.startsWith("span_run_") ? `run_${selection.slice("span_".length)}` : selection;
 }
 
 export function canonicalSourceRunFilterUrl(url: string) {
@@ -62,6 +140,14 @@ export function canonicalSourceRunFilterUrl(url: string) {
   }
   parsed.searchParams.delete("statuses");
   parsed.searchParams.set("status", "failed");
+  return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+}
+
+export function canonicalRunInspectorActionUrl(url: string) {
+  const parsed = new URL(url, "https://fidelity.invalid");
+  if (parsed.searchParams.get("queue") !== "true") return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  parsed.searchParams.delete("queue");
+  parsed.searchParams.delete("tab");
   return `${parsed.pathname}${parsed.search}${parsed.hash}`;
 }
 

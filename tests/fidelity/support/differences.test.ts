@@ -22,7 +22,7 @@ describe("fidelity difference aggregation", () => {
     expect(() => assertNoFidelityDifferences(differences)).toThrow(/\[pixels\][\s\S]*\[accessibility\][\s\S]*\[axe\][\s\S]*\[url\][\s\S]*\[focus\][\s\S]*\[persistence\][\s\S]*\[action\][\s\S]*\[history\]/);
   });
 
-  it("normalizes semantic Attempt routes and panel persistence across history", () => {
+  it("normalizes semantic Run-node routes and panel persistence across history", () => {
     const triggerStorage = nativeStorage();
     const skylineStorage = adapterStorage();
     const trigger = [
@@ -48,13 +48,24 @@ describe("fidelity difference aggregation", () => {
     ]);
   });
 
-  it("does not normalize non-Attempt or conflicting route state", () => {
+  it("normalizes source Run-span and shared operation selections", () => {
+    const trigger = [
+      observation("1:click", "/runs/run_1?span=span_run_1", "Run trace", {}, ["selection:run_run_1"]),
+      observation("4:click", "/runs/run_1?span=span_query&tab=detail", "Run trace", {}, ["selection:span_query"]),
+    ];
+    const skyline = [
+      observation("1:click", "/skyline/runs/run_1?node=run_run_1", "Run trace", {}, ["selection:run_run_1"]),
+      observation("4:click", "/skyline/runs/run_1?node=span_query&tab=detail", "Run trace", {}, ["selection:span_query"]),
+    ];
+
+    expect(collectFidelityDifferences({ triggerInteractions: trigger, skylineInteractions: skyline })).toEqual([]);
+  });
+
+  it("does not normalize conflicting route state", () => {
     const base = observation("initial", "/runs/run_1?span=span_root", "Copy", {}, []);
-    const differentMechanism = observation("initial", "/skyline/runs/run_1?node=span_root", "Copy", {}, []);
     const differentAttempt = observation("initial", "/skyline/runs/run_1?node=attempt_run_1_2", "Copy", {}, []);
     const attempt = { ...base, url: "/runs/run_1?span=attempt_run_1_1" };
 
-    expect(collectFidelityDifferences({ triggerInteractions: [base], skylineInteractions: [differentMechanism] })).toEqual([expect.objectContaining({ axis: "url" })]);
     expect(collectFidelityDifferences({ triggerInteractions: [attempt], skylineInteractions: [differentAttempt] })).toEqual([expect.objectContaining({ axis: "url" })]);
   });
 });
