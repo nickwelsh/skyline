@@ -4,7 +4,7 @@ export function createDiscoveryStep(
   capture: string,
   options: { timeoutMs?: number; write?: (line: string) => unknown } = {},
 ): DiscoveryStep {
-  const timeoutMs = options.timeoutMs ?? 2_000;
+  const timeoutMs = options.timeoutMs ?? 10_000;
   const write = options.write ?? ((line: string) => process.stdout.write(line));
 
   return async <T>(label: string, action: () => Promise<T>) => {
