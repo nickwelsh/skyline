@@ -210,7 +210,11 @@ final readonly class JobsQuery
     {
         $basePath = '/'.trim((string) config('skyline.path', 'skyline'), '/');
 
-        return $rows->filter(fn (object $run): bool => is_string($run->connection) && is_string($run->queue))
+        return $rows->filter(fn (object $run): bool => is_string($run->connection)
+            && $run->connection !== 'sync'
+            && $run->connection !== ''
+            && is_string($run->queue)
+            && $run->queue !== '')
             ->groupBy(fn (object $run): string => $run->connection."\0".$run->queue)
             ->map(function (Collection $target) use ($basePath): array {
                 $run = $target->first();

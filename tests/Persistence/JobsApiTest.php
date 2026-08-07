@@ -121,6 +121,7 @@ it('shows Job activity Queue targets and cursor-paginated filtered Runs', functi
             $index % 2 === 0 ? 'billing' : 'default',
         );
     }
+    seedJobRun(98, 'App\\Jobs\\Invoice', 'completed', true, 'sync', 'sync');
     seedJobRun(99, 'App\\Jobs\\Other', 'completed');
     $job = $this->getJson('/skyline/api/jobs')->assertOk()->json('jobs.0');
 
@@ -132,7 +133,7 @@ it('shows Job activity Queue targets and cursor-paginated filtered Runs', functi
         ->assertJsonPath('queueTargets.0.connection', 'database')
         ->assertJsonPath('queueTargets.1.connection', 'redis')
         ->assertJsonPath('filters.status.0', 'completed')
-        ->assertJsonCount(14, 'runs');
+        ->assertJsonCount(15, 'runs');
 
     expect($first->json('activity'))->not->toBeEmpty()
         ->and($first->json('queueTargets.0.id'))->toStartWith('queue_')
@@ -144,7 +145,7 @@ it('shows Job activity Queue targets and cursor-paginated filtered Runs', functi
 
     $this->getJson('/skyline/api/jobs/'.$job['id'].'?'.http_build_query(['cursor' => $next]))
         ->assertOk()
-        ->assertJsonCount(2, 'runs')
+        ->assertJsonCount(3, 'runs')
         ->assertJsonPath('pagination.next', null);
 });
 
