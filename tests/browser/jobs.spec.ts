@@ -149,8 +149,8 @@ test("sidebar customization hides and restores a favorite persistently", async (
 
   const observability = page.getByRole("button", { name: "Observability", exact: true });
   await observability.hover();
-  await observability.locator("..").getByRole("button", { name: "Sidebar options" }).click();
-  await page.getByText("Customize sidebar", { exact: true }).click();
+  await page.getByRole("button", { name: "Sidebar options" }).click();
+  await page.getByRole("button", { name: "Customize sidebar" }).click();
   const hideFavorite = page.getByRole("button", { name: "Hide GenerateMonthlyInvoices" });
   await hideFavorite.click();
   await expect(page.getByRole("button", { name: "Show GenerateMonthlyInvoices" })).toHaveAttribute("aria-pressed", "true");
@@ -161,11 +161,12 @@ test("sidebar customization hides and restores a favorite persistently", async (
   });
   await expect(favorite).toHaveCount(0);
   await page.reload();
+  await expect(page.getByRole("button", { name: "Remove GenerateMonthlyInvoices from favorites" })).toBeVisible();
   await expect(favorite).toHaveCount(0);
 
   await observability.hover();
-  await observability.locator("..").getByRole("button", { name: "Sidebar options" }).click();
-  await page.getByText("Customize sidebar", { exact: true }).click();
+  await page.getByRole("button", { name: "Sidebar options" }).click();
+  await page.getByRole("button", { name: "Customize sidebar" }).click();
   await page.getByRole("button", { name: "Show GenerateMonthlyInvoices" }).click();
   await page.getByRole("button", { name: "Confirm" }).click();
   await expect(favorite).toBeVisible();
