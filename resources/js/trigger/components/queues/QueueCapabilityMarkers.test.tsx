@@ -23,7 +23,7 @@ describe("Queue truthfulness", () => {
     expect(container.textContent).toContain("Recorded queued");
     expect(container.textContent).toContain("Recorded running");
     expect(container.textContent).toContain("redis / reports");
-    expect(container.textContent).toContain("Queued");
+    for (const label of ["Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max", "queued", "running", "retrying", "completed", "failed"]) expect(container.textContent).toContain(label);
     expect(container.textContent).not.toMatch(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-period-filter"]')).toHaveLength(1);
@@ -40,12 +40,11 @@ describe("Queue truthfulness", () => {
   it("omits detail administration while retaining recorded activity and Queue time", () => {
     const container = render(<QueueTargetDetailPresenter data={detail()} loading={false} />);
     expect(container.querySelectorAll("[data-skyline-capability]")).toHaveLength(0);
-    expect(container.textContent).toContain("Recorded queued");
-    expect(container.textContent).toContain("Recorded running");
-    expect(container.textContent).toContain("Maximum queue time");
+    for (const label of ["Recorded Runs", "Queue-time samples", "Median queue time", "Queue time p95", "Maximum queue time", "Recorded Run status counts"]) expect(container.textContent).toContain(label);
+    for (const status of ["queued", "running", "retrying", "completed", "failed"]) expect(container.textContent).toContain(status);
     expect(container.textContent).not.toMatch(/Concurrency|Oldest wait|Queue depth|Throttled|No concurrency keys configured/);
     expect(container.querySelector('button[aria-label="Concurrency keys"]')).toBeNull();
-    expect(container.querySelector('[role="img"][aria-label="Throughput chart"]')).not.toBeNull();
+    expect(container.querySelector('[role="img"][aria-label="Recorded Run status activity chart"]')).not.toBeNull();
     expect(container.querySelector('[role="img"][aria-label="Scheduling delay chart"]')).not.toBeNull();
     expect(container.querySelector("[aria-label='Queue-target activity']")?.lastElementChild?.className).toBe("h-52 sm:col-span-2");
     const extension = container.querySelector<HTMLElement>("[data-skyline-extension='queue-recorded-runs']")!;
@@ -71,7 +70,7 @@ function list(): QueueTargetsPresentation {
   return {
     generatedAt: "2026-08-05T12:00:00Z",
     environment: { queued: 12, running: 14 },
-    queueTargets: [target("reports", "Active"), target("billing", "Idle"), target("default", "Queued")],
+    queueTargets: [target("reports"), target("billing"), target("default")],
     pagination: {}, connectionOptions: ["database", "redis", "sqs"], timeRanges: [], hasAnyQueueTargets: true, hasFilters: false,
   };
 }
@@ -79,21 +78,18 @@ function list(): QueueTargetsPresentation {
 function detail(): QueueTargetDetailPresentation {
   return {
     generatedAt: "2026-08-05T12:00:00Z",
-    queueTarget: target("default", "Queued"),
-    stats: { running: 13, queued: 12, peakQueued: 12, maximumQueueTime: "3ms" },
-    activity: [{ timestamp: "2026-08-05T12:00:00Z", recordedRuns: 1, recordedRunCounts: counts({ running: 1 }) }],
+    queueTarget: target("default"),
+    activity: [{ timestamp: "2026-08-05T12:00:00Z", recordedRuns: 1, recordedRunCounts: counts({ retrying: 1 }) }],
     queueTime: [{ timestamp: "2026-08-05T12:00:00Z", sampleCount: 1, medianUs: 1_000, p95Us: 2_000, maximumUs: 3_000 }],
     runs: [], pagination: {}, statusOptions: [], timeRanges: [], hasAnyRuns: false, hasFilters: false,
   };
 }
 
-function target(id: string, health: PresentedQueueTarget["health"]): PresentedQueueTarget {
+function target(id: string): PresentedQueueTarget {
   return {
     id, path: `/queues/${id}`, connection: "redis", queue: id, destination: `redis / ${id}`,
-    queued: health === "Queued" ? 12 : 0,
-    running: health === "Queued" ? 13 : health === "Active" ? 1 : 0,
-    health, delayP95: "–", recordedRuns: "1", recordedRunCounts: counts({}),
-    queueTimeSampleCount: 0, medianQueueTime: "–", p95QueueTime: "–", maximumQueueTime: "–",
+    recordedRuns: "5", recordedRunCounts: counts({ queued: 1, running: 1, retrying: 1, completed: 1, failed: 1 }),
+    queueTimeSampleCount: 3, medianQueueTime: "1ms", p95QueueTime: "2ms", maximumQueueTime: "3ms",
     firstObservedAt: null, lastObservedAt: null,
   };
 }

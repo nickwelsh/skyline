@@ -8,6 +8,7 @@ import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
 import { Button } from "~/components/primitives/Buttons";
 import { Card, CardHeader } from "~/components/primitives/charts/Card";
+import { Header3 } from "~/components/primitives/Headers";
 import { Spinner } from "~/components/primitives/Spinner";
 import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
@@ -16,7 +17,7 @@ import { useEffect, useRef, useState } from "react";
 import { QueueBigNumber } from "./QueueBigNumber";
 import { QueueTargetCharts } from "./QueueTargetCharts";
 import { QueuePeriodFilter, QueueRunStatusFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
-import type { PresentedQueueTarget } from "./QueueTargetsPresenter";
+import { RecordedStatusBreakdown, type PresentedQueueTarget } from "./QueueTargetsPresenter";
 
 type ActivityPoint = { timestamp: string; recordedRuns: number; recordedRunCounts: Record<RunStatus, number> };
 type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null };
@@ -24,7 +25,6 @@ type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number
 export type QueueTargetDetailPresentation = {
   generatedAt: string;
   queueTarget: PresentedQueueTarget;
-  stats: { running: number; queued: number; peakQueued: number; maximumQueueTime: string };
   activity: ActivityPoint[];
   queueTime: QueueTimePoint[];
   runs: PresentedRun[];
@@ -66,10 +66,18 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Recorded queued" value={data.stats.queued} suffix={data.stats.peakQueued > 0 ? `peak ${data.stats.peakQueued.toLocaleString()} recorded Runs` : "Runs"} />
-        <QueueBigNumber title="Recorded running" value={data.stats.running} suffix="Runs" />
-        <QueueBigNumber title="Maximum queue time" formattedValue={data.stats.maximumQueueTime} />
+        <QueueBigNumber title="Recorded Runs" formattedValue={data.queueTarget.recordedRuns} />
+        <QueueBigNumber title="Queue-time samples" value={data.queueTarget.queueTimeSampleCount} />
+        <QueueBigNumber title="Median queue time" formattedValue={data.queueTarget.medianQueueTime} />
+        <QueueBigNumber title="Queue time p95" formattedValue={data.queueTarget.p95QueueTime} />
+        <QueueBigNumber title="Maximum queue time" formattedValue={data.queueTarget.maximumQueueTime} />
       </MetricsLayout.Grid>
+      <MetricsLayout.Content inset>
+        <section className="rounded-lg border border-grid-bright bg-background-bright px-4 py-3">
+          <Header3 className="mb-2">Recorded Run status counts</Header3>
+          <RecordedStatusBreakdown counts={data.queueTarget.recordedRunCounts} />
+        </section>
+      </MetricsLayout.Content>
       <MetricsLayout.Content inset>
         <QueueTargetCharts activity={data.activity} queueTime={data.queueTime} recordedRuns={showRecordedRuns ? <RecordedRunsCard data={data} loading={loading} onClose={closeRecordedRuns} /> : undefined} />
       </MetricsLayout.Content>

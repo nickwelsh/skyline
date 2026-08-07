@@ -24,10 +24,6 @@ describe("QueueTargetAdapter", () => {
     expect(route.queueTargets[0]).toEqual(expect.objectContaining({
       path: "/queues/queue_redis",
       destination: "redis / billing",
-      queued: 1,
-      running: 1,
-      health: "Queued",
-      delayP95: "5ms",
       recordedRuns: "3",
     }));
     expect(route.connectionOptions).toEqual(["redis", "sqs"]);
@@ -38,6 +34,9 @@ describe("QueueTargetAdapter", () => {
     expect(route.queueTargets[0]).toEqual(expect.objectContaining({
       recordedRunCounts: { queued: 1, running: 1, retrying: 0, completed: 1, failed: 0 },
       queueTimeSampleCount: 2,
+      medianQueueTime: "2ms",
+      p95QueueTime: "5ms",
+      maximumQueueTime: "5ms",
       firstObservedAt: "2026-08-05T11:00:00.000000000Z",
       lastObservedAt: "2026-08-05T12:00:00.000000000Z",
     }));
@@ -48,12 +47,15 @@ describe("QueueTargetAdapter", () => {
     const route = presentQueueTarget(detailPage());
 
     expect(route.queueTarget.destination).toBe("redis / billing");
-    expect(route.stats).toEqual({
-      queued: 1,
-      running: 1,
-      peakQueued: 0,
-      maximumQueueTime: "2ms",
-    });
+    expect(route).not.toHaveProperty("stats");
+    expect(route.queueTarget).toEqual(expect.objectContaining({
+      recordedRuns: "3",
+      recordedRunCounts: { queued: 1, running: 1, retrying: 0, completed: 1, failed: 0 },
+      queueTimeSampleCount: 2,
+      medianQueueTime: "2ms",
+      p95QueueTime: "5ms",
+      maximumQueueTime: "5ms",
+    }));
     expect(JSON.stringify(route)).not.toMatch(/oldestWait|concurrency|limit/i);
     expect(route.activity[0]).toEqual(expect.objectContaining({ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1 }));
     expect(route.queueTime[0]).toEqual(expect.objectContaining({ medianUs: 2000, p95Us: 2000 }));

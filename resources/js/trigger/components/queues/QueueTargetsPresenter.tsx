@@ -26,10 +26,6 @@ export type PresentedQueueTarget = {
   connection: string;
   queue: string;
   destination: string;
-  queued: number;
-  running: number;
-  health: "Queued" | "Active" | "Idle";
-  delayP95: string;
   recordedRuns: string;
   recordedRunCounts: Record<RunStatus, number>;
   queueTimeSampleCount: number;
@@ -83,10 +79,12 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
       <TableHeader>
         <TableRow>
           <TableHeaderCell>Name</TableHeaderCell>
-          <TableHeaderCell alignment="right">Recorded queued</TableHeaderCell>
-          <TableHeaderCell alignment="right">Recorded running</TableHeaderCell>
-          <TableHeaderCell alignment="right">Recorded state</TableHeaderCell>
-          <TableHeaderCell alignment="right">Queue time p95</TableHeaderCell>
+          <TableHeaderCell alignment="right">Recorded Runs</TableHeaderCell>
+          <TableHeaderCell>Status counts</TableHeaderCell>
+          <TableHeaderCell alignment="right">Queue-time samples</TableHeaderCell>
+          <TableHeaderCell alignment="right">Median</TableHeaderCell>
+          <TableHeaderCell alignment="right">p95</TableHeaderCell>
+          <TableHeaderCell alignment="right">Max</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody aria-busy={loading} className={loading ? "opacity-50" : undefined}>
@@ -99,10 +97,12 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
             >
               {target.destination}
             </TableCell>
-            <MetricCell target={target} value={target.queued} />
-            <MetricCell target={target} value={target.running} bright={target.running > 0} />
-            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} /></TableCell>
-            <MetricCell target={target} value={target.queueTimeSampleCount > 0 ? target.delayP95 : "–"} bright={target.queueTimeSampleCount > 0} />
+            <MetricCell target={target} value={target.recordedRuns} />
+            <TableCell to={target.path}><RecordedStatusBreakdown counts={target.recordedRunCounts} /></TableCell>
+            <MetricCell target={target} value={target.queueTimeSampleCount} />
+            <MetricCell target={target} value={target.medianQueueTime} bright={target.queueTimeSampleCount > 0} />
+            <MetricCell target={target} value={target.p95QueueTime} bright={target.queueTimeSampleCount > 0} />
+            <MetricCell target={target} value={target.maximumQueueTime} bright={target.queueTimeSampleCount > 0} />
           </TableRow>
         ))}
       </TableBody>
@@ -114,16 +114,9 @@ function MetricCell({ target, value, bright = false }: { target: PresentedQueueT
   return <TableCell to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
 }
 
-function QueueHealthBadge({ health }: { health: PresentedQueueTarget["health"] }) {
-  const styles = health === "Queued"
-    ? "bg-blue-500/10 text-blue-500"
-    : health === "Active" ? "bg-success/10 text-success" : "bg-charcoal-500/10 text-text-dimmed";
-  return <span className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
-}
-
 export function RecordedStatusBreakdown({ counts }: { counts: Record<RunStatus, number> }) {
   return (
-    <dl aria-label="Recorded Run status breakdown" className="flex items-center gap-2">
+    <dl role="group" aria-label="Recorded Run status counts" className="flex items-center gap-2">
       {(["queued", "running", "retrying", "completed", "failed"] as const).map((status) => (
         <div key={status} className="flex items-center gap-1"><dt className="capitalize text-text-faint">{status}</dt><dd className="font-mono tabular-nums text-text-bright">{counts[status].toLocaleString()}</dd></div>
       ))}

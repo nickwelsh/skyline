@@ -59,12 +59,6 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
   return {
     generatedAt: page.generatedAt,
     queueTarget: target,
-    stats: {
-      queued: page.queueTarget.recordedRunCounts.queued,
-      running: page.queueTarget.recordedRunCounts.running,
-      peakQueued: Math.max(0, ...page.series.activity.map((point) => point.recordedRunCounts.queued)),
-      maximumQueueTime: formatWaitUs(maximumQueueTime(page.series.queueTime)),
-    },
     activity: page.series.activity,
     queueTime: page.series.queueTime,
     runs: page.runs.map((run): PresentedRun => ({
@@ -97,10 +91,6 @@ function presentQueueTargetSummary(target: QueueTargetSummary) {
     connection: target.connection,
     queue: target.queue,
     destination: `${target.connection} / ${target.queue}`,
-    queued: target.recordedRunCounts.queued,
-    running: target.recordedRunCounts.running,
-    health: queueHealth(target.recordedRunCounts),
-    delayP95: formatWaitUs(target.queueTime.p95Us),
     recordedRuns: target.recordedRunCount.toLocaleString(),
     recordedRunCounts: target.recordedRunCounts,
     queueTimeSampleCount: target.queueTime.sampleCount,
@@ -119,18 +109,6 @@ function formatWaitUs(microseconds: number | null): string {
   if (milliseconds < 60_000) return `${(milliseconds / 1_000).toFixed(1)}s`;
   if (milliseconds < 3_600_000) return `${(milliseconds / 60_000).toFixed(1)}m`;
   return `${(milliseconds / 3_600_000).toFixed(1)}h`;
-}
-
-function maximumQueueTime(points: QueueTargetDetailDto["series"]["queueTime"]): number | null {
-  const values = points.flatMap((point) => point.maximumUs === null ? [] : [point.maximumUs]);
-
-  return values.length > 0 ? Math.max(...values) : null;
-}
-
-function queueHealth(counts: Record<RunStatus, number>): "Queued" | "Active" | "Idle" {
-  if (counts.queued > 0) return "Queued";
-  if (counts.running + counts.retrying > 0) return "Active";
-  return "Idle";
 }
 
 function value(params: URLSearchParams, key: string) {

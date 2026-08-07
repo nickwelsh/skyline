@@ -25,7 +25,7 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   for (const metric of ["Recorded queued", "Recorded running"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const column of ["Name", "Recorded queued", "Recorded running", "Recorded state", "Queue time p95"]) {
+  for (const column of ["Name", "Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max"]) {
     await expect(page.getByRole("columnheader", { name: column, exact: true })).toBeVisible();
   }
   await expect(page.getByText(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/)).toHaveCount(0);
@@ -70,12 +70,15 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).toHaveURL(new RegExp(`/skyline/queues/${queueId}`));
   await expect(page.getByRole("heading", { name: "redis / this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Concurrency keys" })).toHaveCount(0);
-  for (const metric of ["Recorded queued", "Recorded running", "Maximum queue time"]) {
+  for (const metric of ["Recorded Runs", "Queue-time samples", "Median queue time", "Queue time p95", "Maximum queue time"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const chart of ["Throughput", "Scheduling delay"]) {
+  for (const chart of ["Recorded Run status activity", "Scheduling delay"]) {
     await expect(page.getByRole("img", { name: `${chart} chart` })).toBeVisible();
   }
+  await expect(page.getByRole("group", { name: "Recorded Run status counts" })).toContainText("retrying");
+  await expect(page.getByText("Max", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Throughput|Started|Falling behind|p99/)).toHaveCount(0);
   await expect(page.getByText(/Concurrency|Oldest wait|Queue depth|Throttled/)).toHaveCount(0);
   await expect(page.getByText("Recorded Runs, not broker depth")).toHaveCount(0);
   const recordedRuns = page.getByRole("region", { name: "Recorded runs" });
@@ -192,8 +195,8 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   });
 
   await page.goto("/skyline/queues");
-  await expect(page.getByText("Queued", { exact: true })).toBeVisible();
-  await expect(page.getByText("Idle", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Recorded Run status counts" }).first()).toContainText("queued1");
+  await expect(page.getByRole("group", { name: "Recorded Run status counts" }).nth(1)).toContainText("queued0");
 
   delayList = true;
   await page.getByRole("textbox", { name: "Search queues…" }).fill("billing");
@@ -227,7 +230,7 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   await expect(page.getByText("Invoice", { exact: true })).toBeVisible();
   detailMode = "idle";
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Recorded running" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recorded Runs" }).first()).toBeVisible();
   detailMode = "error";
   await page.reload();
   await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
@@ -260,10 +263,10 @@ test("Queues cursor-paginate list and recorded Runs through URL-backed API reads
   await page.goto("/skyline/queues");
   await page.locator('a[href*="direction=forward"]').click();
   await expect(page).toHaveURL(/cursor=next-targets&direction=forward/);
-  await expect(page.getByText("exports", { exact: true })).toBeVisible();
+  await expect(page.getByText("redis / exports", { exact: true })).toBeVisible();
   await page.locator('a[href*="direction=backward"]').click();
   await expect(page).toHaveURL(/cursor=previous-targets&direction=backward/);
-  await expect(page.getByText("billing", { exact: true })).toBeVisible();
+  await expect(page.getByText("redis / billing", { exact: true })).toBeVisible();
 
   await page.goto(`/skyline/queues/${queueId}?cursor=next-runs&direction=forward`);
   await expect(page.getByRole("region", { name: "Recorded runs" }).getByRole("table")).toBeVisible();
@@ -289,7 +292,7 @@ function listResponse(): QueueTargetsPageDto {
     capabilities: capabilities(),
     environmentSummary: { queued: 1, running: 2, allocated: null, limit: null },
     queueTargets: [
-      summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }),
+      summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2, retrying: 1 }),
       summary(`queue_${"b".repeat(64)}`, "mail", {}),
       summary(`queue_${"c".repeat(64)}`, "shared", {}, "redis"),
       summary(`queue_${"d".repeat(64)}`, "shared", {}, "sqs"),
@@ -308,7 +311,7 @@ function detailResponse(): QueueTargetDetailDto {
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: capabilities(),
     queueCapabilities: { pause: false, resume: false, concurrency: false, allocation: false, rateLimit: false, workers: false, billing: false, environmentControls: false },
-    queueTarget: summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }),
+    queueTarget: summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2, retrying: 1 }),
     series: {
       activity: [{ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1, recordedRunCounts: counts({ completed: 1 }) }],
       queueTime: [{ timestamp: "2026-08-05T12:00:00.000000000Z", sampleCount: 1, medianUs: 2000, p95Us: 2000, maximumUs: 2000 }],
@@ -345,7 +348,7 @@ function summary(id: string, queue: string, active: Partial<Record<RunStatus, nu
     queue,
     firstObservedAt: "2026-08-05T11:00:00.000000000Z",
     lastObservedAt: "2026-08-05T12:00:00.000000000Z",
-    recordedRunCount: queue === "mail" ? 1 : 4,
+    recordedRunCount: Object.values(counts({ completed: 1, ...active })).reduce((total, count) => total + count, 0),
     recordedRunCounts: counts({ completed: 1, ...active }),
     queueTime: queue === "mail"
       ? { sampleCount: 0, medianUs: null, p95Us: null, maximumUs: null }
