@@ -19,10 +19,17 @@ final readonly class JobsQuery
         private RunsQuery $runs,
         private ApiMetadata $metadata,
         private CursorCodec $cursors,
+        private ConsistentRead $consistentRead,
     ) {}
 
     /** @return array<string, mixed> */
     public function page(Request $request): array
+    {
+        return $this->consistentRead->run(fn (): array => $this->readPage($request));
+    }
+
+    /** @return array<string, mixed> */
+    private function readPage(Request $request): array
     {
         $observedAt = Nanoseconds::now();
         $filters = JobsFilters::fromRequest($request, $observedAt);
@@ -110,6 +117,12 @@ final readonly class JobsQuery
 
     /** @return array<string, mixed> */
     public function detail(Request $request, string $jobId): array
+    {
+        return $this->consistentRead->run(fn (): array => $this->readDetail($request, $jobId));
+    }
+
+    /** @return array<string, mixed> */
+    private function readDetail(Request $request, string $jobId): array
     {
         $observedAt = Nanoseconds::now();
         $jobName = $this->jobName($jobId);
@@ -278,7 +291,11 @@ final readonly class JobsQuery
     /** @return Collection<int, array<string, mixed>> */
     private function activity(Builder $query, int $bucketNanoseconds, bool $includeJob = false): Collection
     {
-        $bucket = "CAST(skyline_runs.triggered_at / {$bucketNanoseconds} AS BIGINT)";
+        $bucket = PortableActivityBucket::expression(
+            $this->connection(),
+            'skyline_runs.triggered_at',
+            $bucketNanoseconds,
+        );
         if ($includeJob) {
             $query->addSelect('skyline_runs.job_name')->groupBy('skyline_runs.job_name');
         }

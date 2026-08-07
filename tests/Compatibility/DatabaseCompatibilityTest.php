@@ -84,3 +84,49 @@ it('searches Runs with literal SQL wildcards on the configured SQL engine', func
         ->assertJsonCount(1, 'runs')
         ->assertJsonPath('runs.0.name', 'App\\Jobs\\Invoice_100%');
 });
+
+it('aggregates Job summaries and activity on the configured SQL engine', function (): void {
+    $now = Nanoseconds::now();
+
+    foreach ([['completed', $now - 3_600_000_000_000], ['failed', $now - 1_000_000_000]] as $index => [$status, $triggeredAt]) {
+        $runId = 'compatibility-job-run-'.$index;
+        $traceId = sprintf('%032x', $index + 100);
+        DB::table('skyline_traces')->insert([
+            'trace_id' => $traceId,
+            'root_run_id' => $runId,
+            'revision' => 1,
+            'last_activity_at' => $now,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('skyline_runs')->insert([
+            'run_id' => $runId,
+            'trace_id' => $traceId,
+            'job_name' => 'App\\Jobs\\Compatibility',
+            'connection' => 'redis',
+            'queue' => 'default',
+            'status' => $status,
+            'triggered_at' => $triggeredAt,
+            'queued_at' => $triggeredAt,
+            'started_at' => $triggeredAt,
+            'finished_at' => $triggeredAt + 1_000_000,
+            'confirmed_at' => $now,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    $response = $this->getJson('/skyline/api/jobs')->assertOk()
+        ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Compatibility')
+        ->assertJsonPath('jobs.0.runCount', 2)
+        ->assertJsonPath('jobs.0.statusCounts.completed', 1)
+        ->assertJsonPath('jobs.0.statusCounts.failed', 1);
+
+    expect(array_sum(array_column($response->json('jobs.0.activity'), 'total')))->toBe(2);
+
+    $this->getJson('/skyline/api/jobs/'.$response->json('jobs.0.id').'?period=all')->assertOk()
+        ->assertJsonPath('job.runCount', 2)
+        ->assertJsonPath('job.latestRun.id', 'compatibility-job-run-1')
+        ->assertJsonPath('queueTargets.0.runCount', 2)
+        ->assertJsonCount(2, 'runs');
+});

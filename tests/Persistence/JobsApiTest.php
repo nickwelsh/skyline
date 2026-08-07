@@ -110,14 +110,16 @@ it('reports truthful per-hour Job activity for the source 24-hour column', funct
         ->and(array_column($activity, 'timestamp'))->each->toMatch('/T\\d{2}:00:00Z$/');
 });
 
-it('projects high-cardinality Job summaries with aggregate and windowed queries', function (): void {
+it('projects high-cardinality Job summaries with a fixed query count in one snapshot', function (): void {
     foreach (range(0, 124) as $index) {
         seedJobRun($index, 'App\\Jobs\\HighVolume', $index % 2 === 0 ? 'completed' : 'failed');
     }
 
     $queries = [];
     DB::listen(function ($query) use (&$queries): void {
-        $queries[] = strtolower($query->sql);
+        if (str_contains(strtolower($query->sql), 'skyline_runs')) {
+            $queries[] = ['sql' => strtolower($query->sql), 'transactionLevel' => $query->connection->transactionLevel()];
+        }
     });
 
     $job = $this->getJson('/skyline/api/jobs')->assertOk()
@@ -127,12 +129,17 @@ it('projects high-cardinality Job summaries with aggregate and windowed queries'
         ->assertJsonPath('jobs.0.latestRun.id', 'job-run-00')
         ->json('jobs.0');
 
+    expect($queries)->toHaveCount(7)
+        ->and(collect($queries)->pluck('transactionLevel')->every(fn (int $level): bool => $level > 0))->toBeTrue();
+
+    $queries = [];
+
     $this->getJson('/skyline/api/jobs/'.$job['id'])->assertOk()
         ->assertJsonPath('job.runCount', 125)
         ->assertJsonCount(25, 'runs');
 
-    expect(collect($queries)->contains(fn (string $sql): bool => str_contains($sql, 'row_number() over')))->toBeTrue()
-        ->and(collect($queries)->contains(fn (string $sql): bool => str_contains($sql, 'group by') && str_contains($sql, 'job_name')))->toBeTrue();
+    expect($queries)->toHaveCount(14)
+        ->and(collect($queries)->pluck('transactionLevel')->every(fn (int $level): bool => $level > 0))->toBeTrue();
 });
 
 it('shows Job activity Queue targets and cursor-paginated filtered Runs', function (): void {
