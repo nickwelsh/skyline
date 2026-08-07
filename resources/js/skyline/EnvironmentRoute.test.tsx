@@ -1,14 +1,21 @@
 import { createRoot } from "react-dom/client";
 import { act } from "react-dom/test-utils";
 import { Outlet, RouterProvider, createMemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { OperatingSystemContextProvider } from "../trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "../trigger/components/primitives/ShortcutsProvider";
 import { ErrorBoundary as EnvironmentErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam/route";
 import { fixtureCapabilities, FixtureAdapter } from "./FixtureAdapter";
+import { SkylineApiError } from "./HttpAdapter";
 import { createSkylineRouter } from "./router";
+import type { RunsPageDto } from "./dto";
+import { createUiPreferencesAdapter } from "./UiPreferencesAdapter";
+import { UiPreferencesProvider } from "./UiPreferencesProvider";
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  document.body.replaceChildren();
+  localStorage.clear();
+});
 
 describe("Environment route error boundary", () => {
   it("owns every environment list and detail loader", () => {
@@ -30,6 +37,40 @@ describe("Environment route error boundary", () => {
     expect(environment?.children?.every((route) => !("errorElement" in route) || route.errorElement === undefined)).toBe(true);
 
     router.dispose();
+  });
+
+  it.each([
+    [404, "missing", "404: Page not found", "Not Found"],
+    [500, "Deterministic telemetry error.", "Error", "Deterministic telemetry error."],
+  ])("presents adapter status %i through the environment boundary", async (status, adapterMessage, title, message) => {
+    window.history.replaceState({}, "", "/runs");
+    const preferences = createUiPreferencesAdapter({ basePath: "/" });
+    const router = createSkylineRouter({
+      schemaVersion: 1,
+      basePath: "/",
+      applicationName: "Skyline",
+      environmentLabel: "local",
+      capabilities: fixtureCapabilities,
+    }, new FailingRunsAdapter(new SkylineApiError(status, "fixture_error", adapterMessage)), preferences);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => root.render(
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider>
+          <UiPreferencesProvider adapter={preferences}>
+            <RouterProvider router={router} />
+          </UiPreferencesProvider>
+        </ShortcutsProvider>
+      </OperatingSystemContextProvider>,
+    ));
+
+    await vi.waitFor(() => expect(container.querySelector(".fixed.inset-0")?.textContent).toContain(title));
+    expect(container.querySelector(".fixed.inset-0")?.textContent).toContain(message);
+
+    router.dispose();
+    await act(async () => root.unmount());
   });
 
   it.each([
@@ -63,3 +104,13 @@ describe("Environment route error boundary", () => {
     await act(async () => root.unmount());
   });
 });
+
+class FailingRunsAdapter extends FixtureAdapter {
+  constructor(private readonly failure: Error) {
+    super();
+  }
+
+  override async runs(): Promise<RunsPageDto> {
+    throw this.failure;
+  }
+}

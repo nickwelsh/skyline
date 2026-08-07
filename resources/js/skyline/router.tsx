@@ -1,5 +1,5 @@
 import { Navigate, createBrowserRouter, redirect, type LoaderFunctionArgs } from "react-router-dom";
-import { HttpAdapter } from "./HttpAdapter";
+import { HttpAdapter, SkylineApiError } from "./HttpAdapter";
 import { presentRuns, runsQuery } from "./RunListAdapter";
 import { presentRunDetail } from "./RunDetailAdapter";
 import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAdapter";
@@ -7,7 +7,6 @@ import { presentQueueTarget, presentQueueTargets, queueTargetQuery, queueTargets
 import { errorGroupsQuery, errorOccurrencesQuery, presentErrorGroupDetail, presentErrorGroups } from "./ErrorGroupsAdapter";
 import { presentTelemetryEventDetail, presentTelemetryEvents, telemetryEventsQuery } from "./TelemetryEventsAdapter";
 import { TelemetryEventDetailView, TelemetryEventSummaryDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
-import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { SkylineShell } from "./SkylineShell";
 import type { UiPreferencesAdapter } from "./UiPreferencesAdapter";
