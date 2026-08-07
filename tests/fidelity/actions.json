@@ -24,9 +24,13 @@
       "id": "filters-pagination",
       "start": "runs-mixed-pagination",
       "steps": [
-        { "action": "fill", "target": { "label": "Search Runs" }, "value": "invoice" },
-        { "action": "select", "target": { "label": "Status" }, "value": "failed" },
-        { "action": "click", "target": { "selector": "a[href*='direction=forward']" } },
+        {
+          "action": "choose",
+          "target": { "role": "combobox", "name": "Status", "exactText": "Status" },
+          "option": { "name": "Failed 8", "value": "failed" },
+          "blur": true
+        },
+        { "action": "click", "target": { "selector": "a[href*='direction=forward']" }, "blur": true },
         { "action": "history", "direction": "back" }
       ]
     },

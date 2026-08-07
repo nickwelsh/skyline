@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { actionCaptureId, type FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import actionFile from "./actions.json" with { type: "json" };
 import matrixFile from "./matrix.json" with { type: "json" };
-import { runActionScript, type ActionScript } from "./support/action-scripts";
+import { canonicalSourceRunFilterUrl, runActionScript, type ActionScript } from "./support/action-scripts";
 import { prepareCapture, settleCapture } from "./support/capture";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
@@ -39,6 +39,7 @@ for (const script of actionFile.scripts as ActionScript[]) {
       runActionScript(reference, script, {
         basePath: "/oracle",
         fixtureState: (state) => reference.evaluate((value) => (window as Window & { __oracleSetFixtureState?: (state: string) => void }).__oracleSetFixtureState?.(value), state),
+        canonicalizeUrl: script.id === "filters-pagination" ? canonicalSourceRunFilterUrl : undefined,
       }),
       runActionScript(page, script, { basePath: "/skyline", fixtureState: async (state) => fixture.setState(state) }),
     ]);
