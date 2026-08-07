@@ -75,7 +75,8 @@ export type ProtectedSelectorMeasurement = {
   accessibilitySha256: string;
   crop: ProtectedSelectorCrop;
 };
-export type ProtectedSelectorViewportPolicy = { allowBelowViewport?: true; allowRightOfViewport?: true };
+export const mobileProtectedSelectorViewport = { width: 390, height: 844 } as const;
+export type ProtectedSelectorViewportPolicy = { allowBelowViewport?: true; allowRightOfViewport?: typeof mobileProtectedSelectorViewport };
 export type ProtectedSelectorDefinition = { id: string; application: "trigger" | "skyline"; selector: string } & ProtectedSelectorViewportPolicy;
 export function skylineProtectedSelector(id: string, selector: string, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorDefinition {
   return { id, application: "skyline", selector, ...policy };
@@ -284,7 +285,7 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
     const expected = protectedMeasurement[protectedSelector.id];
     if (!observed || !expected || observed.id !== protectedSelector.id || observed.application !== protectedSelector.application || observed.selector !== protectedSelector.selector) throw new Error(`Allowed region ${definition.id} changed protected selector ${protectedSelector.id}.`);
     for (const key of ["allowBelowViewport", "allowRightOfViewport"] as const) {
-      if (observed[key] !== protectedSelector[key]) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
+      if (JSON.stringify(observed[key]) !== JSON.stringify(protectedSelector[key])) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
     }
     for (const key of ["rect", "computedStyleSha256", "accessibilitySha256", "crop"] as const) {
       if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
@@ -319,7 +320,7 @@ export function validateProtectedElementPresentation(definitionId: string, selec
 function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorCrop["status"] {
   const { allowBelowViewport, allowRightOfViewport } = policy;
   if (rect.x >= viewport.width) {
-    if (!allowRightOfViewport) throw new Error("Protected selector is unexpectedly outside the viewport.");
+    if (!allowRightOfViewport || viewport.width !== allowRightOfViewport.width || viewport.height !== allowRightOfViewport.height) throw new Error("Protected selector is unexpectedly outside the viewport.");
     if (rect.y >= viewport.height && !allowBelowViewport) throw new Error("Protected selector is unexpectedly below the viewport.");
     if (rect.y < viewport.height && rect.y + rect.height <= 0) throw new Error("Protected selector is unexpectedly outside the viewport.");
     return "right-of-viewport";
@@ -561,7 +562,10 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
 
 function hasValidProtectedSelectorViewportPolicy(policy: ProtectedSelectorViewportPolicy) {
   return (policy.allowBelowViewport === undefined || policy.allowBelowViewport === true)
-    && (policy.allowRightOfViewport === undefined || policy.allowRightOfViewport === true);
+    && (policy.allowRightOfViewport === undefined
+      || (policy.allowRightOfViewport.width === mobileProtectedSelectorViewport.width
+        && policy.allowRightOfViewport.height === mobileProtectedSelectorViewport.height
+        && Object.keys(policy.allowRightOfViewport).length === 2));
 }
 
 async function observeElement(page: Page, id: string, selector: string, label: string) {

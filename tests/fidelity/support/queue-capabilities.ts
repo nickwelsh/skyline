@@ -1,5 +1,5 @@
 import { expectedCaptureIds, type FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
-import { skylineProtectedSelector, type CapabilityOmissionDefinition } from "./difference-regions";
+import { mobileProtectedSelectorViewport, skylineProtectedSelector, type CapabilityOmissionDefinition } from "./difference-regions";
 
 const pin = "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0";
 const listCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues/route.tsx#L517-L1010`;
@@ -35,23 +35,23 @@ export function queueCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOm
   const rootStats = ["queue-root-running", "queue-root-environment-limit"];
   const rootProtected = [
     skylineProtectedSelector("search", "[data-skyline-protected='queue-list-search']"),
-    skylineProtectedSelector("connection", "[data-skyline-protected='queue-list-connection']", { allowRightOfViewport: true }),
-    skylineProtectedSelector("period", "[data-skyline-protected='queue-period']", { allowRightOfViewport: true }),
+    skylineProtectedSelector("connection", "[data-skyline-protected='queue-list-connection']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
+    skylineProtectedSelector("period", "[data-skyline-protected='queue-period']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("root-recorded-queued", "[data-skyline-protected='queue-root-recorded-queued']"),
-    skylineProtectedSelector("root-recorded-running", "[data-skyline-protected='queue-root-recorded-running']", { allowRightOfViewport: true }),
+    skylineProtectedSelector("root-recorded-running", "[data-skyline-protected='queue-root-recorded-running']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("queue-identities", "[data-skyline-protected='queue-list-target-evidence']"),
   ];
   const detailProtected = [
     skylineProtectedSelector("detail-identity", "[data-skyline-protected='queue-detail-identity']"),
-    skylineProtectedSelector("period", "[data-skyline-protected='queue-period']", { allowRightOfViewport: true }),
+    skylineProtectedSelector("period", "[data-skyline-protected='queue-period']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-recorded-runs-stat", "[data-skyline-protected='queue-detail-recorded-runs-stat']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-queue-time-samples", "[data-skyline-protected='queue-detail-queue-time-samples']", { allowBelowViewport: true, allowRightOfViewport: true }),
+    skylineProtectedSelector("detail-queue-time-samples", "[data-skyline-protected='queue-detail-queue-time-samples']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-median", "[data-skyline-protected='queue-detail-median']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-p95", "[data-skyline-protected='queue-detail-p95']", { allowBelowViewport: true, allowRightOfViewport: true }),
+    skylineProtectedSelector("detail-p95", "[data-skyline-protected='queue-detail-p95']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-maximum", "[data-skyline-protected='queue-detail-maximum']", { allowBelowViewport: true }),
     skylineProtectedSelector("detail-status-counts", "[data-skyline-protected='queue-detail-status-counts']", { allowBelowViewport: true }),
     skylineProtectedSelector("detail-activity", "[data-skyline-protected='queue-detail-activity']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-recorded-runs", "[data-skyline-protected='queue-detail-recorded-runs']", { allowRightOfViewport: true }),
+    skylineProtectedSelector("detail-recorded-runs", "[data-skyline-protected='queue-detail-recorded-runs']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
   ];
 
   return [

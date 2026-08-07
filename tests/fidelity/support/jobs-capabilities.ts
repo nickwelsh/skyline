@@ -1,5 +1,5 @@
 import { expectedCaptureIds, type FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
-import { skylineProtectedSelector, type CapabilityOmissionDefinition } from "./difference-regions";
+import { mobileProtectedSelectorViewport, skylineProtectedSelector, type CapabilityOmissionDefinition } from "./difference-regions";
 
 const pin = "ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0";
 const listCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam._index/route.tsx#L282-L456`;
@@ -27,11 +27,11 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
       [listCitation],
       [
         skylineProtectedSelector("search", "[data-skyline-protected='jobs-list-search']"),
-        skylineProtectedSelector("pagination", "[data-skyline-protected='jobs-list-pagination']", { allowRightOfViewport: true }),
-        ...[1, 2, 3, 4].map((column) => skylineProtectedSelector(`header-${column}`, `#skyline table thead tr > th:nth-child(${column})`, { ...(column >= 2 ? { allowRightOfViewport: true as const } : {}) })),
+        skylineProtectedSelector("pagination", "[data-skyline-protected='jobs-list-pagination']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
+        ...[1, 2, 3, 4].map((column) => skylineProtectedSelector(`header-${column}`, `#skyline table thead tr > th:nth-child(${column})`, { ...(column >= 2 ? { allowRightOfViewport: mobileProtectedSelectorViewport } : {}) })),
         ...Array.from({ length: protectedRows }, (_, index) => index + 1).flatMap((row) => [1, 2, 3, 4].map((column) => skylineProtectedSelector(`row-${row}-column-${column}`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(${column})`, {
           ...(row >= 18 ? { allowBelowViewport: true as const } : {}),
-          ...(column >= 2 ? { allowRightOfViewport: true as const } : {}),
+          ...(column >= 2 ? { allowRightOfViewport: mobileProtectedSelectorViewport } : {}),
         }))),
       ],
     ),
@@ -45,9 +45,9 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
       ],
       [detailCitation],
       [
-        skylineProtectedSelector("identifier", "[data-skyline-protected='job-detail-identifier']", { allowRightOfViewport: true }),
-        skylineProtectedSelector("queue-links", "[data-skyline-protected='job-detail-queue-links']", { allowRightOfViewport: true }),
-        skylineProtectedSelector("created", "[data-skyline-protected='job-detail-created']", { allowRightOfViewport: true }),
+        skylineProtectedSelector("identifier", "[data-skyline-protected='job-detail-identifier']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
+        skylineProtectedSelector("queue-links", "[data-skyline-protected='job-detail-queue-links']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
+        skylineProtectedSelector("created", "[data-skyline-protected='job-detail-created']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
       ],
     ),
   ];

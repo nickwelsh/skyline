@@ -172,12 +172,31 @@ describe("source-fidelity oracle", () => {
     const belowViewport = { ...protectedRegion, protectedMeasurements: { [region.captures[0]]: { search: { ...protectedRegion.protectedMeasurements[region.captures[0]].search, rect: { x: 1, y: 961, width: 20, height: 10 }, crop: { status: "below-viewport" } } } } };
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [belowViewport] })).toThrow(/protected/i);
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...belowViewport, protectedSelectors: [{ ...belowViewport.protectedSelectors[0], allowBelowViewport: true }] }] })).not.toThrow();
-    const rightViewport = { ...protectedRegion, protectedMeasurements: { [region.captures[0]]: { search: { ...protectedRegion.protectedMeasurements[region.captures[0]].search, rect: { x: 1441, y: 1, width: 20, height: 10 }, crop: { status: "right-of-viewport" } } } } };
-    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [rightViewport] })).toThrow(/protected/i);
-    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...rightViewport, protectedSelectors: [{ ...rightViewport.protectedSelectors[0], allowRightOfViewport: true }] }] })).not.toThrow();
-    const belowRightViewport = { ...rightViewport, protectedMeasurements: { [region.captures[0]]: { search: { ...rightViewport.protectedMeasurements[region.captures[0]].search, rect: { x: 1441, y: 961, width: 20, height: 10 } } } } };
-    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...belowRightViewport, protectedSelectors: [{ ...belowRightViewport.protectedSelectors[0], allowRightOfViewport: true }] }] })).toThrow(/protected/i);
-    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...belowRightViewport, protectedSelectors: [{ ...belowRightViewport.protectedSelectors[0], allowBelowViewport: true, allowRightOfViewport: true }] }] })).not.toThrow();
+    const mobileCapture = "queues-busy@390x844-classic";
+    const mobileRightPolicy = { width: 390, height: 844 };
+    const protectedSearch = protectedRegion.protectedMeasurements[region.captures[0]].search;
+    const mobileRightViewport = {
+      ...protectedRegion,
+      captures: [mobileCapture],
+      measurements: { [mobileCapture]: measurement },
+      protectedSelectors: [{ ...protectedRegion.protectedSelectors[0], allowRightOfViewport: mobileRightPolicy }],
+      protectedMeasurements: { [mobileCapture]: { search: { ...protectedSearch, rect: { x: 391, y: 1, width: 20, height: 10 }, crop: { status: "right-of-viewport" } } } },
+    };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...mobileRightViewport, protectedSelectors: protectedRegion.protectedSelectors }] })).toThrow(/protected/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [mobileRightViewport] })).not.toThrow();
+    for (const [capture, width, height] of [["queues-busy@390x844-dark", 390, 844], ["queues-busy@1024x768-classic", 1024, 768], ["queues-busy@1440x960-classic", 1440, 960]] as const) {
+      const desktopRightViewport = {
+        ...mobileRightViewport,
+        captures: [capture],
+        measurements: { [capture]: measurement },
+        protectedMeasurements: { [capture]: { search: { ...protectedSearch, rect: { x: width + 1, y: 1, width: 20, height: 10 }, crop: { status: "right-of-viewport" } } } },
+      };
+      expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [desktopRightViewport] })).toThrow(/protected/i);
+    }
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...mobileRightViewport, protectedSelectors: [{ ...mobileRightViewport.protectedSelectors[0], allowRightOfViewport: { width: 1440, height: 960 } }] }] })).toThrow(/selector|protected/i);
+    const belowRightViewport = { ...mobileRightViewport, protectedMeasurements: { [mobileCapture]: { search: { ...protectedSearch, rect: { x: 391, y: 845, width: 20, height: 10 }, crop: { status: "right-of-viewport" } } } } };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [belowRightViewport] })).toThrow(/protected/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...belowRightViewport, protectedSelectors: [{ ...belowRightViewport.protectedSelectors[0], allowBelowViewport: true }] }] })).not.toThrow();
   });
 
   test("presenter extensions require paired evidence locks and pinned citations", () => {

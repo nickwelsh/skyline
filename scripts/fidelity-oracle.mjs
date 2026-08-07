@@ -12,7 +12,8 @@ const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const fail = (message) => { throw new Error(message); };
 const validProtectedSelectorViewportPolicy = ({ allowBelowViewport, allowRightOfViewport } = {}) =>
   (allowBelowViewport === undefined || allowBelowViewport === true)
-  && (allowRightOfViewport === undefined || allowRightOfViewport === true);
+  && (allowRightOfViewport === undefined
+    || (allowRightOfViewport && allowRightOfViewport.width === 390 && allowRightOfViewport.height === 844 && Object.keys(allowRightOfViewport).length === 2));
 
 export function verifyFidelityBundle(root = scriptRoot) {
   const fidelity = join(root, "tests/fidelity");
@@ -223,11 +224,14 @@ export function validateAllowedDifferences(differences) {
             const crop = protectedMeasurement.crop;
             const verticallyVisible = rect?.y < height && rect?.y + rect?.height > 0;
             const horizontallyVisible = rect?.x < width && rect?.x + rect?.width > 0;
+            const rightPolicyMatchesCapture = capture.endsWith("@390x844-classic")
+              && definition?.allowRightOfViewport?.width === width
+              && definition?.allowRightOfViewport?.height === height;
             const validCrop = crop?.status === "visible"
               ? verticallyVisible && horizontallyVisible && ["x", "y", "width", "height"].every((key) => Number.isFinite(crop.rect?.[key])) && crop.rect.width > 0 && crop.rect.height > 0 && /^[a-f0-9]{64}$/.test(crop.screenshotSha256 ?? "")
               : crop?.status === "below-viewport"
                 ? rect?.y >= height && horizontallyVisible && definition?.allowBelowViewport === true && Object.keys(crop).length === 1
-                : crop?.status === "right-of-viewport" && rect?.x >= width && (verticallyVisible || (rect?.y >= height && definition?.allowBelowViewport === true)) && definition?.allowRightOfViewport === true && Object.keys(crop).length === 1;
+                : crop?.status === "right-of-viewport" && rect?.x >= width && (verticallyVisible || (rect?.y >= height && definition?.allowBelowViewport === true)) && rightPolicyMatchesCapture && Object.keys(crop).length === 1;
             const valid = ["computedStyleSha256", "accessibilitySha256"].every((key) => /^[a-f0-9]{64}$/.test(protectedMeasurement[key] ?? "")) && validRect && validCrop;
             if (!valid) fail(`Invalid protected capability-omission measurement: ${region.id}`);
           }

@@ -61,6 +61,7 @@ describe("NW-221 Queue capability discovery definitions", () => {
     ]));
     expect(definitions[0].protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual(["connection", "period", "root-recorded-running"]);
     expect(definitions[2].protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual(["period", "detail-queue-time-samples", "detail-p95", "detail-recorded-runs"]);
+    expect(definitions.flatMap(({ protectedSelectors }) => protectedSelectors ?? []).filter(({ allowRightOfViewport }) => allowRightOfViewport).every(({ allowRightOfViewport }) => JSON.stringify(allowRightOfViewport) === JSON.stringify({ width: 390, height: 844 }))).toBe(true);
   });
 
   test("locks capture families around present capability nodes", () => {

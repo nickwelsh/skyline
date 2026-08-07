@@ -35,7 +35,7 @@ describe("NW-219 Job capability discovery definitions", () => {
     expect(detail.selectorPairs.map(({ id }) => id)).toEqual(["source-definition", "queue-administration", "runtime-policy"]);
     expect(detail.selectorPairs.every(({ skylineBoundary }) => skylineBoundary === true)).toBe(true);
     expect(detail.protectedSelectors?.map(({ id }) => id)).toEqual(["identifier", "queue-links", "created"]);
-    expect(detail.protectedSelectors?.every(({ allowRightOfViewport }) => allowRightOfViewport === true)).toBe(true);
+    expect(detail.protectedSelectors?.every(({ allowRightOfViewport }) => JSON.stringify(allowRightOfViewport) === JSON.stringify({ width: 390, height: 844 }))).toBe(true);
     expect(detail.selectorPairs.every(({ skylineSelector }) => skylineSelector.includes("data-skyline-capability-boundary"))).toBe(true);
     expect(JSON.stringify(detail.selectorPairs)).not.toMatch(/test task|activity|pagination|recorded queue links/i);
   });

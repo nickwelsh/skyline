@@ -342,7 +342,7 @@ describe("framework-extension fidelity regions", () => {
   test("locks protected reflow evidence including element screenshots", () => {
     const region = capabilityDefinition();
     region.selectorPairs[0] = { ...region.selectorPairs[0], skylineBoundary: true };
-    region.protectedSelectors = [skylineProtectedSelector("search", "[data-protected='search']", { allowRightOfViewport: true })];
+    region.protectedSelectors = [skylineProtectedSelector("search", "[data-protected='search']", { allowRightOfViewport: { width: 390, height: 844 } })];
     region.protectedMeasurements = {
       [region.captures[0]]: {
         search: {
@@ -375,25 +375,30 @@ describe("framework-extension fidelity regions", () => {
       return PNG.sync.write(png);
     };
     const rect = { x: 0, y: 0, width: 1, height: 1 };
+    const mobileViewport = { width: 390, height: 844 } as const;
+    const mobileRightPolicy = { allowRightOfViewport: mobileViewport } as const;
 
     expect(captureProtectedElementCrop(screenshot(false), { width: 2, height: 2 }, rect))
       .not.toEqual(captureProtectedElementCrop(screenshot(true), { width: 2, height: 2 }, rect));
     expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 })).toThrow(/below the viewport/i);
     expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, { allowBelowViewport: true })).toEqual({ status: "below-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true })).toThrow(/outside the viewport/i);
-    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, { allowRightOfViewport: true })).toEqual({ status: "right-of-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, { allowRightOfViewport: true })).toThrow(/below the viewport/i);
-    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, { allowBelowViewport: true, allowRightOfViewport: true })).toEqual({ status: "right-of-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: -3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true, allowRightOfViewport: true })).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, { allowBelowViewport: true })).toThrow(/outside the viewport/i);
+    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 390, height: 960 }, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, { width: 1024, height: 844 }, { x: 1025, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, { width: 1440, height: 960 }, { x: 1441, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/below the viewport/i);
+    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, { allowBelowViewport: true, ...mobileRightPolicy })).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: -3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true, ...mobileRightPolicy })).toThrow(/outside the viewport/i);
   });
 
   test("builds Skyline protected selectors with named viewport policy", () => {
-    expect(skylineProtectedSelector("activity", "[data-skyline-protected='activity']", { allowBelowViewport: true, allowRightOfViewport: true })).toEqual({
+    expect(skylineProtectedSelector("activity", "[data-skyline-protected='activity']", { allowBelowViewport: true, allowRightOfViewport: { width: 390, height: 844 } })).toEqual({
       id: "activity",
       application: "skyline",
       selector: "[data-skyline-protected='activity']",
       allowBelowViewport: true,
-      allowRightOfViewport: true,
+      allowRightOfViewport: { width: 390, height: 844 },
     });
   });
 
