@@ -48,6 +48,31 @@ describe("ErrorGroupsAdapter", () => {
     expect(presented.hasFilters).toBe(true);
   });
 
+  it("extracts canonical routes when the base path is also a route name", () => {
+    const presented = presentErrorGroups({
+      schemaVersion: 1,
+      packageVersion: "fixture",
+      generatedAt: "2026-08-04T12:01:00.000000000Z",
+      capabilities: {} as ErrorGroupsPageDto["capabilities"],
+      errorGroups: [{
+        ...summary,
+        href: "/errors/errors/error_abc",
+        jobHref: "/jobs/jobs/job_invoice",
+        latest: { ...summary.latest, runHref: "/runs/runs/run_latest", attemptHref: "/runs/runs/run_latest?node=attempt_run_latest_2" },
+      }],
+      pagination: { next: null, previous: null },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
+      options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
+      hasAnyErrorGroups: true,
+    });
+
+    expect(presented.errorGroups[0]).toMatchObject({
+      path: "/errors/error_abc",
+      jobPath: "/jobs/job_invoice",
+      latest: { runPath: "/runs/run_latest", attemptPath: "/runs/run_latest?node=attempt_run_latest_2" },
+    });
+  });
+
   it("preserves occurrence evidence and links for Error-group detail", () => {
     const query = errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc?period=24h&cursor=older"));
     const exception = {

@@ -6,6 +6,7 @@ import type {
 } from "./dto";
 import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
 import { compactQuery, queryValue } from "./QueryParams";
+import { canonicalRoutePath } from "./RoutePath";
 
 export type PresentedErrorGroup = Omit<ErrorGroupsPageDto["errorGroups"][number], "href" | "jobHref" | "latest"> & {
   friendlyId: string;
@@ -89,8 +90,8 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
     activity: page.activity,
     failedAttempts: page.failedAttempts.map(({ runHref, attemptHref, ...attempt }) => ({
       ...attempt,
-      runPath: routePath(runHref, "runs"),
-      attemptPath: routePath(attemptHref, "runs"),
+      runPath: canonicalRoutePath(runHref, "runs"),
+      attemptPath: canonicalRoutePath(attemptHref, "runs"),
     })),
     failedRuns: page.failedAttempts.map((attempt) => presentFailedRun(attempt)),
     pagination: pagination(page.pagination),
@@ -114,7 +115,7 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
   return {
     id: attempt.runId,
     friendlyId: attempt.runId,
-    path: routePath(attempt.attemptHref, "runs"),
+    path: canonicalRoutePath(attempt.attemptHref, "runs"),
     isRoot: true,
     jobType: attempt.jobType,
     version: null,
@@ -135,24 +136,18 @@ function presentErrorGroup({ href, jobHref, latest, ...group }: ErrorGroupsPageD
   return {
     ...group,
     friendlyId: `error_${group.fingerprint}`,
-    path: routePath(href, "errors"),
-    jobPath: routePath(jobHref, "jobs"),
+    path: canonicalRoutePath(href, "errors"),
+    jobPath: canonicalRoutePath(jobHref, "jobs"),
     latest: {
       ...latestData,
-      runPath: routePath(runHref, "runs"),
-      attemptPath: routePath(attemptHref, "runs"),
+      runPath: canonicalRoutePath(runHref, "runs"),
+      attemptPath: canonicalRoutePath(attemptHref, "runs"),
     },
   };
 }
 
 function pagination(value: { next: string | null; previous: string | null }) {
   return { previous: value.previous ?? undefined, next: value.next ?? undefined };
-}
-
-function routePath(href: string, segment: string) {
-  const marker = `/${segment}/`;
-  const index = href.indexOf(marker);
-  return index >= 0 ? href.slice(index) : href;
 }
 
 function period(value: string | null): ErrorGroupsQuery["period"] {

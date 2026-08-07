@@ -9,6 +9,7 @@ import type {
 } from "./dto";
 import { presentRun } from "./RunListAdapter";
 import { compactQuery, queryStatuses, queryValue } from "./QueryParams";
+import { canonicalRoutePath } from "./RoutePath";
 
 export type PresentedJob = {
   id: string;
@@ -81,7 +82,7 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
   return {
     generatedAt: page.generatedAt,
     job: presentJob(page.job),
-    queueTargets: page.queueTargets.map((target) => ({ ...target, path: routePath(target.href, "queues") })),
+    queueTargets: page.queueTargets.map((target) => ({ ...target, path: canonicalRoutePath(target.href, "queues") })),
     activity: page.activity,
     runs: page.runs.map((run) => presentRun(run, page.tableState)),
     pagination: {
@@ -97,15 +98,9 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
 function presentJob(job: JobsPageDto["jobs"][number]): PresentedJob {
   return {
     ...job,
-    path: routePath(job.href, "jobs"),
-    latestRun: { ...job.latestRun, path: routePath(job.latestRun.href, "runs") },
+    path: canonicalRoutePath(job.href, "jobs"),
+    latestRun: { ...job.latestRun, path: canonicalRoutePath(job.latestRun.href, "runs") },
   };
-}
-
-function routePath(href: string, segment: string) {
-  const marker = `/${segment}/`;
-  const index = href.indexOf(marker);
-  return index >= 0 ? href.slice(index) : href;
 }
 
 function period(value: string | null): JobsQuery["period"] {

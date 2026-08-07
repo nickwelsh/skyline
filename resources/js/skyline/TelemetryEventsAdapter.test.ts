@@ -28,6 +28,24 @@ describe("TelemetryEventsAdapter", () => {
     expect(presented.pagination).toEqual({ next: "next" });
   });
 
+  it("matches complete canonical path segments after route-like base paths", () => {
+    const page = pageFixture();
+    const event = page.telemetryEvents[0];
+    event.href = "/logs-ui/logs?event=event_operation";
+    event.runHref = "/runs/runs/run_1";
+    event.attemptHref = "/runs/runs/run_1?node=attempt_run_1_1";
+    event.jobHref = "/jobs/jobs/job_invoice";
+    if (event.variant === "operation") event.operationHref = "/runs/runs/run_1?node=span_span_1";
+
+    expect(presentTelemetryEvents(page).telemetryEvents[0]).toMatchObject({
+      path: "/logs?event=event_operation",
+      runPath: "/runs/run_1",
+      attemptPath: "/runs/run_1?node=attempt_run_1_1",
+      jobPath: "/jobs/job_invoice",
+      operationPath: "/runs/run_1?node=span_span_1",
+    });
+  });
+
   it("preserves the discriminated detail contract and working causal paths", () => {
     const page = pageFixture();
     const operation = page.telemetryEvents[0];

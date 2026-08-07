@@ -6,6 +6,7 @@ import type {
   TelemetryEventSummary,
 } from "./dto";
 import { compactQuery, queryValue } from "./QueryParams";
+import { canonicalRoutePath } from "./RoutePath";
 
 type PresentedLinks = {
   path: string;
@@ -60,7 +61,7 @@ export function presentTelemetryEvents(page: TelemetryEventsPageDto): TelemetryE
 
 export function presentTelemetryEventDetail(page: TelemetryEventDetailDto): TelemetryEventDetailRouteData {
   const event = page.telemetryEvent;
-  const errorPath = event.errorHref ? routePath(event.errorHref, "errors") : null;
+  const errorPath = event.errorHref ? canonicalRoutePath(event.errorHref, "errors") : null;
 
   return {
     generatedAt: page.generatedAt,
@@ -89,7 +90,7 @@ function presentSummary(event: TelemetryEventSummary): PresentedTelemetryEvent {
 
 function presentOperationSummary(event: Extract<TelemetryEventSummary, { variant: "operation" }>): PresentedOperation {
   const { href: _href, runHref: _runHref, attemptHref: _attemptHref, jobHref: _jobHref, operationHref, ...summary } = event;
-  return { ...summary, ...presentPaths(event), operationPath: routePath(operationHref, "runs") };
+  return { ...summary, ...presentPaths(event), operationPath: canonicalRoutePath(operationHref, "runs") };
 }
 
 function presentLogSummary(event: Extract<TelemetryEventSummary, { variant: "log" }>): PresentedLog {
@@ -99,21 +100,15 @@ function presentLogSummary(event: Extract<TelemetryEventSummary, { variant: "log
 
 function presentPaths(event: Pick<TelemetryEventSummary, "href" | "runHref" | "attemptHref" | "jobHref">): Omit<PresentedLinks, "operationPath"> {
   return {
-    path: routePath(event.href, "logs"),
-    runPath: routePath(event.runHref, "runs"),
-    attemptPath: event.attemptHref ? routePath(event.attemptHref, "runs") : null,
-    jobPath: routePath(event.jobHref, "jobs"),
+    path: canonicalRoutePath(event.href, "logs"),
+    runPath: canonicalRoutePath(event.runHref, "runs"),
+    attemptPath: event.attemptHref ? canonicalRoutePath(event.attemptHref, "runs") : null,
+    jobPath: canonicalRoutePath(event.jobHref, "jobs"),
   };
 }
 
 function pagination(value: { next: string | null; previous: string | null }) {
   return { previous: value.previous ?? undefined, next: value.next ?? undefined };
-}
-
-function routePath(href: string, segment: string) {
-  const marker = `/${segment}`;
-  const index = href.indexOf(marker);
-  return index >= 0 ? href.slice(index) : href;
 }
 
 function isLevel(value: string): value is NonNullable<TelemetryEventsQuery["levels"]>[number] {

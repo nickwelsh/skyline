@@ -25,6 +25,17 @@ describe("JobsAdapter", () => {
     expect(detail.queueTargets[0].path).toBe("/queues/queue_redis");
     expect(detail.activity[0].statusCounts.failed).toBe(1);
   });
+
+  it("extracts canonical routes when the base path is also a route name", () => {
+    const page = jobsPage();
+    page.jobs[0].href = "/jobs/jobs/job_invoice";
+    page.jobs[0].latestRun.href = "/runs/runs/run-1";
+    const detail = jobDetail();
+    detail.queueTargets[0].href = "/queues/queues/queue_redis";
+
+    expect(presentJobs(page).jobs[0]).toMatchObject({ path: "/jobs/job_invoice", latestRun: { path: "/runs/run-1" } });
+    expect(presentJobDetail(detail).queueTargets[0].path).toBe("/queues/queue_redis");
+  });
 });
 
 function jobsPage(): JobsPageDto {
