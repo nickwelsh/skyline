@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -44,6 +44,8 @@ function capabilityAdapters(): Plugin {
   const tableSource = join(vendorRoot, "components/primitives/Table.tsx");
   const miniChartSource = join(vendorRoot, "components/metrics/MiniLineChart.tsx");
   const errorsListSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx");
+  const jobDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx");
+  const segmentedControlSource = join(vendorRoot, "components/primitives/SegmentedControl.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
   const sharedFiltersSource = join(vendorRoot, "components/runs/v3/SharedFilters.tsx");
@@ -62,6 +64,8 @@ function capabilityAdapters(): Plugin {
       if (source === bigNumberSource) return conditionQueueBigNumberMarkers(code);
       if (source === tableSource) return conditionQueueTableMarkers(code);
       if (source === miniChartSource) return conditionQueueMiniChartMarkers(code);
+      if (source === jobDetailSource) return conditionJobDetailMarkers(code);
+      if (source === segmentedControlSource) return conditionJobSegmentedControlMarker(code);
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
       if (source === taskRunsTableSource) return conditionErrorRunTableCapabilities(code, capabilityPolicy.errors);

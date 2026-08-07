@@ -128,9 +128,9 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
       </div>
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
-          <Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item>
-          {data.queueTargets.length > 0 ? <Property.Item><Property.Label>Queue</Property.Label><Property.Value><div className="flex flex-col gap-0.5">{data.queueTargets.map((queue) => <Link key={queue.id} to={queue.path} className="text-text-link hover:underline focus-custom">{data.queueTargets.length === 1 ? queue.queue : `${queue.connection} / ${queue.queue}`}</Link>)}</div></Property.Value></Property.Item> : null}
-          <Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item>
+          <div data-skyline-capability-boundary="job-detail-source-definition"><Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item></div>
+          {data.queueTargets.length > 0 ? <div data-skyline-capability-boundary="job-detail-queue-administration"><Property.Item><Property.Label>Queue</Property.Label><Property.Value><div className="flex flex-col gap-0.5">{data.queueTargets.map((queue) => <Link key={queue.id} to={queue.path} className="text-text-link hover:underline focus-custom">{data.queueTargets.length === 1 ? queue.queue : `${queue.connection} / ${queue.queue}`}</Link>)}</div></Property.Value></Property.Item></div> : null}
+          <div data-skyline-capability-boundary="job-detail-runtime-policy"><Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item></div>
         </Property.Table>
       </div>
     </aside>

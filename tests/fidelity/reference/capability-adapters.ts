@@ -57,9 +57,51 @@ export function conditionErrorRunTableCapabilities(code: string, policy: Pick<Er
   return `${adapted}\nconst errorRunTableCapabilityPolicy = ${JSON.stringify(policy)};\n`;
 }
 
+export function conditionJobSegmentedControlMarker(code: string) {
+  return replaceMarker(
+    code,
+    '    <div\n      className={cn(',
+    '    <div\n      data-trigger-capability={name === "task-type" ? "jobs-list-task-type-filter" : undefined}\n      className={cn(',
+    "Task type filter marker",
+  );
+}
+
+export function conditionJobDetailMarkers(code: string) {
+  let adapted = code;
+  adapted = wrapRange(
+    adapted,
+    '          <Property.Item>\n            <Property.Label>File path</Property.Label>',
+    '          {task.queue ? (',
+    '          <div data-trigger-capability="job-detail-source-definition" className="flex flex-col gap-y-3">\n',
+    '          </div>\n',
+    "source-definition group",
+  );
+  adapted = replaceMarker(
+    adapted,
+    '                  <Paragraph variant="extra-small" className="text-text-dimmed">',
+    '                  <Paragraph data-trigger-capability="job-detail-queue-administration" variant="extra-small" className="text-text-dimmed">',
+    "Queue administration marker",
+  );
+  return wrapRange(
+    adapted,
+    '          <Property.Item>\n            <Property.Label>Machine</Property.Label>',
+    '          <Property.Item>\n            <Property.Label>Created</Property.Label>',
+    '          <div data-trigger-capability="job-detail-runtime-policy" className="flex flex-col gap-y-3">\n',
+    '          </div>\n',
+    "runtime-policy group",
+  );
+}
+
 function replaceMarker(code: string, source: string, replacement: string, label: string) {
   if (!code.includes(source)) throw new Error(`Pinned Trigger Queue ${label} changed; capability adapter must be reviewed.`);
   return code.replace(source, replacement);
+}
+
+function wrapRange(code: string, startMarker: string, endMarker: string, opening: string, closing: string, label: string) {
+  const start = code.indexOf(startMarker);
+  const end = code.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error(`Pinned Trigger Job ${label} changed; capability adapter must be reviewed.`);
+  return code.slice(0, start) + opening + code.slice(start, end) + closing + code.slice(end);
 }
 
 export function conditionQueueBigNumberMarkers(code: string) {
