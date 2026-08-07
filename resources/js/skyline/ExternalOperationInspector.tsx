@@ -92,7 +92,6 @@ function presentationDetails(presentation: InspectorPresentation, inspector: Ext
 function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspector; children: ReactNode }) {
   const presentation = inspector.presentation;
   const extension = presentation && ["sql", "transaction", "cache", "redis"].includes(presentation.type);
-  const evidence = presentation ?? inspector.metadata.value;
 
   return (
     <div className="flex flex-col gap-4 p-3">
@@ -100,6 +99,7 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
         <TaskRunStatusCombo status={sourceStatus(inspector)} className="text-sm" />
       </div>
       <SourceSpanTimeline inspector={inspector} />
+      <SourceSpanEvidence inspector={inspector} />
       <Property.Table>
         <Property.Item>
           <Property.Label className="flex items-center justify-between">
@@ -112,7 +112,7 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
       {(inspector.timelineEvents?.length ?? 0) > 0 && <SourceSpanEvents inspector={inspector} />}
       <CodeBlock
         rowTitle="Properties"
-        code={JSON.stringify(evidence, null, 2)}
+        code={JSON.stringify(inspector.metadata.value, null, 2)}
         label="Properties"
         maxLines={20}
         showLineNumbers={false}
@@ -125,6 +125,29 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
       />
     </div>
   );
+}
+
+function SourceSpanEvidence({ inspector }: { inspector: ExternalInspector }) {
+  const eventNames = metadataEventNames(inspector.metadata.value);
+  if (!inspector.source && !inspector.telemetryEventHref && eventNames.length === 0) return null;
+
+  return (
+    <section role="region" aria-label="Span evidence" className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+      {inspector.source && (inspector.source.href
+        ? <a href={inspector.source.href} className="font-mono text-text-link">{inspector.source.file}:{inspector.source.line}</a>
+        : <span className="font-mono text-text-dimmed">{inspector.source.file}:{inspector.source.line}</span>)}
+      {inspector.telemetryEventHref && <a href={inspector.telemetryEventHref} className="text-text-link">Telemetry event</a>}
+      {eventNames.map((name) => <span key={name} className="text-text-dimmed">Metadata · {name}</span>)}
+    </section>
+  );
+}
+
+function metadataEventNames(metadata: Record<string, unknown>): string[] {
+  if (!Array.isArray(metadata.events)) return [];
+  return [...new Set(metadata.events.flatMap((event) => {
+    if (!event || typeof event !== "object" || !("name" in event) || typeof event.name !== "string") return [];
+    return [event.name];
+  }))];
 }
 
 function SourceSpanTimeline({ inspector }: { inspector: ExternalInspector }) {

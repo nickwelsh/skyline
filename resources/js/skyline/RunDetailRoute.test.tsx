@@ -152,6 +152,10 @@ describe("Run detail source primitives", () => {
     expect(inspector.textContent).toContain("Completed");
     expect(inspector.textContent).toContain("Message");
     expect(inspector.textContent).toContain("Properties");
+    const evidence = inspector.querySelector('[aria-label="Span evidence"]');
+    expect(evidence?.textContent).toContain("app/Jobs/GenerateMonthlyInvoices.php:42");
+    expect(evidence?.textContent).toContain("Telemetry event");
+    expect(evidence?.textContent).toContain("query.completed");
 
     await act(async () => root.unmount());
   });
@@ -175,7 +179,7 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
-  it("removes an expanded operation dialog when Escape closes the inspector", async () => {
+  it("closes only an expanded operation dialog on Escape and restores its trigger", async () => {
     const queryId = "span_4f24adb545b26d31";
     const { container, root, router } = await renderRoute({
       initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`,
@@ -191,29 +195,35 @@ describe("Run detail source primitives", () => {
 
     await act(async () => tab.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
-    expect(router.state.location.search).toBe("?tab=detail");
+    expect(router.state.location.search).toBe(`?node=${queryId}&tab=detail`);
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
-    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull());
+    await vi.waitFor(() => expect(document.activeElement).toBe(expand));
     await act(async () => root.unmount());
   });
 });
 
 function createSqlInspectorLoader() {
   const adapter = new FixtureAdapter();
-  return async (nodeId: string) => ({
-    ...await adapter.inspector(nodeId, runId),
-    label: "SQL query",
-    presentation: {
-      type: "sql" as const,
-      timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 },
-      failure: null,
-      sql: {
-        statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 49 },
-        bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 },
-        result: null,
+  return async (nodeId: string) => {
+    const inspector = await adapter.inspector(nodeId, runId);
+    return {
+      ...inspector,
+      label: "SQL query",
+      source: { file: "app/Jobs/GenerateMonthlyInvoices.php", line: 42, href: "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42" },
+      metadata: { ...inspector.metadata, value: { ...inspector.metadata.value, events: [{ name: "query.completed" }] } },
+      presentation: {
+        type: "sql" as const,
+        timing: { startedAt: "2026-08-05T12:00:00.000000000Z", endedAt: "2026-08-05T12:00:00.125000000Z", durationUs: 125_000 },
+        failure: null,
+        sql: {
+          statement: { value: "select * from invoices where customer_id = ?", isTruncated: false, originalBytes: 49 },
+          bindings: { items: [{ position: 0, column: "customer_id", value: "[REDACTED]" }], truncated: false, originalBytes: 88 },
+          result: null,
+        },
       },
-    },
-  });
+    };
+  };
 }
 
 async function renderRoute(options: { initialEntry?: string; loadInspector?: Parameters<typeof presentRunDetail>[1] } = {}) {
