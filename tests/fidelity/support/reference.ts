@@ -191,6 +191,15 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       if (surface === "queues") { value.queues = []; value.totalQueues = 0; value.hasFilters = filtered; }
       return value;
     }
+    function requestFixture(value: any, surface: string, requestUrl: string) {
+      if ((surface !== "runs" && surface !== "shell") || !value.data?.runs) return value;
+      const statuses = new URL(requestUrl).searchParams.getAll("statuses");
+      if (statuses.length === 0) return value;
+      value.data.runs = value.data.runs.filter((run: any) => statuses.includes(run.status));
+      value.data.filters.statuses = statuses;
+      value.data.hasFilters = true;
+      return value;
+    }
     const environment = { id: "environment", slug: "prod", type: "PRODUCTION", userName: "Production", shortcode: "prod" };
     const project = { id: "project", organizationId: "organization", name: "Fixture Laravel", slug: "fixture", version: "V3", engine: "V1", environments: [environment], createdAt: "2026-01-01T00:00:00.000Z" };
     const organization = { id: "organization", slug: "fixture", title: "Fixture Laravel", avatar: { type: "letters", hex: "#fbbf24" }, projects: [project] };
@@ -276,7 +285,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         }
         return cloned;
       },
-      load: ({ captureId, surface, state, phase, route }: { captureId: string; surface: string; state: string; phase: string; route: "layout" | "page" }) => {
+      load: ({ captureId, surface, state, phase, route, request }: { captureId: string; surface: string; state: string; phase: string; route: "layout" | "page"; request: Request }) => {
         state = sessionStorage.getItem(fixtureStateKey) ?? state;
         const routeKey = `${surface}:${route}`;
         const value = input.loaders[`${captureId}:${route}`] ?? input.loaders[routeKey] ?? input.loaders[captureId] ?? input.loaders[surface];
@@ -286,7 +295,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         if (route === "page" && state === "loading" && phase === "initial") return new Promise(() => {});
         if (route === "page" && state === "stale-refresh" && phase === "refresh") return new Promise(() => {});
         const cloned = structuredClone(value);
-        return route === "page" ? stateFixture(cloned, surface, state) : cloned;
+        return route === "page" ? requestFixture(stateFixture(cloned, surface, state), surface, request.url) : cloned;
       },
     };
   }, fixture);

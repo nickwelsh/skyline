@@ -27,10 +27,20 @@
         {
           "action": "choose",
           "target": { "role": "combobox", "name": "Status", "exactText": "Status" },
-          "option": { "name": "Failed 8", "value": "failed" },
-          "blur": true
+          "option": { "name": "Failed 8", "nativeName": "failed", "value": "failed" },
+          "effect": {
+            "selected": {
+              "target": { "role": "combobox", "name": "Status", "exactText": "Status:Failed" },
+              "value": "failed",
+              "nativeName": "failed",
+              "customText": "Status:Failed"
+            },
+            "visible": [{ "role": "link", "name": "RPXQ0VC2" }],
+            "hidden": [{ "role": "link", "name": "1H2Z7M9C" }],
+            "focus": "status=failed"
+          }
         },
-        { "action": "click", "target": { "selector": "a[href*='direction=forward']" }, "blur": true },
+        { "action": "click", "target": { "selector": "a[href*='direction=forward']" } },
         { "action": "history", "direction": "back" }
       ]
     },

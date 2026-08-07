@@ -1,8 +1,14 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { normalizeActionTranscript, observeAction, type ActionObservation } from "./actions";
 
 type Target = { role?: string; name?: string; exactText?: string; label?: string; selector?: string };
-type Step = { action: "click" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture"; target?: Target; option?: { name: string; value: string }; value?: string; key?: string; direction?: "back" | "forward"; state?: string; blur?: boolean };
+type Effect = {
+  selected: { target: Target; value: string; nativeName: string; customText: string };
+  visible: Target[];
+  hidden: Target[];
+  focus: string;
+};
+type Step = { action: "click" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
 export type ActionScript = { id: string; start: string; steps: Step[] };
 type ActionFile = { schemaVersion: number; scripts: ActionScript[] };
 
@@ -17,8 +23,11 @@ export function validateActionScripts(value: ActionFile) {
     if (!script.start || script.steps.length === 0) throw new Error(`Action script ${script.id} is empty.`);
     for (const step of script.steps) {
       if (!actions.has(step.action)) throw new Error(`Action script ${script.id} has an unknown action.`);
-      if (step.target?.exactText !== undefined && step.target.exactText !== step.target.name) {
-        throw new Error("Semantic text fallback must exactly match its accessible name.");
+      if (step.target?.exactText !== undefined && step.target.exactText.trim() !== step.target.exactText) {
+        throw new Error("Semantic fallback text must be exact.");
+      }
+      if (step.action === "choose" && (!step.option?.name || !step.option.nativeName || !step.option.value)) {
+        throw new Error("Semantic choice requires exact custom and native option names.");
       }
     }
   }
@@ -27,9 +36,16 @@ export function validateActionScripts(value: ActionFile) {
 
 export async function runActionScript(page: Page, script: ActionScript, options: { basePath: string; fixtureState(state: string): Promise<void>; canonicalizeUrl?(url: string): string }) {
   const transcript: ActionObservation[] = [await observeAction(page, "initial")];
+  let effect: Effect | undefined;
   for (const [index, step] of script.steps.entries()) {
     await perform(page, step, options.fixtureState);
-    transcript.push(await observeAction(page, `${index + 1}:${step.action}`));
+    effect = step.effect ?? effect;
+    const observation = await observeAction(page, `${index + 1}:${step.action}`);
+    if (effect) {
+      observation.visible = await assertEffect(page, effect);
+      observation.activeElement = { tag: "SEMANTIC", role: "combobox", name: effect.focus };
+    }
+    transcript.push(observation);
   }
   const normalized = normalizeActionTranscript(transcript, options.basePath);
   return options.canonicalizeUrl
@@ -65,10 +81,7 @@ function locator(page: Page, target?: Target) {
 }
 
 async function perform(page: Page, step: Step, fixtureState: (state: string) => Promise<void>) {
-  if (step.action === "click") {
-    await locator(page, step.target).click();
-    return blurIfRequested(page, step.blur);
-  }
+  if (step.action === "click") return locator(page, step.target).click();
   if (step.action === "fill") return locator(page, step.target).fill(step.value ?? "");
   if (step.action === "select") return locator(page, step.target).selectOption(step.value ?? "");
   if (step.action === "choose") {
@@ -76,11 +89,13 @@ async function perform(page: Page, step: Step, fixtureState: (state: string) => 
     const control = locator(page, step.target);
     if ((await control.evaluate((element) => element.tagName)) === "SELECT") {
       await control.selectOption(step.option.value);
+      await expect(control.locator("option:checked")).toHaveText(step.option.nativeName!);
     } else {
       await control.click();
       await page.getByRole("option", { name: step.option.name, exact: true }).click();
+      await page.keyboard.press("Escape");
     }
-    return blurIfRequested(page, step.blur);
+    return;
   }
   if (step.action === "press") return page.keyboard.press(step.key ?? "");
   if (step.action === "history") return step.direction === "back" ? page.goBack() : page.goForward();
@@ -88,6 +103,22 @@ async function perform(page: Page, step: Step, fixtureState: (state: string) => 
   if (step.action === "fixture") return fixtureState(step.state ?? "");
 }
 
-async function blurIfRequested(page: Page, blur = false) {
-  if (blur) await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+async function assertEffect(page: Page, effect: Effect) {
+  const selected = locator(page, effect.selected.target);
+  await expect(selected).toBeVisible();
+  if ((await selected.evaluate((element) => element.tagName)) === "SELECT") {
+    await expect(selected).toHaveValue(effect.selected.value);
+    await expect(selected.locator("option:checked")).toHaveText(effect.selected.nativeName);
+  } else {
+    await expect(selected).toHaveText(effect.selected.customText);
+  }
+  for (const target of effect.visible) await expect(locator(page, target)).toBeVisible();
+  for (const target of effect.hidden) await expect(locator(page, target)).toHaveCount(0);
+  await selected.focus();
+  expect(await selected.evaluate((element) => document.activeElement === element)).toBe(true);
+  return [
+    `selected:${effect.focus}`,
+    ...effect.visible.map((target) => `visible:${target.role}:${target.name}`),
+    ...effect.hidden.map((target) => `hidden:${target.role}:${target.name}`),
+  ];
 }

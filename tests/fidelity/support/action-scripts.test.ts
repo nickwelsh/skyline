@@ -19,10 +19,20 @@ describe("semantic fidelity actions", () => {
       {
         action: "choose",
         target: { role: "combobox", name: "Status", exactText: "Status" },
-        option: { name: "Failed 8", value: "failed" },
-        blur: true,
+        option: { name: "Failed 8", nativeName: "failed", value: "failed" },
+        effect: {
+          selected: {
+            target: { role: "combobox", name: "Status", exactText: "Status:Failed" },
+            value: "failed",
+            nativeName: "failed",
+            customText: "Status:Failed",
+          },
+          visible: [{ role: "link", name: "RPXQ0VC2" }],
+          hidden: [{ role: "link", name: "1H2Z7M9C" }],
+          focus: "status=failed",
+        },
       },
-      { action: "click", target: { selector: "a[href*='direction=forward']" }, blur: true },
+      { action: "click", target: { selector: "a[href*='direction=forward']" } },
       { action: "history", direction: "back" },
     ]);
   });
@@ -39,6 +49,13 @@ describe("semantic fidelity actions", () => {
     const actions = JSON.parse(readFileSync(resolve(import.meta.dirname, "../actions.json"), "utf8"));
     actions.scripts.find(({ id }: { id: string }) => id === "filters-pagination").steps[0].target.exactText = "Status ";
 
-    expect(() => validateActionScripts(actions)).toThrow("Semantic text fallback must exactly match its accessible name.");
+    expect(() => validateActionScripts(actions)).toThrow("Semantic fallback text must be exact.");
+  });
+
+  test("rejects a choice without an exact native option name", () => {
+    const actions = JSON.parse(readFileSync(resolve(import.meta.dirname, "../actions.json"), "utf8"));
+    delete actions.scripts.find(({ id }: { id: string }) => id === "filters-pagination").steps[0].option.nativeName;
+
+    expect(() => validateActionScripts(actions)).toThrow("Semantic choice requires exact custom and native option names.");
   });
 });
