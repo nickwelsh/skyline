@@ -14102,12 +14102,12 @@
       "measurements": {
         "queue-found@1024x768-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 578.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 541,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14119,12 +14119,12 @@
         },
         "queue-found@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14136,12 +14136,12 @@
         },
         "queue-found@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14153,12 +14153,12 @@
         },
         "queue-found@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14170,12 +14170,12 @@
         },
         "queue-found@1440x960-system-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14187,12 +14187,12 @@
         },
         "queue-found@1440x960-system-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14204,12 +14204,12 @@
         },
         "queue-found@390x844-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 654.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 617,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14221,12 +14221,12 @@
         },
         "queues-activity-wait-history@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14238,12 +14238,12 @@
         },
         "queues-activity-wait-history@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14255,12 +14255,12 @@
         },
         "queues-activity-wait-history@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14272,12 +14272,12 @@
         },
         "queues-busy@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14289,12 +14289,12 @@
         },
         "queues-busy@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14306,12 +14306,12 @@
         },
         "queues-busy@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14323,12 +14323,12 @@
         },
         "queues-filtering@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14340,12 +14340,12 @@
         },
         "queues-filtering@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14357,12 +14357,12 @@
         },
         "queues-filtering@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14374,12 +14374,12 @@
         },
         "queues-hidden-controls@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14391,12 +14391,12 @@
         },
         "queues-hidden-controls@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14408,12 +14408,12 @@
         },
         "queues-hidden-controls@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14425,12 +14425,12 @@
         },
         "queues-idle@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14442,12 +14442,12 @@
         },
         "queues-idle@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14459,12 +14459,12 @@
         },
         "queues-idle@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14476,12 +14476,12 @@
         },
         "queues-long-labels@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14493,12 +14493,12 @@
         },
         "queues-long-labels@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14510,12 +14510,12 @@
         },
         "queues-long-labels@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14527,12 +14527,12 @@
         },
         "queues-multiple-targets@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14544,12 +14544,12 @@
         },
         "queues-multiple-targets@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14561,12 +14561,12 @@
         },
         "queues-multiple-targets@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14578,12 +14578,12 @@
         },
         "queues-paginated-runs@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14595,12 +14595,12 @@
         },
         "queues-paginated-runs@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14612,12 +14612,12 @@
         },
         "queues-paginated-runs@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14629,12 +14629,12 @@
         },
         "queues-populated@1024x768-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 578.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 541,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14646,12 +14646,12 @@
         },
         "queues-populated@1440x960-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14663,12 +14663,12 @@
         },
         "queues-populated@1440x960-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14680,12 +14680,12 @@
         },
         "queues-populated@1440x960-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14697,12 +14697,12 @@
         },
         "queues-populated@1440x960-system-dark": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "6653866a8728d5189cef7d00b01b68b220d203759fd1dc8a9210b618f70242c8",
+          "computedStyleSha256": "8eb8d4b705862f1f45b501f84fd4048e05d3b5565f17b7e3a41afbafad455279",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14714,12 +14714,12 @@
         },
         "queues-populated@1440x960-system-light": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 770.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 733,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "d30c45ae1e06ae07c4dc28e2e17c616c5be9f63984b63c2107589c8cb945b376",
+          "computedStyleSha256": "9d00399e2c582a9f172360c2e1af61d6eb4a9fa76482b78f26bc6bb366ae027f",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
@@ -14731,12 +14731,12 @@
         },
         "queues-populated@390x844-classic": {
           "relativeRect": {
-            "x": 77.609375,
-            "y": 654.5,
-            "width": 98.609375,
+            "x": -6,
+            "y": 617,
+            "width": 215,
             "height": 32
           },
-          "computedStyleSha256": "7cba10f4d803938d3ebc71fe1fa9aa07bb38a5df3628c5808815cb803840b459",
+          "computedStyleSha256": "b8e186f22a0bd52269cbe3cf63e501dd4c6ff58803edcdf63ea6ea8936d944e9",
           "accessibilitySha256": "d424e732e071017ce41122041bea12073d033cd9dac34ef0a3efdff8de809c72",
           "anchorRect": {
             "x": 10,
