@@ -22,6 +22,7 @@ describe("Queue truthfulness", () => {
     expect(container.querySelectorAll("[data-skyline-capability]")).toHaveLength(0);
     expect(container.textContent).toContain("Recorded queued");
     expect(container.textContent).toContain("Recorded running");
+    expect(container.textContent).toContain("redis / reports");
     expect(container.textContent).toContain("Queued");
     expect(container.textContent).not.toMatch(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);

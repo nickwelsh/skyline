@@ -15,7 +15,7 @@ export default function Page() {
 
   return (
     <PageContainer>
-      <NavBar><PageTitle title={data.queueTarget.queue} backButton={{ to: "/queues", text: "Queues" }} /></NavBar>
+      <NavBar><PageTitle title={data.queueTarget.destination} backButton={{ to: "/queues", text: "Queues" }} /></NavBar>
       <QueueTargetDetailPresenter data={data} loading={navigation.state !== "idle"} />
     </PageContainer>
   );

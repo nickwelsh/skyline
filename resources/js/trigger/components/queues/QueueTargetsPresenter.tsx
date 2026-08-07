@@ -97,7 +97,7 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
               isTabbableCell
               leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}
             >
-              {target.queue}
+              {target.destination}
             </TableCell>
             <MetricCell target={target} value={target.queued} />
             <MetricCell target={target} value={target.running} bright={target.running > 0} />

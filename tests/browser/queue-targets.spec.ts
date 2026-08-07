@@ -19,7 +19,9 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await page.goto("/skyline/queues");
 
   await expect(page.getByRole("heading", { name: "Queues" })).toBeVisible();
-  await expect(page.getByText("this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
+  await expect(page.getByText("redis / this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "redis / shared", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "sqs / shared", exact: true })).toBeVisible();
   for (const metric of ["Recorded queued", "Recorded running"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
@@ -66,7 +68,7 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await targetLink.focus();
   await targetLink.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/skyline/queues/${queueId}`));
-  await expect(page.getByRole("heading", { name: "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "redis / this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Concurrency keys" })).toHaveCount(0);
   for (const metric of ["Recorded queued", "Recorded running", "Maximum queue time"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
@@ -286,7 +288,12 @@ function listResponse(): QueueTargetsPageDto {
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: capabilities(),
     environmentSummary: { queued: 1, running: 2, allocated: null, limit: null },
-    queueTargets: [summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }), summary(`queue_${"b".repeat(64)}`, "mail", {})],
+    queueTargets: [
+      summary(queueId, "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { queued: 1, running: 2 }),
+      summary(`queue_${"b".repeat(64)}`, "mail", {}),
+      summary(`queue_${"c".repeat(64)}`, "shared", {}, "redis"),
+      summary(`queue_${"d".repeat(64)}`, "shared", {}, "sqs"),
+    ],
     pagination: { previous: null, next: null },
     filters: { connection: null, search: null, from: null, to: null, status: [] },
     options: { connections: ["database", "redis", "sqs"], timeRanges: queueTimeRanges() },
@@ -331,10 +338,10 @@ function run(id: string): QueueTargetDetailDto["runs"][number] {
   };
 }
 
-function summary(id: string, queue: string, active: Partial<Record<RunStatus, number>>) {
+function summary(id: string, queue: string, active: Partial<Record<RunStatus, number>>, connection = queue === "mail" ? "sqs" : "redis") {
   return {
     id,
-    connection: queue === "mail" ? "sqs" : "redis",
+    connection,
     queue,
     firstObservedAt: "2026-08-05T11:00:00.000000000Z",
     lastObservedAt: "2026-08-05T12:00:00.000000000Z",
