@@ -2,6 +2,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
 type Rect = { x: number; y: number; width: number; height: number };
+type ProtectedCrop = { status: "visible"; rect: Rect; screenshotSha256: string } | { status: "below-viewport" };
 type Mask = { rect: Rect; source: Rect; application: "trigger" | "skyline" | "both" };
 type Observation = { selector: string; rect: Rect; computedStyle: Record<string, string>; accessibleName: string };
 type PairedRegion = { kind?: "paired"; id: string; trigger: Observation; skyline: Observation };
@@ -21,7 +22,9 @@ export type CapabilityOmissionRegion = {
   kind: "capability-omission";
   id: string;
   omissions: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
+  protectedSelectors?: Array<{ id: string; application: "trigger" | "skyline"; selector: string; rect: Rect; computedStyleSha256: string; accessibilitySha256: string; crop: ProtectedCrop }>;
   expected: Record<string, CapabilityOmissionMeasurement>;
+  expectedProtected?: Record<string, { rect: Rect; computedStyleSha256: string; accessibilitySha256: string; crop: ProtectedCrop }>;
 };
 type CapabilityOmissionMeasurement = {
   triggerRect: Rect; skylineRect: Rect;
@@ -99,6 +102,17 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
     ];
   }
   if (region.kind === "capability-omission") {
+    const protectedSelectors = region.protectedSelectors ?? [];
+    const expectedProtected = region.expectedProtected ?? {};
+    const protectedIds = protectedSelectors.map(({ id }) => id);
+    if (region.omissions.some(({ skylineBoundary }) => skylineBoundary) && (protectedSelectors.length === 0 || new Set(protectedIds).size !== protectedIds.length || Object.keys(expectedProtected).length !== protectedSelectors.length || protectedIds.some((id) => !expectedProtected[id]))) throw new Error(`Allowed region ${region.id} lacks exact protected reflow evidence.`);
+    for (const protectedSelector of protectedSelectors) {
+      const expected = expectedProtected[protectedSelector.id];
+      if (!expected) throw new Error(`Allowed region ${region.id} lacks protected measurement for ${protectedSelector.id}.`);
+      for (const key of ["rect", "computedStyleSha256", "accessibilitySha256", "crop"] as const) {
+        if (JSON.stringify(protectedSelector[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${region.id} protected selector ${protectedSelector.id} changed ${key}.`);
+      }
+    }
     const pairMasks = region.omissions.map((pair) => {
       const expected = region.expected[pair.id];
       if (!expected) throw new Error(`Allowed region ${region.id} lacks measurement for pair ${pair.id}.`);
@@ -107,7 +121,7 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
       }
       return [
         boundedMask(`${region.id}:${pair.id}:trigger`, pair.triggerRect, "trigger", imageWidth, imageHeight),
-        boundedMask(`${region.id}:${pair.id}:skyline`, pair.skylineRect, "skyline", imageWidth, imageHeight),
+        ...(pair.skylineBoundary ? [] : [boundedMask(`${region.id}:${pair.id}:skyline`, pair.skylineRect, "skyline", imageWidth, imageHeight)]),
       ];
     });
     rejectOverlaps(pairMasks, imageWidth, imageHeight);

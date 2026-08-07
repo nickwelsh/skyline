@@ -55,6 +55,25 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [{ ...omission, omissions: omission.omissions.map((pair, index) => index ? pair : { ...pair, triggerComputedStyleSha256: "0".repeat(64) }) }])).toThrow(/triggerComputedStyleSha256/i);
   });
 
+  test("treats Skyline reflow boundaries as unmasked anchors with locked protected pixels", () => {
+    const trigger = image([255, 0, 0, 255], 10, 10);
+    const skyline = image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]], [4, 0, [0, 0, 0, 255]]]);
+    const omission = capabilityOmissionRegion();
+    omission.omissions = [{ ...omission.omissions[0], skylineBoundary: true, skylineRect: { x: 4, y: 0, width: 1, height: 1 } }];
+    omission.expected = { [omission.omissions[0].id]: { ...omission.expected[omission.omissions[0].id], skylineRect: omission.omissions[0].skylineRect } };
+
+    expect(() => comparePixels(trigger, skyline, [omission])).toThrow(/protected reflow evidence/i);
+    const protectedMeasurement = { rect: { x: 5, y: 5, width: 1, height: 1 }, computedStyleSha256: "e".repeat(64), accessibilitySha256: "f".repeat(64), crop: { status: "visible" as const, rect: { x: 5, y: 5, width: 1, height: 1 }, screenshotSha256: "1".repeat(64) } };
+    omission.protectedSelectors = [{ id: "anchor", application: "skyline", selector: "[data-protected='anchor']", ...protectedMeasurement }];
+    omission.expectedProtected = { anchor: protectedMeasurement };
+
+    expect(() => comparePixels(trigger, skyline, [{ ...omission, expectedProtected: {} }])).toThrow(/exact protected reflow evidence/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...omission, expectedProtected: { wrong: protectedMeasurement } }])).toThrow(/exact protected reflow evidence/i);
+    expect(() => comparePixels(trigger, skyline, [omission])).toThrow(/1 unclassified pixel/i);
+    expect(comparePixels(trigger, image([255, 0, 0, 255], 10, 10, [[0, 0, [0, 0, 0, 255]]]), [omission]))
+      .toMatchObject({ differingPixels: 0, maskedPixels: 1 });
+  });
+
   test("unions quantized masks for touching fractional regions but rejects true overlap", () => {
     const trigger = image([255, 0, 0, 255], 10, 10);
     const skyline = image([255, 0, 0, 255], 10, 10, [

@@ -18,6 +18,10 @@ describe("NW-219 Job capability discovery definitions", () => {
     expect(list.selectorPairs.at(-1)?.id).toBe("file-row-25");
     expect(list.selectorPairs.every(({ skylineBoundary }) => skylineBoundary === true)).toBe(true);
     expect(new Set(list.selectorPairs.flatMap(({ triggerSelector, skylineSelector }) => [triggerSelector, skylineSelector])).size).toBe(106);
+    expect(list.protectedSelectors).toHaveLength(106);
+    expect(list.protectedSelectors?.map(({ id }) => id).slice(0, 6)).toEqual(["search", "pagination", "header-1", "header-2", "header-3", "header-4"]);
+    expect(list.protectedSelectors?.filter(({ id }) => id.startsWith("row-")).every(({ allowBelowViewport, id }) => Number(id.split("-")[1]) >= 18 ? allowBelowViewport === true : allowBelowViewport === undefined)).toBe(true);
+    expect(list.selectorPairs.some(({ skylineSelector }) => /Task filters.*first-child/.test(skylineSelector))).toBe(false);
   });
 
   test("groups detail omissions around three source-faithful boundaries", () => {
@@ -26,6 +30,8 @@ describe("NW-219 Job capability discovery definitions", () => {
     expect(detail.captures).toHaveLength(19);
     expect(detail.selectorPairs.map(({ id }) => id)).toEqual(["source-definition", "queue-administration", "runtime-policy"]);
     expect(detail.selectorPairs.every(({ skylineBoundary }) => skylineBoundary === true)).toBe(true);
+    expect(detail.protectedSelectors?.map(({ id }) => id)).toEqual(["identifier", "queue-links", "created"]);
+    expect(detail.selectorPairs.every(({ skylineSelector }) => skylineSelector.includes("data-skyline-capability-boundary"))).toBe(true);
     expect(JSON.stringify(detail.selectorPairs)).not.toMatch(/test task|activity|pagination|recorded queue links/i);
   });
 

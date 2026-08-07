@@ -160,6 +160,18 @@ describe("source-fidelity oracle", () => {
     const disjoint = { ...region, id: "queue-unavailable-capabilities-filtered", captures: ["queues-filtering@1440x960-classic"], measurements: { "queues-filtering@1440x960-classic": measurement } };
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [region, disjoint] })).not.toThrow();
     expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...region, measurements: { [region.captures[0]]: { allocated: { ...measurement.allocated, triggerAccessibilitySha256: "bad" } } } }] })).toThrow(/measurement/i);
+    const protectedRegion = {
+      ...region,
+      selectorPairs: [{ ...region.selectorPairs[0], skylineBoundary: true }],
+      protectedSelectors: [{ id: "search", application: "skyline", selector: "[data-skyline-protected='search']" }],
+      protectedMeasurements: { [region.captures[0]]: { search: { rect: { x: 1, y: 1, width: 20, height: 10 }, computedStyleSha256: "a".repeat(64), accessibilitySha256: "b".repeat(64), crop: { status: "visible", rect: { x: 1, y: 1, width: 20, height: 10 }, screenshotSha256: "c".repeat(64) } } } },
+    };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [protectedRegion] })).not.toThrow();
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...protectedRegion, protectedSelectors: [] }] })).toThrow(/protected/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...protectedRegion, protectedMeasurements: { [region.captures[0]]: { search: { ...protectedRegion.protectedMeasurements[region.captures[0]].search, crop: { ...protectedRegion.protectedMeasurements[region.captures[0]].search.crop, screenshotSha256: "bad" } } } } }] })).toThrow(/protected/i);
+    const belowViewport = { ...protectedRegion, protectedMeasurements: { [region.captures[0]]: { search: { ...protectedRegion.protectedMeasurements[region.captures[0]].search, crop: { status: "below-viewport" } } } } };
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [belowViewport] })).toThrow(/protected/i);
+    expect(() => validateAllowedDifferences({ decision: "NW-216", categories: ["capability-omission"], regions: [{ ...belowViewport, protectedSelectors: [{ ...belowViewport.protectedSelectors[0], allowBelowViewport: true }] }] })).not.toThrow();
   });
 
   test("presenter extensions require paired evidence locks and pinned citations", () => {

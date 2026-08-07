@@ -103,12 +103,13 @@ export default function JobsRoute() {
             <div className="grid h-full min-w-0 grid-rows-1">
               {hasItems ? <div className="flex min-w-0 max-w-full flex-col overflow-hidden">
               <div aria-label="Task filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
-                <div className="flex flex-1 items-center gap-1.5">
+                <div data-skyline-protected="jobs-list-search" className="relative flex flex-1 items-center gap-1.5">
                   <SearchInput placeholder="Search tasks…" resetParams={["page"]} />
+                  <span aria-hidden="true" data-skyline-capability-boundary="jobs-list-task-type-filter" className="pointer-events-none absolute inset-y-0 left-0 w-1" />
                 </div>
                 <div className="flex items-center gap-1.5">
                   {(!data.jobGuidance || !showUsefulLinks) && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
-                  <TaskPagination currentPage={currentPage} totalPages={totalPages} onPage={setPage} />
+                  <div data-skyline-protected="jobs-list-pagination"><TaskPagination currentPage={currentPage} totalPages={totalPages} onPage={setPage} /></div>
                 </div>
               </div>
               <JobsTable jobs={jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
@@ -240,13 +241,13 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
   return (
     <Table containerClassName="min-h-0 flex-1" showTopBorder>
       <TableHeader><TableRow>
-        <TableHeaderCell>ID</TableHeaderCell>
-        <TableHeaderCell>Running</TableHeaderCell>
+        <TableHeaderCell capabilityBoundary="jobs-list-type-header">ID</TableHeaderCell>
+        <TableHeaderCell capabilityBoundary="jobs-list-file-header">Running</TableHeaderCell>
         <TableHeaderCell>Activity (24h)</TableHeaderCell>
         <TableHeaderCell hiddenLabel>Go to page</TableHeaderCell>
       </TableRow></TableHeader>
       <TableBody>
-        {jobs.length ? jobs.map((job) => <TaskRow key={job.id} job={job} isPanelAnimating={isPanelAnimating} />) :
+        {jobs.length ? jobs.map((job, index) => <TaskRow key={job.id} job={job} row={index + 1} isPanelAnimating={isPanelAnimating} />) :
           <TableBlankRow colSpan={4}><Paragraph variant="small">No tasks match your filters</Paragraph></TableBlankRow>}
       </TableBody>
       {isLoading ? <caption className="sr-only">Loading Tasks</caption> : null}
@@ -254,10 +255,10 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
   );
 }
 
-function TaskRow({ job, isPanelAnimating }: { job: PresentedJob; isPanelAnimating: boolean }) {
+function TaskRow({ job, row, isPanelAnimating }: { job: PresentedJob; row: number; isPanelAnimating: boolean }) {
   return <TableRow className="group">
-    <TableCell to={job.path} isTabbableCell><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
-    <TableCell to={job.path}>{job.statusCounts.running ?? 0}</TableCell>
+    <TableCell to={job.path} isTabbableCell capabilityBoundary={`jobs-list-type-row-${row}`}><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
+    <TableCell to={job.path} capabilityBoundary={`jobs-list-file-row-${row}`}>{job.statusCounts.running ?? 0}</TableCell>
     <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity activity={job.activity} /></div></div></TableCell>
     <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.name)}`} className="block rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright">View runs</Link>} />
   </TableRow>;

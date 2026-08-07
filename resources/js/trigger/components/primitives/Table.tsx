@@ -195,6 +195,7 @@ type TableCellBasicProps = {
 };
 
 type TableHeaderCellProps = TableCellBasicProps & {
+  capabilityBoundary?: string;
   hiddenLabel?: boolean;
   tooltip?: ReactNode;
   /** Extra class merged onto the tooltip content. */
@@ -215,6 +216,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
   (
     {
       className,
+      capabilityBoundary,
       alignment = "left",
       children,
       colSpan,
@@ -284,6 +286,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
           "align-middle font-medium text-text-bright",
           variants[variant].headerCell,
           alignmentClassName,
+          capabilityBoundary && "relative",
           className
         )}
         colSpan={colSpan}
@@ -312,6 +315,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
         ) : (
           label
         )}
+        {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-0" /> : null}
       </th>
     );
   }
@@ -319,6 +323,7 @@ export const TableHeaderCell = forwardRef<HTMLTableCellElement, TableHeaderCellP
 
 type TableCellProps = TableCellBasicProps & {
   capabilityMarker?: string;
+  capabilityBoundary?: string;
   to?: string;
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   hasAction?: boolean;
@@ -344,6 +349,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
     {
       className,
       capabilityMarker,
+      capabilityBoundary,
       actionClassName,
       alignment = "left",
       children,
@@ -399,6 +405,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
           isSelected && variants[variant].rowSelected,
           !isSelected &&
             "group-hover/table-row:before:absolute group-hover/table-row:before:left-0 group-hover/table-row:before:-top-px group-hover/table-row:before:h-px group-hover/table-row:before:w-3 group-hover/table-row:before:bg-background-hover group-hover/table-row:after:absolute group-hover/table-row:after:bottom-0 group-hover/table-row:after:left-0 group-hover/table-row:after:h-px group-hover/table-row:after:w-3 group-hover/table-row:after:bg-background-hover group-focus-visible/table-row:bg-background-bright",
+          capabilityBoundary && "relative",
           className
         )}
         colSpan={colSpan}
@@ -473,6 +480,7 @@ export const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
         ) : (
           <>{children}</>
         )}
+        {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-0" /> : null}
       </td>
     );
   }

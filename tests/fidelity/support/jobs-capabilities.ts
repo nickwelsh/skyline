@@ -7,6 +7,7 @@ const detailCitation = `https://github.com/triggerdotdev/trigger.dev/blob/${pin}
 const listStates = ["jobs-populated", "jobs-contrasting-activity", "jobs-filtering", "jobs-long-labels"];
 const detailStates = ["job-found", "job-stale-refresh", "jobs-favorite", "jobs-recent-runs", "jobs-absent-optional-data"];
 const visibleRows = 25;
+const protectedRows = 25;
 
 export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmissionDefinition[] {
   const captures = expectedCaptureIds(matrix);
@@ -15,15 +16,21 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
       "jobs-list-source-definition",
       captures.filter((capture) => listStates.some((state) => capture.startsWith(`${state}@`))),
       [
-        pair("task-type-filter", "[data-trigger-capability='jobs-list-task-type-filter']", "#skyline [aria-label='Task filters'] > div:first-child"),
-        pair("type-header", "#reference table thead tr > th:nth-child(2)", "#skyline table thead tr > th:nth-child(1)"),
-        pair("file-header", "#reference table thead tr > th:nth-child(3)", "#skyline table thead tr > th:nth-child(2)"),
+        pair("task-type-filter", "[data-trigger-capability='jobs-list-task-type-filter']", "[data-skyline-capability-boundary='jobs-list-task-type-filter']"),
+        pair("type-header", "#reference table thead tr > th:nth-child(2)", "[data-skyline-capability-boundary='jobs-list-type-header']"),
+        pair("file-header", "#reference table thead tr > th:nth-child(3)", "[data-skyline-capability-boundary='jobs-list-file-header']"),
         ...Array.from({ length: visibleRows }, (_, index) => index + 1).flatMap((row) => [
-          pair(`type-row-${row}`, `#reference table tbody tr:nth-child(${row}) > td:nth-child(2)`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(1)`),
-          pair(`file-row-${row}`, `#reference table tbody tr:nth-child(${row}) > td:nth-child(3)`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(2)`),
+          pair(`type-row-${row}`, `#reference table tbody tr:nth-child(${row}) > td:nth-child(2)`, `[data-skyline-capability-boundary='jobs-list-type-row-${row}']`),
+          pair(`file-row-${row}`, `#reference table tbody tr:nth-child(${row}) > td:nth-child(3)`, `[data-skyline-capability-boundary='jobs-list-file-row-${row}']`),
         ]),
       ],
       [listCitation],
+      [
+        protect("search", "[data-skyline-protected='jobs-list-search']"),
+        protect("pagination", "[data-skyline-protected='jobs-list-pagination']"),
+        ...[1, 2, 3, 4].map((column) => protect(`header-${column}`, `#skyline table thead tr > th:nth-child(${column})`)),
+        ...Array.from({ length: protectedRows }, (_, index) => index + 1).flatMap((row) => [1, 2, 3, 4].map((column) => protect(`row-${row}-column-${column}`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(${column})`, row >= 18))),
+      ],
     ),
     definition(
       "job-detail-unavailable-definition",
@@ -34,6 +41,11 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
         pair("runtime-policy", "[data-trigger-capability='job-detail-runtime-policy']", "[data-skyline-capability-boundary='job-detail-runtime-policy']"),
       ],
       [detailCitation],
+      [
+        protect("identifier", "[data-skyline-protected='job-detail-identifier']"),
+        protect("queue-links", "[data-skyline-protected='job-detail-queue-links']"),
+        protect("created", "[data-skyline-protected='job-detail-created']"),
+      ],
     ),
   ];
 }
@@ -42,7 +54,11 @@ function pair(id: string, triggerSelector: string, skylineSelector: string) {
   return { id, triggerSelector, skylineSelector, skylineBoundary: true as const };
 }
 
-function definition(id: string, captures: string[], selectorPairs: CapabilityOmissionDefinition["selectorPairs"], citations: string[]): CapabilityOmissionDefinition {
+function protect(id: string, selector: string, allowBelowViewport = false) {
+  return { id, application: "skyline" as const, selector, ...(allowBelowViewport ? { allowBelowViewport: true as const } : {}) };
+}
+
+function definition(id: string, captures: string[], selectorPairs: CapabilityOmissionDefinition["selectorPairs"], citations: string[], protectedSelectors: NonNullable<CapabilityOmissionDefinition["protectedSelectors"]>): CapabilityOmissionDefinition {
   return {
     id,
     category: "capability-omission",
@@ -56,5 +72,7 @@ function definition(id: string, captures: string[], selectorPairs: CapabilityOmi
     captures,
     selectorPairs,
     measurements: {},
+    protectedSelectors,
+    protectedMeasurements: {},
   };
 }

@@ -49,7 +49,13 @@ for (const capture of captures) {
           triggerAccessibilitySha256,
           skylineAccessibilitySha256,
         }]));
-        process.stdout.write(`\nCAPABILITY_OMISSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement })}\n`);
+        const protectedMeasurement = Object.fromEntries((observation.protectedSelectors ?? []).map(({ id, rect, computedStyleSha256, accessibilitySha256, crop }) => [id, {
+          rect,
+          computedStyleSha256,
+          accessibilitySha256,
+          crop,
+        }]));
+        process.stdout.write(`\nCAPABILITY_OMISSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement, protectedMeasurement })}\n`);
       }
     } finally {
       await context.close();

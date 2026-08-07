@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Page } from "@playwright/test";
+import { PNG } from "pngjs";
 import type { NormalizedAccessibilityNode } from "./accessibility";
 import type { DiscoveryStep } from "./discovery";
 import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
@@ -64,6 +65,16 @@ export type CapabilityOmissionMeasurement = {
   triggerAccessibilitySha256: string;
   skylineAccessibilitySha256: string;
 };
+export type ProtectedSelectorCrop =
+  | { status: "visible"; rect: Rect; screenshotSha256: string }
+  | { status: "below-viewport" };
+export type ProtectedSelectorMeasurement = {
+  rect: Rect;
+  computedStyleSha256: string;
+  accessibilitySha256: string;
+  crop: ProtectedSelectorCrop;
+};
+export type ProtectedSelectorDefinition = { id: string; application: "trigger" | "skyline"; selector: string; allowBelowViewport?: true };
 export type CapabilityOmissionDefinition = {
   id: string;
   category: "capability-omission";
@@ -73,9 +84,12 @@ export type CapabilityOmissionDefinition = {
   captures: string[];
   selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true }>;
   measurements: Record<string, Record<string, CapabilityOmissionMeasurement>>;
+  protectedSelectors?: ProtectedSelectorDefinition[];
+  protectedMeasurements?: Record<string, Record<string, ProtectedSelectorMeasurement>>;
 };
 export type CapabilityOmissionObservation = {
   selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
+  protectedSelectors?: Array<ProtectedSelectorDefinition & ProtectedSelectorMeasurement>;
 };
 export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
@@ -120,7 +134,7 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
       continue;
     }
     const resolved = validateCapabilityOmissionObservation(definition, await discoverCapabilityOmissionObservation(trigger, skyline, definition), capture);
-    regions.push({ kind: "capability-omission", id: definition.id, omissions: resolved.selectorPairs, expected: definition.measurements[capture] } satisfies CapabilityOmissionRegion);
+    regions.push({ kind: "capability-omission", id: definition.id, omissions: resolved.selectorPairs, protectedSelectors: resolved.protectedSelectors ?? [], expected: definition.measurements[capture], expectedProtected: definition.protectedMeasurements?.[capture] ?? {} } satisfies CapabilityOmissionRegion);
   }
   return regions;
 }
@@ -144,6 +158,10 @@ export async function waitForDifferenceRegions(trigger: Page, skyline: Page, cap
     for (const pair of definition.selectorPairs) {
       waits.push(trigger.locator(pair.triggerSelector).first().waitFor({ state: "attached" }));
       waits.push(skyline.locator(pair.skylineSelector).first().waitFor({ state: "attached" }));
+    }
+    for (const protectedSelector of definition.protectedSelectors ?? []) {
+      const page = protectedSelector.application === "trigger" ? trigger : skyline;
+      waits.push(page.locator(protectedSelector.selector).first().waitFor({ state: "attached" }));
     }
   }
   await Promise.all(waits);
@@ -219,7 +237,25 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
       skylineAccessibilitySha256: skylineElement.accessibilitySha256,
     });
   }
-  return { selectorPairs };
+  const protectedSelectors = [];
+  for (const protectedSelector of definition.protectedSelectors ?? []) {
+    const page = protectedSelector.application === "trigger" ? trigger : skyline;
+    const dom = await observeElementDom(page, definition.id, protectedSelector.selector, `${protectedSelector.id} protected selector`);
+    const element = await observeCapabilityElementAccessibility(page, protectedSelector.selector, dom);
+    validateProtectedElementPresentation(definition.id, protectedSelector.id, element);
+    protectedSelectors.push({ ...protectedSelector, ...element, crop: undefined as unknown as ProtectedSelectorCrop });
+  }
+  for (const application of ["trigger", "skyline"] as const) {
+    const page = application === "trigger" ? trigger : skyline;
+    const applicationSelectors = protectedSelectors.filter((selector) => selector.application === application);
+    if (applicationSelectors.length === 0) continue;
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error("Protected selector requires a fixed viewport.");
+    const hasVisibleCrop = applicationSelectors.some((selector) => protectedSelectorCropStatus(viewport, selector.rect, selector.allowBelowViewport) === "visible");
+    const screenshot = hasVisibleCrop ? await page.screenshot({ animations: "disabled", caret: "hide" }) : undefined;
+    for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector.allowBelowViewport);
+  }
+  return { selectorPairs, protectedSelectors };
 }
 
 export function validateCapabilityOmissionObservation(definition: CapabilityOmissionDefinition, observation: CapabilityOmissionObservation, capture: string) {
@@ -234,7 +270,52 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
       if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} pair ${pair.id} changed ${key}.`);
     }
   }
+  const protectedDefinitions = definition.protectedSelectors ?? [];
+  const protectedMeasurement = definition.protectedMeasurements?.[capture] ?? {};
+  const observedProtected = observation.protectedSelectors ?? [];
+  if (observedProtected.length !== protectedDefinitions.length) throw new Error(`Allowed region ${definition.id} changed protected selector count.`);
+  for (const [index, protectedSelector] of protectedDefinitions.entries()) {
+    const observed = observedProtected[index];
+    const expected = protectedMeasurement[protectedSelector.id];
+    if (!observed || !expected || observed.id !== protectedSelector.id || observed.application !== protectedSelector.application || observed.selector !== protectedSelector.selector) throw new Error(`Allowed region ${definition.id} changed protected selector ${protectedSelector.id}.`);
+    for (const key of ["rect", "computedStyleSha256", "accessibilitySha256", "crop"] as const) {
+      if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} protected selector ${protectedSelector.id} changed ${key}.`);
+    }
+  }
   return observation;
+}
+
+export function captureProtectedElementCrop(screenshot: Buffer | undefined, viewport: { width: number; height: number }, rect: Rect, allowBelowViewport?: true): ProtectedSelectorCrop {
+  const status = protectedSelectorCropStatus(viewport, rect, allowBelowViewport);
+  if (status === "below-viewport") return { status };
+  const x = Math.max(0, Math.floor(rect.x));
+  const y = Math.max(0, Math.floor(rect.y));
+  const right = Math.min(viewport.width, Math.ceil(rect.x + rect.width));
+  const bottom = Math.min(viewport.height, Math.ceil(rect.y + rect.height));
+  if (!screenshot) throw new Error("Visible protected selector lacks its viewport screenshot.");
+  const png = PNG.sync.read(screenshot);
+  if (png.width !== viewport.width || png.height !== viewport.height) throw new Error("Protected selector screenshot changed viewport geometry.");
+  const width = right - x;
+  const height = bottom - y;
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let row = 0; row < height; row += 1) png.data.copy(pixels, row * width * 4, ((y + row) * png.width + x) * 4, ((y + row) * png.width + right) * 4);
+  return { status, rect: { x, y, width, height }, screenshotSha256: createHash("sha256").update(`${width}x${height}\0`).update(pixels).digest("hex") };
+}
+
+export function validateProtectedElementPresentation(definitionId: string, selectorId: string, observation: { rect: Rect; computedStyle?: ComputedStyleEntry[] }) {
+  if (!(observation.rect.width > 0 && observation.rect.height > 0)) throw new Error(`Allowed region ${definitionId} protected selector ${selectorId} has no positive box.`);
+  const value = (property: string) => observation.computedStyle?.find(([name]) => name === property)?.[1];
+  if (["display", "visibility", "opacity"].some((property) => value(property) === undefined) || value("display") === "none" || ["hidden", "collapse"].includes(value("visibility") ?? "") || value("content-visibility") === "hidden" || Number(value("opacity")) === 0) throw new Error(`Allowed region ${definitionId} protected selector ${selectorId} is not visibly painted.`);
+}
+
+function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, allowBelowViewport?: true): ProtectedSelectorCrop["status"] {
+  if (rect.y >= viewport.height && rect.x < viewport.width && rect.x + rect.width > 0) {
+    if (allowBelowViewport) return "below-viewport";
+    throw new Error("Protected selector is unexpectedly below the viewport.");
+  }
+  const visible = rect.x < viewport.width && rect.x + rect.width > 0 && rect.y < viewport.height && rect.y + rect.height > 0;
+  if (!visible) throw new Error("Protected selector is unexpectedly outside the viewport.");
+  return "visible";
 }
 
 export type PresenterObservationStep = DiscoveryStep;
@@ -426,7 +507,7 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
       : definition.category === "framework-extension"
         ? [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : []), definition.triggerAnchorSelector, definition.skylineAnchorSelector]
-        : definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
+        : [...definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), ...(definition.protectedSelectors ?? []).map(({ selector }) => selector)];
     if (definition.category !== "capability-omission") {
       const extensions = definition.category === "presenter-extension"
         ? [definition.triggerSelector, definition.skylineSelector]
@@ -437,7 +518,14 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       const collision = extensions.find((selector) => selector === definition.triggerAnchorSelector || selector === definition.skylineAnchorSelector);
       if (collision) throw new Error(`Framework-extension region ${definition.id} collides on extension and anchor selector ${collision}.`);
     }
-    if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length || definition.selectorPairs.some((pair) => pair.skylineBoundary !== undefined && pair.skylineBoundary !== true))) throw new Error(`Capability-omission region ${definition.id} has invalid selector ownership.`);
+    if (definition.category === "capability-omission") {
+      const protectedSelectors = definition.protectedSelectors ?? [];
+      if (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(protectedSelectors.map(({ id }) => id)).size !== protectedSelectors.length || new Set(selectors).size !== selectors.length || definition.selectorPairs.some((pair) => pair.skylineBoundary !== undefined && pair.skylineBoundary !== true) || protectedSelectors.some((selector) => selector.allowBelowViewport !== undefined && selector.allowBelowViewport !== true)) throw new Error(`Capability-omission region ${definition.id} has invalid selector ownership.`);
+      if (definition.selectorPairs.some((pair) => pair.skylineBoundary) && (protectedSelectors.length === 0 || !definition.protectedMeasurements || definition.captures.some((capture) => {
+        const measurement = definition.protectedMeasurements?.[capture];
+        return !measurement || Object.keys(measurement).length !== protectedSelectors.length || protectedSelectors.some(({ id }) => !measurement[id]);
+      }))) throw new Error(`Capability-omission region ${definition.id} lacks protected reflow evidence.`);
+    }
     const anchorPair = definition.category === "capability-omission" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
       const kind = definition.category === "capability-omission" ? "capability"

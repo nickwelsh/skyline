@@ -1,10 +1,12 @@
 import type { Page } from "@playwright/test";
+import { PNG } from "pngjs";
 import { describe, expect, test, vi } from "vitest";
 import {
   applicableCapabilityOmissions,
   applicableFrameworkExtensions,
   applicablePresenterExtensions,
   accessibilityOmissionSelectors,
+  captureProtectedElementCrop,
   fingerprintAccessibility,
   fingerprintCapabilityAccessibility,
   fingerprintComputedStyle,
@@ -16,6 +18,7 @@ import {
   settleStableElementPair,
   validateFrameworkExtensionObservation,
   validateCapabilityOmissionObservation,
+  validateProtectedElementPresentation,
   validatePairedAnchor,
   validatePresenterExtensionObservation,
   waitForDifferenceRegions,
@@ -329,10 +332,62 @@ describe("framework-extension fidelity regions", () => {
     const measurement = region.measurements[region.captures[0]];
     const observed = { selectorPairs: region.selectorPairs.map((pair) => ({ ...pair, ...measurement[pair.id] })) };
 
-    expect(validateCapabilityOmissionObservation(region, observed, region.captures[0])).toBe(observed);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region] })).toThrow(/protected reflow evidence/i);
     expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "trigger")).toEqual(region.selectorPairs.map((pair) => pair.triggerSelector));
     expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "skyline")).toEqual([region.selectorPairs[1].skylineSelector]);
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [{ ...region.selectorPairs[0], skylineBoundary: false as true }, region.selectorPairs[1]] }] })).toThrow(/selector ownership/i);
+  });
+
+  test("locks protected reflow evidence including element screenshots", () => {
+    const region = capabilityDefinition();
+    region.selectorPairs[0] = { ...region.selectorPairs[0], skylineBoundary: true };
+    region.protectedSelectors = [{ id: "search", application: "skyline", selector: "[data-protected='search']" }];
+    region.protectedMeasurements = {
+      [region.captures[0]]: {
+        search: {
+          rect: { x: 4, y: 5, width: 20, height: 24 },
+          computedStyleSha256: "e".repeat(64),
+          accessibilitySha256: "f".repeat(64),
+          crop: { status: "visible", rect: { x: 4, y: 5, width: 20, height: 24 }, screenshotSha256: "1".repeat(64) },
+        },
+      },
+    };
+    const measurement = region.measurements[region.captures[0]];
+    const protectedMeasurement = region.protectedMeasurements[region.captures[0]];
+    const observed = {
+      selectorPairs: region.selectorPairs.map((pair) => ({ ...pair, ...measurement[pair.id] })),
+      protectedSelectors: region.protectedSelectors.map((selector) => ({ ...selector, ...protectedMeasurement[selector.id] })),
+    };
+
+    expect(validateCapabilityOmissionObservation(region, observed, region.captures[0])).toBe(observed);
+    expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], crop: { status: "visible", rect: { x: 4, y: 5, width: 20, height: 24 }, screenshotSha256: "2".repeat(64) } }] }, region.captures[0])).toThrow(/crop/i);
+    expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], accessibilitySha256: "2".repeat(64) }] }, region.captures[0])).toThrow(/accessibilitySha256/i);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, protectedSelectors: [{ ...region.protectedSelectors![0], selector: region.selectorPairs[0].skylineSelector }] }] })).toThrow(/selector ownership/i);
+  });
+
+  test("protected screenshot fingerprints catch painted color and icon drift", () => {
+    const screenshot = (changed: boolean) => {
+      const png = new PNG({ width: 2, height: 2 });
+      png.data.fill(255);
+      if (changed) png.data.set([0, 0, 0, 255], 0);
+      return PNG.sync.write(png);
+    };
+    const rect = { x: 0, y: 0, width: 1, height: 1 };
+
+    expect(captureProtectedElementCrop(screenshot(false), { width: 2, height: 2 }, rect))
+      .not.toEqual(captureProtectedElementCrop(screenshot(true), { width: 2, height: 2 }, rect));
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 })).toThrow(/below the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, true)).toEqual({ status: "below-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, true)).toThrow(/outside the viewport/i);
+  });
+
+  test("rejects protected elements without positive visible presentation", () => {
+    const visible = [["display", "block", ""], ["visibility", "visible", ""], ["content-visibility", "visible", ""], ["opacity", "1", ""]] as [string, string, string][];
+    expect(() => validateProtectedElementPresentation("region", "selector", { rect: { x: 0, y: 0, width: 10, height: 10 }, computedStyle: visible })).not.toThrow();
+    expect(() => validateProtectedElementPresentation("region", "selector", { rect: { x: 0, y: 0, width: 0, height: 10 }, computedStyle: visible })).toThrow(/positive box/i);
+    for (const [property, value] of [["display", "none"], ["visibility", "hidden"], ["content-visibility", "hidden"], ["opacity", "0"]]) {
+      expect(() => validateProtectedElementPresentation("region", "selector", { rect: { x: 0, y: 0, width: 10, height: 10 }, computedStyle: [[property, value, ""]] })).toThrow(/visibly painted/i);
+    }
   });
 });
 
@@ -405,6 +460,8 @@ function capabilityDefinition(): CapabilityOmissionDefinition {
     citations: ["https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/routes/_app.orgs.%24organizationSlug.projects.%24projectParam.env.%24envParam.queues/route.tsx#L211-L268"],
     captures: ["queues-busy@1440x960-classic"],
     selectorPairs: selectors.map((id) => ({ id, triggerSelector: `[data-trigger-capability='${id}']`, skylineSelector: `[data-skyline-capability='${id}']` })),
+    protectedSelectors: [],
+    protectedMeasurements: {},
     measurements: {
       "queues-busy@1440x960-classic": Object.fromEntries(selectors.map((id, index) => [id, {
         triggerRect: { x: index, y: 0, width: 1, height: 1 },

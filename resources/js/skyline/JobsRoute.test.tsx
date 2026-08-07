@@ -49,6 +49,15 @@ describe("Job detail source chrome", () => {
     expect(detail.textContent).toContain("Created");
     expect(detail.querySelector('a[href="/queues/queue_redis"]')?.textContent).toBe("redis / default");
     expect(detail.querySelector('a[href="/queues/queue_database"]')?.textContent).toBe("database / default");
+    const boundaries = Array.from(detail.querySelectorAll<HTMLElement>("[data-skyline-capability-boundary]"));
+    expect(boundaries.map((boundary) => boundary.dataset.skylineCapabilityBoundary)).toEqual([
+      "job-detail-source-definition",
+      "job-detail-queue-administration",
+      "job-detail-runtime-policy",
+    ]);
+    expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none") && boundary.childElementCount === 0)).toBe(true);
+    expect(boundaries.every((boundary) => !boundary.querySelector("a"))).toBe(true);
+    expect(detail.querySelector('[data-skyline-protected="job-detail-queue-links"]')?.querySelectorAll("a")).toHaveLength(2);
     expect(detail.textContent).not.toContain("File path");
     expect(detail.textContent).not.toContain("Type");
     expect(detail.textContent).not.toContain("Version");
@@ -92,6 +101,12 @@ describe("Jobs list source chrome", () => {
     expect(Array.from(container.querySelectorAll("th"), (header) => header.textContent?.trim()))
       .toEqual(["ID", "Running", "Activity (24h)", "Go to page"]);
     expect(container.querySelector('[role="group"][aria-label="Task type"]')).toBeNull();
+    const boundaries = Array.from(container.querySelectorAll<HTMLElement>("[data-skyline-capability-boundary]"));
+    expect(boundaries).toHaveLength(53);
+    expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none") && boundary.childElementCount === 0)).toBe(true);
+    expect(boundaries.every((boundary) => !boundary.querySelector("input, button, a, svg"))).toBe(true);
+    expect(container.querySelector('[data-skyline-protected="jobs-list-search"]')?.querySelector('input[placeholder="Search tasks…"]')).not.toBeNull();
+    expect(container.querySelector('[data-skyline-protected="jobs-list-pagination"]')?.querySelectorAll("button")).toHaveLength(2);
     expect(container.textContent).not.toContain("Standard");
     expect(container.textContent).not.toContain(".php");
     expect(container.querySelector('[data-status="running"]')?.getAttribute("fill"))
