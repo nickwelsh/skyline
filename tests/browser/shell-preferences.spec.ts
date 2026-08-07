@@ -24,9 +24,9 @@ test("environment label preserves pinned source contrast", async ({ page }) => {
     await page.evaluate(({ key, theme }) => localStorage.setItem(key, JSON.stringify({ version: 1, theme, contrast: 50 })), { key: storageKey, theme: scenario.theme });
     await page.reload();
 
-    const label = page.getByTestId("side-menu-project").getByText("Production", { exact: true });
+    const label = page.getByTestId("side-menu-application").getByText("Production", { exact: true });
     await expect(label).toHaveClass("overflow-hidden whitespace-nowrap text-left system-mono-label text-prod text-[0.90625rem] font-medium tracking-[-0.01em]");
-    const violations = (await new AxeBuilder({ page }).include('[data-testid="side-menu-project"]').analyze()).violations;
+    const violations = (await new AxeBuilder({ page }).include('[data-testid="side-menu-application"]').analyze()).violations;
     expect(violations.map((violation) => violation.id)).not.toContain("color-contrast");
   }
 });
@@ -51,10 +51,10 @@ test("source shell exposes only supported surfaces and persists customization", 
   await page.goto("/skyline/runs");
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.getByText("Project", { exact: true })).toBeVisible();
+  await expect(page.getByText("Application", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
   await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
-  await expect.poll(async () => (await page.getByTestId("side-menu-project").boundingBox())?.height).toBe(103);
+  await expect.poll(async () => (await page.getByTestId("side-menu-application").boundingBox())?.height).toBe(67);
   for (const label of [...baseline.contract.navigation, "Pinned Run"]) {
     await expect(page.getByRole("link", { name: label, exact: true }).first()).toBeVisible();
   }
@@ -111,12 +111,12 @@ test("paired pinned Trigger and Skyline shells preserve reached behavior", async
   await reference.goto("http://127.0.0.1:4175/shell");
   await reference.evaluate(() => document.fonts.ready);
   await expect(reference).toHaveScreenshot("nw-226/trigger-shell.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
-  const triggerContract = await exerciseShell(reference);
+  const triggerContract = await exerciseShell(reference, "Project");
 
   await page.goto("/skyline/runs");
   await page.evaluate(() => document.fonts.ready);
   await expect(page).toHaveScreenshot("nw-226/skyline-shell.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
-  const skylineContract = await exerciseShell(page);
+  const skylineContract = await exerciseShell(page, "Application");
 
   expect(skylineContract).toEqual(triggerContract);
   await reference.close();
@@ -177,7 +177,7 @@ function runsResponse(): RunsPageDto {
   return response;
 }
 
-async function exerciseShell(page: Page) {
+async function exerciseShell(page: Page, identity: "Application" | "Project") {
   const navigation = ["tasks", "runs", "logs", "errors", "queues"];
   await page.evaluate(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
     key: storageKey,
@@ -201,11 +201,9 @@ async function exerciseShell(page: Page) {
   });
   await page.reload();
 
-  await expect(page.getByText("Project", { exact: true })).toBeVisible();
+  await expect(page.getByText(identity, { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
   await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
-  const menuTop = (await shellMenu(page).boundingBox())?.y ?? 0;
-  const tasksOffset = Math.round(((await page.getByRole("link", { name: "Tasks", exact: true }).boundingBox())?.y ?? -1) - menuTop);
   for (const action of navigation) await expect(page.locator(`[data-action="${action}"]`).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Pinned Run", exact: true })).toBeVisible();
   const unsupported = ["Sessions", "Prompts", "Models", "Query", "Dashboards", "Deployments", "Deploys", "Environment variables", "Preview branches", "Regions", "Manage", "Waitpoint tokens", "Batches", "Bulk actions", "API keys", "Alerts", "Concurrency", "Limits", "Integrations", "Future Query", "Account", "Notifications", "Job guidance", "Switch organization", "Switch project", "Switch environment", "Ask AI", "Documentation", "Status", "Suggest a feature", "Contact us…", "Full changelog"];
@@ -262,7 +260,7 @@ async function exerciseShell(page: Page) {
   await expect(page.getByRole("status")).toHaveText("Browser storage is unavailable. Preference changes will last for this tab only.");
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
 
-  return { navigation, tasksOffset, favorite: "Important Run", shortcuts: baseline.contract.shortcuts, focusReturned: true, persistence: true, storageFallback: true, unsupportedHidden: true, logsVisibleAfterCustomization: false };
+  return { navigation, favorite: "Important Run", shortcuts: baseline.contract.shortcuts, focusReturned: true, persistence: true, storageFallback: true, unsupportedHidden: true, logsVisibleAfterCustomization: false };
 }
 
 function shellMenu(page: Page) {

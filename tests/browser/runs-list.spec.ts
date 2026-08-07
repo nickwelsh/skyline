@@ -14,7 +14,9 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
 
   await expect(page).toHaveURL(/\/skyline\/runs$/);
   await expect(page.getByText("Fixture Laravel", { exact: true })).toBeVisible();
-  await expect(page.getByText("testing", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("side-menu-application")).toContainText("Application");
+  await expect(page.getByTestId("side-menu-application")).toContainText("Production");
+  await expect(page.getByTestId("side-menu-project")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await expect(page.getByText("Trigger.dev")).toHaveCount(0);
@@ -106,7 +108,9 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
   await expect(page.getByText("No runs match your filters.", { exact: true })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/runs");
-  await expect(page.getByRole("alert")).toContainText("Telemetry unavailable.");
+  await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
+  await expect(page.getByText("Telemetry unavailable.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Go to homepage" })).toBeVisible();
 });
 
 async function routeRuns(page: Page, response: ReturnType<typeof pageResponse>) {

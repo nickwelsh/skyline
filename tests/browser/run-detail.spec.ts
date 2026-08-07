@@ -56,15 +56,18 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toHaveCount(0);
   await page.keyboard.press("e");
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toBeVisible();
-  await page.getByRole("button", { name: "Collapse GenerateMonthlyInvoices" }).click({ modifiers: ["Alt"] });
+  const rootTreeItem = tree.getByRole("treeitem", { name: /GenerateMonthlyInvoices Root/ });
+  await rootTreeItem.click({ modifiers: ["Alt"], position: { x: 8, y: 16 } });
   await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toHaveCount(0);
-  await page.getByRole("button", { name: "Expand GenerateMonthlyInvoices" }).click({ modifiers: ["Alt"] });
+  await rootTreeItem.click({ modifiers: ["Alt"], position: { x: 8, y: 16 } });
+  await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toBeVisible();
+  await expect(page.locator('[data-node-id="span_a866b446b5df56e3"]')).toBeVisible();
 
   await page.keyboard.press("ArrowDown");
   await expect(page).toHaveURL(new RegExp(`node=${oracle.expected.nextNode}`));
   await expect(page.getByText("Illuminate\\Database\\DeadlockException", { exact: true })).toBeVisible();
-  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Finished" }).locator("+ dd")).toHaveText("—");
-  await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Queue duration" }).locator("+ dd")).toHaveText("—");
+  await expect(page.getByRole("tabpanel").getByText("Finished", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tabpanel").getByText("Queue duration", { exact: true })).toHaveCount(0);
 
   const timeline = page.locator("[data-timeline-root]");
   const attempt = page.locator(`[data-timeline-node-id="${failedAttemptId}"]`);
@@ -88,9 +91,10 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.locator('[data-node-id="span_4f24adb545b26d31"]')).toBeVisible();
   await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toHaveCount(0);
   await page.locator('[data-node-id="span_4f24adb545b26d31"]').click();
-  await page.getByRole("tab", { name: "Detail" }).click();
-  await expect(page.getByRole("region", { name: "SQL" })).toContainText("insert into `invoices`");
-  await expect(page.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
+  const sourceInspector = page.getByLabel("Run inspector");
+  await expect(sourceInspector.getByRole("tablist")).toHaveCount(0);
+  await expect(sourceInspector).toContainText("insert into `invoices`");
+  await expect(sourceInspector.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
   await page.getByRole("button", { name: "Esc", exact: true }).click();
   await expect(page).not.toHaveURL(/node=/);
 });
@@ -168,7 +172,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   expect(skylineBehavior.shared).toEqual(triggerBehavior.shared);
   expect(skylineBehavior.visual).toEqual(triggerBehavior.visual);
   expect(triggerBehavior.interaction).toMatchObject({ expandFocusable: true, dialogOpened: true, escapeClosed: true, focusReturned: false });
-  expect(skylineBehavior).toMatchObject({ dialogClosed: true, stackFocusReturned: true, traceScrollable: true, copied: "Copied" });
+  expect(skylineBehavior).toMatchObject({ dialogClosed: true, inspectorOpen: true, stackFocusReturned: true, traceScrollable: true, copied: "Copied" });
 
   await page.getByRole("switch", { name: "Errors only" }).click();
   await page.locator(`[data-node-id="${failedAttemptId}"]`).click();
@@ -188,7 +192,7 @@ test("paired failed Attempt inspection preserves captured evidence and Trigger i
   await expect(retryEvidence).not.toContainText("Source location not captured");
   await expect(retryEvidence).not.toContainText("Stack trace not captured");
   await expect(retryEvidence).not.toContainText("DeadlockException");
-  await page.keyboard.press("Escape");
+  await page.getByRole("dialog").getByRole("button", { name: "Close" }).click();
   await expect(retryEvidence).toHaveCount(0);
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`node=${retryId}`));
@@ -306,10 +310,12 @@ async function exerciseFailureSurface(page: Page) {
   };
   await page.keyboard.press("Escape");
   await expect(evidence).toHaveCount(0);
+  await expect(page.getByLabel("Run inspector")).toBeVisible();
   await expect(expandStack).toBeFocused();
   return {
     ...evidenceResult,
     dialogClosed: true,
+    inspectorOpen: true,
     stackFocusReturned: true,
   };
 }
@@ -390,6 +396,7 @@ test("active Run polls while preserving selection and interaction state", async 
 
 test("Run detail preserves loading, stale-refresh, API-error, and not-found treatments", async ({ page }) => {
   const firstResponse = createFirstResponseGate();
+  const refreshResponse = createFirstResponseGate();
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
   detail.trace.polling = true;
@@ -403,14 +410,14 @@ test("Run detail preserves loading, stale-refresh, API-error, and not-found trea
     }
     requests += 1;
     if (requests === 1) await firstResponse.hold();
-    else await new Promise((resolve) => setTimeout(resolve, 120));
+    else await refreshResponse.hold();
     if (mode === "error") return route.fulfill({ status: 500, json: { error: { message: "Telemetry unavailable." } } });
     if (mode === "not-found") return route.fulfill({ status: 404, json: { error: { message: "The Run was not found." } } });
     await route.fulfill({ json: detail });
   });
 
   try {
-    await page.goto(`/skyline/runs/${runId}`);
+    await page.goto(`/skyline/runs/${runId}?node=${rootNodeId}`);
     await expect(page.getByLabel("Loading Run")).toBeVisible();
   } finally {
     firstResponse.release();
@@ -418,17 +425,27 @@ test("Run detail preserves loading, stale-refresh, API-error, and not-found trea
   await expect(page.getByTestId("side-menu")).toBeVisible();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
 
-  mode = "error";
+  await expect(page).toHaveURL(/node=/);
+  await refreshResponse.waitUntilHeld();
   await expect(page.getByText("Refreshing Run…")).toBeVisible();
   await expect(page.getByLabel("Loading Run")).toBeHidden();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
+  detail.trace.polling = false;
+  refreshResponse.release();
+  await expect(page.getByText("Refreshing Run…")).toBeHidden();
+  await expect(page.getByLabel("Loading Run")).toBeHidden();
+  await expect(page.getByRole("heading", { name: runId })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`node=${rootNodeId}`));
 
+  mode = "error";
   await page.goto(`/skyline/runs/${runId}?api-error=1`);
-  await expect(page.getByRole("alert")).toContainText("Telemetry unavailable.");
+  await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
+  await expect(page.getByText("Telemetry unavailable.", { exact: true })).toBeVisible();
 
   mode = "not-found";
   await page.goto(`/skyline/runs/${runId}?missing=1`);
-  await expect(page.getByRole("heading", { name: "Run not found" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "404: Page not found" })).toBeVisible();
+  await expect(page.getByText("Not Found", { exact: true })).toBeVisible();
   expect(requests).toBeGreaterThan(2);
 });
 
@@ -581,11 +598,11 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     inspector.metadata = {
       value: {
         attributes: { "db.namespace": "testing" },
-        events: [{ name: "query.completed", timestamp: "2026-08-05T12:00:00.125000000Z" }],
       },
       isTruncated: false,
       truncated: [],
     };
+    inspector.timelineEvents = [{ name: "query.completed", offsetUs: 125_000, kind: "event" }];
     inspector.presentation = databaseStatePresentation(activeCase);
     return inspector;
   });
@@ -593,28 +610,28 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
   for (const scenario of stateInspectorOracle.cases) {
     activeCase = scenario.key;
     await page.goto(`/skyline/runs/${runId}?node=${queryNodeId}&fixture=${scenario.key}`);
-    await expect(page.getByRole("tabpanel", { name: "Overview" }).getByText("Completed", { exact: true })).toBeVisible();
-    const detailTab = page.getByRole("tab", { name: "Detail", exact: true });
-    await detailTab.click();
-    await page.keyboard.press("o");
-    await expect(page.getByRole("tab", { name: "Overview", exact: true })).toHaveAttribute("aria-selected", "true");
-    await page.keyboard.press("d");
-    await expect(detailTab).toHaveAttribute("aria-selected", "true");
-    const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
+    const inspector = page.getByLabel("Run inspector");
+    await expect(inspector.getByText("Completed", { exact: true })).toBeVisible();
+    await expect(inspector).toContainText("Message");
+    await expect(inspector).toContainText("Properties");
+    await expect(inspector.getByRole("tablist")).toHaveCount(0);
+    await expect(inspector.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:42" })).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42");
+    await expect(inspector.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
+    const spanEvidence = inspector.getByRole("region", { name: "Span evidence" });
+    await expect(spanEvidence).toBeVisible();
+    await expect(inspector.getByRole("heading", { name: "query.completed", level: 3 })).toBeVisible();
+    await expect(inspector.getByRole("region", { name: "Database and state operation inspector" })).toContainText('"db.namespace": "testing"');
+    await inspector.getByRole("button", { name: "Expand Properties" }).click();
+    const propertiesDialog = page.getByRole("dialog");
+    const detailRegion = propertiesDialog.getByRole("region", { name: `${scenario.heading} detail` });
     await expect(detailRegion).toBeVisible();
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
     for (const value of scenario.absent) await expect(detailRegion).not.toContainText(value);
-    await expect(page.getByRole("tabpanel", { name: "Detail" })).toContainText("4f24adb545b26d30");
-    await expect(page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:42" })).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42");
 
-    if (scenario.key === "sql-captured") {
-      await page.keyboard.press("m");
-      await expect(page.getByRole("tabpanel", { name: "Metadata" })).toContainText("query.completed");
-      await page.keyboard.press("d");
-      await expect(detailRegion).toBeVisible();
+    if (!scenario.preview) {
+      await propertiesDialog.getByRole("button", { name: "Close" }).click();
+      continue;
     }
-
-    if (!scenario.preview) continue;
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
     await wrap.click();
@@ -628,7 +645,7 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(expand).not.toBeFocused();
+    await expect(propertiesDialog).toBeVisible();
 
     if (scenario.key === "sql-captured") {
       await expectCaptureTabKeyboard(page, detailRegion);
@@ -637,6 +654,7 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
       await page.getByRole("tab", { name: "Tree" }).click();
       await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
     }
+    await propertiesDialog.getByRole("button", { name: "Close" }).click();
   }
 });
 
