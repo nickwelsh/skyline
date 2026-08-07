@@ -14,9 +14,10 @@ import { LocaleContextProvider } from "~/components/primitives/LocaleProvider";
 import { OperatingSystemContextProvider } from "~/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "~/components/primitives/ShortcutsProvider";
 import { AppContainer } from "~/components/layout/AppLayout";
+import { RouteErrorDisplay } from "~/components/ErrorDisplay";
 import { useSystemThemeSync } from "~/hooks/useSystemThemeSync";
 import type { ThemePreference } from "~/utils/themePreference";
-import ProjectLayout, { ErrorBoundary as ProjectError } from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam/route";
+import ProjectLayout from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam/route";
 import Jobs from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route";
 import JobDetail from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route";
 import RunsLayout from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs/route";
@@ -81,11 +82,11 @@ const routes = createBrowserRouter([
         path: ":captureId",
         loader: ({ request }: { request: Request }) => loadCapture(request, "layout"),
         element: createElement(ReferenceSurfaceLayout),
+        errorElement: createElement(ReferenceEnvironmentErrorBoundary),
         children: [{
           index: true,
           loader: ({ request }: { request: Request }) => loadCapture(request, "page"),
           element: createElement(ReferenceSurfacePage),
-          errorElement: createElement(ProjectError),
         }],
       }],
     }],
@@ -168,6 +169,10 @@ function ReferenceSurfaceLayout() {
 function ReferenceSurfacePage() {
   const capture = captureFromPath(`/oracle/${useParams().captureId ?? "runs-populated"}`);
   return elements[capture.surface] ?? elements.runs;
+}
+
+function ReferenceEnvironmentErrorBoundary() {
+  return createElement(RouteErrorDisplay);
 }
 
 async function loadCapture(request: Request, route: "layout" | "page") {

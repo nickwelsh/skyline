@@ -28,6 +28,18 @@ for (const scenario of cases) {
   });
 }
 
+test("reference environment boundary owns API errors", async ({ page }) => {
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/runs-api-error", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+
+  const presenter = page.locator(".fixed.inset-0");
+  await expect(presenter).toContainText("Error");
+  await expect(presenter).toContainText("Deterministic telemetry error.");
+  await expect(presenter.getByRole("link", { name: /Go to homepage/ })).toHaveAttribute("href", "/");
+  await expect(page.getByRole("link", { name: "Skyline" })).toHaveCount(0);
+});
+
 test("reference paired jobs-populated readiness", async ({ page }) => {
   const capture = "jobs-populated@1440x960-classic";
   const errors: string[] = [];
