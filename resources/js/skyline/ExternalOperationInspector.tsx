@@ -99,7 +99,6 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
         <TaskRunStatusCombo status={sourceStatus(inspector)} className="text-sm" />
       </div>
       <SourceSpanTimeline inspector={inspector} />
-      <SourceSpanEvidence inspector={inspector} />
       <Property.Table>
         <Property.Item>
           <Property.Label className="flex items-center justify-between">
@@ -121,7 +120,12 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
         showOpenInModal
         extensionId={extension ? "database-state-operation-inspector" : undefined}
         regionLabel={extension ? "Database and state operation inspector" : undefined}
-        modalContent={<div className="border-t border-grid-bright p-4">{children}</div>}
+        modalContent={
+          <div className="flex flex-col gap-4 border-t border-grid-bright p-4">
+            <SourceSpanEvidence inspector={inspector} />
+            {children}
+          </div>
+        }
       />
     </div>
   );

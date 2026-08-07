@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import { nw223InspectorState } from "./nw223";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
@@ -44,6 +45,17 @@ describe("pinned Trigger Run inspector resources", () => {
         triggeredRuns: [],
       },
     });
+  });
+
+  test("maps raw metadata into the pinned Properties slot for operation spans", async () => {
+    const { detail, inspectors } = await fixture();
+    const operation = nw223InspectorState(inspectors[queryId], queryId, "inspectors-sql-parameterized");
+    const resources = triggerRunInspectorResources(detail, { ...inspectors, [queryId]: operation }, baseRunResource(detail));
+    const properties = (resources[queryId] as any).span.properties;
+
+    expect(properties).toBe(JSON.stringify(operation.metadata.value, null, 2));
+    expect(properties).toContain('"db.namespace": "testing"');
+    expect(properties).not.toContain('"type": "sql"');
   });
 });
 

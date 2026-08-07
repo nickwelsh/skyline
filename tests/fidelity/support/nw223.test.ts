@@ -104,7 +104,9 @@ describe("NW-223 database and state inspector states", () => {
       expect(fixture.loaders[`runs-${state}`]).toBeDefined();
       const resource = fixture.resources?.spanStates?.[state]?.[queryNodeId] as { type?: string; span?: { properties?: string } };
       expect(resource.type).toBe("span");
-      expect(JSON.parse(resource.span?.properties ?? "null").type).toBe(state.split("-")[1] === "transaction" ? "transaction" : state.split("-")[1]);
+      const properties = JSON.parse(resource.span?.properties ?? "null");
+      expect(properties.attributes["skyline.operation.type"]).toBe(state.split("-")[1] === "transaction" ? "transaction" : state.split("-")[1]);
+      expect(properties.type).toBeUndefined();
     }
   });
 });

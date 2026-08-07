@@ -152,7 +152,12 @@ describe("Run detail source primitives", () => {
     expect(inspector.textContent).toContain("Completed");
     expect(inspector.textContent).toContain("Message");
     expect(inspector.textContent).toContain("Properties");
-    const evidence = inspector.querySelector('[aria-label="Span evidence"]');
+    expect(inspector.querySelector('[aria-label="Span evidence"]')).toBeNull();
+
+    const expand = inspector.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!;
+    await act(async () => expand.click());
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
+    const evidence = document.querySelector('[role="dialog"] [aria-label="Span evidence"]');
     expect(evidence?.textContent).toContain("app/Jobs/GenerateMonthlyInvoices.php:42");
     expect(evidence?.textContent).toContain("Telemetry event");
     expect(evidence?.textContent).toContain("query.completed");

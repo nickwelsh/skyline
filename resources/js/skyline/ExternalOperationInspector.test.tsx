@@ -104,7 +104,7 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
-  it("keeps supported source, telemetry, and metadata discriminators in source span chrome", () => {
+  it("keeps supported source, telemetry, and metadata discriminators inside expanded operation detail", () => {
     const { container, root } = renderInspector({
       type: "sql",
       timing: timing(),
@@ -119,7 +119,10 @@ describe("ExternalOperationInspector", () => {
       telemetryEventHref: "/skyline/api/runs/run-1/nodes/span-1",
     });
 
-    const evidence = container.querySelector('[aria-label="Span evidence"]');
+    expect(container.querySelector('[aria-label="Span evidence"]')).toBeNull();
+
+    flushSync(() => container.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')?.click());
+    const evidence = document.querySelector('[role="dialog"] [aria-label="Span evidence"]');
     expect(evidence?.tagName).toBe("SECTION");
     expect(evidence?.getAttribute("role")).toBe("region");
     expect(evidence?.textContent).toContain("app/Jobs/Example.php:42");
@@ -128,7 +131,7 @@ describe("ExternalOperationInspector", () => {
     expect(evidence?.querySelector('a[href="vscode://file//workspace/app/Jobs/Example.php:42"]')).not.toBeNull();
     expect(evidence?.querySelector('a[href="/skyline/api/runs/run-1/nodes/span-1"]')).not.toBeNull();
     expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')?.textContent).toContain('"db.namespace": "testing"');
-    expect(container.querySelector('[role="tablist"]')).toBeNull();
+    expect(document.querySelector('[role="dialog"] [aria-label="SQL query detail"]')).not.toBeNull();
 
     flushSync(() => root.unmount());
   });

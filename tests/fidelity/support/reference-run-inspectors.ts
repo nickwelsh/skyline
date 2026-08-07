@@ -63,7 +63,7 @@ function failedAttemptResource(
 
 function spanResource(detail: TracePageDto, inspector: InspectorDto): TriggerSpanResource {
   const rootStartedAt = Date.parse(detail.trace.rootStartedAt ?? detail.run.startedAt ?? detail.run.triggeredAt);
-  const evidence = inspector.presentation ?? inspector.metadata.value;
+  const evidence = inspector.metadata.value;
   const properties = evidence && typeof evidence === "object"
     ? JSON.stringify(evidence, null, 2)
     : undefined;
