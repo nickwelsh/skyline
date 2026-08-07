@@ -25,7 +25,26 @@ export function installDeterministicSplineViewer() {
 
   class StaticSplineViewer extends HTMLElement {
     connectedCallback() {
-      this.setAttribute("data-fidelity-static-artwork", "");
+      this.setAttribute("data-fidelity-static-artwork", "trigger-mark@ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0");
+      this.setAttribute("aria-hidden", "true");
+      if (this.shadowRoot) return;
+      const root = this.attachShadow({ mode: "open" });
+      // Pinned from apps/webapp/app/assets/images/logo.svg at the declared Trigger commit.
+      root.innerHTML = `
+        <style>
+          :host { contain: paint; display: block; position: relative; }
+          svg { height: 112px; left: 50%; position: absolute; top: 46%; transform: translate(-50%, -50%); width: 128px; }
+        </style>
+        <svg aria-hidden="true" fill="none" viewBox="0 0 119 104" xmlns="http://www.w3.org/2000/svg">
+          <path fill="url(#trigger-mark-gradient)" d="M35.664 42.4 59.411 1.269l58.853 101.937H.559l23.747-41.133 16.799 9.7-6.948 12.034h50.509L59.41 40.066 52.464 52.1l-16.8-9.7Z"/>
+          <defs>
+            <linearGradient id="trigger-mark-gradient" x1="59.5" x2="59.5" y1="0" y2="104" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#E7FF52"/>
+              <stop offset="1" stop-color="#41FF54"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      `;
     }
   }
   Object.defineProperty(StaticSplineViewer, marker, { value: true });
