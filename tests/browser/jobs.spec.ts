@@ -3,13 +3,18 @@ import { expect, test, type Page } from "@playwright/test";
 import type { JobDetailDto, JobsPageDto, SkylineCapabilities } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import baseline from "./fixtures/nw-219-trigger-jobs-baseline.json" with { type: "json" };
+import { createFirstResponseGate, type FirstResponseGate } from "./support/deferred-response";
 import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 test("Jobs list and detail keep observed activity in basename URLs", async ({ page }) => {
-  await routeJobs(page);
-  await page.goto("/skyline/jobs");
-
-  await expect(page.getByLabel("Loading Jobs")).toBeVisible();
+  const firstResponse = createFirstResponseGate();
+  await routeJobs(page, firstResponse);
+  try {
+    await page.goto("/skyline/jobs");
+    await expect(page.getByLabel("Loading Jobs")).toBeVisible();
+  } finally {
+    firstResponse.release();
+  }
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
   await expect(page.getByRole("button", { name: "New task…" })).toHaveCount(0);
   await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
@@ -222,9 +227,10 @@ test("Jobs covers empty, filtered-empty, API-error, and not-found states", async
   await expect(page.getByText("Not Found", { exact: true })).toBeVisible();
 });
 
-async function routeJobs(page: Page) {
+async function routeJobs(page: Page, firstResponse?: FirstResponseGate) {
   await page.route("**/skyline/api/jobs**", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 350));
+    if (firstResponse) await firstResponse.hold();
+    else await new Promise((resolve) => setTimeout(resolve, 350));
     const url = new URL(route.request().url());
     if (!url.pathname.endsWith("/api/jobs")) return route.fulfill({ json: jobDetail() });
     const response = jobsPage();

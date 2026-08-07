@@ -8,6 +8,7 @@ import triggerInspectorBaseline from "./fixtures/nw-220-trigger-inspector-baseli
 import stateInspectorOracle from "./fixtures/nw-223-database-state-inspectors.json" with { type: "json" };
 import failureScenario from "./fixtures/nw-222-failure-scenario.json" with { type: "json" };
 import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
+import { createFirstResponseGate } from "./support/deferred-response";
 import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
@@ -388,6 +389,7 @@ test("active Run polls while preserving selection and interaction state", async 
 });
 
 test("Run detail preserves loading, stale-refresh, API-error, and not-found treatments", async ({ page }) => {
+  const firstResponse = createFirstResponseGate();
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
   detail.trace.polling = true;
@@ -400,14 +402,19 @@ test("Run detail preserves loading, stale-refresh, API-error, and not-found trea
       return;
     }
     requests += 1;
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    if (requests === 1) await firstResponse.hold();
+    else await new Promise((resolve) => setTimeout(resolve, 120));
     if (mode === "error") return route.fulfill({ status: 500, json: { error: { message: "Telemetry unavailable." } } });
     if (mode === "not-found") return route.fulfill({ status: 404, json: { error: { message: "The Run was not found." } } });
     await route.fulfill({ json: detail });
   });
 
-  await page.goto(`/skyline/runs/${runId}`);
-  await expect(page.getByLabel("Loading Run")).toBeVisible();
+  try {
+    await page.goto(`/skyline/runs/${runId}`);
+    await expect(page.getByLabel("Loading Run")).toBeVisible();
+  } finally {
+    firstResponse.release();
+  }
   await expect(page.getByTestId("side-menu")).toBeVisible();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
 

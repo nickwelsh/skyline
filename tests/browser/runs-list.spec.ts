@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import type { RunsPageDto } from "../../resources/js/skyline/dto";
 import { fixtureCapabilities } from "../../resources/js/skyline/FixtureAdapter";
 import fixture from "./fixtures/nw-217-runs.json" with { type: "json" };
+import { createFirstResponseGate } from "./support/deferred-response";
 
 const traceId = "00000000000000000000000000000001";
 
@@ -63,11 +64,12 @@ test("paired pinned Trigger.dev and Skyline Runs fixture stays deterministic", a
 });
 
 test("Runs exposes loading, initial-empty, filtered-empty, API-error, and polling states", async ({ page }) => {
+  const firstResponse = createFirstResponseGate();
   let requests = 0;
   let mode: "populated" | "initial-empty" | "filtered-empty" | "error" = "populated";
   await page.route("**/skyline/api/runs**", async (route) => {
     requests += 1;
-    await new Promise((resolve) => setTimeout(resolve, requests === 1 ? 150 : 0));
+    await firstResponse.hold();
     if (mode === "error") {
       await route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Telemetry unavailable." } } });
       return;
@@ -81,8 +83,12 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
     await route.fulfill({ json: response });
   });
 
-  await page.goto("/skyline/runs");
-  await expect(page.getByLabel("Loading Runs")).toBeVisible();
+  try {
+    await page.goto("/skyline/runs");
+    await expect(page.getByLabel("Loading Runs")).toBeVisible();
+  } finally {
+    firstResponse.release();
+  }
   await expect(page.getByTestId("side-menu")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeGreaterThanOrEqual(1024);
