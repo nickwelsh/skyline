@@ -5,6 +5,8 @@
   "errors": {
     "hiddenMutableRegions": ["list-status", "list-status-actions", "detail-status"],
     "detailVersions": false,
+    "detailMachines": false,
+    "detailPlatformColumns": false,
     "detailBulkReplay": false
   },
   "queues": {

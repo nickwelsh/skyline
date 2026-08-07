@@ -1,6 +1,8 @@
 type ErrorCapabilityPolicy = {
   hiddenMutableRegions?: string[];
   detailVersions?: boolean;
+  detailMachines?: boolean;
+  detailPlatformColumns?: boolean;
   detailBulkReplay?: boolean;
 };
 
@@ -17,6 +19,10 @@ export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapa
   if (!adapted.includes(versions)) throw new Error("Pinned Trigger Error detail Versions filter changed; capability adapter must be reviewed.");
   adapted = adapted.replace(versions, "              {errorCapabilityPolicy.detailVersions ? <LogsVersionFilter /> : null}");
 
+  const affectedVersions = "            {errorGroup.affectedVersions.length > 0 && (";
+  if (!adapted.includes(affectedVersions)) throw new Error("Pinned Trigger Error detail affected Versions changed; capability adapter must be reviewed.");
+  adapted = adapted.replace(affectedVersions, "            {errorCapabilityPolicy.detailVersions && errorGroup.affectedVersions.length > 0 && (");
+
   const bulkStart = adapted.indexOf("                  <PermissionLink\n                    hasPermission={canReplayRuns}");
   const bulkEnd = adapted.indexOf("                  </PermissionLink>", bulkStart);
   if (bulkStart < 0 || bulkEnd < 0) throw new Error("Pinned Trigger Error detail bulk replay changed; capability adapter must be reviewed.");
@@ -28,15 +34,15 @@ export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapa
   return `${adapted}\nconst errorCapabilityPolicy = ${JSON.stringify(policy)};\n`;
 }
 
-export function conditionErrorRunTableCapabilities(code: string, policy: Pick<ErrorCapabilityPolicy, "detailVersions">) {
+export function conditionErrorRunTableCapabilities(code: string, policy: Pick<ErrorCapabilityPolicy, "detailVersions" | "detailMachines" | "detailPlatformColumns">) {
   const params = "  const params = new URLSearchParams(location.search || \"\");";
   const header = "          <TableHeaderCell>Version</TableHeaderCell>";
   const cell = "                <TableCell to={path}>{run.version ?? \"–\"}</TableCell>";
   if (!code.includes(params) || !code.includes(header) || !code.includes(cell)) {
     throw new Error("Pinned Trigger Error Runs Version column changed; capability adapter must be reviewed.");
   }
-  const adapted = code
-    .replace(params, `${params}\n  const showErrorVersions = !additionalTableState?.errorId || errorRunTableCapabilityPolicy.detailVersions;\n  const showErrorTaskKind = !additionalTableState?.errorId;`)
+  let adapted = code
+    .replace(params, `${params}\n  const isErrorRunTable = Boolean(additionalTableState?.errorId);\n  const showErrorVersions = !isErrorRunTable || errorRunTableCapabilityPolicy.detailVersions;\n  const showErrorMachines = !isErrorRunTable || errorRunTableCapabilityPolicy.detailMachines;\n  const showErrorPlatformColumns = !isErrorRunTable || errorRunTableCapabilityPolicy.detailPlatformColumns;\n  const showErrorTaskKind = !isErrorRunTable;`)
     .replace(header, "          {showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null}")
     .replace(cell, "                {showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null}")
     .replace(
@@ -50,11 +56,71 @@ export function conditionErrorRunTableCapabilities(code: string, policy: Pick<Er
                         className="size-3.5 flex-none"
                       />
                     ) : null}`,
-    );
+    )
+    .replaceAll("{showCompute && (", "{showCompute && showErrorPlatformColumns && (")
+    .replaceAll("{showRegion && <TableHeaderCell>Region</TableHeaderCell>}", "{showRegion && showErrorPlatformColumns ? <TableHeaderCell>Region</TableHeaderCell> : null}")
+    .replaceAll("{showRegion && (", "{showRegion && showErrorPlatformColumns && (");
+
+  adapted = wrapErrorRange(
+    adapted,
+    '          <TableHeaderCell className="pl-4" tooltip={<MachineTooltipInfo />}>',
+    "          <TableHeaderCell>Queue</TableHeaderCell>",
+    "          {showErrorMachines ? (\n",
+    "          ) : null}\n",
+    "Runs Machine header",
+  );
+  adapted = wrapErrorRange(
+    adapted,
+    "          <TableHeaderCell>Test</TableHeaderCell>",
+    "        </TableRow>",
+    "          {showErrorPlatformColumns ? (<>\n",
+    "          </>) : null}\n",
+    "Runs platform headers",
+  );
+  adapted = wrapErrorRange(
+    adapted,
+    "                <TableCell to={path}>\n                  <MachineLabelCombo preset={run.machinePreset} />",
+    "                <TableCell to={path}>\n                  {run.queue.type === \"task\" ? (",
+    "                {showErrorMachines ? (\n",
+    "                ) : null}\n",
+    "Runs Machine cell",
+  );
+  adapted = wrapErrorRange(
+    adapted,
+    "                <TableCell to={path}>\n                  {run.isTest ? (",
+    "              </TableRow>",
+    "                {showErrorPlatformColumns ? (<>\n",
+    "                </>) : null}\n",
+    "Runs platform cells",
+  );
+
+  const showRegion = '  const showRegion = environment.type !== "DEVELOPMENT";';
+  if (!adapted.includes(showRegion)) throw new Error("Pinned Trigger Error Runs column count changed; capability adapter must be reviewed.");
+  adapted = adapted.replace(showRegion, `${showRegion}\n  const visibleColumnCount = isErrorRunTable\n    ? 8 + Number(showErrorVersions) + Number(showErrorMachines)\n    : showRegion ? 16 : 15;`);
+  adapted = adapted.replaceAll("colSpan={showRegion ? 16 : 15}", "colSpan={visibleColumnCount}");
+  adapted = adapted.replace(
+    '<BlankState isLoading={isLoading} filters={filters} showRegion={showRegion} />',
+    '<BlankState isLoading={isLoading} filters={filters} showRegion={showRegion} visibleColumnCount={visibleColumnCount} />',
+  );
+  adapted = adapted.replace(
+    '}: Pick<RunsTableProps, "isLoading" | "filters"> & { showRegion: boolean }) {',
+    '  visibleColumnCount,\n}: Pick<RunsTableProps, "isLoading" | "filters"> & { showRegion: boolean; visibleColumnCount?: number }) {',
+  );
+  adapted = adapted.replace("  const colSpan = showRegion ? 16 : 15;", "  const colSpan = visibleColumnCount ?? (showRegion ? 16 : 15);");
   if (!adapted.includes("showErrorTaskKind ? (")) {
     throw new Error("Pinned Trigger Error Runs task-kind icon changed; capability adapter must be reviewed.");
   }
+  if (!adapted.includes("showErrorMachines ? (") || !adapted.includes("showErrorPlatformColumns ? (")) {
+    throw new Error("Pinned Trigger Error Runs supported column subset changed; capability adapter must be reviewed.");
+  }
   return `${adapted}\nconst errorRunTableCapabilityPolicy = ${JSON.stringify(policy)};\n`;
+}
+
+function wrapErrorRange(code: string, startMarker: string, endMarker: string, opening: string, closing: string, label: string) {
+  const start = code.indexOf(startMarker);
+  const end = code.indexOf(endMarker, start);
+  if (start < 0 || end < 0) throw new Error(`Pinned Trigger Error ${label} changed; capability adapter must be reviewed.`);
+  return code.slice(0, start) + opening + code.slice(start, end) + closing + code.slice(end);
 }
 
 export function conditionJobSegmentedControlMarker(code: string) {

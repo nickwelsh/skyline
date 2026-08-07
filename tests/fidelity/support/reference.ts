@@ -36,6 +36,10 @@ export type ReferenceFixture = {
     queueMetrics?: Record<string, Array<Record<string, unknown>>>;
   };
   queueMetricMatchers: typeof referenceQueueMetricMatchers;
+  sourceFeatureFlags: {
+    hasQueryAccess: boolean;
+    hasLogsPageAccess: boolean;
+  };
   context?: {
     root?: Record<string, unknown>;
     organization?: Record<string, unknown>;
@@ -92,6 +96,7 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
 
   return {
     queueMetricMatchers: referenceQueueMetricMatchers,
+    sourceFeatureFlags: { hasQueryAccess: true, hasLogsPageAccess: true },
     loaders: {
       jobs: triggerJobs(jobs),
       job: triggerJob(job),
@@ -202,7 +207,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
     }
     const environment = { id: "environment", slug: "prod", type: "PRODUCTION", userName: "Production", shortcode: "prod" };
     const project = { id: "project", organizationId: "organization", name: "Fixture Laravel", slug: "fixture", version: "V3", engine: "V1", environments: [environment], createdAt: "2026-01-01T00:00:00.000Z" };
-    const organization = { id: "organization", slug: "fixture", title: "Fixture Laravel", avatar: { type: "letters", hex: "#fbbf24" }, projects: [project] };
+    const organization = { id: "organization", slug: "fixture", title: "Fixture Laravel", avatar: { type: "letters", hex: "#fbbf24" }, featureFlags: input.sourceFeatureFlags, projects: [project] };
     const root = {
       user: { id: "user", email: "fixture@trigger.dev", admin: false, isImpersonating: false, dashboardPreferences: { sideMenu } },
       isViewingAsUser: false,

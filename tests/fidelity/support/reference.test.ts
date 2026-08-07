@@ -9,18 +9,28 @@ describe("pinned Trigger Errors fixture", () => {
     const root = resolve(import.meta.dirname, "../reference/vendor");
     const detail = conditionErrorDetailCapabilities(
       readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx"), "utf8"),
-      { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailBulkReplay: false },
+      { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailMachines: false, detailPlatformColumns: false, detailBulkReplay: false },
     );
     const table = conditionErrorRunTableCapabilities(
       readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
-      { detailVersions: false },
+      { detailVersions: false, detailMachines: false, detailPlatformColumns: false },
     );
 
     expect(detail).toContain("errorCapabilityPolicy.detailVersions ? <LogsVersionFilter /> : null");
+    expect(detail).toContain("errorCapabilityPolicy.detailVersions && errorGroup.affectedVersions.length > 0");
     expect(detail).toContain("errorCapabilityPolicy.detailBulkReplay ? (");
     expect(table).toContain("showErrorVersions ? <TableHeaderCell>Version</TableHeaderCell> : null");
     expect(table).toContain("showErrorVersions ? <TableCell to={path}>{run.version ?? \"–\"}</TableCell> : null");
     expect(table).toContain("showErrorTaskKind ? (");
+    expect(table).toContain("showErrorMachines ? (");
+    expect(table).toContain("showErrorPlatformColumns ? (");
+    expect(table).toContain("colSpan={visibleColumnCount}");
+  });
+
+  test("enables every source-owned supported shell item", async () => {
+    const fixture = await createReferenceFixture();
+
+    expect(fixture.sourceFeatureFlags).toEqual({ hasQueryAccess: true, hasLogsPageAccess: true });
   });
 
   test("maps Skyline occurrences into the reached presenter seams", async () => {
