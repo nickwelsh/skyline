@@ -11,6 +11,7 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
 
   await expect(page.getByLabel("Loading Jobs")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New task…" })).toHaveCount(0);
   await expect(page.getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   const listActivity = page.locator(".recharts-wrapper").first();
   await expect(listActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);

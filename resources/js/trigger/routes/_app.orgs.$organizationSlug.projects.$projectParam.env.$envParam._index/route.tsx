@@ -115,7 +115,7 @@ export default function JobsRoute() {
                   >
                     {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
-                  {(!data.jobGuidance || !showUsefulLinks) && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
+                  {data.jobGuidance && !showUsefulLinks && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
                   <div data-skyline-protected="jobs-list-pagination"><ListPagination list={data} /></div>
                 </div>
               </div>

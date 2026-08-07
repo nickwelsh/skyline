@@ -109,6 +109,7 @@ describe("Jobs list source chrome", () => {
     expect(container.querySelector<HTMLSelectElement>('select[aria-label="Time range"]')?.value).toBe("all");
     expect(container.querySelector('[data-skyline-protected="jobs-list-pagination"]')?.querySelectorAll("a")).toHaveLength(1);
     expect(container.textContent).not.toContain("Standard");
+    expect(container.textContent).not.toContain("New task…");
     expect(container.textContent).not.toContain(".php");
     expect(container.querySelector('[data-status="running"]')?.getAttribute("fill"))
       .toBe("var(--color-run-executing)");
