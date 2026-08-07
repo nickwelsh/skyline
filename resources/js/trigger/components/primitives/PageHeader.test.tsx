@@ -35,3 +35,22 @@ test("PageTitle preserves the pinned favorite control", () => {
   expect(button.querySelector("svg")?.getAttribute("class")).toBe("size-4 text-text-dimmed transition-colors group-hover/button:text-text-bright");
   expect(button.getAttribute("aria-pressed")).toBe("false");
 });
+
+test("PageTitle omits the favorite control when unavailable", () => {
+  document.body.innerHTML = '<div id="root"></div>';
+  const container = document.querySelector<HTMLDivElement>("#root")!;
+
+  flushSync(() => createRoot(container).render(
+    <MemoryRouter initialEntries={["/jobs/example"]}>
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider>
+          <FavoritesProvider favorites={[{ id: "saved", label: "Saved", path: "/runs/saved" }]} onChange={vi.fn()} enabled={false}>
+            <PageTitle title="Example" />
+          </FavoritesProvider>
+        </ShortcutsProvider>
+      </OperatingSystemContextProvider>
+    </MemoryRouter>,
+  ));
+
+  expect(container.querySelector('button[aria-label*="favorites"]')).toBeNull();
+});

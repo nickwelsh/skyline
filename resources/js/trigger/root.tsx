@@ -32,7 +32,7 @@ export const TRIGGER_SHELL_CLASS_NAME = "isolate h-screen min-w-[1024px] bg-back
 export function TriggerShell({ applicationName, brandMark, environmentLabel, capabilities, preferences, appearance, favorites, warning, onFavoritesChange, onPreferencesChange, onAppearanceChange, onCustomize, panelPersistence, children }: TriggerShellProps) {
   return (
     <PanelPersistenceProvider port={panelPersistence}>
-      <FavoritesProvider favorites={favorites} onChange={onFavoritesChange}>
+      <FavoritesProvider favorites={favorites} onChange={onFavoritesChange} enabled={capabilities.shell.favorites}>
       <AppContainer className={TRIGGER_SHELL_CLASS_NAME}>
         <div className="grid h-full min-w-0 grid-cols-[auto_1fr] overflow-hidden">
           <SideMenu applicationName={applicationName} brandMark={brandMark} environmentLabel={environmentLabel} capabilities={capabilities} preferences={preferences} appearance={appearance} warning={warning} onPreferencesChange={onPreferencesChange} onAppearanceChange={onAppearanceChange} onCustomize={onCustomize} />

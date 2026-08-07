@@ -198,9 +198,19 @@ describe("SideMenu capabilities", () => {
       expect(container.textContent).not.toContain(section);
     }
   });
+
+  it("omits dormant saved favorites when the shell capability is unavailable", () => {
+    const container = renderSideMenu(fixtureCapabilities.navigation, false, {
+      enabled: false,
+      favorites: [{ id: "saved", label: "Saved run", path: "/runs/saved" }],
+    });
+
+    expect(container.querySelector('[aria-label="Favorites"]')).toBeNull();
+    expect(container.textContent).not.toContain("Saved run");
+  });
 });
 
-function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapsed = false) {
+function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapsed = false, favoriteOptions: { enabled: boolean; favorites: Array<{ id: string; label: string; path: string }> } = { enabled: true, favorites: [] }) {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
@@ -209,7 +219,7 @@ function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapse
     <MemoryRouter>
       <OperatingSystemContextProvider platform="mac">
         <ShortcutsProvider>
-          <FavoritesProvider favorites={[]} onChange={vi.fn()}>
+          <FavoritesProvider favorites={favoriteOptions.favorites} onChange={vi.fn()} enabled={favoriteOptions.enabled}>
             <SideMenu
           applicationName="Skyline"
           brandMark={null}

@@ -14,32 +14,39 @@ import { SimpleTooltip } from "../primitives/Tooltip";
 export type JobFavorite = { id: string; label: string; path: string; icon?: string };
 
 const FavoritesContext = createContext<{
+  enabled: boolean;
   favorites: JobFavorite[];
   onChange: (favorites: JobFavorite[]) => void;
-}>({ favorites: [], onChange: () => {} });
+}>({ enabled: false, favorites: [], onChange: () => {} });
 
 export function FavoritesProvider({
   favorites,
   onChange,
+  enabled = true,
   children,
 }: {
   favorites: JobFavorite[];
   onChange: (favorites: JobFavorite[]) => void;
+  enabled?: boolean;
   children: React.ReactNode;
 }) {
-  return <FavoritesContext.Provider value={{ favorites, onChange }}>{children}</FavoritesContext.Provider>;
+  return <FavoritesContext.Provider value={{ enabled, favorites, onChange }}>{children}</FavoritesContext.Provider>;
 }
 
 export function JobFavoriteButton({ id, label, path, className }: JobFavorite & { className?: string }) {
-  const { favorites, onChange } = useContext(FavoritesContext);
+  const { enabled, favorites, onChange } = useContext(FavoritesContext);
   const favorite = favorites.some((candidate) => candidate.id === id);
   const action = favorite ? "Remove" : "Add";
 
-  const toggle = () => onChange(favorite
-    ? favorites.filter((candidate) => candidate.id !== id)
-    : [{ id, label, path }, ...favorites]);
+  const toggle = () => {
+    if (!enabled) return;
+    onChange(favorite
+      ? favorites.filter((candidate) => candidate.id !== id)
+      : [{ id, label, path }, ...favorites]);
+  };
 
   useEffect(() => {
+    if (!enabled) return;
     const listener = (event: KeyboardEvent) => {
       if (event.altKey && event.code === "KeyF") {
         event.preventDefault();
@@ -48,7 +55,9 @@ export function JobFavoriteButton({ id, label, path, className }: JobFavorite & 
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
-  }, [favorite, favorites, id, label, path]);
+  }, [enabled, favorite, favorites, id, label, path]);
+
+  if (!enabled) return null;
 
   const tooltipLabel = `${action} ${label} ${favorite ? "from" : "to"} favorites`;
   return <SimpleTooltip delayDuration={500} disableHoverableContent asChild side="bottom" button={
@@ -59,5 +68,6 @@ export function JobFavoriteButton({ id, label, path, className }: JobFavorite & 
 }
 
 export function useJobFavorites() {
-  return useContext(FavoritesContext).favorites;
+  const { enabled, favorites } = useContext(FavoritesContext);
+  return enabled ? favorites : [];
 }
