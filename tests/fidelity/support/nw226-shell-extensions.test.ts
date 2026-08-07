@@ -12,6 +12,7 @@ const expected = [
   ["shell-queues-navigation", "[data-skyline-extension='shell-queues-navigation']", "link", "Queues"],
   ["shell-appearance", "[data-skyline-extension='shell-appearance']", "button", "Appearance"],
 ] as const;
+const shellAnchor = "[role='separator'][aria-label='Resize side menu']";
 
 describe("NW-226 shell extension discovery", () => {
   const definitions = nw226ShellExtensionDefinitions(matrix as unknown as FidelityMatrix);
@@ -26,17 +27,25 @@ describe("NW-226 shell extension discovery", () => {
         acceptance: "Skyline-only supported shell controls remain exact, bounded, and source-anchored.",
         captures: definitions[0].captures,
         skylineSelector,
-        triggerAnchorSelector: "[data-action='tasks']",
-        skylineAnchorSelector: "[data-action='tasks']",
+        triggerAnchorSelector: shellAnchor,
+        skylineAnchorSelector: shellAnchor,
         accessibleRole,
         accessibleName,
-        anchorAccessibleRole: "link",
-        anchorAccessibleName: "Tasks",
+        anchorAccessibleRole: "separator",
+        anchorAccessibleName: "Resize side menu",
         measurements: {},
       });
     }
     expect(definitions[0].captures).toHaveLength(38);
     expect(definitions.every(({ captures }) => captures === definitions[0].captures)).toBe(true);
+  });
+
+  test("anchors above the intentional Application and project identity reflow", () => {
+    for (const definition of definitions) {
+      expect(definition.triggerAnchorSelector).toBe(shellAnchor);
+      expect(definition.skylineAnchorSelector).toBe(shellAnchor);
+      expect(definition.triggerAnchorSelector).not.toBe("[data-action='tasks']");
+    }
   });
 
   test("registers a reusable exact browser discovery with full accessibility", () => {

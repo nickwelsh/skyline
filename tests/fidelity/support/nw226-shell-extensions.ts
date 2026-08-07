@@ -9,6 +9,7 @@ const controls = [
   ["shell-queues-navigation", "[data-skyline-extension='shell-queues-navigation']", "link", "Queues"],
   ["shell-appearance", "[data-skyline-extension='shell-appearance']", "button", "Appearance"],
 ] as const;
+const shellAnchor = "[role='separator'][aria-label='Resize side menu']";
 
 export function nw226ShellExtensionDefinitions(matrix: FidelityMatrix): FrameworkExtensionDefinition[] {
   const captures = expectedCaptureIds(matrix).filter((capture) =>
@@ -24,12 +25,12 @@ export function nw226ShellExtensionDefinitions(matrix: FidelityMatrix): Framewor
     acceptance: "Skyline-only supported shell controls remain exact, bounded, and source-anchored.",
     captures,
     skylineSelector,
-    triggerAnchorSelector: "[data-action='tasks']",
-    skylineAnchorSelector: "[data-action='tasks']",
+    triggerAnchorSelector: shellAnchor,
+    skylineAnchorSelector: shellAnchor,
     accessibleRole,
     accessibleName,
-    anchorAccessibleRole: "link",
-    anchorAccessibleName: "Tasks",
+    anchorAccessibleRole: "separator",
+    anchorAccessibleName: "Resize side menu",
     measurements: {},
   }));
 }
