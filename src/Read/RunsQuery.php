@@ -271,11 +271,13 @@ final readonly class RunsQuery
             return [
                 'id' => $run->run_id,
                 'traceId' => $run->trace_id,
+                'parentRunId' => $run->parent_run_id,
                 'isRoot' => $run->parent_run_id === null,
                 'name' => $run->job_name,
                 'status' => $run->status,
                 'connection' => $run->connection,
                 'queue' => $run->queue,
+                'driverId' => $run->driver_id,
                 'attemptCount' => $runAttempts->count(),
                 'triggeredAt' => Nanoseconds::toRfc3339((int) $run->triggered_at),
                 'queuedAt' => $run->connection === 'sync' ? null : Nanoseconds::toRfc3339(
@@ -288,6 +290,11 @@ final readonly class RunsQuery
                 'startedAt' => Nanoseconds::toRfc3339($run->started_at === null ? null : (int) $run->started_at),
                 'finishedAt' => Nanoseconds::toRfc3339($run->finished_at === null ? null : (int) $run->finished_at),
                 'queueDurationUs' => $queueTime === null ? null : intdiv((int) $queueTime, 1000),
+                'queueTimeSource' => $queueTime === null
+                    ? null
+                    : ($firstAttempt?->queue_time_ns !== null
+                        ? $firstAttempt->queue_time_source
+                        : $run->queue_time_source),
                 'durationUs' => $terminal && $run->started_at !== null && $run->finished_at !== null
                     ? intdiv((int) $run->finished_at - (int) $run->started_at, 1000)
                     : null,

@@ -247,9 +247,9 @@ function jobDetail(): JobDetailDto {
     ],
     activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 3, statusCounts: counts() }],
     runs: [{
-      id: "run-1", traceId: "trace-1", isRoot: true, name: "App\\Jobs\\GenerateMonthlyInvoices", status: "failed", connection: "redis", queue: "billing",
+      id: "run-1", traceId: "trace-1", parentRunId: null, isRoot: true, name: "App\\Jobs\\GenerateMonthlyInvoices", status: "failed", connection: "redis", queue: "billing", driverId: null,
       attemptCount: 2, triggeredAt: "2026-08-05T11:59:00.000000000Z", queuedAt: "2026-08-05T11:59:00.000000000Z",
-      startedAt: "2026-08-05T11:59:00.001000000Z", finishedAt: "2026-08-05T11:59:01.001000000Z", queueDurationUs: 1_000,
+      startedAt: "2026-08-05T11:59:00.001000000Z", finishedAt: "2026-08-05T11:59:01.001000000Z", queueDurationUs: 1_000, queueTimeSource: null,
       durationUs: 1_000_000, activeDurationUs: null, revision: 2,
     }],
     pagination: { previous: null, next: "next" },

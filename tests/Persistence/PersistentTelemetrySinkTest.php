@@ -53,6 +53,27 @@ it('persists normalized Run, Attempt, and immutable spans without observing its 
         ->not->toContain('do-not-capture');
 });
 
+it('persists optional Run parent driver and queue-time provenance', function (): void {
+    $observedAt = (int) round(microtime(true) * 1_000_000_000);
+    $sink = app(PersistentTelemetrySink::class);
+    $sink->recordLifecycle(new LifecycleRecord(Lifecycle::RunQueued, 'run-contract-child', null, $observedAt, [
+        'trace_id' => '1234567890abcdef1234567890abcdef',
+        'parent_run_id' => 'run-contract-parent',
+        'job_name' => 'App\\Jobs\\ContractChild',
+        'connection' => 'redis',
+        'queue' => 'default',
+        'driver_id' => 'redis-job-42',
+        'queue_time_source' => 'framework_event',
+    ]));
+    $sink->flush();
+
+    $run = DB::table('skyline_runs')->where('run_id', 'run-contract-child')->first();
+
+    expect($run->parent_run_id)->toBe('run-contract-parent')
+        ->and($run->driver_id)->toBe('redis-job-42')
+        ->and($run->queue_time_source)->toBe('framework_event');
+});
+
 it('buffers Attempt spans until the terminal lifecycle transaction', function (): void {
     /** @var PersistentTelemetrySink $sink */
     $sink = app(PersistentTelemetrySink::class);

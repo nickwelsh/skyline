@@ -48,9 +48,9 @@ function jobDetail(): JobDetailDto {
     queueTargets: [{ id: "queue_redis", connection: "redis", queue: "default", runCount: 2, href: "/skyline/queues/queue_redis" }],
     activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 2, statusCounts: { queued: 0, running: 0, retrying: 0, completed: 1, failed: 1 } }],
     runs: [{
-      id: "run-1", traceId: "trace-1", isRoot: true, name: "App\\Jobs\\Invoice", status: "failed", connection: "redis", queue: "default",
+      id: "run-1", traceId: "trace-1", parentRunId: null, isRoot: true, name: "App\\Jobs\\Invoice", status: "failed", connection: "redis", queue: "default", driverId: null,
       attemptCount: 1, triggeredAt: "2026-08-05T12:00:00Z", queuedAt: "2026-08-05T12:00:00Z", startedAt: "2026-08-05T12:00:00Z",
-      finishedAt: "2026-08-05T12:00:01Z", queueDurationUs: 10, durationUs: 1_000_000, revision: 1,
+      finishedAt: "2026-08-05T12:00:01Z", queueDurationUs: 10, queueTimeSource: null, durationUs: 1_000_000, revision: 1,
     }],
     pagination: { previous: null, next: null },
     tableState: "state",

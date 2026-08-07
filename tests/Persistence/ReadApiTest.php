@@ -101,11 +101,23 @@ it('exposes the versioned Runs contract and filters by Trace and root identity',
         'job_name' => 'App\\Jobs\\Child',
         'connection' => 'redis',
         'queue' => 'default',
+        'driver_id' => 'redis-job-child',
         'status' => 'running',
         'triggered_at' => $triggeredAt,
         'queued_at' => $triggeredAt,
         'started_at' => $triggeredAt,
+        'queue_time_source' => 'exact',
         'confirmed_at' => $triggeredAt,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    DB::table('skyline_attempts')->insert([
+        'run_id' => 'run-child',
+        'attempt_number' => 1,
+        'status' => 'running',
+        'started_at' => $triggeredAt,
+        'queue_time_ns' => 2_500_000,
+        'queue_time_source' => 'queued',
         'created_at' => now(),
         'updated_at' => now(),
     ]);
@@ -120,8 +132,15 @@ it('exposes the versioned Runs contract and filters by Trace and root identity',
         ->assertJsonPath('filters.trace', $traceId)
         ->assertJsonPath('filters.rootOnly', false)
         ->assertJsonPath('runs.0.traceId', $traceId)
+        ->assertJsonPath('runs.0.parentRunId', 'run-01')
         ->assertJsonPath('runs.0.isRoot', false)
+        ->assertJsonPath('runs.0.driverId', 'redis-job-child')
+        ->assertJsonPath('runs.0.queueDurationUs', 2500)
+        ->assertJsonPath('runs.0.queueTimeSource', 'queued')
+        ->assertJsonPath('runs.1.parentRunId', null)
         ->assertJsonPath('runs.1.isRoot', true)
+        ->assertJsonPath('runs.1.driverId', null)
+        ->assertJsonPath('runs.1.queueTimeSource', null)
         ->assertJsonPath('options.traceIdentities.0', $traceId);
 
     expect($response->json('generatedAt'))->toEndWith('Z')

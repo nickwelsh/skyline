@@ -5,17 +5,20 @@ export type NodeKind = "run" | "attempt" | "breadcrumb" | "query" | "request" | 
 export type RunSummary = {
   id: string;
   traceId: string;
+  parentRunId: string | null;
   isRoot: boolean;
   name: string;
   status: RunStatus;
   connection: string | null;
   queue: string | null;
+  driverId: string | null;
   attemptCount: number;
   triggeredAt: string;
   queuedAt: string | null;
   startedAt: string | null;
   finishedAt: string | null;
   queueDurationUs: number | null;
+  queueTimeSource: string | null;
   durationUs: number | null;
   activeDurationUs?: number | null;
   revision: number;
