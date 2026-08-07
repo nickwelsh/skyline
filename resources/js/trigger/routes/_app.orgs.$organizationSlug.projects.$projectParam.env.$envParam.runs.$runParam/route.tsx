@@ -7,11 +7,10 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronUpIcon,
-  ExclamationTriangleIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
 } from "@heroicons/react/20/solid";
-import { Link, useLoaderData, useNavigate, useRevalidator, useRouteError, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigate, useRevalidator, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { ExitIcon } from "~/assets/icons/ExitIcon";
@@ -858,21 +857,4 @@ function formatTimestamp(date: Date, includeDate: boolean): string {
 
 function isEditable(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName));
-}
-
-export function RunDetailErrorBoundary() {
-  const error = useRouteError() as { status?: number; message?: string } | undefined;
-  const notFound = error?.status === 404;
-  return (
-    <PageContainer>
-      <NavBar><PageTitle backButton={{ to: "/runs", text: "Runs" }} title={notFound ? "Run not found" : "Unable to load Run"} /></NavBar>
-      <PageBody className="grid place-items-center">
-        <div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center">
-          <ExclamationTriangleIcon className="mx-auto size-6 text-error" />
-          <p className="mt-2 font-medium text-text-bright">{notFound ? "Run not found" : "Unable to load Run"}</p>
-          <p className="mt-1 text-sm text-text-dimmed">{error?.message ?? "Skyline could not load this Run."}</p>
-        </div>
-      </PageBody>
-    </PageContainer>
-  );
 }

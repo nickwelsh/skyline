@@ -4,7 +4,7 @@
  * Server, tenant, deployment, schedule, and source-definition concerns are external; Job guidance and test remain capability-dormant.
  */
 import { ClockIcon, PlusIcon, SparklesIcon } from "@heroicons/react/20/solid";
-import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import type { PanelHandle } from "@window-splitter/react";
 import { useCallback, useRef, useState } from "react";
 import { Bar } from "recharts";
@@ -299,12 +299,4 @@ function EmptyState({ filtered }: { filtered: boolean }) {
 
 function LoadingState() {
   return <div aria-label="Loading Jobs" className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div>;
-}
-
-export function JobsErrorBoundary() {
-  const error = useRouteError();
-  const message = error instanceof Error ? error.message : "The Jobs list could not be loaded.";
-  return (
-    <PageContainer><NavBar><PageTitle title="Jobs" /></NavBar><PageBody className="grid place-items-center"><div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center"><h1 className="font-medium text-text-bright">Unable to load Jobs</h1><p className="mt-1 text-sm text-text-dimmed">{message}</p></div></PageBody></PageContainer>
-  );
 }

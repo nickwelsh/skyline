@@ -7,7 +7,7 @@
 import { CalendarDaysIcon, FingerPrintIcon, XMarkIcon } from "@heroicons/react/20/solid";
 import { IconListTree } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
@@ -194,10 +194,4 @@ function periodLabel(period: string) {
 
 function DetailFailure({ state, message, onClose }: { state: "not-found" | "error"; message: string; onClose: () => void }) {
   return <section aria-label="Telemetry-event detail" className="grid h-full place-items-center p-6"><div role="alert" className="max-w-sm text-center"><h2 className="font-medium text-text-bright">{state === "not-found" ? "Telemetry event not found" : "Unable to load Telemetry event"}</h2><p className="mt-1 text-sm text-text-dimmed">{message}</p><Button variant="secondary/small" className="mt-3" onClick={onClose}>Close detail</Button></div></section>;
-}
-
-export function LogsErrorBoundary() {
-  const error = useRouteError();
-  const message = error instanceof Error ? error.message : "Telemetry events could not be loaded.";
-  return <PageContainer><NavBar><PageTitle title="Logs" /></NavBar><PageBody className="grid place-items-center"><div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center"><h1 className="font-medium text-text-bright">Unable to load Logs</h1><p className="mt-1 text-sm text-text-dimmed">{message}</p></div></PageBody></PageContainer>;
 }

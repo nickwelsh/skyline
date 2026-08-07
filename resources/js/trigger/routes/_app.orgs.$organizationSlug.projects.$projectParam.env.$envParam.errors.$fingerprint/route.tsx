@@ -7,7 +7,7 @@
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
 import { CalendarIcon } from "@heroicons/react/20/solid";
-import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
@@ -303,28 +303,5 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
         </div>
       </div>
     </aside>
-  );
-}
-
-export function ErrorDetailErrorBoundary() {
-  const error = useRouteError();
-  const notFound = (error instanceof Response
-    || (typeof error === "object" && error !== null && "status" in error))
-    && error.status === 404;
-
-  return (
-    <PageContainer>
-      <NavBar><PageTitle backButton={{ to: "/errors", text: "Errors" }} title="Error group" /></NavBar>
-      <PageBody className="grid place-items-center">
-        <div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center">
-          <h1 className="font-medium text-text-bright">
-            {notFound ? "Error group not found" : "Unable to load Error group"}
-          </h1>
-          <p className="mt-1 text-sm text-text-dimmed">
-            {notFound ? "This observed Error group is unavailable." : "Error occurrence evidence could not be loaded."}
-          </p>
-        </div>
-      </PageBody>
-    </PageContainer>
   );
 }

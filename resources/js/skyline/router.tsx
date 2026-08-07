@@ -11,15 +11,16 @@ import { SkylineApiError } from "./HttpAdapter";
 import type { SkylineBootstrap, SkylineDtoAdapter } from "./dto";
 import { SkylineShell } from "./SkylineShell";
 import type { UiPreferencesAdapter } from "./UiPreferencesAdapter";
-import RunsRoute, { RunsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
-import RunDetailRoute, { RunDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route";
-import JobsRoute, { JobsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route";
-import JobDetailRoute, { JobDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route";
-import QueuesRoute, { QueuesErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
-import QueueDetailRoute, { QueueDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
-import ErrorsRoute, { ErrorsErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route";
-import ErrorDetailRoute, { ErrorDetailErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
-import LogsRoute, { LogsErrorBoundary, type LogsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
+import EnvironmentRoute, { ErrorBoundary as EnvironmentErrorBoundary } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam/route";
+import RunsRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route";
+import RunDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route";
+import JobsRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route";
+import JobDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route";
+import QueuesRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
+import QueueDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
+import ErrorsRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route";
+import ErrorDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route";
+import LogsRoute, { type LogsRouteData } from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route";
 
 export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: SkylineDtoAdapter = new HttpAdapter(bootstrap.basePath), preferences?: UiPreferencesAdapter) {
   let lastPersistedRootOnlyUrl: string | null = null;
@@ -38,37 +39,37 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
       lastPersistedRootOnlyUrl = url.href;
       preferences.update((current) => ({ ...current, runs: { rootOnly: rootOnly === "true" } }));
     }
-    return presentRuns(await adapter.runs(runsQuery(request)));
+    return loadEnvironmentRoute(async () => presentRuns(await adapter.runs(runsQuery(request))));
   };
-  const jobsLoader = async ({ request }: LoaderFunctionArgs) => ({
-    ...presentJobs(await adapter.jobs(jobsQuery(request))),
-    showJobGuidance: preferences?.read().jobs.usefulLinks ?? true,
-    onJobGuidanceChange: (show: boolean) => preferences?.update((current) => ({ ...current, jobs: { usefulLinks: show } })),
-  });
+  const jobsLoader = async ({ request }: LoaderFunctionArgs) => loadEnvironmentRoute(async () => ({
+      ...presentJobs(await adapter.jobs(jobsQuery(request))),
+      showJobGuidance: preferences?.read().jobs.usefulLinks ?? true,
+      onJobGuidanceChange: (show: boolean) => preferences?.update((current) => ({ ...current, jobs: { usefulLinks: show } })),
+    }));
   const jobLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.jobId) throw new Response("The Job type was not found.", { status: 404 });
-    return presentJobDetail(await adapter.job(params.jobId, jobRunsQuery(request)));
+    return loadEnvironmentRoute(async () => presentJobDetail(await adapter.job(params.jobId!, jobRunsQuery(request))));
   };
-  const queuesLoader = async ({ request }: LoaderFunctionArgs) => presentQueueTargets(await adapter.queueTargets(queueTargetsQuery(request)));
+  const queuesLoader = async ({ request }: LoaderFunctionArgs) => loadEnvironmentRoute(async () => presentQueueTargets(await adapter.queueTargets(queueTargetsQuery(request))));
   const queueLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.queueId) throw new Response("The Queue target was not found.", { status: 404 });
-    return presentQueueTarget(await adapter.queueTarget(params.queueId, queueTargetQuery(request)));
+    return loadEnvironmentRoute(async () => presentQueueTarget(await adapter.queueTarget(params.queueId!, queueTargetQuery(request))));
   };
   const runDetailLoader = async ({ params, request }: LoaderFunctionArgs) => {
     const runId = params.runId;
     if (!runId) throw new Response("The Run was not found.", { status: 404 });
     const tableState = new URL(request.url).searchParams.get("tableState") ?? undefined;
-    return presentRunDetail(
-      await adapter.trace(runId, tableState),
-      (nodeId, signal) => adapter.inspector(nodeId, runId, signal),
-    );
+    return loadEnvironmentRoute(async () => presentRunDetail(
+        await adapter.trace(runId, tableState),
+        (nodeId, signal) => adapter.inspector(nodeId, runId, signal),
+      ));
   };
-  const errorsLoader = async ({ request }: LoaderFunctionArgs) => presentErrorGroups(await adapter.errorGroups(errorGroupsQuery(request)), request);
+  const errorsLoader = async ({ request }: LoaderFunctionArgs) => loadEnvironmentRoute(async () => presentErrorGroups(await adapter.errorGroups(errorGroupsQuery(request)), request));
   const errorLoader = async ({ params, request }: LoaderFunctionArgs) => {
     if (!params.errorId) throw new Response("The Error group was not found.", { status: 404 });
-    return presentErrorGroupDetail(await adapter.errorGroup(params.errorId, errorOccurrencesQuery(request)));
+    return loadEnvironmentRoute(async () => presentErrorGroupDetail(await adapter.errorGroup(params.errorId!, errorOccurrencesQuery(request))));
   };
-  const logsLoader = async ({ request }: LoaderFunctionArgs): Promise<LogsRouteData> => {
+  const logsLoader = async ({ request }: LoaderFunctionArgs): Promise<LogsRouteData> => loadEnvironmentRoute(async () => {
     const list = presentTelemetryEvents(await adapter.telemetryEvents(telemetryEventsQuery(request)));
     const eventId = new URL(request.url).searchParams.get("event");
     const selectedEvent = eventId ? list.telemetryEvents.find((event) => event.id === eventId) ?? null : null;
@@ -92,24 +93,41 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
         }
       },
     };
-  };
+  });
 
   return createBrowserRouter([
     {
       path: "/",
       element: <SkylineShell bootstrap={bootstrap} />,
       children: [
-        { index: true, element: <Navigate to="runs" replace /> },
-        { path: "jobs", loader: jobsLoader, element: <JobsRoute />, errorElement: <JobsErrorBoundary /> },
-        { path: "jobs/:jobId", loader: jobLoader, element: <JobDetailRoute />, errorElement: <JobDetailErrorBoundary /> },
-        { path: "runs", loader: runsLoader, element: <RunsRoute />, errorElement: <RunsErrorBoundary /> },
-        { path: "runs/:runId", loader: runDetailLoader, element: <RunDetailRoute />, errorElement: <RunDetailErrorBoundary /> },
-        { path: "queues", loader: queuesLoader, element: <QueuesRoute />, errorElement: <QueuesErrorBoundary /> },
-        { path: "queues/:queueId", loader: queueLoader, element: <QueueDetailRoute />, errorElement: <QueueDetailErrorBoundary /> },
-        { path: "errors", loader: errorsLoader, element: <ErrorsRoute />, errorElement: <ErrorsErrorBoundary /> },
-        { path: "errors/:errorId", loader: errorLoader, element: <ErrorDetailRoute />, errorElement: <ErrorDetailErrorBoundary /> },
-        { path: "logs", loader: logsLoader, element: <LogsRoute />, errorElement: <LogsErrorBoundary /> },
+        {
+          element: <EnvironmentRoute />,
+          errorElement: <EnvironmentErrorBoundary />,
+          children: [
+            { index: true, element: <Navigate to="runs" replace /> },
+            { path: "jobs", loader: jobsLoader, element: <JobsRoute /> },
+            { path: "jobs/:jobId", loader: jobLoader, element: <JobDetailRoute /> },
+            { path: "runs", loader: runsLoader, element: <RunsRoute /> },
+            { path: "runs/:runId", loader: runDetailLoader, element: <RunDetailRoute /> },
+            { path: "queues", loader: queuesLoader, element: <QueuesRoute /> },
+            { path: "queues/:queueId", loader: queueLoader, element: <QueueDetailRoute /> },
+            { path: "errors", loader: errorsLoader, element: <ErrorsRoute /> },
+            { path: "errors/:errorId", loader: errorLoader, element: <ErrorDetailRoute /> },
+            { path: "logs", loader: logsLoader, element: <LogsRoute /> },
+          ],
+        },
       ],
     },
   ], { basename: bootstrap.basePath });
+}
+
+async function loadEnvironmentRoute<T>(load: () => Promise<T>): Promise<T> {
+  try {
+    return await load();
+  } catch (error) {
+    if (error instanceof SkylineApiError && error.status === 404) {
+      throw new Response(undefined, { status: 404, statusText: "Not Found" });
+    }
+    throw error;
+  }
 }

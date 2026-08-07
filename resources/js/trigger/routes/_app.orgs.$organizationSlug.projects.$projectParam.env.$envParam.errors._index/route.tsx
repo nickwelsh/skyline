@@ -5,7 +5,7 @@
  * and route-state composition. Server, tenant, status, assignment, alert,
  * version and write-action concerns are external or capability-hidden.
  */
-import { useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { useMemo } from "react";
 import { Bar, BarChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
@@ -298,21 +298,4 @@ function RelativeDateTime({ date }: { date: string }) {
 
 function formatNumberCompact(value: number) {
   return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value);
-}
-
-export function ErrorsErrorBoundary() {
-  const error = useRouteError();
-  const message = error instanceof Error ? error.message : "Error groups could not be loaded.";
-
-  return (
-    <PageContainer>
-      <NavBar><PageTitle title="Errors" /></NavBar>
-      <PageBody className="grid place-items-center">
-        <div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center">
-          <h1 className="font-medium text-text-bright">Unable to load Errors</h1>
-          <p className="mt-1 text-sm text-text-dimmed">{message}</p>
-        </div>
-      </PageBody>
-    </PageContainer>
-  );
 }

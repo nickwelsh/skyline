@@ -3,7 +3,7 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Server, tenant, test, source definition, versions, retries, schedules, deployment, payload, and queue administration are removed.
  */
-import { Link, useLoaderData, useNavigation, useRouteError, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { ListPagination } from "~/components/ListPagination";
@@ -139,12 +139,6 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
 
 function RunsEmpty({ filtered }: { filtered: boolean }) {
   return <div className="grid h-full min-h-32 place-items-center text-center"><div><h3 className="font-medium text-text-bright">{filtered ? "No matching Runs" : "No Runs yet"}</h3><p className="mt-1 text-sm text-text-dimmed">{filtered ? "Change or clear filters to see more Runs." : "Confirmed Runs will appear here."}</p></div></div>;
-}
-
-export function JobDetailErrorBoundary() {
-  const error = useRouteError();
-  const message = error instanceof Error ? error.message : "The task could not be loaded.";
-  return <PageContainer><NavBar><PageTitle backButton={{ to: "/jobs", text: "Tasks" }} title="Task" /></NavBar><PageBody className="grid place-items-center"><div role="alert" className="max-w-md rounded border border-error/40 bg-error/10 p-6 text-center"><h1 className="font-medium text-text-bright">Unable to load task</h1><p className="mt-1 text-sm text-text-dimmed">{message}</p></div></PageBody></PageContainer>;
 }
 
 function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
