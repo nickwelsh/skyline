@@ -94,11 +94,40 @@ export type CapabilityOmissionDefinition = {
   protectedSelectors?: ProtectedSelectorDefinition[];
   protectedMeasurements?: Record<string, Record<string, ProtectedSelectorMeasurement>>;
 };
+export type BrandingIdentityElementMeasurement = {
+  rect: Rect;
+  computedStyleSha256: string;
+  accessibilitySha256: string;
+  crop: Extract<ProtectedSelectorCrop, { status: "visible" }>;
+};
+export type BrandingIdentityMeasurement = {
+  identityPairs: Record<string, { trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement }>;
+  navigation: { trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement };
+  protectedPairs: Record<string, { trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement }>;
+};
+export type BrandingIdentityDefinition = {
+  id: string;
+  category: "branding-identity";
+  decision: string;
+  acceptance: string[];
+  citations: string[];
+  captures: string[];
+  identityPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string }>;
+  triggerNavigationSelector: string;
+  skylineNavigationSelector: string;
+  protectedPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; captures?: string[] }>;
+  measurements: Record<string, BrandingIdentityMeasurement>;
+};
+export type BrandingIdentityObservation = {
+  identityPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement }>;
+  navigation: { triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement };
+  protectedPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement }>;
+};
 export type CapabilityOmissionObservation = {
   selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
   protectedSelectors?: Array<ProtectedSelectorDefinition & ProtectedSelectorMeasurement>;
 };
-export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition;
+export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition | BrandingIdentityDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
 export type FrameworkExtensionObservation = {
   skylineSelector: string;
@@ -130,6 +159,11 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
   const definitions = applicableExtensionDefinitions(capture, manifest);
   const regions: DifferenceRegion[] = [];
   for (const definition of definitions) {
+    if (definition.category === "branding-identity") {
+      const resolved = validateBrandingIdentityObservation(definition, await discoverBrandingIdentityObservation(trigger, skyline, definition, capture), capture);
+      regions.push({ kind: "branding-identity", id: definition.id, identityPairs: resolved.identityPairs, navigation: resolved.navigation, protectedPairs: resolved.protectedPairs, expected: definition.measurements[capture] });
+      continue;
+    }
     if (definition.category === "framework-extension") {
       const resolved = validateFrameworkExtensionObservation(definition, await discoverFrameworkExtensionObservation(trigger, skyline, definition), capture);
       regions.push({ kind: "framework-extension", id: definition.id, extension: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies FrameworkExtensionRegion);
@@ -149,6 +183,19 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
 export async function waitForDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences) {
   const waits: Promise<void>[] = [];
   for (const definition of applicableExtensionDefinitions(capture, manifest)) {
+    if (definition.category === "branding-identity") {
+      for (const pair of definition.identityPairs) {
+        waits.push(trigger.locator(pair.triggerSelector).first().waitFor({ state: "attached" }));
+        waits.push(skyline.locator(pair.skylineSelector).first().waitFor({ state: "attached" }));
+      }
+      waits.push(trigger.locator(definition.triggerNavigationSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineNavigationSelector).first().waitFor({ state: "attached" }));
+      for (const pair of applicableBrandingProtectedPairs(definition, capture)) {
+        waits.push(trigger.locator(pair.triggerSelector).first().waitFor({ state: "attached" }));
+        waits.push(skyline.locator(pair.skylineSelector).first().waitFor({ state: "attached" }));
+      }
+      continue;
+    }
     if (definition.category === "framework-extension") {
       waits.push(trigger.locator(definition.triggerAnchorSelector).first().waitFor({ state: "attached" }));
       waits.push(skyline.locator(definition.skylineAnchorSelector).first().waitFor({ state: "attached" }));
@@ -172,6 +219,86 @@ export async function waitForDifferenceRegions(trigger: Page, skyline: Page, cap
     }
   }
   await Promise.all(waits);
+}
+
+export async function discoverBrandingIdentityObservation(trigger: Page, skyline: Page, definition: BrandingIdentityDefinition, capture: string, diagnosticStep?: DiscoveryStep): Promise<BrandingIdentityObservation> {
+  if (!definition.captures.includes(capture)) throw new Error(`Branding identity ${definition.id} does not permit capture ${capture}.`);
+  const step: DiscoveryStep = diagnosticStep ?? ((_label, action) => action());
+  const [triggerScreenshot, skylineScreenshot] = await Promise.all([
+    step("branding:screenshot:trigger", () => trigger.screenshot({ animations: "disabled", caret: "hide" })),
+    step("branding:screenshot:skyline", () => skyline.screenshot({ animations: "disabled", caret: "hide" })),
+  ]);
+  const observe = async (page: Page, screenshot: Buffer, selector: string, label: string): Promise<BrandingIdentityElementMeasurement> => {
+    const dom = await step(`branding:dom:${label}`, () => observeElementDom(page, definition.id, selector, label));
+    const element = await step(`branding:ax:${label}`, () => observeCapabilityElementAccessibility(page, selector, dom));
+    validateProtectedElementPresentation(definition.id, label, element);
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error(`Branding identity ${definition.id} requires a fixed viewport.`);
+    const crop = captureProtectedElementCrop(screenshot, viewport, element.rect);
+    if (crop.status !== "visible") throw new Error(`Branding identity ${definition.id} ${label} is outside the viewport.`);
+    return { rect: element.rect, computedStyleSha256: element.computedStyleSha256, accessibilitySha256: element.accessibilitySha256, crop };
+  };
+  const identityPairs = [];
+  for (const pair of definition.identityPairs) identityPairs.push({
+    ...pair,
+    trigger: await observe(trigger, triggerScreenshot, pair.triggerSelector, `${pair.id}:trigger`),
+    skyline: await observe(skyline, skylineScreenshot, pair.skylineSelector, `${pair.id}:skyline`),
+  });
+  const protectedPairs = [];
+  for (const pair of applicableBrandingProtectedPairs(definition, capture)) protectedPairs.push({
+    ...pair,
+    trigger: await observe(trigger, triggerScreenshot, pair.triggerSelector, `${pair.id}:protected:trigger`),
+    skyline: await observe(skyline, skylineScreenshot, pair.skylineSelector, `${pair.id}:protected:skyline`),
+  });
+  return {
+    identityPairs,
+    navigation: {
+      triggerSelector: definition.triggerNavigationSelector,
+      skylineSelector: definition.skylineNavigationSelector,
+      trigger: await observe(trigger, triggerScreenshot, definition.triggerNavigationSelector, "navigation:trigger"),
+      skyline: await observe(skyline, skylineScreenshot, definition.skylineNavigationSelector, "navigation:skyline"),
+    },
+    protectedPairs,
+  };
+}
+
+export function validateBrandingIdentityObservation(definition: BrandingIdentityDefinition, observation: BrandingIdentityObservation, capture: string) {
+  const expected = definition.measurements[capture];
+  if (!expected) throw new Error(`Allowed region ${definition.id} lacks measurement for ${capture}.`);
+  if (observation.identityPairs.length !== definition.identityPairs.length) throw new Error(`Allowed region ${definition.id} changed identity pair count.`);
+  for (const [index, pair] of definition.identityPairs.entries()) {
+    const observed = observation.identityPairs[index];
+    const measurement = expected.identityPairs[pair.id];
+    if (!observed || !measurement || observed.id !== pair.id || observed.triggerSelector !== pair.triggerSelector || observed.skylineSelector !== pair.skylineSelector) throw new Error(`Allowed region ${definition.id} changed identity pair ${pair.id}.`);
+    if (JSON.stringify({ trigger: observed.trigger, skyline: observed.skyline }) !== JSON.stringify(measurement)) throw new Error(`Allowed region ${definition.id} changed identity pair ${pair.id} evidence.`);
+  }
+  if (observation.navigation.triggerSelector !== definition.triggerNavigationSelector || observation.navigation.skylineSelector !== definition.skylineNavigationSelector) throw new Error(`Allowed region ${definition.id} changed protected navigation selectors.`);
+  if (JSON.stringify({ trigger: observation.navigation.trigger, skyline: observation.navigation.skyline }) !== JSON.stringify(expected.navigation)) throw new Error(`Allowed region ${definition.id} changed protected navigation evidence.`);
+  const protectedDefinitions = applicableBrandingProtectedPairs(definition, capture);
+  if (observation.protectedPairs.length !== protectedDefinitions.length) throw new Error(`Allowed region ${definition.id} changed protected pair count.`);
+  for (const [index, pair] of protectedDefinitions.entries()) {
+    const observed = observation.protectedPairs[index];
+    const measurement = expected.protectedPairs[pair.id];
+    if (!observed || !measurement || observed.id !== pair.id || observed.triggerSelector !== pair.triggerSelector || observed.skylineSelector !== pair.skylineSelector) throw new Error(`Allowed region ${definition.id} changed protected pair ${pair.id}.`);
+    if (JSON.stringify({ trigger: observed.trigger, skyline: observed.skyline }) !== JSON.stringify(measurement)) throw new Error(`Allowed region ${definition.id} changed protected pair ${pair.id} evidence.`);
+  }
+  validateBrandingIdentityReflow(definition.id, observation);
+  return observation;
+}
+
+function applicableBrandingProtectedPairs(definition: BrandingIdentityDefinition, capture: string) {
+  return definition.protectedPairs.filter((pair) => !pair.captures || pair.captures.includes(capture));
+}
+
+function validateBrandingIdentityReflow(id: string, observation: BrandingIdentityObservation) {
+  const { trigger, skyline } = observation.navigation;
+  if (trigger.rect.x !== skyline.rect.x || trigger.rect.width !== skyline.rect.width) throw new Error(`Allowed region ${id} changed navigation reflow corridor geometry.`);
+  const identityDelta = observation.identityPairs.reduce((total, pair) => total + pair.trigger.rect.height - pair.skyline.rect.height, 0);
+  if (trigger.rect.y - skyline.rect.y !== identityDelta) throw new Error(`Allowed region ${id} changed protected navigation reflow delta.`);
+  for (const pair of observation.protectedPairs) {
+    if (pair.trigger.rect.x !== pair.skyline.rect.x || pair.trigger.rect.width !== pair.skyline.rect.width || pair.trigger.rect.height !== pair.skyline.rect.height) throw new Error(`Allowed region ${id} changed protected ${pair.id} geometry.`);
+    if (pair.trigger.crop.screenshotSha256 !== pair.skyline.crop.screenshotSha256) throw new Error(`Allowed region ${id} changed protected ${pair.id} pixels.`);
+  }
 }
 
 export async function waitForStableElementStyle(page: Page, selector: string, options: { consecutiveFrames?: number; maxFrames?: number } = {}) {
@@ -495,6 +622,7 @@ function applicableExtensionDefinitions(capture: string, manifest: AllowedDiffer
 
 export function accessibilityOmissionSelectors(regions: DifferenceRegion[], application: "trigger" | "skyline") {
   return regions.flatMap((region) => {
+    if (region.kind === "branding-identity") return region.identityPairs.map((pair) => application === "trigger" ? pair.triggerSelector : pair.skylineSelector);
     if (region.kind === "framework-extension") return application === "skyline" ? [region.extension.skylineSelector] : [];
     if (region.kind === "presenter-extension") return [application === "trigger" ? region.expected.triggerSelector : region.expected.skylineSelector];
     if (region.kind === "capability-omission") return region.omissions.flatMap((pair) => application === "trigger" ? [pair.triggerSelector] : pair.skylineBoundary ? [] : [pair.skylineSelector]);
@@ -505,6 +633,10 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
   const frameworks = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension");
   const presenters = manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension");
+  const identities = manifest.regions.filter((region): region is BrandingIdentityDefinition => region.category === "branding-identity");
+  for (const capture of new Set(identities.flatMap(({ captures }) => captures))) {
+    if (identities.filter((definition) => definition.captures.includes(capture)).length !== 1) throw new Error(`Branding-identity capture ${capture} has duplicate ownership.`);
+  }
   for (const capture of new Set([...frameworks, ...presenters].flatMap(({ captures }) => captures))) {
     const captureFrameworks = frameworks.filter((definition) => definition.captures.includes(capture));
     const capturePresenters = presenters.filter((definition) => definition.captures.includes(capture));
@@ -515,20 +647,22 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
   }
 
   const captureOwners = new Map<string, string>();
-  const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[]; kind: "extension" | "anchor" | "capability"; anchorPair?: string }>();
-  for (const definition of manifest.regions.filter((region) => region.category === "framework-extension" || region.category === "presenter-extension" || region.category === "capability-omission")) {
+  const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[]; kind: "extension" | "anchor" | "capability" | "identity"; anchorPair?: string }>();
+  for (const definition of manifest.regions) {
     for (const capture of definition.category === "capability-omission" ? definition.captures : []) {
       const key = `capability-omission:${capture}`;
       const owner = captureOwners.get(key);
       if (owner) throw new Error(`Framework-extension regions ${owner} and ${definition.id} overlap capture ${capture}.`);
       captureOwners.set(key, definition.id);
     }
-    const selectors = definition.category === "presenter-extension"
+    const selectors = definition.category === "branding-identity"
+      ? [...definition.identityPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), definition.triggerNavigationSelector, definition.skylineNavigationSelector, ...definition.protectedPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector])]
+      : definition.category === "presenter-extension"
       ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
       : definition.category === "framework-extension"
         ? [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : []), definition.triggerAnchorSelector, definition.skylineAnchorSelector]
         : [...definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), ...(definition.protectedSelectors ?? []).map(({ selector }) => selector)];
-    if (definition.category !== "capability-omission") {
+    if (definition.category !== "capability-omission" && definition.category !== "branding-identity") {
       const extensions = definition.category === "presenter-extension"
         ? [definition.triggerSelector, definition.skylineSelector]
         : [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : [])];
@@ -546,9 +680,15 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
         return !measurement || Object.keys(measurement).length !== protectedSelectors.length || protectedSelectors.some(({ id }) => !measurement[id]);
       }))) throw new Error(`Capability-omission region ${definition.id} lacks protected reflow evidence.`);
     }
-    const anchorPair = definition.category === "capability-omission" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
+    if (definition.category === "branding-identity") {
+      const triggerSelectors = [...definition.identityPairs.map(({ triggerSelector }) => triggerSelector), definition.triggerNavigationSelector, ...definition.protectedPairs.map(({ triggerSelector }) => triggerSelector)];
+      const skylineSelectors = [...definition.identityPairs.map(({ skylineSelector }) => skylineSelector), definition.skylineNavigationSelector, ...definition.protectedPairs.map(({ skylineSelector }) => skylineSelector)];
+      if (definition.identityPairs.length === 0 || definition.protectedPairs.length === 0 || new Set(definition.identityPairs.map(({ id }) => id)).size !== definition.identityPairs.length || new Set(definition.protectedPairs.map(({ id }) => id)).size !== definition.protectedPairs.length || new Set(triggerSelectors).size !== triggerSelectors.length || new Set(skylineSelectors).size !== skylineSelectors.length || definition.protectedPairs.some((pair) => pair.captures && (pair.captures.length === 0 || new Set(pair.captures).size !== pair.captures.length || pair.captures.some((capture) => !definition.captures.includes(capture))))) throw new Error(`Branding-identity region ${definition.id} has invalid selector ownership.`);
+    }
+    const anchorPair = definition.category === "capability-omission" || definition.category === "branding-identity" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
       const kind = definition.category === "capability-omission" ? "capability"
+        : definition.category === "branding-identity" ? "identity"
         : selector === definition.skylineSelector
           || (definition.category === "framework-extension" && selector === definition.skylineAccessibilitySelector)
           || (definition.category === "presenter-extension" && selector === definition.triggerSelector) ? "extension" : "anchor";

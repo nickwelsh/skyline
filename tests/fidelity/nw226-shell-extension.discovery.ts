@@ -1,20 +1,23 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
+import allowedDifferences from "./allowed-differences.json" with { type: "json" };
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
 import { createDiscoveryStep, type DiscoveryStep } from "./support/discovery";
-import { discoverFrameworkExtensionObservation } from "./support/difference-regions";
-import { nw226ShellExtensionDefinitions } from "./support/nw226-shell-extensions";
+import { discoverBrandingIdentityObservation, discoverFrameworkExtensionObservation, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
+import { nw226BrandingIdentityDefinition, nw226ShellExtensionDefinitions } from "./support/nw226-shell-extensions";
+import { measurePixels, type DifferenceRegion } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
 
-const definitions = nw226ShellExtensionDefinitions(matrix as unknown as FidelityMatrix);
-const captures = [...new Set(definitions.flatMap(({ captures }) => captures))].sort();
+const frameworkDefinitions = nw226ShellExtensionDefinitions(matrix as unknown as FidelityMatrix);
+const identityDefinition = nw226BrandingIdentityDefinition(matrix as unknown as FidelityMatrix);
+const captures = identityDefinition.captures;
 const referenceFixture = createReferenceFixture();
 
-expect(definitions).toHaveLength(5);
-expect(captures).toHaveLength(38);
+expect(frameworkDefinitions).toHaveLength(1);
+expect(captures).toHaveLength(439);
 
 for (const capture of captures) {
   test(`discover exact NW-226 shell ${capture}`, async ({ browser }) => {
@@ -49,7 +52,27 @@ for (const capture of captures) {
       await Promise.all([step("settle:skyline", () => settleCapture(skyline)), step("settle:trigger", () => settleCapture(trigger))]);
       await Promise.all([step("canvas:skyline", () => assertFixedCanvas(skyline, capture)), step("canvas:trigger", () => assertFixedCanvas(trigger, capture))]);
 
-      for (const definition of definitions) {
+      const identity = await discoverBrandingIdentityObservation(trigger, skyline, identityDefinition, capture, step);
+      process.stdout.write(`\nBRANDING_IDENTITY_MEASUREMENT=${JSON.stringify({ definition: identityDefinition.id, capture, measurement: {
+        identityPairs: Object.fromEntries(identity.identityPairs.map(({ id, trigger, skyline }) => [id, { trigger, skyline }])),
+        navigation: { trigger: identity.navigation.trigger, skyline: identity.navigation.skyline },
+        protectedPairs: Object.fromEntries(identity.protectedPairs.map(({ id, trigger, skyline }) => [id, { trigger, skyline }])),
+      } })}\n`);
+
+      const retainedManifest = { regions: (allowedDifferences as unknown as AllowedDifferences).regions.filter(({ decision }) => decision !== "NW-226") };
+      const regions: DifferenceRegion[] = [...await observeDifferenceRegions(trigger, skyline, capture, retainedManifest), {
+        kind: "branding-identity",
+        id: identityDefinition.id,
+        identityPairs: identity.identityPairs,
+        navigation: identity.navigation,
+        protectedPairs: identity.protectedPairs,
+        expected: {
+          identityPairs: Object.fromEntries(identity.identityPairs.map(({ id, trigger, skyline }) => [id, { trigger, skyline }])),
+          navigation: { trigger: identity.navigation.trigger, skyline: identity.navigation.skyline },
+          protectedPairs: Object.fromEntries(identity.protectedPairs.map(({ id, trigger, skyline }) => [id, { trigger, skyline }])),
+        },
+      }];
+      for (const definition of frameworkDefinitions) {
         const observation = await discoverFrameworkExtensionObservation(trigger, skyline, definition, step);
         const measurement = {
           relativeRect: observation.relativeRect,
@@ -59,7 +82,15 @@ for (const capture of captures) {
           anchorComputedStyleSha256: observation.anchorComputedStyleSha256,
         };
         process.stdout.write(`\nFRAMEWORK_EXTENSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement })}\n`);
+        regions.push({ kind: "framework-extension", id: definition.id, extension: observation, expected: { ...definition, ...measurement } });
       }
+      const [triggerPng, skylinePng] = await Promise.all([
+        trigger.screenshot({ animations: "disabled", caret: "hide" }),
+        skyline.screenshot({ animations: "disabled", caret: "hide" }),
+      ]);
+      const comparison = measurePixels(triggerPng, skylinePng, regions);
+      process.stdout.write(`\nNW226_CLASSIFICATION=${JSON.stringify({ capture, ...comparison })}\n`);
+      expect(comparison.differingPixels).toBe(0);
     } finally {
       await context.close();
     }

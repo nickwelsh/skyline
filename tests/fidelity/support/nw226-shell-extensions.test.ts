@@ -3,62 +3,74 @@ import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import type { FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
 import matrix from "../matrix.json" with { type: "json" };
-import { nw226ShellExtensionDefinitions } from "./nw226-shell-extensions";
+import { nw226BrandingIdentityDefinition, nw226ShellExtensionDefinitions } from "./nw226-shell-extensions";
 
-const expected = [
-  ["shell-observability-header", "[data-skyline-extension='shell-observability-header']", "button", "Observability"],
-  ["shell-logs-navigation", "[data-skyline-extension='shell-logs-navigation']", "link", "Logs"],
-  ["shell-errors-navigation", "[data-skyline-extension='shell-errors-navigation']", "link", "Errors"],
-  ["shell-queues-navigation", "[data-skyline-extension='shell-queues-navigation']", "link", "Queues"],
-  ["shell-appearance", "[data-skyline-extension='shell-appearance']", "button", "Appearance"],
-] as const;
 const shellAnchor = "[role='separator'][aria-label='Resize side menu']";
 
 describe("NW-226 shell extension discovery", () => {
   const definitions = nw226ShellExtensionDefinitions(matrix as unknown as FidelityMatrix);
+  const identity = nw226BrandingIdentityDefinition(matrix as unknown as FidelityMatrix);
 
-  test("defines five exact controls across the 38 Queue captures", () => {
-    expect(definitions).toHaveLength(5);
-    for (const [index, [id, skylineSelector, accessibleRole, accessibleName]] of expected.entries()) {
-      expect(definitions[index]).toEqual({
-        id,
-        category: "framework-extension",
-        decision: "NW-226",
-        acceptance: "Skyline-only supported shell controls remain exact, bounded, and source-anchored.",
-        captures: definitions[0].captures,
-        skylineSelector,
-        triggerAnchorSelector: shellAnchor,
-        skylineAnchorSelector: shellAnchor,
-        accessibleRole,
-        accessibleName,
-        anchorAccessibleRole: "separator",
-        anchorAccessibleName: "Resize side menu",
-        measurements: {},
-      });
-    }
-    expect(definitions[0].captures).toHaveLength(38);
-    expect(definitions.every(({ captures }) => captures === definitions[0].captures)).toBe(true);
+  test("allows only Appearance as an extension across every capture", () => {
+    expect(definitions).toEqual([{
+      id: "shell-appearance",
+      category: "framework-extension",
+      decision: "NW-226",
+      acceptance: "Skyline Appearance remains exact, bounded, and source-anchored.",
+      captures: definitions[0].captures,
+      skylineSelector: "[data-skyline-extension='shell-appearance']",
+      triggerAnchorSelector: shellAnchor,
+      skylineAnchorSelector: shellAnchor,
+      accessibleRole: "button",
+      accessibleName: "Appearance",
+      anchorAccessibleRole: "separator",
+      anchorAccessibleName: "Resize side menu",
+      measurements: {},
+    }]);
+    expect(definitions[0].captures).toHaveLength(439);
+    expect(JSON.stringify(definitions)).not.toMatch(/observability|logs-navigation|errors-navigation|queues-navigation/i);
   });
 
-  test("anchors above the intentional Application identity reflow", () => {
-    for (const definition of definitions) {
-      expect(definition.triggerAnchorSelector).toBe(shellAnchor);
-      expect(definition.skylineAnchorSelector).toBe(shellAnchor);
-      expect(definition.triggerAnchorSelector).not.toBe("[data-action='tasks']");
-    }
+  test("owns branding and single-Application reflow without masking supported navigation", () => {
+    expect(identity).toMatchObject({
+      id: "shell-branding-identity",
+      category: "branding-identity",
+      decision: "NW-226",
+      captures: definitions[0].captures,
+      identityPairs: [
+        { id: "brand", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)", skylineSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)" },
+        { id: "application", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(2)", skylineSelector: "[data-testid='side-menu-application']" },
+      ],
+      triggerNavigationSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) > :first-child",
+      skylineNavigationSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) > :first-child",
+      protectedPairs: expect.arrayContaining([
+        { id: "tasks", triggerSelector: "[data-action='tasks']", skylineSelector: "[data-action='tasks']" },
+        { id: "runs", triggerSelector: "[data-action='runs']", skylineSelector: "[data-action='runs']" },
+        { id: "logs", triggerSelector: "[data-action='logs']", skylineSelector: "[data-action='logs']", captures: expect.not.arrayContaining(["shell-customized@1024x768-classic"]) },
+        { id: "errors", triggerSelector: "[data-action='errors']", skylineSelector: "[data-action='errors']" },
+        { id: "queues", triggerSelector: "[data-action='queues']", skylineSelector: "[data-action='queues']" },
+      ]),
+      measurements: {},
+    });
+    expect(identity.protectedPairs).toHaveLength(6);
+    expect(identity.protectedPairs.find(({ id }) => id === "logs")?.captures).toHaveLength(434);
+    expect(identity.acceptance).toHaveLength(2);
+    expect(identity.citations).toHaveLength(2);
   });
 
   test("registers a reusable exact browser discovery with full accessibility", () => {
     const discovery = readFileSync(resolve(import.meta.dirname, "../nw226-shell-extension.discovery.ts"), "utf8");
     const config = readFileSync(resolve(import.meta.dirname, "../../../playwright.discovery.config.ts"), "utf8");
 
-    expect(discovery).toContain("expect(definitions).toHaveLength(5)");
-    expect(discovery).toContain("expect(captures).toHaveLength(38)");
+    expect(discovery).toContain("expect(frameworkDefinitions).toHaveLength(1)");
+    expect(discovery).toContain("expect(captures).toHaveLength(439)");
     expect(discovery).toContain("for (const capture of captures)");
-    expect(discovery).toContain("for (const definition of definitions)");
+    expect(discovery).toContain("discoverBrandingIdentityObservation");
     expect(discovery).toContain("discoverFrameworkExtensionObservation");
     expect(discovery).toContain("accessibilitySha256: observation.accessibilitySha256");
     expect(discovery).toContain("FRAMEWORK_EXTENSION_MEASUREMENT=");
+    expect(discovery).toContain("NW226_CLASSIFICATION=");
+    expect(discovery).toContain('decision !== "NW-226"');
     expect(config).toContain('"**/nw226-shell-extension.discovery.ts"');
   });
 });

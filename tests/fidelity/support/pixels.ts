@@ -26,6 +26,15 @@ export type CapabilityOmissionRegion = {
   expected: Record<string, CapabilityOmissionMeasurement>;
   expectedProtected?: Record<string, { rect: Rect; computedStyleSha256: string; accessibilitySha256: string; crop: ProtectedCrop }>;
 };
+type BrandingIdentityElement = { rect: Rect; computedStyleSha256: string; accessibilitySha256: string; crop: Extract<ProtectedCrop, { status: "visible" }> };
+export type BrandingIdentityRegion = {
+  kind: "branding-identity";
+  id: string;
+  identityPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElement; skyline: BrandingIdentityElement }>;
+  navigation: { triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElement; skyline: BrandingIdentityElement };
+  protectedPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElement; skyline: BrandingIdentityElement }>;
+  expected: { identityPairs: Record<string, { trigger: BrandingIdentityElement; skyline: BrandingIdentityElement }>; navigation: { trigger: BrandingIdentityElement; skyline: BrandingIdentityElement }; protectedPairs: Record<string, { trigger: BrandingIdentityElement; skyline: BrandingIdentityElement }> };
+};
 type CapabilityOmissionMeasurement = {
   triggerRect: Rect; skylineRect: Rect;
   triggerComputedStyleSha256: string; skylineComputedStyleSha256: string;
@@ -39,7 +48,7 @@ type PresenterExtensionObservation = {
   triggerAccessibilitySha256: string; skylineAccessibilitySha256: string;
   anchorRect: Rect; anchorComputedStyleSha256: string; anchorAccessibilitySha256: string; anchorAccessibleName: string;
 };
-export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion;
+export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion;
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
@@ -52,7 +61,7 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
   const skyline = PNG.sync.read(skylineBuffer);
   if (trigger.width !== skyline.width || trigger.height !== skyline.height) throw new Error("Paired screenshots have different dimensions.");
 
-  const regionMasks = regions.map((region) => validateRegion(region, trigger.width, trigger.height));
+  const regionMasks = regions.map((region) => validateRegion(region, trigger.width, trigger.height, trigger, skyline));
   rejectOverlaps(regionMasks, trigger.width, trigger.height);
   const masks = regionMasks.flat();
   const visited = new Uint8Array(trigger.width * trigger.height);
@@ -74,7 +83,29 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
   return { differingPixels, maskedPixels, regions: regions.map(({ id }) => id) };
 }
 
-function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number): Mask[] {
+function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number, triggerImage: PNG, skylineImage: PNG): Mask[] {
+  if (region.kind === "branding-identity") {
+    if (region.identityPairs.length !== Object.keys(region.expected.identityPairs).length) throw new Error(`Allowed region ${region.id} changed identity pair count.`);
+    for (const pair of region.identityPairs) {
+      const expected = region.expected.identityPairs[pair.id];
+      if (!expected || JSON.stringify({ trigger: pair.trigger, skyline: pair.skyline }) !== JSON.stringify(expected)) throw new Error(`Allowed region ${region.id} changed identity pair ${pair.id} evidence.`);
+    }
+    if (JSON.stringify({ trigger: region.navigation.trigger, skyline: region.navigation.skyline }) !== JSON.stringify(region.expected.navigation)) throw new Error(`Allowed region ${region.id} changed protected navigation evidence.`);
+    if (region.protectedPairs.length !== Object.keys(region.expected.protectedPairs).length) throw new Error(`Allowed region ${region.id} changed protected pair count.`);
+    for (const pair of region.protectedPairs) {
+      const expected = region.expected.protectedPairs[pair.id];
+      if (!expected || JSON.stringify({ trigger: pair.trigger, skyline: pair.skyline }) !== JSON.stringify(expected)) throw new Error(`Allowed region ${region.id} changed protected pair ${pair.id} evidence.`);
+      assertMatchingProtectedNavigationPixels(triggerImage, skylineImage, `${region.id} ${pair.id}`, pair.trigger.rect, pair.skyline.rect);
+    }
+    return [
+      ...region.identityPairs.flatMap((pair) => [
+        boundedMask(`${region.id}:${pair.id}:trigger`, pair.trigger.rect, "trigger", imageWidth, imageHeight),
+        boundedMask(`${region.id}:${pair.id}:skyline`, pair.skyline.rect, "skyline", imageWidth, imageHeight),
+      ]),
+      boundedMask(`${region.id}:navigation:trigger`, region.navigation.trigger.rect, "trigger", imageWidth, imageHeight),
+      boundedMask(`${region.id}:navigation:skyline`, region.navigation.skyline.rect, "skyline", imageWidth, imageHeight),
+    ];
+  }
   if (region.kind === "framework-extension") {
     for (const key of ["skylineSelector", "triggerAnchorSelector", "skylineAnchorSelector", "accessibleRole", "accessibleName", "computedStyleSha256", "anchorComputedStyleSha256"] as const) {
       if (region.extension[key] !== region.expected[key]) throw new Error(`Allowed region ${region.id} changed ${key}.`);
@@ -133,6 +164,19 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
   if (JSON.stringify(region.trigger.computedStyle) !== JSON.stringify(region.skyline.computedStyle)) throw new Error(`Allowed region ${region.id} changed computed style.`);
   if (region.trigger.accessibleName !== region.skyline.accessibleName) throw new Error(`Allowed region ${region.id} changed accessible name.`);
   return [boundedMask(region.id, region.trigger.rect, "both", imageWidth, imageHeight)];
+}
+
+function assertMatchingProtectedNavigationPixels(trigger: PNG, skyline: PNG, id: string, triggerRect: Rect, skylineRect: Rect) {
+  const triggerCrop = visibleCrop(trigger, triggerRect);
+  const skylineCrop = visibleCrop(skyline, skylineRect);
+  if (triggerCrop.width !== skylineCrop.width || triggerCrop.height !== skylineCrop.height || !triggerCrop.pixels.equals(skylineCrop.pixels)) throw new Error(`Allowed region ${id} changed protected navigation pixels.`);
+}
+
+function visibleCrop(image: PNG, rect: Rect) {
+  const bounded = boundedRect("protected navigation", rect, image.width, image.height, 1);
+  const pixels = Buffer.alloc(bounded.width * bounded.height * 4);
+  for (let row = 0; row < bounded.height; row += 1) image.data.copy(pixels, row * bounded.width * 4, ((bounded.y + row) * image.width + bounded.x) * 4, ((bounded.y + row) * image.width + bounded.x + bounded.width) * 4);
+  return { width: bounded.width, height: bounded.height, pixels };
 }
 
 function boundedMask(id: string, source: Rect, application: Mask["application"], imageWidth: number, imageHeight: number, maximumFraction = 0.15): Mask {

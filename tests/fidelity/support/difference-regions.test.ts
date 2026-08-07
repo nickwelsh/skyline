@@ -19,6 +19,7 @@ import {
   skylineProtectedSelector,
   settleStableElementPair,
   validateFrameworkExtensionObservation,
+  validateBrandingIdentityObservation,
   validateCapabilityOmissionObservation,
   validateProtectedElementPresentation,
   validatePairedAnchor,
@@ -26,6 +27,8 @@ import {
   waitForDifferenceRegions,
   waitForStableElementStyle,
   type CapabilityOmissionDefinition,
+  type BrandingIdentityDefinition,
+  type BrandingIdentityObservation,
   type FrameworkExtensionDefinition,
   type PresenterExtensionDefinition,
 } from "./difference-regions";
@@ -370,6 +373,45 @@ describe("framework-extension fidelity regions", () => {
     expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], crop: { status: "visible", rect: { x: 4, y: 5, width: 20, height: 24 }, screenshotSha256: "2".repeat(64) } }] }, region.captures[0])).toThrow(/crop/i);
     expect(() => validateCapabilityOmissionObservation(region, { ...observed, protectedSelectors: [{ ...observed.protectedSelectors[0], accessibilitySha256: "2".repeat(64) }] }, region.captures[0])).toThrow(/accessibilitySha256/i);
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, protectedSelectors: [{ ...region.protectedSelectors![0], selector: region.selectorPairs[0].skylineSelector }] }] })).toThrow(/selector ownership/i);
+  });
+
+  test("locks branding identity reflow while protecting supported navigation pixels", () => {
+    const element = (rect: { x: number; y: number; width: number; height: number }, screenshotSha256: string) => ({
+      rect,
+      computedStyleSha256: "a".repeat(64),
+      accessibilitySha256: "b".repeat(64),
+      crop: { status: "visible" as const, rect, screenshotSha256 },
+    });
+    const pair = { id: "application", triggerSelector: "[data-trigger-identity]", skylineSelector: "[data-skyline-identity]" };
+    const protectedPair = { id: "tasks", triggerSelector: "[data-trigger-task]", skylineSelector: "[data-skyline-task]" };
+    const observation: BrandingIdentityObservation = {
+      identityPairs: [{ ...pair, trigger: element({ x: 0, y: 0, width: 2, height: 2 }, "c".repeat(64)), skyline: element({ x: 0, y: 0, width: 2, height: 1 }, "d".repeat(64)) }],
+      navigation: { triggerSelector: "[data-trigger-nav]", skylineSelector: "[data-skyline-nav]", trigger: element({ x: 0, y: 3, width: 2, height: 2 }, "e".repeat(64)), skyline: element({ x: 0, y: 2, width: 2, height: 2 }, "f".repeat(64)) },
+      protectedPairs: [{ ...protectedPair, trigger: element({ x: 0, y: 3, width: 1, height: 1 }, "1".repeat(64)), skyline: element({ x: 0, y: 2, width: 1, height: 1 }, "1".repeat(64)) }],
+    };
+    const measurement = {
+      identityPairs: { application: { trigger: observation.identityPairs[0].trigger, skyline: observation.identityPairs[0].skyline } },
+      navigation: { trigger: observation.navigation.trigger, skyline: observation.navigation.skyline },
+      protectedPairs: { tasks: { trigger: observation.protectedPairs[0].trigger, skyline: observation.protectedPairs[0].skyline } },
+    };
+    const definition: BrandingIdentityDefinition = {
+      id: "shell-branding-identity",
+      category: "branding-identity",
+      decision: "NW-226",
+      acceptance: ["one Application"],
+      citations: ["source"],
+      captures: ["error-found@1024x768-classic"],
+      identityPairs: [pair],
+      triggerNavigationSelector: observation.navigation.triggerSelector,
+      skylineNavigationSelector: observation.navigation.skylineSelector,
+      protectedPairs: [protectedPair],
+      measurements: { "error-found@1024x768-classic": measurement },
+    };
+
+    expect(validateBrandingIdentityObservation(definition, observation, definition.captures[0])).toBe(observation);
+    expect(() => validateBrandingIdentityObservation(definition, { ...observation, navigation: { ...observation.navigation, trigger: { ...observation.navigation.trigger, rect: { ...observation.navigation.trigger.rect, y: 4 } } } }, definition.captures[0])).toThrow(/navigation evidence|reflow/i);
+    expect(accessibilityOmissionSelectors([{ kind: "branding-identity", id: definition.id, ...observation, expected: measurement }], "trigger")).toEqual([pair.triggerSelector]);
+    expect(accessibilityOmissionSelectors([{ kind: "branding-identity", id: definition.id, ...observation, expected: measurement }], "skyline")).toEqual([pair.skylineSelector]);
   });
 
   test("protected screenshot fingerprints catch painted color and icon drift", () => {

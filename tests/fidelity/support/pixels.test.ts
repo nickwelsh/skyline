@@ -36,6 +36,16 @@ describe("paired fidelity pixels", () => {
     expect(() => comparePixels(trigger, skyline, [{ ...presenter, presenter: { ...presenter.presenter, skylineAccessibilitySha256: "0".repeat(64) } }])).toThrow(/skylineAccessibilitySha256/i);
   });
 
+  test("aligns protected navigation while masking exact branding identity reflow", () => {
+    const trigger = image([255, 255, 255, 255], 10, 10, [[0, 0, [255, 0, 0, 255]], [0, 3, [0, 0, 0, 255]]]);
+    const skyline = image([255, 255, 255, 255], 10, 10, [[0, 0, [0, 255, 0, 255]], [0, 2, [0, 0, 0, 255]]]);
+    const identity = brandingIdentityRegion();
+
+    expect(comparePixels(trigger, skyline, [identity])).toMatchObject({ differingPixels: 0, maskedPixels: 3 });
+    const drifted = image([255, 255, 255, 255], 10, 10, [[0, 0, [0, 255, 0, 255]], [0, 2, [0, 0, 255, 255]]]);
+    expect(() => comparePixels(trigger, drifted, [identity])).toThrow(/protected navigation pixels/i);
+  });
+
   test("allows an exact dialog presenter union but keeps a bounded ceiling", () => {
     const screenshot = image([255, 0, 0, 255], 10, 10);
 
@@ -194,6 +204,28 @@ function region(skyline: Partial<Extract<DifferenceRegion, { kind?: "paired" }>[
 function extensionRegion(): Extract<DifferenceRegion, { kind: "framework-extension" }> {
   const expected = { skylineSelector: "[data-extension]", triggerAnchorSelector: "[data-anchor]", skylineAnchorSelector: "[data-anchor]", accessibleRole: "region", accessibleName: "Exception", relativeRect: { x: 0, y: 1, width: 1, height: 1 }, computedStyleSha256: "a".repeat(64), anchorRect: { x: 0, y: 0, width: 1, height: 1 }, anchorComputedStyleSha256: "b".repeat(64) };
   return { kind: "framework-extension", id: "php-exception-evidence", expected, extension: { ...expected, rect: { x: 0, y: 0, width: 1, height: 1 } } };
+}
+
+function brandingIdentityRegion(): Extract<DifferenceRegion, { kind: "branding-identity" }> {
+  const element = (rect: { x: number; y: number; width: number; height: number }, screenshotSha256: string) => ({
+    rect,
+    computedStyleSha256: "a".repeat(64),
+    accessibilitySha256: "b".repeat(64),
+    crop: { status: "visible" as const, rect, screenshotSha256 },
+  });
+  const triggerIdentity = element({ x: 0, y: 0, width: 1, height: 2 }, "c".repeat(64));
+  const skylineIdentity = element({ x: 0, y: 0, width: 1, height: 1 }, "d".repeat(64));
+  const triggerNavigation = element({ x: 0, y: 3, width: 1, height: 1 }, "e".repeat(64));
+  const skylineNavigation = element({ x: 0, y: 2, width: 1, height: 1 }, "e".repeat(64));
+  const expected = { identityPairs: { application: { trigger: triggerIdentity, skyline: skylineIdentity } }, navigation: { trigger: triggerNavigation, skyline: skylineNavigation }, protectedPairs: { tasks: { trigger: triggerNavigation, skyline: skylineNavigation } } };
+  return {
+    kind: "branding-identity",
+    id: "shell-branding-identity",
+    identityPairs: [{ id: "application", triggerSelector: "[data-trigger]", skylineSelector: "[data-skyline]", ...expected.identityPairs.application }],
+    navigation: { triggerSelector: "nav", skylineSelector: "nav", ...expected.navigation },
+    protectedPairs: [{ id: "tasks", triggerSelector: "[data-trigger-task]", skylineSelector: "[data-skyline-task]", ...expected.protectedPairs.tasks }],
+    expected,
+  };
 }
 
 function presenterRegion(): Extract<DifferenceRegion, { kind: "presenter-extension" }> {
