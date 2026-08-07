@@ -7,19 +7,6 @@ type ErrorCapabilityPolicy = {
   detailBulkReplay?: boolean;
 };
 
-export function conditionCanonicalPathName(code: string) {
-  const locationReturn = "return location.pathname;";
-  const navigationReturn = "return navigation.location.pathname;";
-  if (!code.includes(locationReturn) || !code.includes(navigationReturn)) throw new Error("Pinned Trigger canonical pathname hook changed; capability adapter must be reviewed.");
-  return code.replace(
-    locationReturn,
-    'return new URL((window as any).__oracleCanonicalUrl ?? location.pathname, window.location.origin).pathname;',
-  ).replace(
-    navigationReturn,
-    'return new URL((window as any).__oracleCanonicalUrl ?? navigation.location.pathname, window.location.origin).pathname;',
-  );
-}
-
 export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapabilityPolicy) {
   let adapted = code;
   if (policy.hiddenMutableRegions?.includes("detail-status")) {
