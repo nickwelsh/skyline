@@ -159,6 +159,26 @@ test("reference app shell fills the viewport", async ({ page }) => {
   await expectReferenceHealthy(page);
 });
 
+test("reference shell uses exact source routes for active navigation", async ({ page }) => {
+  await installReferenceFixture(page, await createReferenceFixture());
+
+  await page.goto("http://127.0.0.1:4185/oracle/shell-customized", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page.locator("[data-action='runs']")).toHaveClass(/bg-tertiary/);
+  await expect(page.locator("[data-action='errors']")).not.toHaveClass(/bg-tertiary/);
+  await expect.poll(() => page.evaluate(() => (window as Window & {
+    __TRIGGER_FIDELITY_REFERENCE__?: { sourcePathName?(pathname: string): string };
+  }).__TRIGGER_FIDELITY_REFERENCE__?.sourcePathName?.(location.pathname))).toBe("/orgs/fixture/projects/fixture/env/prod/runs");
+
+  await page.goto("http://127.0.0.1:4185/oracle/error-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+  await expect(page.locator("[data-action='runs']")).not.toHaveClass(/bg-tertiary/);
+  await expect(page.locator("[data-action='errors']")).not.toHaveClass(/bg-tertiary/);
+  await expect.poll(() => page.evaluate(() => (window as Window & {
+    __TRIGGER_FIDELITY_REFERENCE__?: { sourcePathName?(pathname: string): string };
+  }).__TRIGGER_FIDELITY_REFERENCE__?.sourcePathName?.(location.pathname))).toMatch(/^\/orgs\/fixture\/projects\/fixture\/env\/prod\/errors\/.+/);
+});
+
 test("reference pins Trigger's mobile canvas", async ({ page }) => {
   const capture = "error-found@390x844-classic";
   await prepareCapture(page, capture, "/reference");

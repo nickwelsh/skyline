@@ -6,7 +6,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 import policy from "./reference-capabilities.json" with { type: "json" };
 import { conditionQueueControls, conditionQueueListMetricResources, conditionQueueMetricResources, conditionSideMenuItems, conditionSideMenuSections, conditionSideMenuShell } from "./reference/vite.config";
-import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./reference/capability-adapters";
+import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./reference/capability-adapters";
 
 const root = resolve(import.meta.dirname, "../..");
 const vendor = resolve(root, "tests/fidelity/reference/vendor/components/navigation");
@@ -18,6 +18,7 @@ const bigNumber = resolve(root, "tests/fidelity/reference/vendor/components/metr
 const table = resolve(root, "tests/fidelity/reference/vendor/components/primitives/Table.tsx");
 const miniChart = resolve(root, "tests/fidelity/reference/vendor/components/metrics/MiniLineChart.tsx");
 const sharedFilters = resolve(root, "tests/fidelity/reference/vendor/components/runs/v3/SharedFilters.tsx");
+const pathNameHook = resolve(root, "tests/fidelity/reference/vendor/hooks/usePathName.ts");
 
 describe("pinned shell capability adapters", () => {
   test("locks the reviewed policy digest", () => {
@@ -56,6 +57,16 @@ describe("pinned shell capability adapters", () => {
     expect(() => conditionSideMenuItems(item.replace("export function SideMenuItem({", "export function Changed({"))).toThrow(/must be reviewed/i);
     expect(() => conditionSideMenuSections(section.replace("export function SideMenuSection({", "export function Changed({"))).toThrow(/must be reviewed/i);
     expect(() => conditionSideMenuShell(shell.replace("<AccountMenu isAdmin={isAdmin} isImpersonating={user.isImpersonating} />", "<AccountMenu />"))).toThrow(/must be reviewed/i);
+  });
+
+  test("routes pinned active navigation through the exact source fixture path", () => {
+    const hook = readFileSync(pathNameHook, "utf8");
+    const adapted = conditionReferencePathName(hook);
+
+    expect(adapted).toContain("sourcePathName?.(location.pathname) ?? location.pathname");
+    expect(adapted).toContain("sourcePathName?.(navigation.location.pathname) ?? navigation.location.pathname");
+    expect(() => conditionReferencePathName(hook.replace("return location.pathname;", "return changed;"))).toThrow(/must be reviewed/i);
+    expect(() => conditionReferencePathName(hook.replace("return navigation.location.pathname;", "return changed;"))).toThrow(/must be reviewed/i);
   });
 
   test("routes pinned Queue metric queries through observed fixture resources", () => {

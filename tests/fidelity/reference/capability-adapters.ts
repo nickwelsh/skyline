@@ -7,6 +7,24 @@ type ErrorCapabilityPolicy = {
   detailBulkReplay?: boolean;
 };
 
+export function conditionReferencePathName(code: string) {
+  const locationReturn = "return location.pathname;";
+  const navigationReturn = "return navigation.location.pathname;";
+  if (!code.includes(locationReturn) || !code.includes(navigationReturn)) {
+    throw new Error("Pinned Trigger reference pathname hook changed; capability adapter must be reviewed.");
+  }
+
+  return code
+    .replace(
+      locationReturn,
+      "return (window as any).__TRIGGER_FIDELITY_REFERENCE__?.sourcePathName?.(location.pathname) ?? location.pathname;",
+    )
+    .replace(
+      navigationReturn,
+      "return (window as any).__TRIGGER_FIDELITY_REFERENCE__?.sourcePathName?.(navigation.location.pathname) ?? navigation.location.pathname;",
+    );
+}
+
 export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapabilityPolicy) {
   let adapted = code;
   if (policy.hiddenMutableRegions?.includes("detail-status")) {

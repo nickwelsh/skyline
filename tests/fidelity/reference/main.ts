@@ -257,6 +257,7 @@ type ReferencePort = {
   fixtureVersion: typeof fixtureVersion;
   context: ReferenceContext;
   canonicalUrl?(captureId: string): string;
+  sourcePathName?(pathname: string): string;
   defaultSearch?(captureId: string): string;
   resource?(kind: "span" | "queue-metric", params: Record<string, string | undefined>): unknown | Promise<unknown>;
   load(input: ReferenceLoad): unknown | Promise<unknown>;

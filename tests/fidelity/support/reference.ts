@@ -236,6 +236,22 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       canManageBillingLimits: false, isUsingRbacPlugin: false, isUsingSsoPlugin: false,
       ...input.context?.organization,
     };
+    const sourceEnvironmentPath = `/orgs/${organization.slug}/projects/${project.slug}/env/${environment.slug}`;
+    const canonicalUrl = (captureId: string) => {
+      if (input.canonicalUrls?.[captureId]) return input.canonicalUrls[captureId];
+      const prefix = captureId.slice(0, captureId.indexOf("-"));
+      const detail = captureId.startsWith("runs-inspectors-") ? "run" : detailByCapture[captureId];
+      return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
+    };
+    const sourcePathName = (pathname: string) => {
+      if (!pathname.startsWith("/oracle/")) return pathname;
+      const captureId = decodeURIComponent(pathname.replace(/^\/oracle\//, "").split("@")[0] ?? "runs-populated");
+      const canonicalPath = new URL(canonicalUrl(captureId), location.origin).pathname;
+      const relative = canonicalPath === "/skyline" ? "" : canonicalPath.replace(/^\/skyline/, "");
+      if (relative === "/jobs") return sourceEnvironmentPath;
+      if (relative.startsWith("/jobs/")) return `${sourceEnvironmentPath}/tasks/standard/${relative.slice("/jobs/".length)}`;
+      return `${sourceEnvironmentPath}${relative}`;
+    };
     const fidelityWindow = window as typeof window & {
       __TRIGGER_FIDELITY_REFERENCE__?: Record<string, unknown>;
       __oracleSetFixtureState?: (state: string) => void;
@@ -244,12 +260,8 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
     fidelityWindow.__TRIGGER_FIDELITY_REFERENCE__ = {
       fixtureVersion: "nw-227-v1",
       context: { root, organization: organizationContext },
-      canonicalUrl: (captureId: string) => {
-        if (input.canonicalUrls?.[captureId]) return input.canonicalUrls[captureId];
-        const prefix = captureId.slice(0, captureId.indexOf("-"));
-        const detail = captureId.startsWith("runs-inspectors-") ? "run" : detailByCapture[captureId];
-        return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
-      },
+      canonicalUrl,
+      sourcePathName,
       defaultSearch: (captureId: string) => {
         if (captureId.startsWith("runs-inspectors-") || detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
         if (detailByCapture[captureId] === "log" || captureId === "log-found") return `event=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
