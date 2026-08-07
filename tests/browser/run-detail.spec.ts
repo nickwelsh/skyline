@@ -408,10 +408,12 @@ test("Run detail preserves loading, stale-refresh, API-error, and not-found trea
 
   await page.goto(`/skyline/runs/${runId}`);
   await expect(page.getByLabel("Loading Run")).toBeVisible();
+  await expect(page.getByTestId("side-menu")).toBeVisible();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
 
   mode = "error";
   await expect(page.getByText("Refreshing Run…")).toBeVisible();
+  await expect(page.getByLabel("Loading Run")).toBeHidden();
   await expect(page.getByRole("heading", { name: runId })).toBeVisible();
 
   await page.goto(`/skyline/runs/${runId}?api-error=1`);

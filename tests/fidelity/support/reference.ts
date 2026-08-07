@@ -283,7 +283,8 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         if (value === undefined) throw new Error(`Missing Trigger reference loader fixture: ${captureId}:${route}`);
         if (route === "page" && state === "api-error") throw new Error("Deterministic telemetry error.");
         if (route === "page" && state === "not-found") throw new Response("Deterministic telemetry evidence was not found.", { status: 404, statusText: "Not Found" });
-        if (route === "page" && (state === "loading" || state === "stale-refresh") && phase === "refresh") return new Promise(() => {});
+        if (route === "page" && state === "loading" && phase === "initial") return new Promise(() => {});
+        if (route === "page" && state === "stale-refresh" && phase === "refresh") return new Promise(() => {});
         const cloned = structuredClone(value);
         return route === "page" ? stateFixture(cloned, surface, state) : cloned;
       },

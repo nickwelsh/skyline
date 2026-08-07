@@ -5,6 +5,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { readBootstrap } from "./skyline/bootstrap";
 import { createSkylineRouter } from "./skyline/router";
+import { InitialLoadingState } from "./skyline/InitialLoadingState";
 import { createUiPreferencesAdapter } from "./skyline/UiPreferencesAdapter";
 import { UiPreferencesProvider } from "./skyline/UiPreferencesProvider";
 import { OperatingSystemContextProvider, operatingSystemFromUserAgent } from "./trigger/components/primitives/OperatingSystemProvider";
@@ -23,17 +24,10 @@ ReactDOM.createRoot(root).render(
         <UiPreferencesProvider adapter={preferences}>
           <RouterProvider
             router={router}
-            fallbackElement={<InitialLoadingState />}
+            fallbackElement={<InitialLoadingState bootstrap={bootstrap} />}
           />
         </UiPreferencesProvider>
       </ShortcutsProvider>
     </OperatingSystemContextProvider>
   </React.StrictMode>,
 );
-
-function InitialLoadingState() {
-  const segment = window.location.pathname.match(/\/(jobs|runs|queues|errors|logs)(?:\/[^/]+)?$/)?.[1] ?? "runs";
-  const detail = window.location.pathname.match(new RegExp(`/${segment}/[^/]+$`));
-  const label = detail ? `${segment === "jobs" ? "Job" : segment === "queues" ? "Queue target" : segment === "errors" ? "Error group" : segment === "logs" ? "Telemetry event" : "Run"}` : `${segment === "jobs" ? "Jobs" : segment === "queues" ? "Queues" : segment === "errors" ? "Errors" : segment === "logs" ? "Logs" : "Runs"}`;
-  return <div aria-label={`Loading ${label}`} className="grid h-screen place-items-center bg-background-dimmed text-text-dimmed">Loading {label}…</div>;
-}

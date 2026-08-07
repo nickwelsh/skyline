@@ -9,7 +9,7 @@ import type { SidebarCustomizationPayload } from "../trigger/components/navigati
 const visibleSectionIds = new Set(["favorites", "metrics"]);
 const visibleItemIds = new Set(["jobs", "runs", "logs", "errors", "queues"]);
 
-export function SkylineShell({ bootstrap }: { bootstrap: SkylineBootstrap }) {
+export function SkylineShell({ bootstrap, children }: { bootstrap: SkylineBootstrap; children?: React.ReactNode }) {
   const { preferences, adapter, warning } = useUiPreferences();
   const navigation = bootstrap.capabilities.navigation;
   const favorites = visibleFavorites(preferences.favorites, navigation).map(toJobFavorite);
@@ -46,7 +46,7 @@ export function SkylineShell({ bootstrap }: { bootstrap: SkylineBootstrap }) {
     onAppearanceChange={(appearance) => update((current) => ({ ...current, ...appearance }))}
     onCustomize={onCustomize}
     panelPersistence={bootstrap.capabilities.shell.panelPersistence ? adapter : null}
-  />;
+  >{children}</TriggerShell>;
 }
 
 function toJobFavorite(favorite: FavoritePreference): JobFavorite {

@@ -83,6 +83,9 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
 
   await page.goto("/skyline/runs");
   await expect(page.getByLabel("Loading Runs")).toBeVisible();
+  await expect(page.getByTestId("side-menu")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeGreaterThanOrEqual(1024);
   await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await expect.poll(() => requests).toBeGreaterThan(1);
   await expect(page.getByText("Completed", { exact: true })).toBeVisible();
