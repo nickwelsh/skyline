@@ -5,7 +5,7 @@
   "adaptedTargets": {
     "resources/js/trigger/root.tsx": "4d7c7ee59ea06abf084cf14fac01319d500a68e9d0798789c27bba5756d6a9c1",
     "resources/js/trigger/components/ErrorDisplay.tsx": "7d32dec0ce9e51f2338f905ed33b3b138bc6ecef9599a956bd9e7d6069453d5c",
-    "resources/js/trigger/components/navigation/SideMenu.tsx": "6fc0361f7c0e99fd8642dffdadfca1e7101c7124ac024ea38bc07d66baf261b2",
+    "resources/js/trigger/components/navigation/SideMenu.tsx": "71a34edc5232c284440205d6aceabcee9b994d80516c34fb19191c9a0a4ace4b",
     "resources/js/trigger/components/navigation/AppearanceMenu.tsx": "fdf93e6ff136bcc093d1116c03d0b48d32fb927bf831f72141117884963af718",
     "resources/js/trigger/components/navigation/HelpMenu.tsx": "4c0f5248c1de2a7f3f97e11bc1c0a39a1f43dcce00ab818a28acd414a6d18a0e",
     "resources/js/trigger/components/navigation/ShortcutsDialog.tsx": "654022c21b6df8da86151a6aa359735d385dbe3e4f2d8e7f23be4c8abc9f96a9",
