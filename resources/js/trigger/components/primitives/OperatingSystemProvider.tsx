@@ -1,7 +1,15 @@
 import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
 
-export type OperatingSystemPlatform = "mac" | "windows";
+export type OperatingSystemPlatform = "linux" | "mac" | "unknown" | "windows";
+
+export function operatingSystemFromUserAgent(userAgent: string): OperatingSystemPlatform {
+  if (/windows/i.test(userAgent)) return "windows";
+  if (/(macintosh|mac os x|iphone|ipad|ipod)/i.test(userAgent)) return "mac";
+  if (/(android|cros|linux)/i.test(userAgent)) return "linux";
+
+  return "unknown";
+}
 
 type OperatingSystemContext = {
   platform: OperatingSystemPlatform;

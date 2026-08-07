@@ -7,7 +7,7 @@ import { readBootstrap } from "./skyline/bootstrap";
 import { createSkylineRouter } from "./skyline/router";
 import { createUiPreferencesAdapter } from "./skyline/UiPreferencesAdapter";
 import { UiPreferencesProvider } from "./skyline/UiPreferencesProvider";
-import { OperatingSystemContextProvider } from "./trigger/components/primitives/OperatingSystemProvider";
+import { OperatingSystemContextProvider, operatingSystemFromUserAgent } from "./trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "./trigger/components/primitives/ShortcutsProvider";
 import "./trigger/tailwind.css";
 
@@ -18,7 +18,7 @@ const router = createSkylineRouter(bootstrap, undefined, preferences);
 
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <OperatingSystemContextProvider platform={/windows/i.test(navigator.userAgent) ? "windows" : "mac"}>
+    <OperatingSystemContextProvider platform={operatingSystemFromUserAgent(navigator.userAgent)}>
       <ShortcutsProvider>
         <UiPreferencesProvider adapter={preferences}>
           <RouterProvider
