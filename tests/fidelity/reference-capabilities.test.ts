@@ -47,9 +47,11 @@ describe("pinned shell capability adapters", () => {
     const shell = readFileSync(resolve(vendor, "SideMenu.tsx"), "utf8");
 
     expect(conditionSideMenuItems(item)).toContain("shellCapabilityPolicy.supportedActions");
+    expect(conditionSideMenuItems(item)).toContain("badge={action ? undefined : props.badge}");
     expect(conditionSideMenuSections(section)).toContain("shellCapabilityPolicy.supportedSections");
     const conditionedShell = conditionSideMenuShell(shell);
     expect(conditionedShell).toContain("shellCapabilityPolicy.account");
+    expect(conditionedShell).toContain("shellCapabilityPolicy.supportedActions.includes(item.dataAction)");
     expect(conditionedShell).not.toContain("data-trigger-anchor");
     expect(() => conditionSideMenuItems(item.replace("export function SideMenuItem({", "export function Changed({"))).toThrow(/must be reviewed/i);
     expect(() => conditionSideMenuSections(section.replace("export function SideMenuSection({", "export function Changed({"))).toThrow(/must be reviewed/i);

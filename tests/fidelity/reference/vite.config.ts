@@ -175,7 +175,7 @@ export function SideMenuItem(props: Parameters<typeof SourceSideMenuItem>[0]) {
   const action = props["data-action"];
   return action && !shellCapabilityPolicy.supportedActions.includes(action)
     ? null
-    : <SourceSideMenuItem {...props} />;
+    : <SourceSideMenuItem {...props} badge={action ? undefined : props.badge} />;
 }
 `;
 }
@@ -220,6 +220,11 @@ export function conditionSideMenuShell(code: string) {
     if (!adapted.includes(source)) throw new Error("Pinned Trigger SideMenu shell region changed; capability adapter must be reviewed.");
     adapted = adapted.replace(source, replacement);
   }
+  const moreItems = "  const moreItems = orderedItems.filter((item) => isItemHidden(item, hiddenItems));";
+  if (!adapted.includes(moreItems)) throw new Error("Pinned Trigger SideMenu overflow region changed; capability adapter must be reviewed.");
+  adapted = adapted.replace(moreItems, `${moreItems}\n  const supportedMoreItems = moreItems.filter((item) => shellCapabilityPolicy.supportedActions.includes(item.dataAction));`);
+  adapted = adapted.replaceAll("{moreItems.length > 0 && (", "{supportedMoreItems.length > 0 && (");
+  adapted = adapted.replaceAll("items={moreItems.map((item) => ({", "items={supportedMoreItems.map((item) => ({");
   return `${adapted}
 const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
 `;
