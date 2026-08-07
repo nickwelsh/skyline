@@ -18,6 +18,7 @@ describe("ExceptionPreview", () => {
     expect(container.textContent).toContain("Payment failed.");
     expect(container.textContent).toContain("app/Jobs/ChargeCard.php:42");
     expect(container.textContent).not.toContain("Illuminate\\Queue\\Worker->process");
+    expect(container.querySelector("[title='Open app/Jobs/ChargeCard.php:42 in editor']")?.parentElement?.className).toContain("text-text-bright");
 
     const showFrames = container.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
     flushSync(() => showFrames.click());
