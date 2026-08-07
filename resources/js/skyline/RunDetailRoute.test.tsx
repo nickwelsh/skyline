@@ -179,7 +179,7 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
-  it("closes only an expanded operation dialog on Escape and restores its trigger", async () => {
+  it("closes an expanded operation dialog and its inspector on Escape", async () => {
     const queryId = "span_4f24adb545b26d31";
     const { container, root, router } = await renderRoute({
       initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`,
@@ -195,10 +195,11 @@ describe("Run detail source primitives", () => {
 
     await act(async () => tab.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
-    expect(router.state.location.search).toBe(`?node=${queryId}&tab=detail`);
+    expect(router.state.location.search).toBe("?tab=detail");
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
-    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull());
-    await vi.waitFor(() => expect(document.activeElement).toBe(expand));
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).toBeNull());
+    expect(expand.isConnected).toBe(false);
+    expect(document.activeElement).toBe(document.body);
     await act(async () => root.unmount());
   });
 });
