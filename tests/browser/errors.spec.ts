@@ -36,6 +36,7 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
 
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Errors" })).toHaveAttribute("href", "/skyline/errors");
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
   await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Task", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
   await expect(page.locator("thead th[scope=col]")).toHaveCount(7);
   await expect(page.locator("tbody tr")).toHaveCount(2);
@@ -175,10 +176,14 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
   await expect(page.getByRole("heading", { name: "No matching Error groups" })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/errors");
-  await expect(page.getByRole("alert")).toContainText("Error evidence unavailable.");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Error", exact: true })).toBeVisible();
+  await expect(page.getByText("Error evidence unavailable.", { exact: true })).toBeVisible();
   mode = "populated";
   await page.goto("/skyline/errors/err_missing");
-  await expect(page.getByRole("alert")).toContainText("Error group not found");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "404: Page not found" })).toBeVisible();
+  await expect(page.getByText("Not Found", { exact: true })).toBeVisible();
 
   await page.goto(`/skyline/errors/${errorId}`);
   delayDetail = true;
@@ -193,7 +198,9 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
 
   detailMode = "error";
   await page.reload();
-  await expect(page.getByRole("alert")).toContainText("Unable to load Error group");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Error", exact: true })).toBeVisible();
+  await expect(page.getByText("Error detail unavailable.", { exact: true })).toBeVisible();
 
   detailMode = "populated";
   await page.goto(`/skyline/errors/${errorId}?period=1h`);

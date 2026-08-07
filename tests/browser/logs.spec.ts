@@ -234,7 +234,9 @@ test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered
   await expect(page.getByText("No matching Telemetry events")).toBeVisible();
   mode = "error";
   await page.goto("/skyline/logs");
-  await expect(page.getByRole("alert")).toContainText("Telemetry evidence unavailable.");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Error", exact: true })).toBeVisible();
+  await expect(page.getByText("Telemetry evidence unavailable.", { exact: true })).toBeVisible();
 
   mode = "populated";
   detailMode = "not-found";
