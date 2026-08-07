@@ -5,8 +5,8 @@ import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAd
 
 describe("JobsAdapter", () => {
   it("reads only valid URL-backed Job filters", () => {
-    expect(jobsQuery(new Request("https://example.test/jobs?search=invoice&period=24h")))
-      .toEqual({ search: "invoice", period: "24h" });
+    expect(jobsQuery(new Request("https://example.test/jobs?search=invoice&period=24h&cursor=opaque")))
+      .toEqual({ search: "invoice", period: "24h", cursor: "opaque" });
     expect(jobsQuery(new Request("https://example.test/jobs?period=invalid"))).toEqual({});
     expect(jobRunsQuery(new Request("https://example.test/jobs/id"))).toEqual({ period: "7d" });
     expect(jobRunsQuery(new Request("https://example.test/jobs/id?status=failed&status=unknown&cursor=opaque&period=7d")))
@@ -16,6 +16,7 @@ describe("JobsAdapter", () => {
   it("maps Job API data into stable source presenters", () => {
     const list = presentJobs(jobsPage());
     expect(list.jobs[0]).toMatchObject({ id: "job_invoice", path: "/jobs/job_invoice", name: "App\\Jobs\\Invoice", runCount: 2 });
+    expect(list.pagination).toEqual({ previous: undefined, next: "next" });
     expect(list.hasFilters).toBe(true);
 
     const detail = presentJobDetail(jobDetail());
@@ -33,6 +34,7 @@ function jobsPage(): JobsPageDto {
     generatedAt: "2026-08-05T12:00:00Z",
     capabilities: fixtureCapabilities,
     jobs: [jobSummary()],
+    pagination: { previous: null, next: "next" },
     filters: { search: "invoice", period: "24h" },
     options: { timeRanges },
     hasAnyJobs: true,

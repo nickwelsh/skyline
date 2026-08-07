@@ -10,12 +10,15 @@ use NickWelsh\Skyline\Persistence\SkylineConnection;
 
 final readonly class JobsQuery
 {
+    private const PAGE_SIZE = 25;
+
     private const STATUSES = ['queued', 'running', 'retrying', 'completed', 'failed'];
 
     public function __construct(
         private SkylineConnection $database,
         private RunsQuery $runs,
         private ApiMetadata $metadata,
+        private CursorCodec $cursors,
     ) {}
 
     /** @return array<string, mixed> */
@@ -23,12 +26,15 @@ final readonly class JobsQuery
     {
         $observedAt = Nanoseconds::now();
         $filters = JobsFilters::fromRequest($request, $observedAt);
+        [$jobNames, $previous, $next] = $this->jobNames($filters, $request->query('cursor'));
         $rows = $filters->apply($this->baseQuery())
+            ->whereIn('skyline_runs.job_name', $jobNames)
             ->orderBy('skyline_runs.job_name')
             ->orderByDesc('skyline_runs.triggered_at')
             ->orderByDesc('skyline_runs.run_id')
             ->get();
         $recentActivity = $this->baseQuery()
+            ->whereIn('skyline_runs.job_name', $jobNames)
             ->where('skyline_runs.triggered_at', '>=', $observedAt - 86_400_000_000_000)
             ->get()
             ->groupBy('job_name');
@@ -36,10 +42,74 @@ final readonly class JobsQuery
         return [
             ...$this->metadata->at($observedAt),
             'jobs' => $rows->groupBy('job_name')->map(fn (Collection $runs, string $jobName): array => $this->summary($runs, $recentActivity->get($jobName, collect())))->values()->all(),
+            'pagination' => ['previous' => $previous, 'next' => $next],
             'filters' => $filters->toArray(),
             'options' => ['timeRanges' => JobsFilters::options()],
             'hasAnyJobs' => $this->baseQuery()->exists(),
         ];
+    }
+
+    /** @return array{list<string>, ?string, ?string} */
+    private function jobNames(JobsFilters $filters, mixed $cursor): array
+    {
+        $direction = 'next';
+        $boundary = null;
+        if ($cursor !== null) {
+            if (! is_string($cursor)) {
+                throw new InvalidQuery('The cursor is invalid.');
+            }
+            $decoded = $this->cursors->decode($cursor, 'jobs');
+            $direction = $decoded['direction'] ?? null;
+            $boundary = $decoded['jobName'] ?? null;
+            if (! in_array($direction, ['next', 'previous'], true)
+                || ! is_string($boundary)
+                || ($decoded['search'] ?? null) !== $filters->search
+                || ($decoded['period'] ?? null) !== $filters->period) {
+                throw new InvalidQuery('The cursor is invalid.');
+            }
+        }
+
+        $query = $filters->apply($this->baseQuery())
+            ->select('skyline_runs.job_name')
+            ->distinct();
+        if ($boundary !== null) {
+            $query->where('skyline_runs.job_name', $direction === 'next' ? '>' : '<', $boundary);
+        }
+        $names = $query->orderBy('skyline_runs.job_name', $direction === 'previous' ? 'desc' : 'asc')
+            ->limit(self::PAGE_SIZE + 1)
+            ->pluck('skyline_runs.job_name')
+            ->take(self::PAGE_SIZE);
+        if ($direction === 'previous') {
+            $names = $names->reverse()->values();
+        }
+
+        $first = $names->first();
+        $last = $names->last();
+        $previous = $first !== null && $this->hasJobNameBeyond($filters, $first, '<')
+            ? $this->jobCursor('previous', $first, $filters)
+            : null;
+        $next = $last !== null && $this->hasJobNameBeyond($filters, $last, '>')
+            ? $this->jobCursor('next', $last, $filters)
+            : null;
+
+        return [$names->all(), $previous, $next];
+    }
+
+    private function hasJobNameBeyond(JobsFilters $filters, string $jobName, string $operator): bool
+    {
+        return $filters->apply($this->baseQuery())
+            ->where('skyline_runs.job_name', $operator, $jobName)
+            ->exists();
+    }
+
+    private function jobCursor(string $direction, string $jobName, JobsFilters $filters): string
+    {
+        return $this->cursors->encode('jobs', [
+            'direction' => $direction,
+            'jobName' => $jobName,
+            'search' => $filters->search,
+            'period' => $filters->period,
+        ]);
     }
 
     /** @return array<string, mixed> */

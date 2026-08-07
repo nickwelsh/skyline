@@ -106,7 +106,8 @@ describe("Jobs list source chrome", () => {
     expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none") && boundary.childElementCount === 0)).toBe(true);
     expect(boundaries.every((boundary) => !boundary.querySelector("input, button, a, svg"))).toBe(true);
     expect(container.querySelector('[data-skyline-protected="jobs-list-search"]')?.querySelector('input[placeholder="Search tasks…"]')).not.toBeNull();
-    expect(container.querySelector('[data-skyline-protected="jobs-list-pagination"]')?.querySelectorAll("button")).toHaveLength(2);
+    expect(container.querySelector<HTMLSelectElement>('select[aria-label="Time range"]')?.value).toBe("all");
+    expect(container.querySelector('[data-skyline-protected="jobs-list-pagination"]')?.querySelectorAll("a")).toHaveLength(1);
     expect(container.textContent).not.toContain("Standard");
     expect(container.textContent).not.toContain(".php");
     expect(container.querySelector('[data-status="running"]')?.getAttribute("fill"))

@@ -112,6 +112,7 @@ export type RunsQuery = {
 export type JobsQuery = {
   search?: string;
   period?: "1h" | "24h" | "7d" | "30d" | "all";
+  cursor?: string;
 };
 
 export type JobRunsQuery = {
@@ -143,6 +144,7 @@ export type JobsPageDto = {
   generatedAt: string;
   capabilities: SkylineCapabilities;
   jobs: JobSummary[];
+  pagination: { next: string | null; previous: string | null };
   filters: { search: string | null; period: NonNullable<JobsQuery["period"]> };
   options: { timeRanges: TimeRangeOption[] };
   hasAnyJobs: boolean;

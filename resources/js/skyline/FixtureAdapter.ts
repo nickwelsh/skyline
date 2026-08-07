@@ -253,13 +253,19 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       .filter(([name]) => !search || name.toLowerCase().includes(search))
       .map(([name, runs]) => this.jobSummary(name, runs))
       .sort((left, right) => left.name.localeCompare(right.name));
+    const offset = fixtureOffset(query.cursor);
+    const page = jobs.slice(offset, offset + pageSize);
 
     return {
       schemaVersion: 1,
       packageVersion: "fixture",
       generatedAt: fixtureGeneratedAt,
       capabilities,
-      jobs,
+      jobs: page,
+      pagination: {
+        previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
+        next: offset + pageSize < jobs.length ? String(offset + pageSize) : null,
+      },
       filters: { search: query.search ?? null, period: query.period ?? "all" },
       options: { timeRanges: fixtureTimeRanges },
       hasAnyJobs: scenarios[0].runs.length > 0,

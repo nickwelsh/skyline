@@ -10,6 +10,7 @@ import { useCallback, useRef, useState } from "react";
 import { Bar } from "recharts";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ActivityBarChart } from "~/components/metrics/ActivityBarChart";
+import { ListPagination } from "~/components/ListPagination";
 import { Button } from "~/components/primitives/Buttons";
 import { Header2 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
@@ -52,6 +53,8 @@ type PresentedJob = {
 };
 type JobsRouteData = {
   jobs: PresentedJob[];
+  pagination: { next?: string; previous?: string };
+  filters: { search: string | null; period: string };
   timeRanges: Array<{ value: string; label: string }>;
   hasAnyJobs: boolean;
   hasFilters: boolean;
@@ -71,11 +74,6 @@ export default function JobsRoute() {
   const usefulLinksPanelRef = useRef<PanelHandle>(null);
   const isLoading = navigation.state !== "idle";
   const hasItems = data.jobs.length > 0;
-  const pageSize = 25;
-  const requestedPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
-  const totalPages = Math.max(1, Math.ceil(data.jobs.length / pageSize));
-  const currentPage = Math.min(requestedPage, totalPages);
-  const jobs = data.jobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const toggleUsefulLinks = useCallback((show: boolean) => {
     setShowUsefulLinks(show);
     setIsPanelAnimating(true);
@@ -88,12 +86,13 @@ export default function JobsRoute() {
     }
     data.onJobGuidanceChange(show);
   }, [data]);
-  const setPage = (page: number) => {
+  const updatePeriod = (period: string) => {
     const next = new URLSearchParams(searchParams);
-    page <= 1 ? next.delete("page") : next.set("page", String(page));
+    period === "all" ? next.delete("period") : next.set("period", period);
+    next.delete("cursor");
+    next.delete("direction");
     setSearchParams(next);
   };
-
   return (
     <PageContainer>
       <NavBar><PageTitle title="Tasks" accessory="What is a task?" /></NavBar>
@@ -104,15 +103,23 @@ export default function JobsRoute() {
               {hasItems ? <div className="flex min-w-0 max-w-full flex-col overflow-hidden">
               <div aria-label="Task filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
                 <div data-skyline-protected="jobs-list-search" className="relative flex flex-1 items-center gap-1.5">
-                  <SearchInput placeholder="Search tasks…" resetParams={["page"]} />
+                  <SearchInput placeholder="Search tasks…" resetParams={["cursor", "direction"]} />
                   <span aria-hidden="true" data-skyline-capability-boundary="jobs-list-task-type-filter" className="pointer-events-none absolute inset-y-0 left-0 w-1" />
                 </div>
                 <div className="flex items-center gap-1.5">
+                  <select
+                    aria-label="Time range"
+                    className="h-6 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright focus-custom"
+                    value={data.filters.period}
+                    onChange={(event) => updatePeriod(event.currentTarget.value)}
+                  >
+                    {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
                   {(!data.jobGuidance || !showUsefulLinks) && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
-                  <div data-skyline-protected="jobs-list-pagination"><TaskPagination currentPage={currentPage} totalPages={totalPages} onPage={setPage} /></div>
+                  <div data-skyline-protected="jobs-list-pagination"><ListPagination list={data} /></div>
                 </div>
               </div>
-              <JobsTable jobs={jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
+              <JobsTable jobs={data.jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
               </div> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
               {isLoading && !hasItems ? <LoadingState /> : null}
             </div>
@@ -281,13 +288,6 @@ function StatusActivity({ activity }: { activity: PresentedJob["activity"] }) {
       ))}
     </ActivityBarChart>
   );
-}
-
-function TaskPagination({ currentPage, totalPages, onPage }: { currentPage: number; totalPages: number; onPage: (page: number) => void }) {
-  return <div className="flex h-6 items-center overflow-hidden rounded border border-grid-bright bg-background-bright text-xs">
-    <button type="button" aria-label="Previous page" disabled={currentPage <= 1} onClick={() => onPage(currentPage - 1)} className="h-full border-r border-grid-bright px-2 text-text-dimmed disabled:opacity-30">‹</button>
-    <button type="button" aria-label="Next page" disabled={currentPage >= totalPages} onClick={() => onPage(currentPage + 1)} className="h-full px-2 text-text-dimmed disabled:opacity-30">›</button>
-  </div>;
 }
 
 function EmptyState({ filtered }: { filtered: boolean }) {

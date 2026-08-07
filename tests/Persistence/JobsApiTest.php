@@ -60,6 +60,40 @@ it('treats Job search wildcards as literal text', function (): void {
         ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Invoice_100%');
 });
 
+it('cursor-paginates Job types in stable name order and binds cursors to filters', function (): void {
+    foreach (range(0, 26) as $index) {
+        seedJobRun($index, sprintf('App\\Jobs\\Job%02d', $index), 'completed');
+    }
+
+    $first = $this->getJson('/skyline/api/jobs')->assertOk()
+        ->assertJsonCount(25, 'jobs')
+        ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Job00')
+        ->assertJsonPath('jobs.24.name', 'App\\Jobs\\Job24')
+        ->assertJsonPath('pagination.previous', null);
+
+    $next = $first->json('pagination.next');
+    expect($next)->toBeString()->not->toContain('Job24');
+
+    $second = $this->getJson('/skyline/api/jobs?'.http_build_query(['cursor' => $next]))->assertOk()
+        ->assertJsonCount(2, 'jobs')
+        ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Job25')
+        ->assertJsonPath('jobs.1.name', 'App\\Jobs\\Job26')
+        ->assertJsonPath('pagination.next', null);
+
+    $this->getJson('/skyline/api/jobs?'.http_build_query(['cursor' => $second->json('pagination.previous')]))
+        ->assertOk()
+        ->assertJsonCount(25, 'jobs')
+        ->assertJsonPath('jobs.0.name', 'App\\Jobs\\Job00');
+
+    $this->getJson('/skyline/api/jobs?'.http_build_query(['search' => 'Job2', 'cursor' => $next]))
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+
+    $this->getJson('/skyline/api/jobs?cursor=invalid')
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'invalid_query');
+});
+
 it('reports truthful per-hour Job activity for the source 24-hour column', function (): void {
     $now = Nanoseconds::now();
     seedJobRun(1, 'App\\Jobs\\Invoice', 'completed', triggeredAt: $now - (25 * 3_600_000_000_000));

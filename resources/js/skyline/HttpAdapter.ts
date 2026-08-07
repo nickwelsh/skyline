@@ -118,6 +118,7 @@ export class HttpAdapter implements SkylineDtoAdapter {
     const params = new URLSearchParams();
     if (query.search) params.set("search", query.search);
     if (query.period) params.set("period", query.period);
+    if (query.cursor) params.set("cursor", query.cursor);
     return params;
   }
 

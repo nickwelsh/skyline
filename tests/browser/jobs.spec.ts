@@ -17,6 +17,13 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(listActivity.locator('[fill="var(--color-run-completed-successfully)"]')).toBeVisible();
   await expect(listActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
 
+  const pagination = page.locator('[data-skyline-protected="jobs-list-pagination"]');
+  await pagination.locator("a").last().click();
+  await expect(page).toHaveURL(/cursor=next-jobs/);
+  await page.getByLabel("Time range").selectOption("24h");
+  await expect(page).toHaveURL(/period=24h/);
+  await expect(page).not.toHaveURL(/cursor=/);
+
   const search = page.getByPlaceholder("Search tasks…");
   await search.fill("invoice");
   await search.press("Enter");
@@ -219,6 +226,7 @@ function jobsPage(): JobsPageDto {
     generatedAt: "2026-08-05T12:00:00.000000000Z",
     capabilities: capabilities(),
     jobs: [jobSummary()],
+    pagination: { previous: null, next: "next-jobs" },
     filters: { search: null, period: "all" },
     options: { timeRanges },
     hasAnyJobs: true,

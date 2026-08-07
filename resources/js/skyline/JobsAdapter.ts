@@ -25,6 +25,7 @@ export type PresentedJob = {
 export type JobsRouteData = {
   generatedAt: string;
   jobs: PresentedJob[];
+  pagination: { next?: string; previous?: string };
   filters: JobsPageDto["filters"];
   timeRanges: TimeRangeOption[];
   hasAnyJobs: boolean;
@@ -47,7 +48,7 @@ export type JobDetailRouteData = {
 
 export function jobsQuery(request: Request): JobsQuery {
   const params = new URL(request.url).searchParams;
-  return compactQuery({ search: queryValue(params, "search"), period: period(params.get("period")) });
+  return compactQuery({ search: queryValue(params, "search"), period: period(params.get("period")), cursor: queryValue(params, "cursor") });
 }
 
 export function jobRunsQuery(request: Request): JobRunsQuery {
@@ -63,6 +64,10 @@ export function presentJobs(page: JobsPageDto): JobsRouteData {
   return {
     generatedAt: page.generatedAt,
     jobs: page.jobs.map(presentJob),
+    pagination: {
+      previous: page.pagination.previous ?? undefined,
+      next: page.pagination.next ?? undefined,
+    },
     filters: page.filters,
     timeRanges: page.options.timeRanges,
     hasAnyJobs: page.hasAnyJobs,
