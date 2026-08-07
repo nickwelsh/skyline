@@ -4,6 +4,7 @@ import matrix from "./matrix.json" with { type: "json" };
 import { capturePartitionedAxe, normalizedPartitionLedger, pairedPresenterAxeDifferences } from "./support/axe";
 import { closeContextAfterPages } from "./support/browser-lifecycle";
 import { applyLiveSystemChange, prepareCapture, settleCapture } from "./support/capture";
+import { createDiscoveryStep } from "./support/discovery";
 import { discoverPresenterExtensionObservation, settleStableElementPair, type PresenterExtensionDefinition, type PresenterObservationStep } from "./support/difference-regions";
 import { expandedDialogCounts, expectedExpandedDialogTranscript } from "./support/dialog-lifecycle";
 import { isNw223State, nw223InteractionStates, nw223Presentation, nw223States } from "./support/nw223";
@@ -221,21 +222,7 @@ async function proveCaptureInteraction(browser: Browser, capture: string, scenar
 }
 
 function observationStep(capture: string): PresenterObservationStep {
-  return async <T>(label: string, action: () => Promise<T>) => {
-    const started = Date.now();
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    try {
-      return await Promise.race([
-        action(),
-        new Promise<never>((_resolve, reject) => {
-          timeout = setTimeout(() => reject(new Error(`NW223 discovery phase ${label} exceeded 2000ms for ${capture}.`)), 2_000);
-        }),
-      ]);
-    } finally {
-      if (timeout) clearTimeout(timeout);
-      process.stdout.write(`\nNW223_DISCOVERY_STEP=${JSON.stringify({ capture, label, elapsedMs: Date.now() - started })}\n`);
-    }
-  };
+  return createDiscoveryStep(capture, { marker: "NW223" });
 }
 
 async function exerciseCapture(page: Page, region: Locator, named: boolean, scenario: FidelityScenario) {

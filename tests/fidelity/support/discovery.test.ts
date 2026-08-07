@@ -29,4 +29,23 @@ describe("bounded discovery steps", () => {
       status: "failed",
     });
   });
+
+  test("supports the NW223 marker while preserving bounded failure", async () => {
+    const write = vi.fn();
+    const step = createDiscoveryStep("runs-sql-success@1440x960-classic", {
+      marker: "NW223",
+      timeoutMs: 5,
+      write,
+    });
+
+    await expect(step("goto:trigger", () => new Promise<never>(() => {}))).rejects.toThrow(
+      "NW223 discovery phase goto:trigger exceeded 5ms for runs-sql-success@1440x960-classic.",
+    );
+
+    expect(JSON.parse(write.mock.calls[0][0].replace(/^\nNW223_DISCOVERY_STEP=/, "").trim())).toMatchObject({
+      capture: "runs-sql-success@1440x960-classic",
+      label: "goto:trigger",
+      status: "failed",
+    });
+  });
 });

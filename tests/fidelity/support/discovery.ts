@@ -2,8 +2,9 @@ export type DiscoveryStep = <T>(label: string, action: () => Promise<T>) => Prom
 
 export function createDiscoveryStep(
   capture: string,
-  options: { timeoutMs?: number; write?: (line: string) => unknown } = {},
+  options: { marker?: "NW223" | "NW224"; timeoutMs?: number; write?: (line: string) => unknown } = {},
 ): DiscoveryStep {
+  const marker = options.marker ?? "NW224";
   const timeoutMs = options.timeoutMs ?? 10_000;
   const write = options.write ?? ((line: string) => process.stdout.write(line));
 
@@ -16,7 +17,7 @@ export function createDiscoveryStep(
         action(),
         new Promise<never>((_resolve, reject) => {
           timeout = setTimeout(
-            () => reject(new Error(`NW224 discovery phase ${label} exceeded ${timeoutMs}ms for ${capture}.`)),
+            () => reject(new Error(`${marker} discovery phase ${label} exceeded ${timeoutMs}ms for ${capture}.`)),
             timeoutMs,
           );
         }),
@@ -26,7 +27,7 @@ export function createDiscoveryStep(
       throw error;
     } finally {
       if (timeout) clearTimeout(timeout);
-      write(`\nNW224_DISCOVERY_STEP=${JSON.stringify({ capture, label, status, elapsedMs: Date.now() - started })}\n`);
+      write(`\n${marker}_DISCOVERY_STEP=${JSON.stringify({ capture, label, status, elapsedMs: Date.now() - started })}\n`);
     }
   };
 }
