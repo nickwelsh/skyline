@@ -16,7 +16,7 @@
       "start": "shell-expanded",
       "steps": [
         { "action": "click", "target": { "role": "button", "name": "Help & Feedback" } },
-        { "action": "click", "target": { "role": "button", "name": "Shortcuts" } },
+        { "action": "click", "target": { "role": "button", "name": "Shortcuts ⇧ ?" } },
         { "action": "press", "key": "Escape" }
       ]
     },
