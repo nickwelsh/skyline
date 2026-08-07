@@ -14747,6 +14747,499 @@
           "anchorComputedStyleSha256": "451ee32f27713407630fe4fbde37b07b5c1ec142082f854d07c4e7089f7b5f38"
         }
       }
+    },
+    {
+      "id": "php-exception-evidence",
+      "category": "framework-extension",
+      "decision": "NW-224",
+      "acceptance": "Detail adds representative application/vendor frames, occurrence activity, and cursor-paginated failed Attempts.",
+      "captures": [
+        "error-found@1024x768-classic",
+        "error-found@1440x960-classic",
+        "error-found@1440x960-dark",
+        "error-found@1440x960-light",
+        "error-found@1440x960-system-dark",
+        "error-found@1440x960-system-light",
+        "error-found@390x844-classic",
+        "errors-affected-job-types@1440x960-classic",
+        "errors-affected-job-types@1440x960-dark",
+        "errors-affected-job-types@1440x960-light",
+        "errors-application-vendor-frames@1440x960-classic",
+        "errors-application-vendor-frames@1440x960-dark",
+        "errors-application-vendor-frames@1440x960-light",
+        "errors-linked-runs@1440x960-classic",
+        "errors-linked-runs@1440x960-dark",
+        "errors-linked-runs@1440x960-light",
+        "errors-long-exception@1440x960-classic",
+        "errors-long-exception@1440x960-dark",
+        "errors-long-exception@1440x960-light",
+        "errors-many-occurrences@1440x960-classic",
+        "errors-many-occurrences@1440x960-dark",
+        "errors-many-occurrences@1440x960-light",
+        "errors-single-occurrence@1440x960-classic",
+        "errors-single-occurrence@1440x960-dark",
+        "errors-single-occurrence@1440x960-light",
+        "errors-stack-expansion@1440x960-classic",
+        "errors-stack-expansion@1440x960-dark",
+        "errors-stack-expansion@1440x960-light"
+      ],
+      "skylineSelector": "[data-skyline-extension='error-exception-evidence']",
+      "triggerAnchorSelector": ".border-b.border-grid-dimmed.px-3.py-2 > h2",
+      "skylineAnchorSelector": ".border-b.border-grid-dimmed.px-3.py-2 > h2",
+      "accessibleRole": "region",
+      "accessibleName": "Exception",
+      "anchorAccessibleRole": "heading",
+      "anchorAccessibleName": "Details",
+      "measurements": {
+        "error-found@1024x768-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 656,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "error-found@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "error-found@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "error-found@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "error-found@1440x960-system-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "error-found@1440x960-system-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "error-found@390x844-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 656,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-affected-job-types@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-affected-job-types@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-affected-job-types@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-application-vendor-frames@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-application-vendor-frames@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-application-vendor-frames@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-linked-runs@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-linked-runs@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-linked-runs@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-long-exception@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-long-exception@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-long-exception@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-many-occurrences@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-many-occurrences@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-many-occurrences@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-single-occurrence@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "3c525432a65bcef940c81c8e6beca259aac472fcbcc899515a280380171b4b8a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-single-occurrence@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "71c172087748edf88755fedd18c1e383fffb00d37830e162b8a9ff468cd70a22",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-single-occurrence@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 192
+          },
+          "computedStyleSha256": "2f56c0d507a2c2e0d7cd78f921b3754fe4366be90a16ce04c720a09be1e8a180",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        },
+        "errors-stack-expansion@1440x960-classic": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 375
+          },
+          "computedStyleSha256": "cb8c2d8f927a3292870bea95a82893bacc6baeba8aefc43fdb2bb1801bc903e9",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "9f6c65f2071a3fceb5b9efbed8afa5df96d3876d326573963927ed646fb28fc6"
+        },
+        "errors-stack-expansion@1440x960-dark": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 375
+          },
+          "computedStyleSha256": "aa98dbfe8b1c2a100f03dcf35b6f12f4d94b17bdd396c355bbdfd1ee3c93ff5a",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "a7b8edf6f81914dc9a2598f1f4eb6cfecd0efb606aa587b673adf5dfab0feb71"
+        },
+        "errors-stack-expansion@1440x960-light": {
+          "relativeRect": {
+            "x": 0,
+            "y": 411,
+            "width": 356,
+            "height": 375
+          },
+          "computedStyleSha256": "667cae71050d9a11d5edfe29adbb9505003d6530e400caca07294eba522c9d2f",
+          "anchorRect": {
+            "x": 1072,
+            "y": 48,
+            "width": 356,
+            "height": 24
+          },
+          "anchorComputedStyleSha256": "61a8f3f8197e457385257296aa8552df2d88dbfb6e11f8b36726dae0a237e60f"
+        }
+      }
     }
   ]
 }
