@@ -80,6 +80,16 @@ it('filters Runs and rejects invalid query state explicitly', function (): void 
         ->assertJsonPath('error.code', 'invalid_query');
 });
 
+it('treats SQL wildcard characters as literal Run search text', function (): void {
+    seedReadRun(1, 'completed', true, 'App\\Jobs\\Invoice_100%');
+    seedReadRun(2, 'completed', true, 'App\\Jobs\\InvoiceA100B');
+
+    $this->getJson('/skyline/api/runs?'.http_build_query(['search' => '_100%']))
+        ->assertOk()
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.name', 'App\\Jobs\\Invoice_100%');
+});
+
 it('exposes the versioned Runs contract and filters by Trace and root identity', function (): void {
     seedReadRun(1, 'completed', true, 'App\\Jobs\\Parent');
     $traceId = sprintf('%032x', 2);

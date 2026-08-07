@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use NickWelsh\Skyline\Read\Nanoseconds;
 use Tests\Fixtures\Jobs\SqlJob;
 use Tests\Fixtures\Jobs\SummaryJob;
 
@@ -45,4 +46,41 @@ it('backfills normalized Telemetry events when an existing install runs the new 
         ->and($events->where('variant', 'log')->pluck('message')->implode(' '))->toContain('[REDACTED]')
         ->not->toContain('private-token')
         ->not->toContain('private-password');
+});
+
+it('searches Runs with literal SQL wildcards on the configured SQL engine', function (): void {
+    $now = Nanoseconds::now();
+
+    foreach (['App\\Jobs\\Invoice_100%', 'App\\Jobs\\InvoiceA100B'] as $index => $jobName) {
+        $runId = 'compatibility-search-run-'.$index;
+        $traceId = sprintf('%032x', $index + 1);
+        DB::table('skyline_traces')->insert([
+            'trace_id' => $traceId,
+            'root_run_id' => $runId,
+            'revision' => 1,
+            'last_activity_at' => $now,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('skyline_runs')->insert([
+            'run_id' => $runId,
+            'trace_id' => $traceId,
+            'job_name' => $jobName,
+            'connection' => 'redis',
+            'queue' => 'default',
+            'status' => 'completed',
+            'triggered_at' => $now - $index,
+            'queued_at' => $now - $index,
+            'started_at' => $now - $index,
+            'finished_at' => $now - $index,
+            'confirmed_at' => $now,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    $this->getJson('/skyline/api/runs?'.http_build_query(['search' => '_100%']))
+        ->assertOk()
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.name', 'App\\Jobs\\Invoice_100%');
 });

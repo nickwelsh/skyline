@@ -79,11 +79,10 @@ final readonly class RunsFilters
             ->when($this->triggeredFrom !== null, fn (Builder $query) => $query->where('skyline_runs.triggered_at', '>=', $this->triggeredFrom))
             ->when($this->triggeredTo !== null, fn (Builder $query) => $query->where('skyline_runs.triggered_at', '<=', $this->triggeredTo))
             ->when($this->search !== null, function (Builder $query): void {
-                $search = addcslashes($this->search, '%_');
-                $query->where(function (Builder $query) use ($search): void {
-                    $query->whereRaw('LOWER(skyline_runs.job_name) LIKE ?', ['%'.strtolower($search).'%'])
-                        ->orWhere('skyline_runs.run_id', $this->search)
-                        ->orWhere('skyline_runs.run_id', 'like', $search.'%');
+                $query->where(function (Builder $query): void {
+                    PortableLike::whereContains($query, 'LOWER(skyline_runs.job_name)', strtolower($this->search))
+                        ->orWhere('skyline_runs.run_id', $this->search);
+                    PortableLike::orWherePrefix($query, 'skyline_runs.run_id', $this->search);
                 });
             });
     }
