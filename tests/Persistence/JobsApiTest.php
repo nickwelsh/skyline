@@ -110,6 +110,31 @@ it('reports truthful per-hour Job activity for the source 24-hour column', funct
         ->and(array_column($activity, 'timestamp'))->each->toMatch('/T\\d{2}:00:00Z$/');
 });
 
+it('projects high-cardinality Job summaries with aggregate and windowed queries', function (): void {
+    foreach (range(0, 124) as $index) {
+        seedJobRun($index, 'App\\Jobs\\HighVolume', $index % 2 === 0 ? 'completed' : 'failed');
+    }
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = strtolower($query->sql);
+    });
+
+    $job = $this->getJson('/skyline/api/jobs')->assertOk()
+        ->assertJsonPath('jobs.0.runCount', 125)
+        ->assertJsonPath('jobs.0.statusCounts.completed', 63)
+        ->assertJsonPath('jobs.0.statusCounts.failed', 62)
+        ->assertJsonPath('jobs.0.latestRun.id', 'job-run-00')
+        ->json('jobs.0');
+
+    $this->getJson('/skyline/api/jobs/'.$job['id'])->assertOk()
+        ->assertJsonPath('job.runCount', 125)
+        ->assertJsonCount(25, 'runs');
+
+    expect(collect($queries)->contains(fn (string $sql): bool => str_contains($sql, 'row_number() over')))->toBeTrue()
+        ->and(collect($queries)->contains(fn (string $sql): bool => str_contains($sql, 'group by') && str_contains($sql, 'job_name')))->toBeTrue();
+});
+
 it('shows Job activity Queue targets and cursor-paginated filtered Runs', function (): void {
     for ($index = 0; $index < 27; $index++) {
         seedJobRun(

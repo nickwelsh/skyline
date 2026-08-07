@@ -27,21 +27,17 @@ final readonly class JobsQuery
         $observedAt = Nanoseconds::now();
         $filters = JobsFilters::fromRequest($request, $observedAt);
         [$jobNames, $previous, $next] = $this->jobNames($filters, $request->query('cursor'));
-        $rows = $filters->apply($this->baseQuery())
-            ->whereIn('skyline_runs.job_name', $jobNames)
-            ->orderBy('skyline_runs.job_name')
-            ->orderByDesc('skyline_runs.triggered_at')
-            ->orderByDesc('skyline_runs.run_id')
-            ->get();
-        $recentActivity = $this->baseQuery()
-            ->whereIn('skyline_runs.job_name', $jobNames)
-            ->where('skyline_runs.triggered_at', '>=', $observedAt - 86_400_000_000_000)
-            ->get()
-            ->groupBy('job_name');
+        $summaries = $this->summaries(
+            $filters->apply($this->baseQuery())->whereIn('skyline_runs.job_name', $jobNames),
+            $this->baseQuery()
+                ->whereIn('skyline_runs.job_name', $jobNames)
+                ->where('skyline_runs.triggered_at', '>=', $observedAt - 86_400_000_000_000),
+            $jobNames,
+        );
 
         return [
             ...$this->metadata->at($observedAt),
-            'jobs' => $rows->groupBy('job_name')->map(fn (Collection $runs, string $jobName): array => $this->summary($runs, $recentActivity->get($jobName, collect())))->values()->all(),
+            'jobs' => $summaries,
             'pagination' => ['previous' => $previous, 'next' => $next],
             'filters' => $filters->toArray(),
             'options' => ['timeRanges' => JobsFilters::options()],
@@ -120,11 +116,12 @@ final readonly class JobsQuery
         $filters = JobsFilters::fromRequest($request, $observedAt);
         $runRequest = $this->runRequest($request, $jobName, $filters);
         $page = $this->runs->page($runRequest);
-        $allRows = $this->baseQuery()->where('skyline_runs.job_name', $jobName)
-            ->orderByDesc('skyline_runs.triggered_at')
-            ->orderByDesc('skyline_runs.run_id')
-            ->get();
-        $recentActivity = $allRows->filter(fn (object $run): bool => $run->triggered_at >= $observedAt - 86_400_000_000_000);
+        $jobQuery = $this->baseQuery()->where('skyline_runs.job_name', $jobName);
+        $job = $this->summaries(
+            clone $jobQuery,
+            (clone $jobQuery)->where('skyline_runs.triggered_at', '>=', $observedAt - 86_400_000_000_000),
+            [$jobName],
+        )[0];
         $activityRows = $filters->apply($this->baseQuery()->where('skyline_runs.job_name', $jobName));
         $statuses = $page['filters']['status'];
         if ($statuses !== []) {
@@ -133,9 +130,9 @@ final readonly class JobsQuery
 
         return [
             ...$this->metadata->at($observedAt),
-            'job' => $this->summary($allRows, $recentActivity),
-            'queueTargets' => $this->queueTargets($allRows),
-            'activity' => $this->activity($activityRows->get()),
+            'job' => $job,
+            'queueTargets' => $this->queueTargets(clone $jobQuery),
+            'activity' => $this->activity($activityRows, 86_400_000_000_000)->values()->all(),
             'runs' => $page['runs'],
             'pagination' => $page['pagination'],
             'tableState' => $page['tableState'],
@@ -147,7 +144,7 @@ final readonly class JobsQuery
                 'statuses' => self::STATUSES,
                 'timeRanges' => JobsFilters::options(),
             ],
-            'hasAnyRuns' => $allRows->isNotEmpty(),
+            'hasAnyRuns' => (clone $jobQuery)->exists(),
         ];
     }
 
@@ -158,14 +155,13 @@ final readonly class JobsQuery
 
     private function jobName(string $jobId): string
     {
-        $names = $this->baseQuery()->distinct()->pluck('skyline_runs.job_name');
-        $name = $names->first(fn (string $name): bool => hash_equals(ObservedIds::job($name), $jobId));
-
-        if (! is_string($name)) {
-            throw new RecordNotFound('The Job type was not found.');
+        foreach ($this->baseQuery()->select('skyline_runs.job_name')->distinct()->cursor() as $candidate) {
+            if (hash_equals(ObservedIds::job($candidate->job_name), $jobId)) {
+                return $candidate->job_name;
+            }
         }
 
-        return $name;
+        throw new RecordNotFound('The Job type was not found.');
     }
 
     private function runRequest(Request $request, string $jobName, JobsFilters $filters): Request
@@ -180,22 +176,41 @@ final readonly class JobsQuery
         return Request::create('/', 'GET', $query);
     }
 
-    /** @param Collection<int, object> $rows @param Collection<int, object> $recentActivity @return array<string, mixed> */
-    private function summary(Collection $rows, Collection $recentActivity): array
+    /** @param list<string> $jobNames @return list<array<string, mixed>> */
+    private function summaries(Builder $summaryQuery, Builder $activityQuery, array $jobNames): array
     {
-        $latest = $rows->sortByDesc(fn (object $run): string => sprintf('%020d:%s', $run->triggered_at, $run->run_id))->first();
+        if ($jobNames === []) {
+            return [];
+        }
+        $latestQuery = clone $summaryQuery;
+        $aggregates = $this->aggregate($summaryQuery)->keyBy('job_name');
+        $latestRuns = $this->latestRuns($latestQuery)->keyBy('job_name');
+        $activities = $this->activity($activityQuery, 3_600_000_000_000, true)->groupBy('jobName');
+
+        return collect($jobNames)->map(function (string $jobName) use ($aggregates, $latestRuns, $activities): array {
+            return $this->summary(
+                $aggregates->get($jobName),
+                $latestRuns->get($jobName),
+                $activities->get($jobName, collect())->map(fn (array $point): array => collect($point)->except('jobName')->all())->all(),
+            );
+        })->all();
+    }
+
+    /** @param list<array<string, mixed>> $activity @return array<string, mixed> */
+    private function summary(object $aggregate, object $latest, array $activity): array
+    {
         $basePath = '/'.trim((string) config('skyline.path', 'skyline'), '/');
-        $id = ObservedIds::job($latest->job_name);
+        $id = ObservedIds::job($aggregate->job_name);
 
         return [
             'id' => $id,
-            'name' => $latest->job_name,
+            'name' => $aggregate->job_name,
             'href' => "{$basePath}/jobs/{$id}",
-            'firstObservedAt' => Nanoseconds::toRfc3339((int) $rows->min('triggered_at')),
-            'lastObservedAt' => Nanoseconds::toRfc3339((int) $rows->max('triggered_at')),
-            'runCount' => $rows->count(),
-            'statusCounts' => $this->statusCounts($rows),
-            'activity' => $this->activity($recentActivity, 'Y-m-d\\TH:00:00\\Z'),
+            'firstObservedAt' => Nanoseconds::toRfc3339((int) $aggregate->first_observed_at),
+            'lastObservedAt' => Nanoseconds::toRfc3339((int) $aggregate->last_observed_at),
+            'runCount' => (int) $aggregate->run_count,
+            'statusCounts' => $this->statusCounts($aggregate),
+            'activity' => $activity,
             'latestRun' => [
                 'id' => $latest->run_id,
                 'status' => $latest->status,
@@ -205,51 +220,98 @@ final readonly class JobsQuery
         ];
     }
 
-    /** @param Collection<int, object> $rows @return list<array<string, mixed>> */
-    private function queueTargets(Collection $rows): array
+    /** @return Collection<int, object> */
+    private function aggregate(Builder $query): Collection
+    {
+        $query->select('skyline_runs.job_name')
+            ->selectRaw('MIN(skyline_runs.triggered_at) AS first_observed_at')
+            ->selectRaw('MAX(skyline_runs.triggered_at) AS last_observed_at')
+            ->selectRaw('COUNT(*) AS run_count')
+            ->groupBy('skyline_runs.job_name')
+            ->orderBy('skyline_runs.job_name');
+        $this->selectStatusCounts($query);
+
+        return $query->get();
+    }
+
+    /** @return Collection<int, object> */
+    private function latestRuns(Builder $query): Collection
+    {
+        $ranked = $query->select([
+            'skyline_runs.job_name',
+            'skyline_runs.run_id',
+            'skyline_runs.status',
+            'skyline_runs.triggered_at',
+        ])->selectRaw('ROW_NUMBER() OVER (PARTITION BY skyline_runs.job_name ORDER BY skyline_runs.triggered_at DESC, skyline_runs.run_id DESC) AS job_rank');
+
+        return $this->connection()->query()
+            ->fromSub($ranked, 'ranked_jobs')
+            ->where('job_rank', 1)
+            ->get();
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function queueTargets(Builder $query): array
     {
         $basePath = '/'.trim((string) config('skyline.path', 'skyline'), '/');
 
-        return $rows->filter(fn (object $run): bool => is_string($run->connection)
-            && $run->connection !== 'sync'
-            && $run->connection !== ''
-            && is_string($run->queue)
-            && $run->queue !== '')
-            ->groupBy(fn (object $run): string => $run->connection."\0".$run->queue)
-            ->map(function (Collection $target) use ($basePath): array {
-                $run = $target->first();
-                $id = ObservedIds::queue($run->connection, $run->queue);
+        return QueueTargetEligibility::apply($query)
+            ->select(['skyline_runs.connection', 'skyline_runs.queue'])
+            ->selectRaw('COUNT(*) AS run_count')
+            ->groupBy(['skyline_runs.connection', 'skyline_runs.queue'])
+            ->orderBy('skyline_runs.connection')
+            ->orderBy('skyline_runs.queue')
+            ->get()
+            ->map(function (object $target) use ($basePath): array {
+                $id = ObservedIds::queue($target->connection, $target->queue);
 
                 return [
                     'id' => $id,
-                    'connection' => $run->connection,
-                    'queue' => $run->queue,
-                    'runCount' => $target->count(),
+                    'connection' => $target->connection,
+                    'queue' => $target->queue,
+                    'runCount' => (int) $target->run_count,
                     'href' => "{$basePath}/queues/{$id}",
                 ];
-            })->sortBy(fn (array $target): string => $target['connection']."\0".$target['queue'])->values()->all();
+            })->all();
     }
 
-    /** @param Collection<int, object> $rows @return list<array<string, mixed>> */
-    private function activity(Collection $rows, string $bucket = 'Y-m-d\\T00:00:00\\Z'): array
+    /** @return Collection<int, array<string, mixed>> */
+    private function activity(Builder $query, int $bucketNanoseconds, bool $includeJob = false): Collection
     {
-        return $rows->groupBy(fn (object $run): string => gmdate($bucket, intdiv((int) $run->triggered_at, 1_000_000_000)))
-            ->map(function (Collection $bucket, string $timestamp): array {
-                return ['timestamp' => $timestamp, 'total' => $bucket->count(), 'statusCounts' => $this->statusCounts($bucket)];
-            })->sortKeys()->values()->all();
-    }
-
-    /** @param Collection<int, object> $rows @return array<string, int> */
-    private function statusCounts(Collection $rows): array
-    {
-        $counts = array_fill_keys(self::STATUSES, 0);
-        foreach ($rows as $run) {
-            if (array_key_exists($run->status, $counts)) {
-                $counts[$run->status]++;
-            }
+        $bucket = "CAST(skyline_runs.triggered_at / {$bucketNanoseconds} AS BIGINT)";
+        if ($includeJob) {
+            $query->addSelect('skyline_runs.job_name')->groupBy('skyline_runs.job_name');
         }
+        $query->selectRaw("{$bucket} AS activity_bucket")
+            ->selectRaw('COUNT(*) AS run_count')
+            ->groupByRaw($bucket)
+            ->orderBy('activity_bucket');
+        $this->selectStatusCounts($query);
 
-        return $counts;
+        return $query->get()->map(fn (object $row): array => [
+            ...$includeJob ? ['jobName' => $row->job_name] : [],
+            'timestamp' => gmdate(
+                $bucketNanoseconds === 3_600_000_000_000 ? 'Y-m-d\\TH:00:00\\Z' : 'Y-m-d\\T00:00:00\\Z',
+                (int) $row->activity_bucket * intdiv($bucketNanoseconds, 1_000_000_000),
+            ),
+            'total' => (int) $row->run_count,
+            'statusCounts' => $this->statusCounts($row),
+        ]);
+    }
+
+    private function selectStatusCounts(Builder $query): void
+    {
+        foreach (self::STATUSES as $status) {
+            $query->selectRaw("SUM(CASE WHEN skyline_runs.status = ? THEN 1 ELSE 0 END) AS {$status}_count", [$status]);
+        }
+    }
+
+    /** @return array<string, int> */
+    private function statusCounts(object $row): array
+    {
+        return collect(self::STATUSES)->mapWithKeys(fn (string $status): array => [
+            $status => (int) $row->{"{$status}_count"},
+        ])->all();
     }
 
     private function connection(): Connection

@@ -103,13 +103,9 @@ final readonly class QueueTargetsQuery
 
     private function baseQuery(): Builder
     {
-        return $this->connection()->table('skyline_runs')
-            ->whereNotNull('skyline_runs.confirmed_at')
-            ->whereNotNull('skyline_runs.connection')
-            ->whereNotNull('skyline_runs.queue')
-            ->where('skyline_runs.connection', '<>', 'sync')
-            ->where('skyline_runs.connection', '<>', '')
-            ->where('skyline_runs.queue', '<>', '');
+        return QueueTargetEligibility::apply(
+            $this->connection()->table('skyline_runs')->whereNotNull('skyline_runs.confirmed_at'),
+        );
     }
 
     private function applyTime(Builder $query, QueueTargetFilters $filters): Builder
