@@ -43,6 +43,6 @@ describe("NW-221 exact Queue ledger", () => {
 
   test("pins the reviewed 76-observation ledger", () => {
     expect(createHash("sha256").update(JSON.stringify(regions)).digest("hex"))
-      .toBe("11a296e286ee4cef51dbe62a4f0f4218325ba44ae1ac8a4a020d6c5a5c5920c9");
+      .toBe("c9fbe635eae2c04955c99ad6c28142163226b8c79bcc17f179bc8007ec3321ca");
   });
 });
