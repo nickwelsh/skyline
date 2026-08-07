@@ -49,11 +49,41 @@ describe("Environment route error boundary", () => {
     const errorElement = environment && "errorElement" in environment ? environment.errorElement : undefined;
     expect(errorElement).toEqual(expect.objectContaining({ type: EnvironmentErrorBoundary }));
     expect(environment?.children?.map((route) => route.path ?? "index")).toEqual([
-      "index", "jobs", "jobs/:jobId", "runs", "runs/:runId", "queues", "queues/:queueId", "errors", "errors/:errorId", "logs",
+      "index", "jobs", "jobs/:jobId", "runs", "runs/:runId", "queues", "queues/:queueId", "errors", "errors/:errorId", "logs", "*",
     ]);
     expect(environment?.children?.every((route) => !("errorElement" in route) || route.errorElement === undefined)).toBe(true);
 
     router.dispose();
+  });
+
+  it("presents unknown environment paths through the shared boundary", async () => {
+    window.history.replaceState({}, "", "/not-a-route");
+    const preferences = createUiPreferencesAdapter({ basePath: "/" });
+    const router = createSkylineRouter({
+      schemaVersion: 1,
+      basePath: "/",
+      applicationName: "Skyline",
+      environmentLabel: "local",
+      capabilities: fixtureCapabilities,
+    }, new FixtureAdapter(), preferences);
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    await act(async () => root.render(
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider>
+          <UiPreferencesProvider adapter={preferences}>
+            <RouterProvider router={router} />
+          </UiPreferencesProvider>
+        </ShortcutsProvider>
+      </OperatingSystemContextProvider>,
+    ));
+
+    await vi.waitFor(() => expect(container.querySelector(".fixed.inset-0")?.textContent).toContain("404: Page not found"));
+
+    router.dispose();
+    await act(async () => root.unmount());
   });
 
   it.each([

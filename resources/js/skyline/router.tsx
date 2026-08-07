@@ -113,6 +113,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
             { path: "errors", loader: errorsLoader, element: <ErrorsRoute /> },
             { path: "errors/:errorId", loader: errorLoader, element: <ErrorDetailRoute /> },
             { path: "logs", loader: logsLoader, element: <LogsRoute /> },
+            { path: "*", loader: () => { throw new Response(undefined, { status: 404, statusText: "Not Found" }); } },
           ],
         },
       ],
