@@ -13,8 +13,9 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { LocaleContextProvider } from "~/components/primitives/LocaleProvider";
 import { OperatingSystemContextProvider } from "~/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "~/components/primitives/ShortcutsProvider";
-import { AppContainer } from "~/components/layout/AppLayout";
+import { AppContainer, PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { RouteErrorDisplay } from "~/components/ErrorDisplay";
+import { Spinner } from "~/components/primitives/Spinner";
 import { useSystemThemeSync } from "~/hooks/useSystemThemeSync";
 import type { ThemePreference } from "~/utils/themePreference";
 import ProjectLayout from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam/route";
@@ -57,6 +58,8 @@ const ownedDetailSurfaces: Record<string, keyof typeof elements> = {
   "errors-long-exception": "error", "logs-selected-detail": "log", "queues-idle": "queue", "queues-busy": "queue",
   "queues-activity-wait-history": "queue", "queues-paginated-runs": "queue",
 };
+const surfaceLayoutRouteId = "reference-surface-layout";
+const surfacePageRouteId = "reference-surface-page";
 
 const routes = createBrowserRouter([
   {
@@ -79,19 +82,26 @@ const routes = createBrowserRouter([
       loader: () => referencePort().context.organization,
       element: createElement(ProjectLayout),
       children: [{
+        id: surfaceLayoutRouteId,
         path: ":captureId",
         loader: ({ request }: { request: Request }) => loadCapture(request, "layout"),
         element: createElement(ReferenceSurfaceLayout),
         errorElement: createElement(ReferenceEnvironmentErrorBoundary),
         children: [{
+          id: surfacePageRouteId,
           index: true,
           loader: ({ request }: { request: Request }) => loadCapture(request, "page"),
+          hydrateFallbackElement: createElement(ReferenceInitialLoadingPage),
           element: createElement(ReferenceSurfacePage),
         }],
       }],
     }],
   },
-], { basename: "/" });
+], {
+  basename: "/",
+  future: { v7_partialHydration: true },
+  hydrationData: initialHydrationData(),
+});
 window.__oracleRouter = routes;
 document.documentElement.dataset.oracleBooted = "true";
 document.documentElement.dataset.applicationIdentity = "trigger-reference";
@@ -103,7 +113,7 @@ ReactDOM.createRoot(document.getElementById("reference")!).render(
     createElement(LocaleContextProvider, { locales: ["en-US"] },
       createElement(OperatingSystemContextProvider, { platform: "linux" },
         createElement(ShortcutsProvider, null,
-          createElement(RouterProvider, { router: routes, fallbackElement: createElement(ReferenceInitialLoadingState) }),
+          createElement(RouterProvider, { router: routes }),
         ),
       ),
     ),
@@ -156,56 +166,22 @@ function ReferenceRoot() {
   return createElement(AppContainer, { className: "min-w-[1024px]" }, createElement(Outlet));
 }
 
-function ReferenceInitialLoadingState() {
-  const capture = captureFromPath(location.pathname);
-  const rootContext = referencePort().context.root;
-  const themePreference = (rootContext.themePreference ?? "dark") as ThemePreference;
-  const route = referenceLoadingRoute(capture);
-  useSystemThemeSync(themePreference);
+function ReferenceInitialLoadingPage() {
   useEffect(() => {
-    document.documentElement.dataset.themePreference = themePreference;
-    document.documentElement.style.setProperty("--theme-contrast", String(Number(rootContext.themeContrast ?? 50) / 100));
-    document.documentElement.dataset.oracleFixtureVersion = fixtureVersion;
-    window.__oracleCanonicalUrl = referencePort().canonicalUrl?.(capture.id) ?? `/${capture.id}`;
     let cancelled = false;
     void document.fonts.ready.then(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))).then(() => {
       if (!cancelled) document.documentElement.dataset.oracleReady = "true";
     });
     return () => { cancelled = true; };
-  }, [capture.id, rootContext.themeContrast, themePreference]);
+  }, []);
 
-  return createElement(AppContainer, { className: "min-w-[1024px] bg-background-dimmed text-text-dimmed" },
-    createElement("div", { className: "grid h-full min-w-0 grid-cols-[15rem_1fr] overflow-hidden" },
-      createElement("aside", { className: "border-r border-grid-bright bg-background-bright" },
-        createElement("div", { className: "flex h-10 items-center border-b border-grid-bright px-3 text-sm font-medium text-text-bright" }, "Fixture Laravel"),
-      ),
-      createElement("main", { className: "grid min-w-0 grid-rows-[2.5rem_1fr] overflow-hidden" },
-        createElement("div", { className: "flex items-center border-b border-grid-bright bg-background-bright px-3" },
-          createElement("h2", { className: "text-sm font-medium text-text-bright" }, route.title),
-        ),
-        createElement("div", { "aria-label": `Loading ${route.label}`, className: "grid place-items-center" },
-          createElement("div", { className: "size-5 animate-spin rounded-full border-2 border-blue-500/40 border-t-blue-500" }),
-        ),
+  return createElement(PageContainer, null,
+    createElement(PageBody, { scrollable: false, className: "relative p-0" },
+      createElement("div", { "aria-label": "Loading", className: "absolute inset-0 grid place-items-center bg-background-dimmed" },
+        createElement(Spinner),
       ),
     ),
   );
-}
-
-function referenceLoadingRoute(capture: ReturnType<typeof captureFromPath>) {
-  const labels: Record<string, { label: string; title: string }> = {
-    jobs: { label: "Jobs", title: "Tasks" },
-    job: { label: "Job", title: "Task" },
-    runs: { label: "Runs", title: "Runs" },
-    run: { label: "Run", title: "Run" },
-    errors: { label: "Errors", title: "Errors" },
-    error: { label: "Error group", title: "Error" },
-    logs: { label: "Logs", title: "Logs" },
-    log: { label: "Telemetry event", title: "Logs" },
-    queues: { label: "Queues", title: "Queues" },
-    queue: { label: "Queue target", title: "Queue" },
-    shell: { label: "Runs", title: "Runs" },
-  };
-  return labels[capture.surface] ?? labels.runs;
 }
 
 function ReferenceSurfaceLayout() {
@@ -231,6 +207,22 @@ async function loadCapture(request: Request, route: "layout" | "page") {
   const capture = captureFromPath(new URL(request.url).pathname);
   const phase = new URL(request.url).searchParams.has("__oracle_refresh") ? "refresh" : "initial";
   return referencePort().load({ fixtureVersion, captureId: capture.id, surface: capture.surface, state: capture.state, phase, route, request });
+}
+
+function initialHydrationData() {
+  const port = referencePort();
+  const request = new Request(location.href);
+  const capture = captureFromPath(location.pathname);
+  const layout = port.load({ fixtureVersion, captureId: capture.id, surface: capture.surface, state: capture.state, phase: "initial", route: "layout", request });
+  if (layout instanceof Promise) throw new Error("Pinned reference layout fixture must load synchronously.");
+
+  return {
+    loaderData: {
+      root: port.context.root,
+      "routes/_app.orgs.$organizationSlug": port.context.organization,
+      [surfaceLayoutRouteId]: layout,
+    },
+  };
 }
 
 function captureFromPath(pathname: string) {
