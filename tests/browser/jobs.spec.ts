@@ -45,8 +45,9 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);
   await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("fill", /run-completed-successfully/);
   await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
-  await expect(page.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
-  await expect(page.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
+  const jobDetails = page.getByLabel("Job details");
+  await expect(jobDetails.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(jobDetails.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
   await expect(page.getByLabel("Run status")).toHaveCount(0);
   await expect(page.getByLabel("Time range")).toHaveValue("7d");
   await page.getByLabel("Time range").selectOption("7d");
@@ -90,8 +91,8 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   const sidebar = page.getByLabel("Job details");
   await expect.poll(async () => (await activity.boundingBox())?.height).toBeCloseTo(baseline.contract.detail.activityDefaultHeight, 0);
   await expect.poll(async () => (await sidebar.boundingBox())?.width).toBeCloseTo(baseline.contract.detail.sidebarDefaultWidth, 0);
-  await expect(page.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
-  await expect(page.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
+  await expect(sidebar.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
+  await expect(sidebar.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
   const favoriteButton = page.getByRole("button", { name: "Add GenerateMonthlyInvoices to favorites" });
   await favoriteButton.focus();
   await expect(favoriteButton).toBeFocused();
@@ -212,10 +213,13 @@ test("Jobs covers empty, filtered-empty, API-error, and not-found states", async
   await expect(page.getByRole("heading", { name: "No matching Jobs" })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/jobs");
-  await expect(page.getByRole("alert")).toContainText("Telemetry unavailable.");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByText("Telemetry unavailable.", { exact: true })).toBeVisible();
   mode = "not-found";
   await page.goto("/skyline/jobs/job_missing");
-  await expect(page.getByRole("alert")).toContainText("The Job type was not found.");
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "404: Page not found" })).toBeVisible();
+  await expect(page.getByText("Not Found", { exact: true })).toBeVisible();
 });
 
 async function routeJobs(page: Page) {
