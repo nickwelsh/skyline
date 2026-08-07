@@ -81,6 +81,28 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await referencePage.close();
 });
 
+test("Error detail preserves the source favorite control and preference", async ({ page }) => {
+  await routeErrors(page);
+  await page.goto(`/skyline/errors/${errorId}`);
+
+  const addFavorite = page.getByRole("button", { name: "Add Errors to favorites" });
+  await addFavorite.focus();
+  await expect(addFavorite).toBeFocused();
+  await page.keyboard.press("Alt+F");
+
+  const removeFavorite = page.getByRole("button", { name: "Remove Errors from favorites" });
+  await expect(removeFavorite).toHaveAttribute("aria-pressed", "true");
+  const favorite = page.getByRole("navigation", { name: "Favorites" }).getByRole("link", { name: "Errors" });
+  await expect(favorite).toHaveAttribute("href", `/skyline/errors/${errorId}`);
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Remove Errors from favorites" })).toBeVisible();
+  await expect(favorite).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove Errors from favorites" }).click();
+  await expect(favorite).toHaveCount(0);
+});
+
 test("Errors URL-cursor paginate groups and failed Attempts", async ({ page }) => {
   await page.route("**/skyline/api/errors**", async (route) => {
     const url = new URL(route.request().url());

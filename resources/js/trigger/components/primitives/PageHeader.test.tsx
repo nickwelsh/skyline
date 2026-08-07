@@ -36,6 +36,31 @@ test("PageTitle preserves the pinned favorite control", () => {
   expect(button.getAttribute("aria-pressed")).toBe("false");
 });
 
+test("PageTitle preserves the pinned favorite control for a composed Error title", () => {
+  document.body.innerHTML = '<div id="root"></div>';
+  const container = document.querySelector<HTMLDivElement>("#root")!;
+  const onChange = vi.fn();
+
+  flushSync(() => createRoot(container).render(
+    <MemoryRouter initialEntries={["/errors/error_deadlock"]}>
+      <OperatingSystemContextProvider platform="mac">
+        <ShortcutsProvider>
+          <FavoritesProvider favorites={[]} onChange={onChange}>
+            <PageTitle title={<span className="font-mono">error_deadlock</span>} favoriteLabel="Errors" />
+          </FavoritesProvider>
+        </ShortcutsProvider>
+      </OperatingSystemContextProvider>
+    </MemoryRouter>,
+  ));
+
+  const button = container.querySelector<HTMLButtonElement>('button[aria-label="Add Errors to favorites"]')!;
+  expect(button.parentElement?.className).toBe("flex -ml-1");
+  window.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyF", altKey: true, bubbles: true }));
+  expect(onChange).toHaveBeenCalledWith([
+    { id: "page:/errors/error_deadlock", label: "Errors", path: "/errors/error_deadlock" },
+  ]);
+});
+
 test("PageTitle omits the favorite control when unavailable", () => {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;

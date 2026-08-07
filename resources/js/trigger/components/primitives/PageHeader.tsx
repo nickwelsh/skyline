@@ -32,6 +32,7 @@ export function NavBar({ children }: WithChildren) {
 type PageTitleProps = {
   title: ReactNode;
   accessory?: ReactNode;
+  favoriteLabel?: string;
   protectedMarker?: string;
   backButton?: {
     to: string;
@@ -39,8 +40,9 @@ type PageTitleProps = {
   };
 };
 
-export function PageTitle({ title, backButton, accessory, protectedMarker }: PageTitleProps) {
+export function PageTitle({ title, backButton, accessory, favoriteLabel, protectedMarker }: PageTitleProps) {
   const titleText = typeof title === "string" ? title : undefined;
+  const resolvedFavoriteLabel = favoriteLabel ?? titleText;
   const rootHref = useHref("/");
   const location = useLocation();
   const basename = rootHref === "/" ? "" : rootHref.replace(/\/$/, "");
@@ -70,7 +72,7 @@ export function PageTitle({ title, backButton, accessory, protectedMarker }: Pag
           disableHoverableContent
         />
       ) : accessory}</span> : null}
-      {titleText ? <JobFavoriteButton id={`page:${favoritePath}`} label={titleText} path={favoritePath} className="-ml-1" /> : null}
+      {resolvedFavoriteLabel ? <JobFavoriteButton id={`page:${favoritePath}`} label={resolvedFavoriteLabel} path={favoritePath} className="-ml-1" /> : null}
     </div>
   );
 }

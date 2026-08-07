@@ -72,6 +72,7 @@ export default function Page() {
         <PageTitle
           backButton={{ to: errorsPath, text: "Errors" }}
           title={<span className="font-mono text-xs">{data.errorGroup.friendlyId}</span>}
+          favoriteLabel="Errors"
         />
       </NavBar>
       <PageBody scrollable={false}>
