@@ -1,3 +1,8 @@
+/*!
+ * Adapted from Trigger.dev apps/webapp/app/components/primitives/OperatingSystemProvider.tsx
+ * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Skyline adds Linux and unknown platform classification for truthful shortcut labels.
+ */
 import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
 
