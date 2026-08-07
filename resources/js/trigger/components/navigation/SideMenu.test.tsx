@@ -100,6 +100,14 @@ describe("SideMenu capabilities", () => {
     }
   });
 
+  it("uses the pinned exact-path active state on detail routes", () => {
+    const list = renderSideMenu(fixtureCapabilities.navigation, false, undefined, "/errors");
+    expect(list.querySelector('[data-action="errors"]')?.className).toContain("bg-tertiary");
+
+    const detail = renderSideMenu(fixtureCapabilities.navigation, false, undefined, "/errors/error_123");
+    expect(detail.querySelector('[data-action="errors"]')?.className).not.toContain("bg-tertiary");
+  });
+
   it("keeps Appearance in a dedicated row before the unchanged source footer", () => {
     const container = renderSideMenu(fixtureCapabilities.navigation);
     const inner = container.querySelector<HTMLElement>('[data-testid="side-menu"] > .absolute.inset-0.grid')!;
@@ -210,13 +218,13 @@ describe("SideMenu capabilities", () => {
   });
 });
 
-function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapsed = false, favoriteOptions: { enabled: boolean; favorites: Array<{ id: string; label: string; path: string }> } = { enabled: true, favorites: [] }) {
+function renderSideMenu(navigation: SideMenuCapabilities["navigation"], collapsed = false, favoriteOptions: { enabled: boolean; favorites: Array<{ id: string; label: string; path: string }> } = { enabled: true, favorites: [] }, path = "/") {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
 
   flushSync(() => root.render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <OperatingSystemContextProvider platform="mac">
         <ShortcutsProvider>
           <FavoritesProvider favorites={favoriteOptions.favorites} onChange={vi.fn()} enabled={favoriteOptions.enabled}>

@@ -311,7 +311,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
         <div className="min-h-0 overflow-y-auto pt-2.5 scrollbar-gutter-stable scrollbar-thumb-on-hover">
           <nav aria-label="Application" className="mb-6 flex w-full flex-col gap-4 overflow-hidden" style={{ paddingLeft: sideMenuPadding, paddingRight: "0px" }}>
           <div className="w-full space-y-0">
-          {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
+          {topItems.filter((item) => capabilities.navigation[item.capability] === true).map((item) => <NavigationLink key={item.id} item={item} active={location.pathname === item.to} labelOpacity={labelOpacity} />)}
           </div>
           <div className="space-y-4">
           {sections.map((section) => section.id === "favorites" ? (
@@ -320,7 +320,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
             </SideMenuSection>
           ) : (
             <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} data-skyline-extension={section.id === "metrics" ? "shell-observability-header" : undefined} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
-              {section.items.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname.startsWith(item.to)} labelOpacity={labelOpacity} />)}
+              {section.items.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname === item.to} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}
           </div>
