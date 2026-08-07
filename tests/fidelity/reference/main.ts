@@ -30,7 +30,7 @@ import Logs from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.en
 import Queues from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues/route";
 import QueueDetail from "~/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.queues_.$queueParam/route";
 import { ReferenceInitialLoadingPage, referenceInitialLoadingCanonicalCapture, referenceInitialLoadingRoute } from "./ReferenceInitialLoadingPage";
-import "~/tailwind.css";
+import "./tailwind.css";
 
 const fixtureVersion = "nw-227-v1" as const;
 const elements = {

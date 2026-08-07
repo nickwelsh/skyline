@@ -1,0 +1,4 @@
+@import "./vendor/tailwind.css" source(none);
+
+@source "./vendor";
+@source "./*.{html,ts,tsx}";

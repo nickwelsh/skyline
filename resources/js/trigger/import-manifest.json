@@ -62,7 +62,7 @@
     "resources/js/trigger/components/primitives/charts/ChartRoot.tsx": "62eb1284337d7f92edb70eadfb6cc1228e30c4250a39fdf861b3166b258d0cee",
     "resources/js/trigger/components/primitives/charts/ChartLegendCompound.tsx": "383e6cd4e428f21bc06aedff4ce3501722ec8526fe937f21238f4ffea7d5c2a0",
     "resources/js/trigger/components/primitives/charts/aggregation.ts": "eff5f3b2ab28ca4211eda7ea59fac0406c1cb39f1fdb80ed6c6df430d22257fd",
-    "resources/js/trigger/tailwind.css": "1340d6e6bd8bdfb766277864102afdc6681b2992503f1c83248c05bf20441406",
+    "resources/js/trigger/tailwind.css": "02ffa3e262881c1bdcde97a07a626a89ce3aa944f10925b8091655005472c81e",
     "resources/js/trigger/Dialog.tsx": "e9af694e17956ad7195e679b4e2a6c22d9ca3939286ef65c8f96a96f2f9dc384",
     "resources/js/trigger/assets/icons/EnvironmentIcons.tsx": "fd306247a6a44ba0cb1e22566007d078179f1a167ed86c1e42a0278975d2be23",
     "resources/js/trigger/assets/icons/FolderOpenIcon.tsx": "8af6e478c19a7530f88c8e3e055ed203dca72007e780357ae59ae1959a107d94",
@@ -237,6 +237,6 @@
     { "source": "apps/webapp/app/utils/lerp.ts", "sha256": "7c73d632e97268f7bc0a30c0e5e4c6170db207c0124164596bc0f655c34c62ce", "target": "resources/js/trigger/lerp.ts", "mode": "exact" },
     { "source": "apps/webapp/app/components/primitives/TreeView/reducer.ts", "sha256": "5098140eef133d482b1b3c0c9067ee57fae47ad69cfba5902d04d2eb322c5ada", "target": "resources/js/trigger/primitives/TreeView/reducer.ts", "mode": "adapted", "modifications": "Changed package-local import paths and added provenance without behavioral changes." },
     { "source": "apps/webapp/app/components/primitives/TreeView/utils.ts", "sha256": "2de2e91f3b52a48d96c9fa7f07af2f0f4a2bd4806d877ecba07aa6c41b2e134e", "target": "resources/js/trigger/primitives/TreeView/utils.ts", "mode": "adapted", "modifications": "Changed package-local import paths and added provenance without behavioral changes." },
-    { "source": "apps/webapp/app/tailwind.css", "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121", "target": "resources/js/trigger/tailwind.css", "mode": "adapted", "modifications": "Removed only imports proven unreachable by the packaged client closure." }
+    { "source": "apps/webapp/app/tailwind.css", "sha256": "0df90b12f1109457cdd9f4f58c23224bf4a4028d4b3c0a8709879c784ff25121", "target": "resources/js/trigger/tailwind.css", "mode": "adapted", "modifications": "Removed imports proven unreachable by the packaged client closure and limited Tailwind discovery to authored client sources." }
   ]
 }

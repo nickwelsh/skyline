@@ -1,12 +1,15 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/tailwind.css
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Modified only to remove unreachable react-grid-layout, react-resizable, and streamdown imports.
+ * Modified only to remove unreachable react-grid-layout, react-resizable, and streamdown imports,
+ * and to bound Tailwind source discovery to authored client sources.
  */
 
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
 @import "tailwind-scrollbar-hide/v4";
+
+@source "../";
 
 @plugin "@tailwindcss/forms";
 @plugin "@tailwindcss/typography";
