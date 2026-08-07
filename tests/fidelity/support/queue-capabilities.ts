@@ -35,23 +35,23 @@ export function queueCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOm
   const rootStats = ["queue-root-running", "queue-root-environment-limit"];
   const rootProtected = [
     protect("search", "[data-skyline-protected='queue-list-search']"),
-    protect("connection", "[data-skyline-protected='queue-list-connection']"),
-    protect("period", "[data-skyline-protected='queue-period']"),
+    protect("connection", "[data-skyline-protected='queue-list-connection']", false, true),
+    protect("period", "[data-skyline-protected='queue-period']", false, true),
     protect("root-recorded-queued", "[data-skyline-protected='queue-root-recorded-queued']"),
-    protect("root-recorded-running", "[data-skyline-protected='queue-root-recorded-running']"),
+    protect("root-recorded-running", "[data-skyline-protected='queue-root-recorded-running']", false, true),
     protect("queue-identities", "[data-skyline-protected='queue-list-target-evidence']"),
   ];
   const detailProtected = [
     protect("detail-identity", "[data-skyline-protected='queue-detail-identity']"),
-    protect("period", "[data-skyline-protected='queue-period']"),
+    protect("period", "[data-skyline-protected='queue-period']", false, true),
     protect("detail-recorded-runs-stat", "[data-skyline-protected='queue-detail-recorded-runs-stat']", true),
-    protect("detail-queue-time-samples", "[data-skyline-protected='queue-detail-queue-time-samples']", true),
+    protect("detail-queue-time-samples", "[data-skyline-protected='queue-detail-queue-time-samples']", true, true),
     protect("detail-median", "[data-skyline-protected='queue-detail-median']", true),
-    protect("detail-p95", "[data-skyline-protected='queue-detail-p95']", true),
+    protect("detail-p95", "[data-skyline-protected='queue-detail-p95']", true, true),
     protect("detail-maximum", "[data-skyline-protected='queue-detail-maximum']", true),
     protect("detail-status-counts", "[data-skyline-protected='queue-detail-status-counts']", true),
     protect("detail-activity", "[data-skyline-protected='queue-detail-activity']", true),
-    protect("detail-recorded-runs", "[data-skyline-protected='queue-detail-recorded-runs']"),
+    protect("detail-recorded-runs", "[data-skyline-protected='queue-detail-recorded-runs']", false, true),
   ];
 
   return [
@@ -74,8 +74,8 @@ function pair(marker: string): CapabilityOmissionDefinition["selectorPairs"][num
   };
 }
 
-function protect(id: string, selector: string, allowBelowViewport = false) {
-  return { id, application: "skyline" as const, selector, ...(allowBelowViewport ? { allowBelowViewport: true as const } : {}) };
+function protect(id: string, selector: string, allowBelowViewport = false, allowRightOfViewport = false) {
+  return { id, application: "skyline" as const, selector, ...(allowBelowViewport ? { allowBelowViewport: true as const } : {}), ...(allowRightOfViewport ? { allowRightOfViewport: true as const } : {}) };
 }
 
 function definition(id: string, captures: string[], markers: string[], citations: string[], protectedSelectors: NonNullable<CapabilityOmissionDefinition["protectedSelectors"]>): CapabilityOmissionDefinition {

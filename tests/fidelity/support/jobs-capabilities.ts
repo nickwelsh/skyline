@@ -27,9 +27,9 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
       [listCitation],
       [
         protect("search", "[data-skyline-protected='jobs-list-search']"),
-        protect("pagination", "[data-skyline-protected='jobs-list-pagination']"),
-        ...[1, 2, 3, 4].map((column) => protect(`header-${column}`, `#skyline table thead tr > th:nth-child(${column})`)),
-        ...Array.from({ length: protectedRows }, (_, index) => index + 1).flatMap((row) => [1, 2, 3, 4].map((column) => protect(`row-${row}-column-${column}`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(${column})`, row >= 18))),
+        protect("pagination", "[data-skyline-protected='jobs-list-pagination']", false, true),
+        ...[1, 2, 3, 4].map((column) => protect(`header-${column}`, `#skyline table thead tr > th:nth-child(${column})`, false, column >= 2)),
+        ...Array.from({ length: protectedRows }, (_, index) => index + 1).flatMap((row) => [1, 2, 3, 4].map((column) => protect(`row-${row}-column-${column}`, `#skyline table tbody tr:nth-child(${row}) > td:nth-child(${column})`, row >= 18, column >= 2))),
       ],
     ),
     definition(
@@ -42,9 +42,9 @@ export function jobsCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOmi
       ],
       [detailCitation],
       [
-        protect("identifier", "[data-skyline-protected='job-detail-identifier']"),
-        protect("queue-links", "[data-skyline-protected='job-detail-queue-links']"),
-        protect("created", "[data-skyline-protected='job-detail-created']"),
+        protect("identifier", "[data-skyline-protected='job-detail-identifier']", false, true),
+        protect("queue-links", "[data-skyline-protected='job-detail-queue-links']", false, true),
+        protect("created", "[data-skyline-protected='job-detail-created']", false, true),
       ],
     ),
   ];
@@ -54,8 +54,8 @@ function pair(id: string, triggerSelector: string, skylineSelector: string) {
   return { id, triggerSelector, skylineSelector, skylineBoundary: true as const };
 }
 
-function protect(id: string, selector: string, allowBelowViewport = false) {
-  return { id, application: "skyline" as const, selector, ...(allowBelowViewport ? { allowBelowViewport: true as const } : {}) };
+function protect(id: string, selector: string, allowBelowViewport = false, allowRightOfViewport = false) {
+  return { id, application: "skyline" as const, selector, ...(allowBelowViewport ? { allowBelowViewport: true as const } : {}), ...(allowRightOfViewport ? { allowRightOfViewport: true as const } : {}) };
 }
 
 function definition(id: string, captures: string[], selectorPairs: CapabilityOmissionDefinition["selectorPairs"], citations: string[], protectedSelectors: NonNullable<CapabilityOmissionDefinition["protectedSelectors"]>): CapabilityOmissionDefinition {

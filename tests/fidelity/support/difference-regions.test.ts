@@ -379,6 +379,10 @@ describe("framework-extension fidelity regions", () => {
     expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 })).toThrow(/below the viewport/i);
     expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, true)).toEqual({ status: "below-viewport" });
     expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, true)).toThrow(/outside the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 0, width: 1, height: 1 }, undefined, true)).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, undefined, true)).toThrow(/below the viewport/i);
+    expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 3, y: 3, width: 1, height: 1 }, true, true)).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: -3, y: 0, width: 1, height: 1 }, true, true)).toThrow(/outside the viewport/i);
   });
 
   test("rejects protected elements without positive visible presentation", () => {

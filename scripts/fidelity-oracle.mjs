@@ -192,7 +192,7 @@ export function validateAllowedDifferences(differences) {
       const protectedSelectors = region.protectedSelectors ?? [];
       const protectedIds = protectedSelectors.map((entry) => entry.id);
       const ownedSelectors = [...pairSelectors, ...protectedSelectors.map((entry) => entry.selector)];
-      if (new Set(pairIds).size !== pairIds.length || new Set(protectedIds).size !== protectedIds.length || new Set(ownedSelectors).size !== ownedSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector || (pair.skylineBoundary !== undefined && pair.skylineBoundary !== true)) || protectedSelectors.some((entry) => !entry.id || !entry.selector || !["trigger", "skyline"].includes(entry.application) || (entry.allowBelowViewport !== undefined && entry.allowBelowViewport !== true))) fail(`Invalid capability-omission selector pair: ${region.id}`);
+      if (new Set(pairIds).size !== pairIds.length || new Set(protectedIds).size !== protectedIds.length || new Set(ownedSelectors).size !== ownedSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector || (pair.skylineBoundary !== undefined && pair.skylineBoundary !== true)) || protectedSelectors.some((entry) => !entry.id || !entry.selector || !["trigger", "skyline"].includes(entry.application) || (entry.allowBelowViewport !== undefined && entry.allowBelowViewport !== true) || (entry.allowRightOfViewport !== undefined && entry.allowRightOfViewport !== true))) fail(`Invalid capability-omission selector pair: ${region.id}`);
       if (region.selectorPairs.some((pair) => pair.skylineBoundary) && protectedSelectors.length === 0) fail(`Missing protected capability-omission selectors: ${region.id}`);
       const measurements = Object.keys(region.measurements);
       if (measurements.length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing capability-omission measurement: ${region.id}`);
@@ -207,16 +207,24 @@ export function validateAllowedDifferences(differences) {
       }
       if (protectedSelectors.length > 0) {
         if (!region.protectedMeasurements || Object.keys(region.protectedMeasurements).length !== region.captures.length || region.captures.some((capture) => !region.protectedMeasurements[capture])) fail(`Missing protected capability-omission measurement: ${region.id}`);
-        for (const measurement of Object.values(region.protectedMeasurements)) {
+        for (const [capture, measurement] of Object.entries(region.protectedMeasurements)) {
+          const viewport = capture.match(/@(\d+)x(\d+)-/);
+          if (!viewport) fail(`Invalid protected capability-omission capture: ${region.id}`);
+          const width = Number(viewport[1]);
+          const height = Number(viewport[2]);
           if (Object.keys(measurement).length !== protectedIds.length || protectedIds.some((id) => !measurement[id])) fail(`Missing protected capability-omission selector measurement: ${region.id}`);
           for (const [id, protectedMeasurement] of Object.entries(measurement)) {
             const definition = protectedSelectors.find((entry) => entry.id === id);
             const rect = protectedMeasurement.rect;
             const validRect = ["x", "y", "width", "height"].every((key) => Number.isFinite(rect?.[key])) && rect.width > 0 && rect.height > 0;
             const crop = protectedMeasurement.crop;
+            const verticallyVisible = rect?.y < height && rect?.y + rect?.height > 0;
+            const horizontallyVisible = rect?.x < width && rect?.x + rect?.width > 0;
             const validCrop = crop?.status === "visible"
-              ? ["x", "y", "width", "height"].every((key) => Number.isFinite(crop.rect?.[key])) && crop.rect.width > 0 && crop.rect.height > 0 && /^[a-f0-9]{64}$/.test(crop.screenshotSha256 ?? "")
-              : crop?.status === "below-viewport" && definition?.allowBelowViewport === true && Object.keys(crop).length === 1;
+              ? verticallyVisible && horizontallyVisible && ["x", "y", "width", "height"].every((key) => Number.isFinite(crop.rect?.[key])) && crop.rect.width > 0 && crop.rect.height > 0 && /^[a-f0-9]{64}$/.test(crop.screenshotSha256 ?? "")
+              : crop?.status === "below-viewport"
+                ? rect?.y >= height && horizontallyVisible && definition?.allowBelowViewport === true && Object.keys(crop).length === 1
+                : crop?.status === "right-of-viewport" && rect?.x >= width && (verticallyVisible || (rect?.y >= height && definition?.allowBelowViewport === true)) && definition?.allowRightOfViewport === true && Object.keys(crop).length === 1;
             const valid = ["computedStyleSha256", "accessibilitySha256"].every((key) => /^[a-f0-9]{64}$/.test(protectedMeasurement[key] ?? "")) && validRect && validCrop;
             if (!valid) fail(`Invalid protected capability-omission measurement: ${region.id}`);
           }

@@ -2,7 +2,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
 type Rect = { x: number; y: number; width: number; height: number };
-type ProtectedCrop = { status: "visible"; rect: Rect; screenshotSha256: string } | { status: "below-viewport" };
+type ProtectedCrop = { status: "visible"; rect: Rect; screenshotSha256: string } | { status: "below-viewport" } | { status: "right-of-viewport" };
 type Mask = { rect: Rect; source: Rect; application: "trigger" | "skyline" | "both" };
 type Observation = { selector: string; rect: Rect; computedStyle: Record<string, string>; accessibleName: string };
 type PairedRegion = { kind?: "paired"; id: string; trigger: Observation; skyline: Observation };
