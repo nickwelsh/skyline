@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
+import { conditionCanonicalPathName, conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -52,6 +52,7 @@ function capabilityAdapters(): Plugin {
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
   const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
   const sideMenuSectionSource = join(vendorRoot, "components/navigation/SideMenuSection.tsx");
+  const pathNameSource = join(vendorRoot, "hooks/usePathName.ts");
   return {
     name: "skyline-fidelity-reference-capabilities",
     enforce: "pre",
@@ -73,6 +74,7 @@ function capabilityAdapters(): Plugin {
       if (source === sideMenuSource) return conditionSideMenuShell(code);
       if (source === sideMenuItemSource) return conditionSideMenuItems(code);
       if (source === sideMenuSectionSource) return conditionSideMenuSections(code);
+      if (source === pathNameSource) return conditionCanonicalPathName(code);
       if (source !== buttonsSource) return undefined;
       const adapted = code
         .replace("export const Button = forwardRef<HTMLButtonElement, ButtonPropsType>(", "const SourceButton = forwardRef<HTMLButtonElement, ButtonPropsType>(")
