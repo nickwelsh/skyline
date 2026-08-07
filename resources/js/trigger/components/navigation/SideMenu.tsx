@@ -343,7 +343,17 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       <Dialog open={customizeOpen} onOpenChange={setCustomizeOpen}>
         {customizeOpen && <CustomizeSidebarDialog sections={customizeSections} prefs={preferences} onConfirm={(payload) => { onCustomize(payload); setCustomizeOpen(false); }} isConfirming={false} />}
       </Dialog>
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} returnFocus={shortcutsReturnFocusRef.current} />
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+        returnFocus={shortcutsReturnFocusRef.current}
+        capabilities={{
+          sidebar: capabilities.shell.sidebarCustomization,
+          favorites: capabilities.shell.favorites,
+          pagination: capabilities.navigation.jobs || capabilities.navigation.runs || capabilities.navigation.queues || capabilities.navigation.errors || capabilities.navigation.logs,
+          runs: capabilities.navigation.runs,
+        }}
+      />
     </aside>
   );
 }
