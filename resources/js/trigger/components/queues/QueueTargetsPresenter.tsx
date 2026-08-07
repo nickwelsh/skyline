@@ -18,7 +18,6 @@ import {
 import { Spinner } from "~/components/primitives/Spinner";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { QueueBigNumber } from "./QueueBigNumber";
-import { QueueEnvironmentCharts } from "./QueueTargetCharts";
 import { QueueConnectionFilter, QueuePeriodFilter, QueueSearchFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
 
 export type PresentedQueueTarget = {
@@ -27,14 +26,10 @@ export type PresentedQueueTarget = {
   connection: string;
   queue: string;
   destination: string;
-  state: "Idle" | "Busy";
   queued: number;
   running: number;
-  limit: number | null;
-  limitedBy: "Environment" | null;
-  health: "Backlogged" | "Active" | "Idle";
+  health: "Queued" | "Active" | "Idle";
   delayP95: string;
-  backlog: number[];
   recordedRuns: string;
   recordedRunCounts: Record<RunStatus, number>;
   queueTimeSampleCount: number;
@@ -47,7 +42,7 @@ export type PresentedQueueTarget = {
 
 export type QueueTargetsPresentation = {
   generatedAt: string;
-  environment: { queued: number; running: number; allocated: number | null; limit: number | null };
+  environment: { queued: number; running: number };
   queueTargets: PresentedQueueTarget[];
   pagination: { previous?: string; next?: string };
   connectionOptions: string[];
@@ -67,16 +62,9 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Queued" value={data.environment.queued} />
-        <QueueBigNumber title="Running" value={data.environment.running} capabilityMarker="queue-root-running" />
-        <QueueBigNumber title="Allocated" value={data.environment.allocated} />
-        <QueueBigNumber title="Environment limit" value={data.environment.limit} capabilityMarker="queue-root-environment-limit" />
+        <QueueBigNumber title="Recorded queued" value={data.environment.queued} suffix="Runs" />
+        <QueueBigNumber title="Recorded running" value={data.environment.running} suffix="Runs" />
       </MetricsLayout.Grid>
-      {(data.hasFilters || data.hasAnyQueueTargets) && (
-        <MetricsLayout.Grid kind="charts" columns={{ base: 2, lg: 4 }}>
-          <QueueEnvironmentCharts />
-        </MetricsLayout.Grid>
-      )}
       <MetricsLayout.Content>
         <div className="relative min-h-32">
           {data.queueTargets.length > 0
@@ -95,14 +83,10 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
       <TableHeader>
         <TableRow>
           <TableHeaderCell>Name</TableHeaderCell>
-          <TableHeaderCell alignment="right">Queued</TableHeaderCell>
-          <TableHeaderCell alignment="right">Running</TableHeaderCell>
-          <TableHeaderCell alignment="right">Limit</TableHeaderCell>
-          <TableHeaderCell alignment="right">Limited by</TableHeaderCell>
-          <TableHeaderCell alignment="right">Health</TableHeaderCell>
-          <TableHeaderCell alignment="right">Delay p95</TableHeaderCell>
-          <TableHeaderCell alignment="right">Backlog</TableHeaderCell>
-          <TableHeaderCell className="w-[1%] pl-32"><span className="sr-only">Pause/resume</span></TableHeaderCell>
+          <TableHeaderCell alignment="right">Recorded queued</TableHeaderCell>
+          <TableHeaderCell alignment="right">Recorded running</TableHeaderCell>
+          <TableHeaderCell alignment="right">Recorded state</TableHeaderCell>
+          <TableHeaderCell alignment="right">Queue time p95</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody aria-busy={loading} className={loading ? "opacity-50" : undefined}>
@@ -112,18 +96,13 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
               to={target.path}
               isTabbableCell
               leadingContent={<QueuesIcon className="size-[1.125rem] text-purple-500" />}
-              trailingContent={target.health === "Backlogged" ? <span aria-hidden="true" data-skyline-capability={`queue-target-${target.id}-warning`} className="block size-4" /> : undefined}
             >
               {target.queue}
             </TableCell>
             <MetricCell target={target} value={target.queued} />
             <MetricCell target={target} value={target.running} bright={target.running > 0} />
-            <MetricCell target={target} value={target.limit ?? "–"} capabilityMarker={`queue-target-${target.id}-limit`} />
-            <MetricCell target={target} value={target.limitedBy ?? "–"} capabilityMarker={`queue-target-${target.id}-limited-by`} />
-            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} capabilityMarker={target.health === "Backlogged" ? `queue-target-${target.id}-health` : undefined} /></TableCell>
+            <TableCell to={target.path} alignment="right"><QueueHealthBadge health={target.health} /></TableCell>
             <MetricCell target={target} value={target.queueTimeSampleCount > 0 ? target.delayP95 : "–"} bright={target.queueTimeSampleCount > 0} />
-            <TableCell to={target.path} alignment="right"><BacklogSparkline values={target.backlog} capabilityMarker={`queue-target-${target.id}-backlog`} /></TableCell>
-            <TableCell capabilityMarker={`queue-target-${target.id}-pause-resume`} />
           </TableRow>
         ))}
       </TableBody>
@@ -131,38 +110,15 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
   );
 }
 
-function MetricCell({ target, value, bright = false, capabilityMarker }: { target: PresentedQueueTarget; value: string | number; bright?: boolean; capabilityMarker?: string }) {
-  return <TableCell capabilityMarker={capabilityMarker} to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
+function MetricCell({ target, value, bright = false }: { target: PresentedQueueTarget; value: string | number; bright?: boolean }) {
+  return <TableCell to={target.path} alignment="right" actionClassName="pl-16 tabular-nums" className={bright ? "w-[1%] text-text-bright" : "w-[1%]"}>{value}</TableCell>;
 }
 
-function QueueHealthBadge({ health, capabilityMarker }: { health: PresentedQueueTarget["health"]; capabilityMarker?: string }) {
-  const styles = health === "Backlogged"
+function QueueHealthBadge({ health }: { health: PresentedQueueTarget["health"] }) {
+  const styles = health === "Queued"
     ? "bg-blue-500/10 text-blue-500"
     : health === "Active" ? "bg-success/10 text-success" : "bg-charcoal-500/10 text-text-dimmed";
-  return <span data-skyline-capability={capabilityMarker} className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
-}
-
-function BacklogSparkline({ values, capabilityMarker }: { values: number[]; capabilityMarker?: string }) {
-  if (values.length === 0) {
-    return (
-      <span
-        aria-label="Backlog unavailable"
-        data-skyline-capability={capabilityMarker}
-        className="inline-flex h-[27px] w-[134px] items-center justify-end text-text-dimmed"
-      >
-        <span aria-hidden="true">–</span>
-      </span>
-    );
-  }
-  const maximum = Math.max(...values, 1);
-  const points = values.map((value, index) => `${values.length === 1 ? 67 : index / (values.length - 1) * 134},${22 - value / maximum * 18}`).join(" ");
-  return (
-    <svg aria-hidden="true" data-skyline-capability={capabilityMarker} viewBox="0 0 134 24" className="h-6 w-[134px]">
-      <line x1="0" x2="134" y1="23" y2="23" stroke="var(--color-border-bright)" />
-      <polyline points={points} fill="none" stroke="var(--color-queues-chart)" strokeWidth="1" />
-      {values.length === 1 && <circle cx="67" cy={22 - values[0] / maximum * 18} r="2.5" fill="var(--color-queues-chart)" />}
-    </svg>
-  );
+  return <span className={`contrast-chip ml-auto inline-flex w-fit items-center rounded px-2 py-0.5 text-xs font-medium ${styles}`}>{health}</span>;
 }
 
 export function RecordedStatusBreakdown({ counts }: { counts: Record<RunStatus, number> }) {

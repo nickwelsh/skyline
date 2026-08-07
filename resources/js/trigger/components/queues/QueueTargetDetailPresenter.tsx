@@ -8,11 +8,10 @@ import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
 import { Button } from "~/components/primitives/Buttons";
 import { Card, CardHeader } from "~/components/primitives/charts/Card";
-import { Header3 } from "~/components/primitives/Headers";
 import { Spinner } from "~/components/primitives/Spinner";
 import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
-import { useLocation, useNavigate } from "@remix-run/react";
+import { useLocation } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
 import { QueueBigNumber } from "./QueueBigNumber";
 import { QueueTargetCharts } from "./QueueTargetCharts";
@@ -25,7 +24,7 @@ type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number
 export type QueueTargetDetailPresentation = {
   generatedAt: string;
   queueTarget: PresentedQueueTarget;
-  stats: { running: number; limit: number | null; queued: number; peakQueued: number; oldestWait: string; worstWait: string };
+  stats: { running: number; queued: number; peakQueued: number; maximumQueueTime: string };
   activity: ActivityPoint[];
   queueTime: QueueTimePoint[];
   runs: PresentedRun[];
@@ -38,8 +37,6 @@ export type QueueTargetDetailPresentation = {
 
 export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTargetDetailPresentation; loading: boolean }) {
   const location = useLocation();
-  const navigate = useNavigate();
-  const view = new URLSearchParams(location.search).get("view") === "keys" ? "keys" : "overview";
   const [showRecordedRuns, setShowRecordedRuns] = useState(() => new URLSearchParams(location.search).has("cursor"));
   const recordedRunsControl = useRef<HTMLButtonElement>(null);
   const restoreRecordedRunsFocus = useRef(false);
@@ -50,12 +47,6 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
     recordedRunsControl.current?.focus();
   }, [showRecordedRuns]);
 
-  function selectView(nextView: "overview" | "keys") {
-    const params = new URLSearchParams(location.search);
-    nextView === "keys" ? params.set("view", "keys") : params.delete("view");
-    navigate(`${location.pathname}${params.size ? `?${params}` : ""}`);
-  }
-
   function closeRecordedRuns() {
     restoreRecordedRunsFocus.current = true;
     setShowRecordedRuns(false);
@@ -64,12 +55,7 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
   return (
     <MetricsLayout.Root>
       <MetricsLayout.Filters className="pl-1.5 pr-2">
-        <div className="translate-y-px self-end pl-2">
-          <div className="flex gap-x-6 border-b border-grid-bright">
-            <QueueTab active={view === "overview"} onClick={() => selectView("overview")}>Overview</QueueTab>
-            <QueueTab active={view === "keys"} onClick={() => selectView("keys")}>Concurrency keys</QueueTab>
-          </div>
-        </div>
+        <div />
         <div className="flex items-center gap-1.5">
           {!showRecordedRuns && (
             <section data-skyline-extension="queue-recorded-runs" aria-label="Recorded runs">
@@ -80,39 +66,14 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <ConcurrencyBlock running={data.stats.running} limit={data.stats.limit} />
-        <QueueBigNumber title="Queued" value={data.stats.queued} suffix={data.stats.peakQueued > 0 ? `peak ${data.stats.peakQueued.toLocaleString()}` : undefined} />
-        <QueueBigNumber title="Oldest wait" formattedValue={data.stats.oldestWait} suffix={data.stats.worstWait !== "0" ? `worst ${data.stats.worstWait}` : undefined} />
+        <QueueBigNumber title="Recorded queued" value={data.stats.queued} suffix={data.stats.peakQueued > 0 ? `peak ${data.stats.peakQueued.toLocaleString()} recorded Runs` : "Runs"} />
+        <QueueBigNumber title="Recorded running" value={data.stats.running} suffix="Runs" />
+        <QueueBigNumber title="Maximum queue time" formattedValue={data.stats.maximumQueueTime} />
       </MetricsLayout.Grid>
       <MetricsLayout.Content inset>
-        {view === "overview" ? (
-          <QueueTargetCharts activity={data.activity} queueTime={data.queueTime} recordedRuns={showRecordedRuns ? <RecordedRunsCard data={data} loading={loading} onClose={closeRecordedRuns} /> : undefined} />
-        ) : (
-          <div className="grid min-h-64 place-items-center text-center"><div><h2 className="font-medium text-text-bright">No concurrency keys configured</h2><p className="mt-1 text-sm text-text-dimmed">This queue does not use captured concurrency keys.</p></div></div>
-        )}
+        <QueueTargetCharts activity={data.activity} queueTime={data.queueTime} recordedRuns={showRecordedRuns ? <RecordedRunsCard data={data} loading={loading} onClose={closeRecordedRuns} /> : undefined} />
       </MetricsLayout.Content>
     </MetricsLayout.Root>
-  );
-}
-
-function QueueTab({ active, children, onClick }: { active: boolean; children: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="group flex flex-col items-center pt-1 focus-custom">
-      <span className="text-sm text-text-bright">{children}</span>
-      <span className={`mt-1 h-0.5 w-full ${active ? "bg-indigo-500" : "bg-surface-control-active opacity-0 group-hover:opacity-100"}`} />
-    </button>
-  );
-}
-
-function ConcurrencyBlock({ running, limit }: { running: number; limit: number | null }) {
-  return (
-    <div className="flex flex-col justify-between gap-4 rounded-lg border border-grid-bright bg-background-bright p-4">
-      <Header3 className="leading-6">Concurrency</Header3>
-      <div data-skyline-capability="queue-detail-concurrency" className="flex flex-wrap items-baseline gap-2">
-        <span className="text-[3.75rem] font-normal leading-none tabular-nums text-text-bright">{running.toLocaleString()}</span>
-        <span className="text-xl tabular-nums text-text-dimmed">/ {limit === null ? "∞" : limit.toLocaleString()}</span>
-      </div>
-    </div>
   );
 }
 

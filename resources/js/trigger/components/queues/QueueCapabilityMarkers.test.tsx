@@ -14,50 +14,39 @@ globalThis.ResizeObserver = class ResizeObserver {
   disconnect() {}
 };
 
-describe("Queue capability markers", () => {
+describe("Queue truthfulness", () => {
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("marks only unavailable list values and exact per-target cells", () => {
+  it("omits unsupported list administration while retaining recorded evidence", () => {
     const container = render(<QueueTargetsPresenter data={list()} loading={false} />);
-    const markers = [...container.querySelectorAll<HTMLElement>("[data-skyline-capability]")].map((node) => node.dataset.skylineCapability);
-
-    expect(markers).toEqual([
-      "queue-root-running",
-      "queue-root-environment-limit",
-      ...["reports", "billing", "default"].flatMap((id) => [
-        ...(id === "default" ? [`queue-target-${id}-warning`] : []),
-        `queue-target-${id}-limit`,
-        `queue-target-${id}-limited-by`,
-        ...(id === "default" ? [`queue-target-${id}-health`] : []),
-        `queue-target-${id}-backlog`,
-        `queue-target-${id}-pause-resume`,
-      ]),
-    ]);
-    expect(new Set(markers).size).toBe(markers.length);
+    expect(container.querySelectorAll("[data-skyline-capability]")).toHaveLength(0);
+    expect(container.textContent).toContain("Recorded queued");
+    expect(container.textContent).toContain("Recorded running");
+    expect(container.textContent).toContain("Queued");
+    expect(container.textContent).not.toMatch(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-period-filter"]')).toHaveLength(1);
     expect(container.querySelectorAll('label[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
     expect(container.querySelector('label[data-skyline-extension="queue-connection-filter"] > select')?.hasAttribute("data-skyline-extension")).toBe(false);
   });
 
-  it("reserves source chart geometry for unavailable backlog data", () => {
+  it("does not reserve visible geometry for unavailable backlog data", () => {
     const container = render(<QueueTargetsPresenter data={list()} loading={false} />);
-    const placeholder = container.querySelector<HTMLElement>('[data-skyline-capability="queue-target-reports-backlog"]')!;
-
-    expect(placeholder.className).toBe("inline-flex h-[27px] w-[134px] items-center justify-end text-text-dimmed");
-    expect(placeholder.getAttribute("aria-label")).toBe("Backlog unavailable");
-    expect(placeholder.querySelector('[aria-hidden="true"]')?.textContent).toBe("–");
+    expect(container.textContent).not.toMatch(/Env saturation|Backlog|Throttled/);
+    expect(container.querySelector('[aria-label="Backlog unavailable"]')).toBeNull();
   });
 
-  it("marks unavailable detail concurrency and chart series without owning Recorded Runs", () => {
+  it("omits detail administration while retaining recorded activity and Queue time", () => {
     const container = render(<QueueTargetDetailPresenter data={detail()} loading={false} />);
-    const markers = [...container.querySelectorAll<HTMLElement>("[data-skyline-capability]")].map((node) => node.dataset.skylineCapability);
-
-    expect(markers).toEqual([
-      "queue-detail-concurrency",
-      "queue-detail-concurrency-limit",
-      "queue-detail-throttled",
-    ]);
+    expect(container.querySelectorAll("[data-skyline-capability]")).toHaveLength(0);
+    expect(container.textContent).toContain("Recorded queued");
+    expect(container.textContent).toContain("Recorded running");
+    expect(container.textContent).toContain("Maximum queue time");
+    expect(container.textContent).not.toMatch(/Concurrency|Oldest wait|Queue depth|Throttled|No concurrency keys configured/);
+    expect(container.querySelector('button[aria-label="Concurrency keys"]')).toBeNull();
+    expect(container.querySelector('[role="img"][aria-label="Throughput chart"]')).not.toBeNull();
+    expect(container.querySelector('[role="img"][aria-label="Scheduling delay chart"]')).not.toBeNull();
+    expect(container.querySelector("[aria-label='Queue-target activity']")?.lastElementChild?.className).toBe("h-52 sm:col-span-2");
     const extension = container.querySelector<HTMLElement>("[data-skyline-extension='queue-recorded-runs']")!;
     const period = container.querySelector<HTMLElement>("[data-skyline-anchor='queue-period-filter']")!;
     expect(extension.hasAttribute("data-skyline-capability")).toBe(false);
@@ -80,8 +69,8 @@ function render(node: React.ReactNode) {
 function list(): QueueTargetsPresentation {
   return {
     generatedAt: "2026-08-05T12:00:00Z",
-    environment: { queued: 12, running: 14, allocated: null, limit: null },
-    queueTargets: [target("reports", "Active"), target("billing", "Idle"), target("default", "Backlogged")],
+    environment: { queued: 12, running: 14 },
+    queueTargets: [target("reports", "Active"), target("billing", "Idle"), target("default", "Queued")],
     pagination: {}, connectionOptions: ["database", "redis", "sqs"], timeRanges: [], hasAnyQueueTargets: true, hasFilters: false,
   };
 }
@@ -89,8 +78,8 @@ function list(): QueueTargetsPresentation {
 function detail(): QueueTargetDetailPresentation {
   return {
     generatedAt: "2026-08-05T12:00:00Z",
-    queueTarget: target("default", "Backlogged"),
-    stats: { running: 13, limit: null, queued: 12, peakQueued: 12, oldestWait: "0", worstWait: "0" },
+    queueTarget: target("default", "Queued"),
+    stats: { running: 13, queued: 12, peakQueued: 12, maximumQueueTime: "3ms" },
     activity: [{ timestamp: "2026-08-05T12:00:00Z", recordedRuns: 1, recordedRunCounts: counts({ running: 1 }) }],
     queueTime: [{ timestamp: "2026-08-05T12:00:00Z", sampleCount: 1, medianUs: 1_000, p95Us: 2_000, maximumUs: 3_000 }],
     runs: [], pagination: {}, statusOptions: [], timeRanges: [], hasAnyRuns: false, hasFilters: false,
@@ -100,9 +89,9 @@ function detail(): QueueTargetDetailPresentation {
 function target(id: string, health: PresentedQueueTarget["health"]): PresentedQueueTarget {
   return {
     id, path: `/queues/${id}`, connection: "redis", queue: id, destination: `redis / ${id}`,
-    state: health === "Idle" ? "Idle" : "Busy", queued: health === "Backlogged" ? 12 : 0,
-    running: health === "Backlogged" ? 13 : health === "Active" ? 1 : 0, limit: null, limitedBy: null,
-    health, delayP95: "–", backlog: [], recordedRuns: "1", recordedRunCounts: counts({}),
+    queued: health === "Queued" ? 12 : 0,
+    running: health === "Queued" ? 13 : health === "Active" ? 1 : 0,
+    health, delayP95: "–", recordedRuns: "1", recordedRunCounts: counts({}),
     queueTimeSampleCount: 0, medianQueueTime: "–", p95QueueTime: "–", maximumQueueTime: "–",
     firstObservedAt: null, lastObservedAt: null,
   };

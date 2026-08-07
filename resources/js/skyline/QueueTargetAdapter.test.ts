@@ -20,18 +20,14 @@ describe("QueueTargetAdapter", () => {
   it("presents captured Queue evidence through the source list metrics seam", () => {
     const route = presentQueueTargets(listPage());
 
-    expect(route.environment).toEqual({ queued: 13, running: 14, allocated: null, limit: null });
+    expect(route.environment).toEqual({ queued: 13, running: 14 });
     expect(route.queueTargets[0]).toEqual(expect.objectContaining({
       path: "/queues/queue_redis",
       destination: "redis / billing",
-      state: "Busy",
       queued: 1,
       running: 1,
-      limit: null,
-      limitedBy: null,
-      health: "Backlogged",
+      health: "Queued",
       delayP95: "5ms",
-      backlog: [],
       recordedRuns: "3",
     }));
     expect(route.connectionOptions).toEqual(["redis", "sqs"]);
@@ -45,7 +41,7 @@ describe("QueueTargetAdapter", () => {
       firstObservedAt: "2026-08-05T11:00:00.000000000Z",
       lastObservedAt: "2026-08-05T12:00:00.000000000Z",
     }));
-    expect(JSON.stringify(route)).not.toMatch(/brokerDepth|workers|concurrency|pause/i);
+    expect(JSON.stringify(route)).not.toMatch(/allocated|brokerDepth|limit|limitedBy|workers|concurrency|pause|backlog/i);
   });
 
   it("presents captured Queue evidence through the source detail metrics seam", () => {
@@ -53,13 +49,12 @@ describe("QueueTargetAdapter", () => {
 
     expect(route.queueTarget.destination).toBe("redis / billing");
     expect(route.stats).toEqual({
-      running: 1,
-      limit: null,
       queued: 1,
+      running: 1,
       peakQueued: 0,
-      oldestWait: "0",
-      worstWait: "2ms",
+      maximumQueueTime: "2ms",
     });
+    expect(JSON.stringify(route)).not.toMatch(/oldestWait|concurrency|limit/i);
     expect(route.activity[0]).toEqual(expect.objectContaining({ timestamp: "2026-08-05T12:00:00.000000000Z", recordedRuns: 1 }));
     expect(route.queueTime[0]).toEqual(expect.objectContaining({ medianUs: 2000, p95Us: 2000 }));
     expect(route.queueTime[1]).toEqual(expect.objectContaining({ sampleCount: 0, medianUs: null, p95Us: null, maximumUs: null }));

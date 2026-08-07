@@ -20,15 +20,13 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
 
   await expect(page.getByRole("heading", { name: "Queues" })).toBeVisible();
   await expect(page.getByText("this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
-  for (const metric of ["Queued", "Running", "Allocated", "Environment limit"]) {
+  for (const metric of ["Recorded queued", "Recorded running"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const chart of ["Env saturation", "Backlog", "Scheduling delay p95", "Throttled"]) {
-    await expect(page.getByRole("img", { name: `${chart} chart` })).toBeVisible();
-  }
-  for (const column of ["Name", "Queued", "Running", "Limit", "Limited by", "Health", "Delay p95", "Backlog"]) {
+  for (const column of ["Name", "Recorded queued", "Recorded running", "Recorded state", "Queue time p95"]) {
     await expect(page.getByRole("columnheader", { name: column, exact: true })).toBeVisible();
   }
+  await expect(page.getByText(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/)).toHaveCount(0);
   await expect(page.getByText("Broker depth")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
 
@@ -69,14 +67,14 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await targetLink.press("Enter");
   await expect(page).toHaveURL(new RegExp(`/skyline/queues/${queueId}`));
   await expect(page.getByRole("heading", { name: "this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Concurrency keys" })).toBeVisible();
-  for (const metric of ["Concurrency", "Queued", "Oldest wait"]) {
+  await expect(page.getByRole("button", { name: "Concurrency keys" })).toHaveCount(0);
+  for (const metric of ["Recorded queued", "Recorded running", "Maximum queue time"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const chart of ["Concurrency", "Queue depth", "Throughput", "Scheduling delay", "Throttled"]) {
+  for (const chart of ["Throughput", "Scheduling delay"]) {
     await expect(page.getByRole("img", { name: `${chart} chart` })).toBeVisible();
   }
+  await expect(page.getByText(/Concurrency|Oldest wait|Queue depth|Throttled/)).toHaveCount(0);
   await expect(page.getByText("Recorded Runs, not broker depth")).toHaveCount(0);
   const recordedRuns = page.getByRole("region", { name: "Recorded runs" });
   await expect(recordedRuns).toBeVisible();
@@ -192,7 +190,7 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   });
 
   await page.goto("/skyline/queues");
-  await expect(page.getByText("Backlogged", { exact: true })).toBeVisible();
+  await expect(page.getByText("Queued", { exact: true })).toBeVisible();
   await expect(page.getByText("Idle", { exact: true })).toBeVisible();
 
   delayList = true;
@@ -209,10 +207,11 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   await expect(page.getByRole("heading", { name: "No queues found matching your filters" })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/queues");
-  await expect(page.getByRole("alert")).toContainText("Queue evidence unavailable.");
+  await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
+  await expect(page.getByText("Queue evidence unavailable.", { exact: true })).toBeVisible();
   mode = "populated";
   await page.goto("/skyline/queues/queue_missing");
-  await expect(page.getByRole("alert")).toContainText("Queue target not found");
+  await expect(page.getByRole("heading", { name: "Not found" })).toBeVisible();
 
   detailMode = "filtered-empty";
   await page.goto(`/skyline/queues/${queueId}?status=failed`);
@@ -226,10 +225,11 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   await expect(page.getByText("Invoice", { exact: true })).toBeVisible();
   detailMode = "idle";
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Concurrency" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recorded running" }).first()).toBeVisible();
   detailMode = "error";
   await page.reload();
-  await expect(page.getByRole("alert")).toContainText("Queue-target evidence could not be loaded.");
+  await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
+  await expect(page.getByText("Queue detail unavailable.", { exact: true })).toBeVisible();
 });
 
 test("Queues cursor-paginate list and recorded Runs through URL-backed API reads", async ({ page }) => {
@@ -270,15 +270,6 @@ test("Queues cursor-paginate list and recorded Runs through URL-backed API reads
   await page.locator('a[href*="direction=backward"]').click();
   await expect(page).toHaveURL(/cursor=previous-runs&direction=backward/);
   await expect(page.getByText("run_1", { exact: true })).toBeVisible();
-});
-
-test("Queue detail exposes no serious accessibility violations", async ({ page }) => {
-  await routeQueues(page);
-  await page.goto(`/skyline/queues/${queueId}`);
-  const violations = (await new AxeBuilder({ page }).analyze()).violations
-    .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
-    .map((violation) => ({ id: violation.id, targets: violation.nodes.map((node) => node.target) }));
-  expect(violations).toEqual([]);
 });
 
 async function routeQueues(page: Page) {

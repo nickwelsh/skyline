@@ -13,17 +13,6 @@ import { QueueMetricSeries, type QueueMetricPoint, type QueueMetricSeriesConfig 
 
 type Point = { timestamp: string };
 
-export function QueueEnvironmentCharts() {
-  return (
-    <>
-      <MetricChartCard title="Env saturation" points={[]} series={[]} simpleEmpty />
-      <MetricChartCard title="Backlog" points={[]} series={[]} simpleEmpty />
-      <MetricChartCard title="Scheduling delay p95" points={[]} series={[]} simpleEmpty />
-      <MetricChartCard title="Throttled" points={[]} series={[]} simpleEmpty />
-    </>
-  );
-}
-
 export function QueueTargetCharts({
   activity,
   queueTime,
@@ -33,18 +22,14 @@ export function QueueTargetCharts({
   queueTime: Array<Point & { sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null }>;
   recordedRuns?: ReactNode;
 }) {
-  const running = activity.map((point) => point.recordedRunCounts.running);
-  const queued = activity.map((point) => point.recordedRunCounts.queued);
   const enqueued = activity.map((point) => point.recordedRuns);
   const started = activity.map((point) => point.recordedRunCounts.running + point.recordedRunCounts.completed + point.recordedRunCounts.failed);
   return (
     <ChartSyncProvider>
       <section aria-label="Queue-target activity" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <MetricChartCard title="Concurrency" capabilityMarker="queue-detail-concurrency-limit" className="aspect-[2/1]" showLegend points={activity.map((point, index) => ({ timestamp: point.timestamp, limit: null, running: running[index] }))} series={[{ key: "limit", color: "var(--color-queues-chart-ref)", label: "Limit" }, { key: "running", color: "var(--color-queues-chart)", label: "Running" }]} />
-        <MetricChartCard title="Queue depth" className="aspect-[2/1]" points={activity.map((point, index) => ({ timestamp: point.timestamp, queued: queued[index] }))} series={[{ key: "queued", color: "var(--color-queues-chart)", label: "Queued" }]} />
         <MetricChartCard title="Throughput" className="aspect-[2/1]" showLegend extraLegend={[{ color: "var(--color-warning)", label: "Falling behind" }]} points={activity.map((point, index) => ({ timestamp: point.timestamp, enqueued: enqueued[index], started: started[index] }))} series={[{ key: "enqueued", color: "var(--color-queues-chart-ref)", label: "Enqueued" }, { key: "started", color: "var(--color-queues-chart)", label: "Started" }]} warningOverlay={{ series: "started", below: "enqueued" }} />
         <MetricChartCard title="Scheduling delay" className="aspect-[2/1]" showLegend points={queueTime.map((point) => ({ timestamp: point.timestamp, p50: waitPoint(point.medianUs, point.sampleCount), p95: waitPoint(point.p95Us, point.sampleCount), p99: waitPoint(point.maximumUs, point.sampleCount) }))} series={[{ key: "p50", color: "#22D3EE", label: "p50" }, { key: "p95", color: "#F59E0B", label: "p95" }, { key: "p99", color: "#EF4444", label: "p99" }]} valueFormat={formatWaitMs} />
-        {recordedRuns ?? <MetricChartCard title="Throttled" capabilityMarker="queue-detail-throttled" className="h-52 sm:col-span-2" points={[]} series={[]} />}
+        <div className="h-52 sm:col-span-2">{recordedRuns}</div>
       </section>
     </ChartSyncProvider>
   );
