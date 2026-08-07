@@ -53,7 +53,7 @@ for (const capture of captures) {
       ]);
 
       for (const definition of definitions.filter(({ captures }) => captures.includes(capture))) {
-        const observation = await discoverCapabilityOmissionObservation(trigger, skyline, definition);
+        const observation = await discoverCapabilityOmissionObservation(trigger, skyline, definition, capture);
         const measurement = Object.fromEntries(observation.selectorPairs.map(({ id, triggerRect, skylineRect, triggerComputedStyleSha256, skylineComputedStyleSha256, triggerAccessibilitySha256, skylineAccessibilitySha256 }) => [id, {
           triggerRect,
           skylineRect,

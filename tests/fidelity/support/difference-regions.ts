@@ -77,6 +77,7 @@ export type ProtectedSelectorMeasurement = {
 };
 export const mobileProtectedSelectorViewport = { width: 390, height: 844 } as const;
 export type ProtectedSelectorViewportPolicy = { allowBelowViewport?: true; allowRightOfViewport?: typeof mobileProtectedSelectorViewport };
+type ProtectedSelectorCaptureContext = { capture?: string; permittedCaptures?: readonly string[] };
 export type ProtectedSelectorDefinition = { id: string; application: "trigger" | "skyline"; selector: string } & ProtectedSelectorViewportPolicy;
 export function skylineProtectedSelector(id: string, selector: string, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorDefinition {
   return { id, application: "skyline", selector, ...policy };
@@ -139,7 +140,7 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
       regions.push({ kind: "presenter-extension", id: definition.id, presenter: resolved, expected: { ...definition, ...definition.measurements[capture] } } satisfies PresenterExtensionRegion);
       continue;
     }
-    const resolved = validateCapabilityOmissionObservation(definition, await discoverCapabilityOmissionObservation(trigger, skyline, definition), capture);
+    const resolved = validateCapabilityOmissionObservation(definition, await discoverCapabilityOmissionObservation(trigger, skyline, definition, capture), capture);
     regions.push({ kind: "capability-omission", id: definition.id, omissions: resolved.selectorPairs, protectedSelectors: resolved.protectedSelectors ?? [], expected: definition.measurements[capture], expectedProtected: definition.protectedMeasurements?.[capture] ?? {} } satisfies CapabilityOmissionRegion);
   }
   return regions;
@@ -220,7 +221,8 @@ export async function settleStableElementPair(
   await Promise.all(sides.map(({ label, page, selector }) => step(`presenter-stable-after-settle:${label}`, () => waitForStableElementStyle(page, selector))));
 }
 
-export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition): Promise<CapabilityOmissionObservation> {
+export async function discoverCapabilityOmissionObservation(trigger: Page, skyline: Page, definition: CapabilityOmissionDefinition, capture: string): Promise<CapabilityOmissionObservation> {
+  if (!definition.captures.includes(capture)) throw new Error(`Capability-omission region ${definition.id} does not permit capture ${capture}.`);
   const dom = [];
   for (const pair of definition.selectorPairs) {
     dom.push({
@@ -251,15 +253,16 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
     validateProtectedElementPresentation(definition.id, protectedSelector.id, element);
     protectedSelectors.push({ ...protectedSelector, ...element, crop: undefined as unknown as ProtectedSelectorCrop });
   }
+  const captureContext = { capture, permittedCaptures: definition.captures };
   for (const application of ["trigger", "skyline"] as const) {
     const page = application === "trigger" ? trigger : skyline;
     const applicationSelectors = protectedSelectors.filter((selector) => selector.application === application);
     if (applicationSelectors.length === 0) continue;
     const viewport = page.viewportSize();
     if (!viewport) throw new Error("Protected selector requires a fixed viewport.");
-    const hasVisibleCrop = applicationSelectors.some((selector) => protectedSelectorCropStatus(viewport, selector.rect, selector) === "visible");
+    const hasVisibleCrop = applicationSelectors.some((selector) => protectedSelectorCropStatus(viewport, selector.rect, selector, captureContext) === "visible");
     const screenshot = hasVisibleCrop ? await page.screenshot({ animations: "disabled", caret: "hide" }) : undefined;
-    for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector);
+    for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector, captureContext);
   }
   return { selectorPairs, protectedSelectors };
 }
@@ -294,8 +297,8 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   return observation;
 }
 
-export function captureProtectedElementCrop(screenshot: Buffer | undefined, viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorCrop {
-  const status = protectedSelectorCropStatus(viewport, rect, policy);
+export function captureProtectedElementCrop(screenshot: Buffer | undefined, viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}, captureContext: ProtectedSelectorCaptureContext = {}): ProtectedSelectorCrop {
+  const status = protectedSelectorCropStatus(viewport, rect, policy, captureContext);
   if (status !== "visible") return { status };
   const x = Math.max(0, Math.floor(rect.x));
   const y = Math.max(0, Math.floor(rect.y));
@@ -317,10 +320,11 @@ export function validateProtectedElementPresentation(definitionId: string, selec
   if (["display", "visibility", "opacity"].some((property) => value(property) === undefined) || value("display") === "none" || ["hidden", "collapse"].includes(value("visibility") ?? "") || value("content-visibility") === "hidden" || Number(value("opacity")) === 0) throw new Error(`Allowed region ${definitionId} protected selector ${selectorId} is not visibly painted.`);
 }
 
-function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}): ProtectedSelectorCrop["status"] {
+function protectedSelectorCropStatus(viewport: { width: number; height: number }, rect: Rect, policy: ProtectedSelectorViewportPolicy = {}, captureContext: ProtectedSelectorCaptureContext = {}): ProtectedSelectorCrop["status"] {
   const { allowBelowViewport, allowRightOfViewport } = policy;
   if (rect.x >= viewport.width) {
-    if (!allowRightOfViewport || viewport.width !== allowRightOfViewport.width || viewport.height !== allowRightOfViewport.height) throw new Error("Protected selector is unexpectedly outside the viewport.");
+    const { capture, permittedCaptures = [] } = captureContext;
+    if (!allowRightOfViewport || viewport.width !== allowRightOfViewport.width || viewport.height !== allowRightOfViewport.height || !capture?.endsWith("@390x844-classic") || !permittedCaptures.includes(capture)) throw new Error("Protected selector is unexpectedly outside the viewport.");
     if (rect.y >= viewport.height && !allowBelowViewport) throw new Error("Protected selector is unexpectedly below the viewport.");
     if (rect.y < viewport.height && rect.y + rect.height <= 0) throw new Error("Protected selector is unexpectedly outside the viewport.");
     return "right-of-viewport";

@@ -7,6 +7,7 @@ import {
   applicablePresenterExtensions,
   accessibilityOmissionSelectors,
   captureProtectedElementCrop,
+  discoverCapabilityOmissionObservation,
   fingerprintAccessibility,
   fingerprintCapabilityAccessibility,
   fingerprintComputedStyle,
@@ -339,6 +340,10 @@ describe("framework-extension fidelity regions", () => {
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [{ ...region.selectorPairs[0], skylineBoundary: false as true }, region.selectorPairs[1]] }] })).toThrow(/selector ownership/i);
   });
 
+  test("rejects capability discovery outside its configured captures", async () => {
+    await expect(discoverCapabilityOmissionObservation({} as Page, {} as Page, capabilityDefinition(), "unknown@390x844-classic")).rejects.toThrow(/does not permit capture/i);
+  });
+
   test("locks protected reflow evidence including element screenshots", () => {
     const region = capabilityDefinition();
     region.selectorPairs[0] = { ...region.selectorPairs[0], skylineBoundary: true };
@@ -377,18 +382,25 @@ describe("framework-extension fidelity regions", () => {
     const rect = { x: 0, y: 0, width: 1, height: 1 };
     const mobileViewport = { width: 390, height: 844 } as const;
     const mobileRightPolicy = { allowRightOfViewport: mobileViewport } as const;
+    const classicCapture = "job-found@390x844-classic";
+    const contextFor = (capture: string) => ({ capture, permittedCaptures: [capture] });
 
     expect(captureProtectedElementCrop(screenshot(false), { width: 2, height: 2 }, rect))
       .not.toEqual(captureProtectedElementCrop(screenshot(true), { width: 2, height: 2 }, rect));
     expect(() => captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 })).toThrow(/below the viewport/i);
     expect(captureProtectedElementCrop(undefined, { width: 2, height: 2 }, { x: 0, y: 3, width: 1, height: 1 }, { allowBelowViewport: true })).toEqual({ status: "below-viewport" });
     expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, { allowBelowViewport: true })).toThrow(/outside the viewport/i);
-    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toEqual({ status: "right-of-viewport" });
-    expect(() => captureProtectedElementCrop(undefined, { width: 390, height: 960 }, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
-    expect(() => captureProtectedElementCrop(undefined, { width: 1024, height: 844 }, { x: 1025, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
-    expect(() => captureProtectedElementCrop(undefined, { width: 1440, height: 960 }, { x: 1441, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
-    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/below the viewport/i);
-    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, { allowBelowViewport: true, ...mobileRightPolicy })).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy)).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found@390x844-dark"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found@390x844-system"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, { capture: "unknown@390x844-classic", permittedCaptures: [classicCapture] })).toThrow(/outside the viewport/i);
+    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor(classicCapture))).toEqual({ status: "right-of-viewport" });
+    expect(() => captureProtectedElementCrop(undefined, { width: 390, height: 960 }, { x: 391, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found@390x960-classic"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, { width: 1024, height: 844 }, { x: 1025, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found@1024x844-classic"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, { width: 1440, height: 960 }, { x: 1441, y: 0, width: 1, height: 1 }, mobileRightPolicy, contextFor("job-found@1440x960-classic"))).toThrow(/outside the viewport/i);
+    expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, mobileRightPolicy, contextFor(classicCapture))).toThrow(/below the viewport/i);
+    expect(captureProtectedElementCrop(undefined, mobileViewport, { x: 391, y: 845, width: 1, height: 1 }, { allowBelowViewport: true, ...mobileRightPolicy }, contextFor(classicCapture))).toEqual({ status: "right-of-viewport" });
     expect(() => captureProtectedElementCrop(undefined, mobileViewport, { x: -3, y: 0, width: 1, height: 1 }, { allowBelowViewport: true, ...mobileRightPolicy })).toThrow(/outside the viewport/i);
   });
 
