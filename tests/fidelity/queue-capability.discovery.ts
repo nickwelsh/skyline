@@ -62,7 +62,13 @@ for (const capture of captures) {
           triggerAccessibilitySha256,
           skylineAccessibilitySha256,
         }]));
-        process.stdout.write(`\nCAPABILITY_OMISSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement })}\n`);
+        const protectedMeasurement = Object.fromEntries((observation.protectedSelectors ?? []).map(({ id, rect, computedStyleSha256, accessibilitySha256, crop }) => [id, {
+          rect,
+          computedStyleSha256,
+          accessibilitySha256,
+          crop,
+        }]));
+        process.stdout.write(`\nCAPABILITY_OMISSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement, protectedMeasurement })}\n`);
       }
     } finally {
       await context.close();
@@ -90,6 +96,6 @@ async function exposeQueueFilteringState(page: Page, application: "skyline" | "t
   await step(`filter:${application}:navigation`, () => page.waitForURL((url) => url.searchParams.get(parameter) === "reports", { timeout: 1_500 }));
   const anchor = page.locator(`[data-${application === "trigger" ? "trigger" : "skyline"}-anchor="queue-filter-controls"]`);
   await step(`filter:${application}:expanded`, () => expect(anchor).toHaveCSS("width", "384px", { timeout: 1_500 }));
-  const marker = `[data-${application === "trigger" ? "trigger" : "skyline"}-capability="queue-target-queue_3ac9ae5d-limit"]`;
+  const marker = `[data-${application === "trigger" ? "trigger" : "skyline"}-${application === "trigger" ? "capability" : "capability-boundary"}="queue-target-queue_3ac9ae5d-limit"]`;
   await step(`filter:${application}:ready`, () => page.locator(marker).waitFor());
 }

@@ -87,6 +87,10 @@ describe("NW-221 Queue capability discovery definitions", () => {
     expect(discovery).toContain('getByLabel("Connection", { exact: true })');
     expect(discovery).toContain('connection.selectOption("database")');
     expect(discovery).toContain('url.searchParams.get("connection") === "database"');
+    expect(discovery).toContain('application === "trigger" ? "capability" : "capability-boundary"');
+    expect(discovery).toContain("protectedMeasurement");
+    expect(discovery).toContain("observation.protectedSelectors");
+    expect(discovery).toContain("measurement, protectedMeasurement");
     expect(discovery).not.toContain("10_000");
   });
 });
