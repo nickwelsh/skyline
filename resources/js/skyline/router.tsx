@@ -32,7 +32,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
       const routePath = url.pathname.startsWith(bootstrap.basePath)
         ? url.pathname.slice(bootstrap.basePath.length) || "/"
         : url.pathname;
-      throw redirect(`${routePath}${url.search}`);
+      throw redirect(`${routePath.startsWith("/") ? routePath : `/${routePath}`}${url.search}`);
     }
     if (!jobFiltered && rootOnly !== null && preferences && lastPersistedRootOnlyUrl !== url.href) {
       lastPersistedRootOnlyUrl = url.href;

@@ -18,6 +18,23 @@ afterEach(() => {
 });
 
 describe("Environment route error boundary", () => {
+  it("redirects persisted Runs filters within a root basename", async () => {
+    window.history.replaceState({}, "", "/runs");
+    const preferences = createUiPreferencesAdapter({ basePath: "/" });
+    preferences.update((current) => ({ ...current, runs: { rootOnly: true } }));
+    const router = createSkylineRouter({
+      schemaVersion: 1,
+      basePath: "/",
+      applicationName: "Skyline",
+      environmentLabel: "local",
+      capabilities: fixtureCapabilities,
+    }, new FixtureAdapter(), preferences);
+
+    await vi.waitFor(() => expect(router.state.location.pathname + router.state.location.search).toBe("/runs?rootOnly=true"));
+
+    router.dispose();
+  });
+
   it("owns every environment list and detail loader", () => {
     window.history.replaceState({}, "", "/");
     const router = createSkylineRouter({
