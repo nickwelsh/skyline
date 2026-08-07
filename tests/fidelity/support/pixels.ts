@@ -20,7 +20,7 @@ export type PresenterExtensionRegion = {
 export type CapabilityOmissionRegion = {
   kind: "capability-omission";
   id: string;
-  omissions: Array<{ id: string; triggerSelector: string; skylineSelector: string } & CapabilityOmissionMeasurement>;
+  omissions: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
   expected: Record<string, CapabilityOmissionMeasurement>;
 };
 type CapabilityOmissionMeasurement = {

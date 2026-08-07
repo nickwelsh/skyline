@@ -189,7 +189,7 @@ export function validateAllowedDifferences(differences) {
       if (new Set(region.captures).size !== region.captures.length) fail(`Duplicate capability-omission capture: ${region.id}`);
       const pairIds = region.selectorPairs.map((pair) => pair.id);
       const pairSelectors = region.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]);
-      if (new Set(pairIds).size !== pairIds.length || new Set(pairSelectors).size !== pairSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector)) fail(`Invalid capability-omission selector pair: ${region.id}`);
+      if (new Set(pairIds).size !== pairIds.length || new Set(pairSelectors).size !== pairSelectors.length || region.selectorPairs.some((pair) => !pair.id || !pair.triggerSelector || !pair.skylineSelector || (pair.skylineBoundary !== undefined && pair.skylineBoundary !== true))) fail(`Invalid capability-omission selector pair: ${region.id}`);
       const measurements = Object.keys(region.measurements);
       if (measurements.length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing capability-omission measurement: ${region.id}`);
       for (const measurement of Object.values(region.measurements)) {

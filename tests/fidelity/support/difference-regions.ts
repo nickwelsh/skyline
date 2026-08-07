@@ -71,11 +71,11 @@ export type CapabilityOmissionDefinition = {
   acceptance: string[];
   citations: string[];
   captures: string[];
-  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string }>;
+  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true }>;
   measurements: Record<string, Record<string, CapabilityOmissionMeasurement>>;
 };
 export type CapabilityOmissionObservation = {
-  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string } & CapabilityOmissionMeasurement>;
+  selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
 };
 export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
@@ -229,7 +229,7 @@ export function validateCapabilityOmissionObservation(definition: CapabilityOmis
   for (const [index, pair] of definition.selectorPairs.entries()) {
     const observed = observation.selectorPairs[index];
     const expected = measurement[pair.id];
-    if (!observed || !expected || observed.id !== pair.id || observed.triggerSelector !== pair.triggerSelector || observed.skylineSelector !== pair.skylineSelector) throw new Error(`Allowed region ${definition.id} changed selector pair ${pair.id}.`);
+    if (!observed || !expected || observed.id !== pair.id || observed.triggerSelector !== pair.triggerSelector || observed.skylineSelector !== pair.skylineSelector || observed.skylineBoundary !== pair.skylineBoundary) throw new Error(`Allowed region ${definition.id} changed selector pair ${pair.id}.`);
     for (const key of ["triggerRect", "skylineRect", "triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256"] as const) {
       if (JSON.stringify(observed[key]) !== JSON.stringify(expected[key])) throw new Error(`Allowed region ${definition.id} pair ${pair.id} changed ${key}.`);
     }
@@ -396,7 +396,7 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
   return regions.flatMap((region) => {
     if (region.kind === "framework-extension") return application === "skyline" ? [region.extension.skylineSelector] : [];
     if (region.kind === "presenter-extension") return [application === "trigger" ? region.expected.triggerSelector : region.expected.skylineSelector];
-    if (region.kind === "capability-omission") return region.omissions.map((pair) => application === "trigger" ? pair.triggerSelector : pair.skylineSelector);
+    if (region.kind === "capability-omission") return region.omissions.flatMap((pair) => application === "trigger" ? [pair.triggerSelector] : pair.skylineBoundary ? [] : [pair.skylineSelector]);
     return [];
   });
 }
@@ -437,7 +437,7 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       const collision = extensions.find((selector) => selector === definition.triggerAnchorSelector || selector === definition.skylineAnchorSelector);
       if (collision) throw new Error(`Framework-extension region ${definition.id} collides on extension and anchor selector ${collision}.`);
     }
-    if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length)) throw new Error(`Capability-omission region ${definition.id} has duplicate selector ownership.`);
+    if (definition.category === "capability-omission" && (new Set(definition.selectorPairs.map((pair) => pair.id)).size !== definition.selectorPairs.length || new Set(selectors).size !== selectors.length || definition.selectorPairs.some((pair) => pair.skylineBoundary !== undefined && pair.skylineBoundary !== true))) throw new Error(`Capability-omission region ${definition.id} has invalid selector ownership.`);
     const anchorPair = definition.category === "capability-omission" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
       const kind = definition.category === "capability-omission" ? "capability"

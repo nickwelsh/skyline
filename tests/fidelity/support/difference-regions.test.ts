@@ -322,6 +322,18 @@ describe("framework-extension fidelity regions", () => {
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [region, { ...region, id: "disjoint-reuse", captures: ["queues-busy@1440x960-dark"], measurements: { "queues-busy@1440x960-dark": measurement } }] })).not.toThrow();
     expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [...region.selectorPairs, { ...region.selectorPairs[0], id: "duplicate" }] }] })).toThrow(/selector ownership/i);
   });
+
+  test("measures Skyline reflow boundaries without omitting their AX subtrees", () => {
+    const region = capabilityDefinition();
+    region.selectorPairs[0] = { ...region.selectorPairs[0], skylineBoundary: true };
+    const measurement = region.measurements[region.captures[0]];
+    const observed = { selectorPairs: region.selectorPairs.map((pair) => ({ ...pair, ...measurement[pair.id] })) };
+
+    expect(validateCapabilityOmissionObservation(region, observed, region.captures[0])).toBe(observed);
+    expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "trigger")).toEqual(region.selectorPairs.map((pair) => pair.triggerSelector));
+    expect(accessibilityOmissionSelectors([{ kind: "capability-omission", id: region.id, omissions: observed.selectorPairs, expected: measurement }], "skyline")).toEqual([region.selectorPairs[1].skylineSelector]);
+    expect(() => applicableCapabilityOmissions(region.captures[0], { regions: [{ ...region, selectorPairs: [{ ...region.selectorPairs[0], skylineBoundary: false as true }, region.selectorPairs[1]] }] })).toThrow(/selector ownership/i);
+  });
 });
 
 function definition(): FrameworkExtensionDefinition {
