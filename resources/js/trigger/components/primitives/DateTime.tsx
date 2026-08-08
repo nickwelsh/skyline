@@ -10,17 +10,20 @@ import { SimpleTooltip } from "./Tooltip";
 type DateTimeShortProps = {
   date: Date | string;
   hour12?: boolean;
+  includeSeconds?: boolean;
+  includeTime?: boolean;
+  includeDate?: boolean;
 };
 
-export const DateTime = ({ date, hour12 = true }: DateTimeShortProps) => {
+export const DateTime = ({ date, hour12 = true, includeSeconds = true, includeTime = true, includeDate = true }: DateTimeShortProps) => {
   const realDate = typeof date === "string" ? new Date(date) : date;
   const formattedDateTime = new Intl.DateTimeFormat(browserLocales(), {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
+    year: includeDate ? "numeric" : undefined,
+    month: includeDate ? "short" : undefined,
+    day: includeDate ? "numeric" : undefined,
+    hour: includeTime ? "numeric" : undefined,
+    minute: includeTime ? "numeric" : undefined,
+    second: includeTime && includeSeconds ? "numeric" : undefined,
     timeZone: browserTimeZone(),
     hour12,
   }).format(realDate);

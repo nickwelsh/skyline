@@ -5,7 +5,7 @@
  */
 import * as Ariakit from "@ariakit/react";
 import { CalendarIcon, PlusIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
-import { startTransition, useEffect, useRef, useState, type ReactNode } from "react";
+import { startTransition, useRef, useState, type ReactNode } from "react";
 import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { SearchInput } from "~/components/primitives/SearchInput";
@@ -22,6 +22,7 @@ import {
 } from "~/components/primitives/Select";
 import { ShortcutKey } from "~/components/primitives/ShortcutKey";
 import { Switch } from "~/components/primitives/Switch";
+import { TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/primitives/Tooltip";
 import { useSearchParams } from "~/hooks/useSearchParam";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
@@ -173,88 +174,20 @@ function PermanentJobFilter({ jobs }: { jobs: string[] }) {
 
 function CreatedFilter() {
   const { value, replace } = useSearchParams();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const fromParam = value("triggeredFrom");
-  const toParam = value("triggeredTo");
-  const period = inferPeriod(fromParam, toParam);
-  const [open, setOpen] = useState<boolean>();
-  const [section, setSection] = useState<"duration" | "range">(fromParam || toParam ? "range" : "duration");
-  const [selectedPeriod, setSelectedPeriod] = useState(period.value);
-  const [customValue, setCustomValue] = useState("");
-  const [customUnit, setCustomUnit] = useState("m");
-  const [from, setFrom] = useState(toLocal(fromParam));
-  const [to, setTo] = useState(toLocal(toParam));
-  const [error, setError] = useState<string>();
-  useEffect(() => {
-    setSelectedPeriod(period.value); setFrom(toLocal(fromParam)); setTo(toLocal(toParam));
-    setSection(fromParam || toParam ? "range" : "duration");
-  }, [fromParam, toParam, period.value]);
-  useShortcutKeys({ shortcut: { key: "d" }, action: (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    triggerRef.current?.click();
-  } });
-  const applyPeriod = (milliseconds: number, periodValue: string) => {
-    const nextTo = new Date();
-    replace({ triggeredFrom: new Date(nextTo.getTime() - milliseconds).toISOString(), triggeredTo: nextTo.toISOString(), cursor: undefined, direction: undefined });
-    setSelectedPeriod(periodValue); setError(undefined); setOpen(false);
-  };
-  const apply = () => {
-    if (section === "duration") {
-      const amount = Number(customValue);
-      if (!Number.isInteger(amount) || amount <= 0) { setError("Please enter a valid custom duration"); return; }
-      const unitMs = customUnit === "m" ? 60_000 : customUnit === "h" ? 3_600_000 : 86_400_000;
-      applyPeriod(amount * unitMs, `${amount}${customUnit}`);
+  const from = value("triggeredFrom");
+  const to = value("triggeredTo");
+  const period = publicPeriod(from, to);
+  const apply = (next: TimeFilterApplyValues) => {
+    if (next.period) {
+      const milliseconds = periodMilliseconds(next.period);
+      const triggeredTo = new Date();
+      replace({ triggeredFrom: new Date(triggeredTo.getTime() - milliseconds).toISOString(), triggeredTo: triggeredTo.toISOString(), cursor: undefined, direction: undefined });
       return;
     }
-    if (!from && !to) { setError("Please specify at least one date"); return; }
-    const fromDate = from ? new Date(from) : undefined;
-    const toDate = to ? new Date(to) : undefined;
-    if (fromDate && toDate && fromDate > toDate) { setError("From date must be before To date"); return; }
-    replace({ triggeredFrom: fromDate?.toISOString(), triggeredTo: toDate?.toISOString(), cursor: undefined, direction: undefined });
-    setError(undefined); setOpen(false);
+    replace({ triggeredFrom: publicInstant(next.from), triggeredTo: publicInstant(next.to), cursor: undefined, direction: undefined });
   };
-  return (
-    <SelectProvider open={open} setOpen={setOpen}>
-      <Ariakit.TooltipProvider timeout={200}>
-        <Ariakit.TooltipAnchor render={<Ariakit.Select ref={triggerRef} aria-label="Created range" render={<div className="group cursor-pointer focus-custom" />} />}>
-          <AppliedFilter label="Created" icon={<CalendarIcon className="size-4" />} value={period.label} removable={false} variant="secondary/small" />
-        </Ariakit.TooltipAnchor>
-        <Ariakit.Tooltip className={tooltipClassName}><div className="flex items-center gap-2"><span>Filter by time period</span><ShortcutKey className="size-4 flex-none" shortcut={{ key: "d" }} variant="small" /></div></Ariakit.Tooltip>
-      </Ariakit.TooltipProvider>
-      <SelectPopover hideOnEnter={false}>
-        <div className="flex flex-col gap-4 p-3">
-          <div className="flex cursor-pointer gap-3 rounded-md pb-3" onClick={() => { setSection("duration"); setError(undefined); }}>
-            <Radio checked={section === "duration"} />
-            <div className="flex flex-1 flex-col gap-1">
-              <label className={section === "duration" ? "mb-2 text-xs text-indigo-500" : "mb-2 text-xs text-text-bright"}>Created in the last</label>
-              <div className="grid grid-cols-4 gap-2">
-                <div className={`col-span-4 flex h-[1.8rem] items-center gap-2 rounded border bg-background-hover pr-2 ${section === "duration" && selectedPeriod === "custom" ? "border-indigo-500" : "border-border-bright"}`} onClick={(event) => event.stopPropagation()}>
-                  <input aria-label="Custom duration" type="number" min="1" step="1" placeholder="Custom" value={customValue} onFocus={() => { setSection("duration"); setSelectedPeriod("custom"); }} onChange={(event) => { setCustomValue(event.target.value); setSection("duration"); setSelectedPeriod("custom"); setError(undefined); }} className="h-full w-full border-none bg-transparent px-2 text-xs text-text-bright outline-hidden focus:ring-0" />
-                  {[["mins", "m"], ["hours", "h"], ["days", "d"]].map(([label, unit]) => <button key={unit} type="button" onClick={() => { setCustomUnit(unit); setSelectedPeriod("custom"); }} className={`text-xs ${customUnit === unit ? "text-indigo-500" : "text-text-dimmed"}`}>{label}</button>)}
-                </div>
-                {timePeriods.map((option) => <button key={option.value} type="button" className={`h-6 rounded border bg-secondary px-2 text-xs text-text-bright ${section === "duration" && selectedPeriod === option.value ? "border-indigo-500" : "border-border-bright/50"}`} onClick={(event) => { event.stopPropagation(); setSection("duration"); applyPeriod(option.milliseconds, option.value); }}>{option.label}</button>)}
-              </div>
-            </div>
-          </div>
-          <div className="flex cursor-pointer gap-3" onClick={() => { setSection("range"); setError(undefined); }}>
-            <Radio checked={section === "range"} />
-            <div className="flex flex-1 flex-col gap-2">
-              <label className={section === "range" ? "text-xs text-indigo-500" : "text-xs text-text-bright"}>Or specify exact time range <span className="text-text-dimmed">(in local time)</span></label>
-              <label className="flex items-center gap-2 text-xs text-text-dimmed" onClick={(event) => event.stopPropagation()}>From<input aria-label="Triggered from" type="datetime-local" step="1" value={from} onChange={(event) => { setFrom(event.target.value); setSection("range"); setError(undefined); }} className="h-8 grow rounded border border-grid-bright bg-input-bg px-2" /></label>
-              <label className="flex items-center gap-2 text-xs text-text-dimmed" onClick={(event) => event.stopPropagation()}>To<input aria-label="Triggered to" type="datetime-local" step="1" value={to} onChange={(event) => { setTo(event.target.value); setSection("range"); setError(undefined); }} className="h-8 grow rounded border border-grid-bright bg-input-bg px-2" /></label>
-            </div>
-          </div>
-          {error ? <p className="text-xs text-error">{error}</p> : null}
-          <div className="flex justify-between gap-1 border-t border-grid-bright pt-3"><button type="button" className="h-6 rounded border border-border-bright/50 bg-secondary px-2 text-xs" onClick={() => setOpen(false)}>Cancel</button><button type="button" className="h-6 rounded bg-indigo-500 px-2 text-xs text-white" onClick={apply}>Apply</button></div>
-        </div>
-      </SelectPopover>
-    </SelectProvider>
-  );
+  return <TimeFilter defaultPeriod="7d" period={period} from={period ? undefined : from} to={period ? undefined : to} shortcut={{ key: "d" }} onValueChange={apply} />;
 }
-
-function Radio({ checked }: { checked: boolean }) { return <span aria-hidden className={`mt-0.5 size-4 rounded-full border ${checked ? "border-indigo-500 bg-indigo-500" : "border-border-bright"}`} />; }
-
 function RootOnlyToggle() {
   const { value, replace } = useSearchParams();
   return <Ariakit.TooltipProvider timeout={200}>
@@ -311,31 +244,23 @@ function FilterMenuProvider({ children, onClose }: { children: (search: string, 
 
 function appliedSummary(values: string[]) { return values.join(", "); }
 function statusIcon() { return <div className="grid size-4 place-items-center"><div className="size-[75%] rounded-full border-2 border-text-bright" /></div>; }
+export function filterIcon(filterKey: string): ReactNode | undefined { return ["period", "from", "to"].includes(filterKey) ? <CalendarIcon className="size-4" /> : undefined; }
 function queueValue(connection?: string, queue?: string) { return connection && queue ? `${connection}\u0000${queue}` : ""; }
 function sourceStatusIndex(status: RunStatus) { return ({ queued: 2, running: 4, retrying: 5, completed: 6, failed: 7 } as const)[status]; }
 
-const timePeriods = [
-  ["1 min", "1m", 60_000], ["5 mins", "5m", 300_000], ["30 mins", "30m", 1_800_000],
-  ["1 hr", "1h", 3_600_000], ["6 hrs", "6h", 21_600_000], ["12 hrs", "12h", 43_200_000],
-  ["1 day", "1d", 86_400_000], ["3 days", "3d", 259_200_000], ["5 days", "5d", 432_000_000],
-  ["7 days", "7d", 604_800_000], ["14 days", "14d", 1_209_600_000], ["30 days", "30d", 2_592_000_000],
-].map(([label, value, milliseconds]) => ({ label: String(label), value: String(value), milliseconds: Number(milliseconds) }));
-
-function inferPeriod(from?: string, to?: string) {
-  if (from && !to) return { label: `From ${new Date(from).toLocaleDateString()}`, value: "from", milliseconds: 0 };
-  if (!from && to) return { label: `Until ${new Date(to).toLocaleDateString()}`, value: "to", milliseconds: 0 };
-  if (!from || !to) return timePeriods[9];
+function publicPeriod(from?: string, to?: string) {
+  if (!from || !to) return undefined;
   const duration = Date.parse(to) - Date.parse(from);
-  const preset = timePeriods.find(({ milliseconds }) => milliseconds === duration);
-  if (preset) return preset;
-  for (const [size, singular, plural, unit] of [[86_400_000, "day", "days", "d"], [3_600_000, "hour", "hours", "h"], [60_000, "minute", "minutes", "m"]] as const) {
-    if (duration > 0 && duration % size === 0) {
-      const amount = duration / size;
-      return { label: `${amount} ${amount === 1 ? singular : plural}`, value: `${amount}${unit}`, milliseconds: duration };
-    }
+  for (const [size, unit] of [[86_400_000, "d"], [3_600_000, "h"], [60_000, "m"]] as const) {
+    if (duration > 0 && duration % size === 0) return `${duration / size}${unit}`;
   }
-  return { label: "Custom", value: "custom", milliseconds: duration };
+  return undefined;
 }
-function toLocal(value?: string) { return value ? new Date(value).toISOString().slice(0, 19) : ""; }
+function periodMilliseconds(period: string) {
+  const match = period.match(/^(\d+)([mhd])$/);
+  if (!match) throw new Error(`Invalid time period: ${period}`);
+  return Number(match[1]) * (match[2] === "m" ? 60_000 : match[2] === "h" ? 3_600_000 : 86_400_000);
+}
+function publicInstant(value?: string) { return value ? new Date(/^\d+$/.test(value) ? Number(value) : value).toISOString() : undefined; }
 
 const tooltipClassName = "z-40 cursor-default rounded border border-grid-bright bg-background-bright px-2 py-1.5 text-xs";
