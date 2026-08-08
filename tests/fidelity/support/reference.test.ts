@@ -71,8 +71,9 @@ describe("pinned Trigger Runs fixture", () => {
     const filters = conditionRunsFilterCapabilities(
       readFileSync(resolve(root, "components/runs/v3/RunFilters.tsx"), "utf8"),
     );
+    const sourceTable = readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8");
     const table = conditionRunsTableCapabilities(
-      readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
+      conditionErrorRunTableCapabilities(sourceTable, { detailVersions: false, detailMachines: false, detailPlatformColumns: false }),
     );
 
     expect(route).toContain("hideSearch");
@@ -81,12 +82,14 @@ describe("pinned Trigger Runs fixture", () => {
     expect(filters).toContain('const filterTypes = [\n  { name: "queues"');
     expect(filters).toContain('<SearchInput placeholder="Search Runs" />');
     expect(filters).toContain("<span>Jobs</span>");
-    expect(table).toContain("run.queueDuration");
-    expect(table).toContain("run.duration");
-    expect(table).toContain("run.activeDuration");
+    expect(table).toContain("runsCapabilityCore ? run.queueDuration");
+    expect(table).toContain("runsCapabilityCore ? run.duration");
+    expect(table).toContain("runsCapabilityCore ? run.activeDuration");
     expect(table).toContain("run.queueTarget");
-    expect(table).toContain("if (props.additionalTableState?.errorId) return <SourceTaskRunsTable {...props} />");
-    expect(table).toContain("return <CapabilityRunsTable {...props} />");
+    expect(table).toContain("The amount of compute time used in the run.");
+    expect(table).not.toContain("CapabilityRunsTable");
+    expect(table).not.toContain("SourceTaskRunsTable");
+    expect(readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8")).not.toContain("RunListAdapter");
   });
 
   test("maps observed Runs into the capability-conditioned source row seam", async () => {
@@ -101,6 +104,7 @@ describe("pinned Trigger Runs fixture", () => {
       activeDuration: expect.any(String),
       queueTarget: expect.stringContaining(" / "),
     }));
+    expect(list.data.runs.some((run: any) => run.activeDuration === "—")).toBe(true);
   });
 });
 
