@@ -34,6 +34,13 @@ describe("semantic fidelity actions", () => {
       },
       { action: "click", target: { selector: "a[href*='direction=forward']" } },
       { action: "history", direction: "back" },
+      { action: "click", target: { selector: "[role='combobox']:has-text('Created:')" } },
+      { action: "click", target: { role: "button", name: "Yesterday" } },
+      { action: "click", target: { role: "button", name: "Apply" } },
+      { action: "click", target: { selector: "[role='combobox']:has-text('Created:')" } },
+      { action: "fill", target: { selector: "input[placeholder='Custom']" }, value: "2" },
+      { action: "click", target: { role: "button", name: "hours" } },
+      { action: "press", key: "Control+Enter" },
     ]);
   });
 

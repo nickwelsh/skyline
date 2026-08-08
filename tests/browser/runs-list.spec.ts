@@ -9,6 +9,7 @@ import { createFirstResponseGate } from "./support/deferred-response";
 const traceId = "00000000000000000000000000000001";
 
 test("pinned shell identifies the Application and keeps Runs state in basename URLs", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-08-05T12:34:56.000Z"));
   await routeRuns(page, pageResponse("completed"));
   await page.goto("/skyline");
 
@@ -64,22 +65,42 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await page.keyboard.press("d");
   await page.getByRole("button", { name: "1 day" }).click();
   await expect(page.getByText("Created:1 day", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/triggeredFrom=2026-08-04T12%3A34%3A56.000Z/);
   await page.getByRole("heading", { name: "Runs" }).click();
   await page.keyboard.press("d");
-  await page.getByLabel("Custom duration").fill("2");
+  await page.getByPlaceholder("Custom").fill("2");
   await page.getByRole("button", { name: "hours" }).click();
+  await page.keyboard.press("Control+Enter");
+  await expect(page.getByText("Created:2 hours", { exact: true })).toBeVisible();
+  const committedUrl = page.url();
+  await page.getByRole("heading", { name: "Runs" }).click();
+  await page.keyboard.press("d");
+  await page.getByPlaceholder("Custom").fill("0");
   await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("Please enter a valid custom duration")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page).toHaveURL(committedUrl);
   await expect(page.getByText("Created:2 hours", { exact: true })).toBeVisible();
   await page.getByRole("heading", { name: "Runs" }).click();
   await page.keyboard.press("d");
-  await page.getByLabel("Triggered from").fill("2026-08-05T08:00");
-  await page.getByLabel("Triggered to").fill("");
+  await expect(page.getByPlaceholder("Custom")).toHaveValue("2");
+  await expect(page.getByText("Please enter a valid custom duration")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("heading", { name: "Runs" }).click();
+  await page.keyboard.press("d");
+  await page.getByRole("button", { name: "Yesterday" }).click();
   await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByText(/Created:From /)).toBeVisible();
+  await expect(page.getByText("Created:", { exact: true }).locator("..").locator("..")).toContainText("–");
+  await page.getByRole("heading", { name: "Runs" }).click();
+  await page.keyboard.press("d");
+  await page.getByRole("dialog").locator("button:has(svg.lucide-x)").nth(1).click();
+  await page.getByRole("button", { name: "Now" }).first().click();
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByText("Created after:", { exact: true }).locator("..").locator("..")).toContainText("Aug 5, 2026, 8:34:56 AM");
   await expect(page).toHaveURL(/job=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/connection=redis/);
   await expect(page).toHaveURL(/trace=00000000000000000000000000000001/);
-  await expect(page).toHaveURL(/triggeredFrom=/);
+  await expect(page).toHaveURL(/triggeredFrom=2026-08-05T12%3A34%3A56.000Z/);
   await expect(page).not.toHaveURL(/triggeredTo=/);
 
   await page.locator('a[href*="cursor=next-cursor"]').click();

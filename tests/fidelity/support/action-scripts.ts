@@ -133,6 +133,23 @@ function semanticSelection(url: string) {
 
 export function canonicalSourceRunFilterUrl(url: string) {
   const parsed = new URL(url, "https://fidelity.invalid");
+  const sourceFrom = parsed.searchParams.get("from");
+  const sourceTo = parsed.searchParams.get("to");
+  if (sourceFrom) {
+    parsed.searchParams.delete("from");
+    parsed.searchParams.set("triggeredFrom", new Date(Number(sourceFrom)).toISOString());
+  }
+  if (sourceTo) {
+    parsed.searchParams.delete("to");
+    parsed.searchParams.set("triggeredTo", new Date(Number(sourceTo)).toISOString());
+  }
+  const triggeredFrom = parsed.searchParams.get("triggeredFrom");
+  const triggeredTo = parsed.searchParams.get("triggeredTo");
+  if (triggeredFrom && triggeredTo && Date.parse(triggeredTo) - Date.parse(triggeredFrom) === 2 * 60 * 60 * 1_000) {
+    parsed.searchParams.delete("triggeredFrom");
+    parsed.searchParams.delete("triggeredTo");
+    parsed.searchParams.set("period", "2h");
+  }
   const statuses = parsed.searchParams.getAll("statuses");
   if (statuses.length === 0) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   if (statuses.length !== 1 || statuses[0] !== "COMPLETED_WITH_ERRORS") {
