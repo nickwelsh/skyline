@@ -64,6 +64,66 @@ describe("source-fidelity oracle", () => {
     })).toThrow(/unclassified/i);
   });
 
+  test("branding identity reflow requires the exact NW-226 seam and protected evidence", () => {
+    const capture = "error-found@1024x768-classic";
+    const element = (rect: { x: number; y: number; width: number; height: number }, pixel = "d") => ({
+      rect,
+      computedStyleSha256: "a".repeat(64),
+      accessibilitySha256: "b".repeat(64),
+      crop: { status: "visible", rect, screenshotSha256: pixel.repeat(64) },
+    });
+    const identityPairs = [
+      { id: "brand", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)", skylineSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)" },
+      { id: "application", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(2)", skylineSelector: "[data-testid='side-menu-application']" },
+    ];
+    const protectedPairs = ["tasks", "runs", "logs", "errors", "queues"].map((id) => ({ id, triggerSelector: `[data-action='${id}']`, skylineSelector: `[data-action='${id}']` })).concat([{
+      id: "observability",
+      triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) button[aria-expanded='true']",
+      skylineSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) button[aria-expanded='true']",
+    }]);
+    const protectedMeasurements = Object.fromEntries(protectedPairs.map(({ id }) => [id, {
+      trigger: element({ x: 10, y: 153, width: 205, height: 32 }),
+      skyline: element({ x: 10, y: 117, width: 205, height: 32 }),
+    }]));
+    const region = {
+      id: "shell-branding-identity",
+      category: "branding-identity",
+      decision: "NW-226",
+      acceptance: [
+        "Skyline retains one Application identity while upstream organization/project switching remains unavailable.",
+        "Supported Tasks, Runs, Observability, Logs, Errors, and Queues remain pixel-identical after the exact identity-height reflow, with exact per-side style and accessibility evidence.",
+      ],
+      citations: [
+        "https://linear.app/nickwelsh/issue/NW-226/complete-shell-capabilities-and-preferences",
+        "https://github.com/triggerdotdev/trigger.dev/blob/ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0/apps/webapp/app/components/navigation/SideMenu.tsx#L1078-L1126",
+      ],
+      captures: [capture],
+      identityPairs,
+      triggerNavigationSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) > :first-child",
+      skylineNavigationSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) > :first-child",
+      protectedPairs,
+      measurements: { [capture]: {
+        identityPairs: {
+          brand: { trigger: element({ x: 0, y: 0, width: 223, height: 40 }), skyline: element({ x: 0, y: 0, width: 223, height: 40 }) },
+          application: { trigger: element({ x: 0, y: 40, width: 223, height: 103 }, "c"), skyline: element({ x: 0, y: 40, width: 223, height: 67 }, "e") },
+        },
+        navigation: { trigger: element({ x: 0, y: 153, width: 215, height: 200 }, "c"), skyline: element({ x: 0, y: 117, width: 215, height: 202 }, "e") },
+        protectedPairs: protectedMeasurements,
+      } },
+    };
+    const manifest = (value: unknown) => ({ decision: "NW-216", categories: ["branding-identity"], regions: [value] });
+
+    expect(() => validateAllowedDifferences(manifest(region))).not.toThrow();
+    expect(() => validateAllowedDifferences(manifest({ ...region, id: "broad-branding" }))).toThrow(/branding-identity/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, decision: "NW-216" }))).toThrow(/branding-identity/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, identityPairs: identityPairs.slice(1) }))).toThrow(/selector/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, protectedPairs: protectedPairs.slice(1) }))).toThrow(/protected|selector/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: {} }))).toThrow(/measurement/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { [capture]: { ...region.measurements[capture], navigation: { ...region.measurements[capture].navigation, skyline: { ...region.measurements[capture].navigation.skyline, rect: { x: 0, y: 118, width: 215, height: 202 }, crop: { ...region.measurements[capture].navigation.skyline.crop, rect: { x: 0, y: 118, width: 215, height: 202 } } } } } } }))).toThrow(/reflow/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { [capture]: { ...region.measurements[capture], protectedPairs: { ...protectedMeasurements, runs: { ...protectedMeasurements.runs, skyline: { ...protectedMeasurements.runs.skyline, crop: { ...protectedMeasurements.runs.skyline.crop, screenshotSha256: "f".repeat(64) } } } } } } }))).toThrow(/protected/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { [capture]: { ...region.measurements[capture], protectedPairs: { ...protectedMeasurements, runs: { ...protectedMeasurements.runs, skyline: { ...protectedMeasurements.runs.skyline, accessibilitySha256: "bad" } } } } } }))).toThrow(/measurement/i);
+  });
+
   test("framework extensions require an exact fail-closed ledger entry", () => {
     const region = {
       id: "php-exception-evidence",

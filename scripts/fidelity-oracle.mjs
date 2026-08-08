@@ -134,7 +134,7 @@ function bundleFixtureHash(root) {
 }
 
 export function validateAllowedDifferences(differences) {
-  const accepted = new Set(["branding-terminology", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension"]);
+  const accepted = new Set(["branding-terminology", "branding-identity", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
   const lockedRegions = [];
@@ -180,6 +180,9 @@ export function validateAllowedDifferences(differences) {
           && JSON.stringify(measurement.triggerRelativeRect) === JSON.stringify(measurement.skylineRelativeRect);
         if (!valid) fail(`Invalid presenter-extension measurement: ${region.id}`);
       }
+      lockedRegions.push(region);
+    } else if (region.category === "branding-identity") {
+      validateBrandingIdentityRegion(region);
       lockedRegions.push(region);
     } else if (region.category === "capability-omission") {
       const complete = region.id && region.decision && Array.isArray(region.acceptance) && region.acceptance.length > 0 && region.acceptance.every((criterion) => typeof criterion === "string" && criterion.trim())
@@ -244,13 +247,15 @@ export function validateAllowedDifferences(differences) {
   const selectorOwners = new Map();
   for (const region of lockedRegions) {
     for (const capture of region.captures) {
-      const ownership = region.category === "capability-omission" ? "capability-omission" : "extension";
+      const ownership = region.category === "capability-omission" ? "capability-omission" : region.category === "branding-identity" ? "branding-identity" : "extension";
       const key = `${ownership}:${capture}`;
       const owner = captureOwners.get(key);
       if (owner) fail(`Locked regions ${owner} and ${region.id} overlap capture ${capture}.`);
       captureOwners.set(key, region.id);
     }
-    const selectors = region.category === "presenter-extension"
+    const selectors = region.category === "branding-identity"
+      ? [...region.identityPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), region.triggerNavigationSelector, region.skylineNavigationSelector, ...region.protectedPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector])]
+      : region.category === "presenter-extension"
       ? [region.triggerSelector, region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector]
       : region.category === "framework-extension"
         ? [region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector]
@@ -266,6 +271,89 @@ export function validateAllowedDifferences(differences) {
       selectorOwners.set(selector, owners);
     }
   }
+}
+
+function validateBrandingIdentityRegion(region) {
+  const expectedAcceptance = [
+    "Skyline retains one Application identity while upstream organization/project switching remains unavailable.",
+    "Supported Tasks, Runs, Observability, Logs, Errors, and Queues remain pixel-identical after the exact identity-height reflow, with exact per-side style and accessibility evidence.",
+  ];
+  const identityPairs = [
+    { id: "brand", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)", skylineSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(1)" },
+    { id: "application", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(2)", skylineSelector: "[data-testid='side-menu-application']" },
+  ];
+  const navigationSelector = "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) > :first-child";
+  const protectedPairs = [
+    ...["tasks", "runs", "logs", "errors", "queues"].map((id) => ({ id, triggerSelector: `[data-action='${id}']`, skylineSelector: `[data-action='${id}']` })),
+    { id: "observability", triggerSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) button[aria-expanded='true']", skylineSelector: "[role='separator'][aria-label='Resize side menu'] + div > :nth-child(3) button[aria-expanded='true']" },
+  ];
+  const complete = region.id === "shell-branding-identity" && region.decision === "NW-226"
+    && JSON.stringify(region.acceptance) === JSON.stringify(expectedAcceptance)
+    && Array.isArray(region.citations) && region.citations.length === 2
+    && region.citations[0] === "https://linear.app/nickwelsh/issue/NW-226/complete-shell-capabilities-and-preferences"
+    && /^https:\/\/github\.com\/triggerdotdev\/trigger\.dev\/blob\/[a-f0-9]{40}\/apps\/webapp\/app\/components\/navigation\/SideMenu\.tsx#L\d+-L\d+$/.test(region.citations[1] ?? "")
+    && Array.isArray(region.captures) && region.captures.length > 0
+    && Array.isArray(region.identityPairs) && Array.isArray(region.protectedPairs)
+    && region.measurements && typeof region.measurements === "object";
+  if (!complete) fail(`Incomplete branding-identity region: ${region.id}`);
+  if (!region.captures.every((capture) => typeof capture === "string" && /@\d+x\d+-(?:classic|dark|light|system-(?:dark|light))$/.test(capture)) || new Set(region.captures).size !== region.captures.length) fail(`Invalid branding-identity capture: ${region.id}`);
+  if (region.triggerNavigationSelector !== navigationSelector || region.skylineNavigationSelector !== navigationSelector || !samePairDefinitions(region.identityPairs, identityPairs)) fail(`Invalid branding-identity selector: ${region.id}`);
+  if (region.protectedPairs.length !== protectedPairs.length || region.protectedPairs.some((pair, index) => {
+    const expected = protectedPairs[index];
+    return pair.id !== expected.id || pair.triggerSelector !== expected.triggerSelector || pair.skylineSelector !== expected.skylineSelector
+      || (pair.captures !== undefined && (!Array.isArray(pair.captures) || pair.captures.length === 0 || new Set(pair.captures).size !== pair.captures.length || pair.captures.some((capture) => !region.captures.includes(capture))));
+  })) fail(`Invalid branding-identity protected selector: ${region.id}`);
+  if (Object.keys(region.measurements).length !== region.captures.length || region.captures.some((capture) => !region.measurements[capture])) fail(`Missing branding-identity measurement: ${region.id}`);
+
+  for (const capture of region.captures) {
+    const measurement = region.measurements[capture];
+    const expectedProtected = region.protectedPairs.filter((pair) => !pair.captures || pair.captures.includes(capture));
+    if (!measurement || !hasExactKeys(measurement, ["identityPairs", "navigation", "protectedPairs"])
+      || !hasExactKeys(measurement.identityPairs, identityPairs.map(({ id }) => id))
+      || !hasExactKeys(measurement.protectedPairs, expectedProtected.map(({ id }) => id))
+      || !hasExactKeys(measurement.navigation, ["trigger", "skyline"])) fail(`Missing branding-identity measurement: ${region.id}`);
+    for (const pair of identityPairs) validateBrandingIdentityPair(region.id, measurement.identityPairs[pair.id]);
+    validateBrandingIdentityPair(region.id, measurement.navigation);
+    const identityDelta = identityPairs.reduce((total, pair) => total + measurement.identityPairs[pair.id].trigger.rect.height - measurement.identityPairs[pair.id].skyline.rect.height, 0);
+    if (measurement.navigation.trigger.rect.x !== measurement.navigation.skyline.rect.x
+      || measurement.navigation.trigger.rect.width !== measurement.navigation.skyline.rect.width
+      || measurement.navigation.trigger.rect.y - measurement.navigation.skyline.rect.y !== identityDelta) fail(`Invalid branding-identity reflow: ${region.id}`);
+    for (const pair of expectedProtected) {
+      const evidence = measurement.protectedPairs[pair.id];
+      validateBrandingIdentityPair(region.id, evidence);
+      if (evidence.trigger.rect.x !== evidence.skyline.rect.x || evidence.trigger.rect.width !== evidence.skyline.rect.width || evidence.trigger.rect.height !== evidence.skyline.rect.height
+        || evidence.trigger.crop.screenshotSha256 !== evidence.skyline.crop.screenshotSha256) fail(`Invalid branding-identity protected evidence: ${region.id}`);
+    }
+  }
+}
+
+function validateBrandingIdentityPair(id, pair) {
+  if (!pair || !hasExactKeys(pair, ["trigger", "skyline"])) fail(`Invalid branding-identity measurement: ${id}`);
+  validateBrandingIdentityElement(id, pair.trigger);
+  validateBrandingIdentityElement(id, pair.skyline);
+}
+
+function validateBrandingIdentityElement(id, element) {
+  const valid = element && hasExactKeys(element, ["rect", "computedStyleSha256", "accessibilitySha256", "crop"])
+    && validPositiveRect(element.rect)
+    && /^[a-f0-9]{64}$/.test(element.computedStyleSha256 ?? "")
+    && /^[a-f0-9]{64}$/.test(element.accessibilitySha256 ?? "")
+    && element.crop?.status === "visible" && hasExactKeys(element.crop, ["status", "rect", "screenshotSha256"])
+    && validPositiveRect(element.crop.rect) && JSON.stringify(element.crop.rect) === JSON.stringify(element.rect)
+    && /^[a-f0-9]{64}$/.test(element.crop.screenshotSha256 ?? "");
+  if (!valid) fail(`Invalid branding-identity measurement: ${id}`);
+}
+
+function samePairDefinitions(actual, expected) {
+  return actual.length === expected.length && actual.every((pair, index) => hasExactKeys(pair, ["id", "triggerSelector", "skylineSelector"]) && JSON.stringify(pair) === JSON.stringify(expected[index]));
+}
+
+function hasExactKeys(value, keys) {
+  return value && typeof value === "object" && JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
+}
+
+function validPositiveRect(rect) {
+  return hasExactKeys(rect, ["x", "y", "width", "height"]) && [rect.x, rect.y, rect.width, rect.height].every(Number.isFinite) && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0;
 }
 
 export function actionCaptureId(matrix, scenario) {
