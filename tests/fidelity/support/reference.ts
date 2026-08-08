@@ -354,15 +354,7 @@ function triggerRunList(page: any) {
 
 function triggerRunSummary(run: any) {
   const status = triggerStatus(run.status);
-  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: Math.round((run.activeDurationUs ?? 0) / 1_000), tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: { name: run.queue ?? "default", type: run.queue?.startsWith("task/") ? "task" : "custom" }, region: "us-east-1", taskKind: "STANDARD", queueDuration: formatReferenceDuration(run.queueDurationUs), duration: formatReferenceDuration(run.durationUs), activeDuration: formatReferenceDuration(run.activeDurationUs), queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—" };
-}
-
-function formatReferenceDuration(microseconds: number | null | undefined) {
-  if (microseconds === null || microseconds === undefined) return "—";
-  if (microseconds < 1_000) return `${microseconds}µs`;
-  const milliseconds = microseconds / 1_000;
-  if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
-  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
+  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: Math.round((run.activeDurationUs ?? 0) / 1_000), tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: { name: run.queue ?? "default", type: run.queue?.startsWith("task/") ? "task" : "custom" }, region: "us-east-1", taskKind: "STANDARD", queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—" };
 }
 
 function triggerRun(detail: any) {

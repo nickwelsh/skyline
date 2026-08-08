@@ -82,14 +82,16 @@ describe("pinned Trigger Runs fixture", () => {
     expect(filters).toContain('const filterTypes = [\n  { name: "queues"');
     expect(filters).toContain('<SearchInput placeholder="Search Runs" />');
     expect(filters).toContain("<span>Jobs</span>");
-    expect(table).toContain("runsCapabilityCore ? run.queueDuration");
-    expect(table).toContain("runsCapabilityCore ? run.duration");
-    expect(table).toContain("runsCapabilityCore ? run.activeDuration");
+    expect(table).toContain('formatDuration(new Date(run.createdAt), new Date(run.startedAt)');
+    expect(table).toContain("formatDurationMilliseconds(run.usageDurationMs");
+    expect(table).not.toContain("runsCapabilityCore ? run.duration");
     expect(table).toContain("run.queueTarget");
     expect(table).toContain("The amount of compute time used in the run.");
     expect(table).not.toContain("CapabilityRunsTable");
     expect(table).not.toContain("SourceTaskRunsTable");
-    expect(readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8")).not.toContain("RunListAdapter");
+    const fixtureSource = readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8");
+    expect(fixtureSource).not.toContain("RunListAdapter");
+    expect(fixtureSource).not.toContain("formatReferenceDuration");
   });
 
   test("maps observed Runs into the capability-conditioned source row seam", async () => {
@@ -99,12 +101,9 @@ describe("pinned Trigger Runs fixture", () => {
     expect(list.data.runs[0]).toEqual(expect.objectContaining({
       friendlyId: expect.any(String),
       taskIdentifier: expect.any(String),
-      queueDuration: expect.any(String),
-      duration: expect.any(String),
-      activeDuration: expect.any(String),
       queueTarget: expect.stringContaining(" / "),
     }));
-    expect(list.data.runs.some((run: any) => run.activeDuration === "—")).toBe(true);
+    expect(list.data.runs[0]).not.toHaveProperty("activeDuration");
   });
 });
 
