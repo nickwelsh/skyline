@@ -1,7 +1,7 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/primitives/PageHeader.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: run-route geometry only; Remix back link.
+ * Skyline adaptation: reached navigation, title, favorite geometry, React Router back link, and protected title marker.
  */
 import { Link, useLocation } from "@remix-run/react";
 import { QuestionMarkCircleIcon } from "@heroicons/react/24/outline";

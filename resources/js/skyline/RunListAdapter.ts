@@ -2,9 +2,14 @@ import type { RunsRouteData } from "../trigger/routes/_app.orgs.$organizationSlu
 import type { RunSummary, RunsPageDto, RunsQuery } from "./dto";
 import { compactQuery, queryStatuses, queryValue } from "./QueryParams";
 
-export function runsQuery(request: Request): RunsQuery {
+export function runsQuery(request: Request, now = new Date()): RunsQuery {
   const params = new URL(request.url).searchParams;
   const rootOnly = params.get("rootOnly");
+  const hasTimeBounds = params.has("triggeredFrom") || params.has("triggeredTo");
+  const triggeredTo = hasTimeBounds ? queryValue(params, "triggeredTo") : now.toISOString();
+  const triggeredFrom = hasTimeBounds
+    ? queryValue(params, "triggeredFrom")
+    : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000).toISOString();
 
   return compactQuery({
     cursor: queryValue(params, "cursor"),
@@ -15,8 +20,8 @@ export function runsQuery(request: Request): RunsQuery {
     queue: queryValue(params, "queue"),
     trace: queryValue(params, "trace"),
     rootOnly: rootOnly === null ? undefined : rootOnly === "true",
-    triggeredFrom: queryValue(params, "triggeredFrom"),
-    triggeredTo: queryValue(params, "triggeredTo"),
+    triggeredFrom,
+    triggeredTo,
   });
 }
 
@@ -51,13 +56,10 @@ export function presentRun(run: RunSummary, tableState: string) {
     rootTaskRunId: run.isRoot ? null : (run.parentRunId ?? "observed-parent"),
     status: run.status,
     queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—",
-    traceIdentity: run.traceId,
-    attemptCount: run.attemptCount,
     startedAt: run.startedAt,
-    finishedAt: run.finishedAt,
     queueDuration: formatRunDuration(run.queueDurationUs),
     duration: formatRunDuration(run.durationUs),
-    activeDuration: formatRunDuration(run.activeDurationUs ?? run.durationUs),
+    activeDuration: formatRunDuration(run.activeDurationUs),
   };
 }
 

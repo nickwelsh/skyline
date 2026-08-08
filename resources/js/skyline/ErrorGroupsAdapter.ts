@@ -122,10 +122,7 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
     machine: null,
     status: "failed",
     queueTarget: attempt.connection && attempt.queue ? `${attempt.connection} / ${attempt.queue}` : "—",
-    traceIdentity: "—",
-    attemptCount: attempt.attemptNumber,
     startedAt: attempt.startedAt,
-    finishedAt: attempt.finishedAt ?? attempt.observedAt,
     queueDuration: "—",
     duration: formatDuration(durationUs),
   };

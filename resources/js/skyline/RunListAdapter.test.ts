@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { presentRun } from "./RunListAdapter";
+import { presentRun, runsQuery } from "./RunListAdapter";
 import type { RunSummary } from "./dto";
 
 describe("RunListAdapter", () => {
@@ -16,14 +16,39 @@ describe("RunListAdapter", () => {
       rootTaskRunId: "run_parent",
       status: "completed",
       startedAt: "2026-08-05T12:00:00.001000000Z",
-      finishedAt: "2026-08-05T12:00:01.001000000Z",
       queueDuration: "1ms",
       duration: "1.00s",
-      activeDuration: "1.00s",
+      activeDuration: "—",
       queueTarget: "redis / default",
     }));
     expect(presented).not.toHaveProperty("driverId");
     expect(presented).not.toHaveProperty("queueTimeSource");
+    expect(presented).not.toHaveProperty("traceIdentity");
+    expect(presented).not.toHaveProperty("attemptCount");
+    expect(presented).not.toHaveProperty("finishedAt");
+  });
+
+  it("keeps missing active duration truthful", () => {
+    expect(presentRun(run(), "state").activeDuration).toBe("—");
+  });
+
+  it("applies the visible seven-day default through the API query", () => {
+    const now = new Date("2026-08-07T12:00:00.000Z");
+
+    expect(runsQuery(new Request("https://example.test/skyline/runs"), now)).toEqual({
+      triggeredFrom: "2026-07-31T12:00:00.000Z",
+      triggeredTo: "2026-08-07T12:00:00.000Z",
+    });
+  });
+
+  it("preserves repeated statuses and explicit public time bounds", () => {
+    const request = new Request("https://example.test/skyline/runs?status=running&status=completed&triggeredFrom=2026-08-01T00%3A00%3A00.000Z&triggeredTo=2026-08-02T00%3A00%3A00.000Z");
+
+    expect(runsQuery(request)).toEqual({
+      status: ["running", "completed"],
+      triggeredFrom: "2026-08-01T00:00:00.000Z",
+      triggeredTo: "2026-08-02T00:00:00.000Z",
+    });
   });
 });
 

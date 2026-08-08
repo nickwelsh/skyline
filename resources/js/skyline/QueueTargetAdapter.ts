@@ -67,8 +67,6 @@ export function presentQueueTarget(page: QueueTargetDetailDto): QueueTargetDetai
       jobType: run.name,
       status: run.status,
       queueTarget: target.destination,
-      traceIdentity: run.traceId,
-      attemptCount: run.attemptCount,
       startedAt: run.startedAt,
       queueDuration: formatDuration(run.queueDurationUs),
       duration: formatDuration(run.durationUs ?? run.activeDurationUs),

@@ -6,7 +6,8 @@
 import { ClockIcon, CpuChipIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
 import { Badge } from "~/components/primitives/Badge";
 import { CopyableText } from "~/components/primitives/CopyableText";
-import { DateTime, DateTimeShort } from "~/components/primitives/DateTime";
+import { DateTime } from "~/components/primitives/DateTime";
+import { Header3 } from "~/components/primitives/Headers";
 import { Paragraph } from "~/components/primitives/Paragraph";
 import { Spinner } from "~/components/primitives/Spinner";
 import {
@@ -33,10 +34,7 @@ export type PresentedRun = {
   machine?: string | null;
   status: RunStatus;
   queueTarget: string;
-  traceIdentity: string;
-  attemptCount: number;
   startedAt?: string | null;
-  finishedAt?: string | null;
   queueDuration: string;
   duration: string;
   activeDuration?: string;
@@ -77,7 +75,26 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
             }
           >Status</TableHeaderCell>
           <TableHeaderCell>Started</TableHeaderCell>
-          <TableHeaderCell colSpan={3}>Duration</TableHeaderCell>
+          <TableHeaderCell
+            colSpan={3}
+            disableTooltipHoverableContent
+            tooltip={
+              <div className="flex max-w-xs flex-col gap-4 p-1">
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5"><RectangleStackIcon className="size-4 text-text-dimmed" /><Header3>Queued duration</Header3></div>
+                  <Paragraph variant="small" className="text-wrap! text-text-dimmed">The amount of time from when the run was created to it starting to run.</Paragraph>
+                </div>
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5"><ClockIcon className="size-4 text-blue-500" /><Header3>Run duration</Header3></div>
+                  <Paragraph variant="small" className="text-wrap! text-text-dimmed">The total amount of time from the run starting to it finishing. This includes all time spent waiting.</Paragraph>
+                </div>
+                <div>
+                  <div className="mb-0.5 flex items-center gap-1.5"><CpuChipIcon className="size-4 text-success" /><Header3>Compute duration</Header3></div>
+                  <Paragraph variant="small" className="text-wrap! text-text-dimmed">The amount of compute time used in the run. This does not include time spent waiting.</Paragraph>
+                </div>
+              </div>
+            }
+          >Duration</TableHeaderCell>
           <TableHeaderCell>Queue target</TableHeaderCell>
         </TableRow>
       </TableHeader>

@@ -143,10 +143,7 @@ describe("ErrorGroupsAdapter", () => {
       machine: null,
       status: "failed",
       queueTarget: "redis / billing",
-      traceIdentity: "—",
-      attemptCount: 2,
       startedAt: summary.lastObservedAt,
-      finishedAt: summary.lastObservedAt,
       queueDuration: "—",
       duration: "0µs",
     });
