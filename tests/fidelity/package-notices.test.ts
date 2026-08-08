@@ -32,6 +32,11 @@ const vendoredNotices: Record<string, { filename: string; sha256: string; source
     sha256: "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138",
     source: "licenses/npm/radix-ui-MIT.txt",
   },
+  "@radix-ui/react-radio-group": {
+    filename: "@radix-ui-react-radio-group-LICENSE.txt",
+    sha256: "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138",
+    source: "licenses/npm/radix-ui-MIT.txt",
+  },
   "@radix-ui/react-slider": {
     filename: "@radix-ui-react-slider-LICENSE.txt",
     sha256: "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138",

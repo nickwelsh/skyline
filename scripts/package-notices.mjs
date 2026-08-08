@@ -19,6 +19,7 @@ const vendoredLicenses = {
   "@heroicons/react": "licenses/npm/heroicons-MIT.txt",
   "@radix-ui/react-dialog": "licenses/npm/radix-ui-MIT.txt",
   "@radix-ui/react-popover": "licenses/npm/radix-ui-MIT.txt",
+  "@radix-ui/react-radio-group": "licenses/npm/radix-ui-MIT.txt",
   "@radix-ui/react-slider": "licenses/npm/radix-ui-MIT.txt",
   "@radix-ui/react-switch": "licenses/npm/radix-ui-MIT.txt",
   "@radix-ui/react-tooltip": "licenses/npm/radix-ui-MIT.txt",
