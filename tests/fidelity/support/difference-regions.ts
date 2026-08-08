@@ -297,6 +297,9 @@ function validateBrandingIdentityReflow(id: string, observation: BrandingIdentit
   if (trigger.rect.y - skyline.rect.y !== identityDelta) throw new Error(`Allowed region ${id} changed protected navigation reflow delta.`);
   for (const pair of observation.protectedPairs) {
     if (pair.trigger.rect.x !== pair.skyline.rect.x || pair.trigger.rect.width !== pair.skyline.rect.width || pair.trigger.rect.height !== pair.skyline.rect.height) throw new Error(`Allowed region ${id} changed protected ${pair.id} geometry.`);
+    if (pair.trigger.rect.y - pair.skyline.rect.y !== identityDelta) throw new Error(`Allowed region ${id} changed protected ${pair.id} reflow delta.`);
+    if (pair.trigger.computedStyleSha256 !== pair.skyline.computedStyleSha256) throw new Error(`Allowed region ${id} changed protected ${pair.id} style.`);
+    if (pair.trigger.accessibilitySha256 !== pair.skyline.accessibilitySha256) throw new Error(`Allowed region ${id} changed protected ${pair.id} accessibility.`);
     if (pair.trigger.crop.screenshotSha256 !== pair.skyline.crop.screenshotSha256) throw new Error(`Allowed region ${id} changed protected ${pair.id} pixels.`);
   }
 }

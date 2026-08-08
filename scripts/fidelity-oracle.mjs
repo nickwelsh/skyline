@@ -321,8 +321,11 @@ function validateBrandingIdentityRegion(region) {
     for (const pair of expectedProtected) {
       const evidence = measurement.protectedPairs[pair.id];
       validateBrandingIdentityPair(region.id, evidence);
-      if (evidence.trigger.rect.x !== evidence.skyline.rect.x || evidence.trigger.rect.width !== evidence.skyline.rect.width || evidence.trigger.rect.height !== evidence.skyline.rect.height
-        || evidence.trigger.crop.screenshotSha256 !== evidence.skyline.crop.screenshotSha256) fail(`Invalid branding-identity protected evidence: ${region.id}`);
+      if (evidence.trigger.rect.x !== evidence.skyline.rect.x || evidence.trigger.rect.width !== evidence.skyline.rect.width || evidence.trigger.rect.height !== evidence.skyline.rect.height) fail(`Invalid branding-identity protected geometry: ${region.id}`);
+      if (evidence.trigger.rect.y - evidence.skyline.rect.y !== identityDelta) fail(`Invalid branding-identity protected reflow: ${region.id}`);
+      if (evidence.trigger.computedStyleSha256 !== evidence.skyline.computedStyleSha256) fail(`Invalid branding-identity protected style: ${region.id}`);
+      if (evidence.trigger.accessibilitySha256 !== evidence.skyline.accessibilitySha256) fail(`Invalid branding-identity protected accessibility: ${region.id}`);
+      if (evidence.trigger.crop.screenshotSha256 !== evidence.skyline.crop.screenshotSha256) fail(`Invalid branding-identity protected pixels: ${region.id}`);
     }
   }
 }

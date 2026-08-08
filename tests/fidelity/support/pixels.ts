@@ -91,10 +91,16 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
       if (!expected || JSON.stringify({ trigger: pair.trigger, skyline: pair.skyline }) !== JSON.stringify(expected)) throw new Error(`Allowed region ${region.id} changed identity pair ${pair.id} evidence.`);
     }
     if (JSON.stringify({ trigger: region.navigation.trigger, skyline: region.navigation.skyline }) !== JSON.stringify(region.expected.navigation)) throw new Error(`Allowed region ${region.id} changed protected navigation evidence.`);
+    const identityDelta = region.identityPairs.reduce((total, pair) => total + pair.trigger.rect.height - pair.skyline.rect.height, 0);
+    if (region.navigation.trigger.rect.x !== region.navigation.skyline.rect.x || region.navigation.trigger.rect.width !== region.navigation.skyline.rect.width || region.navigation.trigger.rect.y - region.navigation.skyline.rect.y !== identityDelta) throw new Error(`Allowed region ${region.id} changed navigation reflow.`);
     if (region.protectedPairs.length !== Object.keys(region.expected.protectedPairs).length) throw new Error(`Allowed region ${region.id} changed protected pair count.`);
     for (const pair of region.protectedPairs) {
       const expected = region.expected.protectedPairs[pair.id];
       if (!expected || JSON.stringify({ trigger: pair.trigger, skyline: pair.skyline }) !== JSON.stringify(expected)) throw new Error(`Allowed region ${region.id} changed protected pair ${pair.id} evidence.`);
+      if (pair.trigger.rect.x !== pair.skyline.rect.x || pair.trigger.rect.width !== pair.skyline.rect.width || pair.trigger.rect.height !== pair.skyline.rect.height) throw new Error(`Allowed region ${region.id} changed protected ${pair.id} geometry.`);
+      if (pair.trigger.rect.y - pair.skyline.rect.y !== identityDelta) throw new Error(`Allowed region ${region.id} changed protected ${pair.id} reflow.`);
+      if (pair.trigger.computedStyleSha256 !== pair.skyline.computedStyleSha256) throw new Error(`Allowed region ${region.id} changed protected ${pair.id} style.`);
+      if (pair.trigger.accessibilitySha256 !== pair.skyline.accessibilitySha256) throw new Error(`Allowed region ${region.id} changed protected ${pair.id} accessibility.`);
       assertMatchingProtectedNavigationPixels(triggerImage, skylineImage, `${region.id} ${pair.id}`, pair.trigger.rect, pair.skyline.rect);
     }
     return [

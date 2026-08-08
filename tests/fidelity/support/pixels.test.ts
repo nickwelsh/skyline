@@ -44,6 +44,17 @@ describe("paired fidelity pixels", () => {
     expect(comparePixels(trigger, skyline, [identity])).toMatchObject({ differingPixels: 0, maskedPixels: 3 });
     const drifted = image([255, 255, 255, 255], 10, 10, [[0, 0, [0, 255, 0, 255]], [0, 2, [0, 0, 255, 255]]]);
     expect(() => comparePixels(trigger, drifted, [identity])).toThrow(/protected navigation pixels/i);
+    for (const [property, value, error] of [["computedStyleSha256", "c".repeat(64), /protected.*style/i], ["accessibilitySha256", "c".repeat(64), /protected.*accessibility/i]] as const) {
+      const divergent = structuredClone(identity);
+      divergent.protectedPairs[0].skyline[property] = value;
+      divergent.expected.protectedPairs.tasks.skyline[property] = value;
+      expect(() => comparePixels(trigger, skyline, [divergent])).toThrow(error);
+    }
+    const displaced = structuredClone(identity);
+    const displacedSkyline = { ...displaced.protectedPairs[0].skyline, rect: { ...displaced.protectedPairs[0].skyline.rect, y: 1 }, crop: { ...displaced.protectedPairs[0].skyline.crop, rect: { ...displaced.protectedPairs[0].skyline.crop.rect, y: 1 } } };
+    displaced.protectedPairs[0].skyline = displacedSkyline;
+    displaced.expected.protectedPairs.tasks.skyline = structuredClone(displacedSkyline);
+    expect(() => comparePixels(trigger, skyline, [displaced])).toThrow(/protected.*reflow/i);
   });
 
   test("allows an exact dialog presenter union but keeps a bounded ceiling", () => {

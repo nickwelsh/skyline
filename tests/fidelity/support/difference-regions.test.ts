@@ -409,6 +409,17 @@ describe("framework-extension fidelity regions", () => {
     };
 
     expect(validateBrandingIdentityObservation(definition, observation, definition.captures[0])).toBe(observation);
+    const validateRecorded = (changed: BrandingIdentityObservation) => validateBrandingIdentityObservation({
+      ...definition,
+      measurements: { [definition.captures[0]]: { ...measurement, protectedPairs: { tasks: { trigger: changed.protectedPairs[0].trigger, skyline: changed.protectedPairs[0].skyline } } } },
+    }, changed, definition.captures[0]);
+    const changedProtected = (skyline: BrandingIdentityObservation["protectedPairs"][number]["skyline"]): BrandingIdentityObservation => ({
+      ...observation,
+      protectedPairs: [{ ...observation.protectedPairs[0], skyline }],
+    });
+    expect(() => validateRecorded(changedProtected({ ...observation.protectedPairs[0].skyline, computedStyleSha256: "c".repeat(64) }))).toThrow(/protected.*style/i);
+    expect(() => validateRecorded(changedProtected({ ...observation.protectedPairs[0].skyline, accessibilitySha256: "c".repeat(64) }))).toThrow(/protected.*accessibility/i);
+    expect(() => validateRecorded(changedProtected({ ...observation.protectedPairs[0].skyline, rect: { x: 0, y: 1, width: 1, height: 1 }, crop: { ...observation.protectedPairs[0].skyline.crop, rect: { x: 0, y: 1, width: 1, height: 1 } } }))).toThrow(/protected.*reflow/i);
     expect(() => validateBrandingIdentityObservation(definition, { ...observation, navigation: { ...observation.navigation, trigger: { ...observation.navigation.trigger, rect: { ...observation.navigation.trigger.rect, y: 4 } } } }, definition.captures[0])).toThrow(/navigation evidence|reflow/i);
     expect(accessibilityOmissionSelectors([{ kind: "branding-identity", id: definition.id, ...observation, expected: measurement }], "trigger")).toEqual([pair.triggerSelector]);
     expect(accessibilityOmissionSelectors([{ kind: "branding-identity", id: definition.id, ...observation, expected: measurement }], "skyline")).toEqual([pair.skylineSelector]);
