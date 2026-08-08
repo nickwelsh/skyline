@@ -91,7 +91,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   fileName,
   rowTitle,
   wrap = false,
-  label = "Code",
+  label,
   modalContent,
   extensionId,
   regionLabel,
@@ -137,7 +137,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
             <TooltipProvider>
               <Tooltip disableHoverableContent>
                 <TooltipTrigger
-                  aria-label={isWrapped ? `Unwrap ${label}` : `Wrap ${label}`}
+                  aria-label={label ? (isWrapped ? `Unwrap ${label}` : `Wrap ${label}`) : undefined}
                   onClick={() => setIsWrapped(!isWrapped)}
                   className="transition-colors focus-custom hover:cursor-pointer hover:text-text-bright"
                 >
@@ -151,7 +151,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
             <TooltipProvider>
               <Tooltip open={copied || mouseOver} disableHoverableContent>
                 <TooltipTrigger
-                  aria-label={`Copy ${label}`}
+                  aria-label={label ? `Copy ${label}` : undefined}
                   onClick={() => copy(false)}
                   onMouseEnter={() => setMouseOver(true)}
                   onMouseLeave={() => setMouseOver(false)}
@@ -166,7 +166,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           {showOpenInModal && (
             <TooltipProvider>
               <Tooltip disableHoverableContent>
-                <TooltipTrigger ref={expandButton} aria-label={`Expand ${label}`} onClick={() => setIsModalOpen(true)}>
+                <TooltipTrigger ref={expandButton} aria-label={label ? `Expand ${label}` : undefined} onClick={() => setIsModalOpen(true)}>
                   <ArrowsPointingOutIcon className="size-4 transition-colors hover:text-text-bright" />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-xs">Expand</TooltipContent>

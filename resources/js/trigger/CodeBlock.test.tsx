@@ -53,6 +53,20 @@ describe("CodeBlock", () => {
     });
   });
 
+  it("keeps source default Code blocks unnamed", () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(<CodeBlock code="const value = 1" showOpenInModal={false} />));
+
+    const viewer = container.querySelector<HTMLElement>("[translate='no']")!;
+    expect(viewer.getAttribute("aria-label")).toBeNull();
+    expect(viewer.querySelector("button")?.getAttribute("aria-label")).toBeNull();
+
+    flushSync(() => root.unmount());
+  });
+
   it("closes its dialog on Escape while nested modal content is focused", async () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
