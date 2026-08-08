@@ -5,6 +5,7 @@ import type {
   ErrorOccurrencesQuery,
 } from "./dto";
 import type { PresentedRun } from "../trigger/components/runs/v3/TaskRunsTable";
+import { formatDuration } from "../trigger/utils/durations";
 import { compactQuery, queryValue } from "./QueryParams";
 import { canonicalRoutePath } from "./RoutePath";
 
@@ -107,11 +108,6 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
 }
 
 function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]): PresentedRun {
-  const durationUs = Math.max(
-    0,
-    new Date(attempt.finishedAt ?? attempt.observedAt).getTime() - new Date(attempt.startedAt).getTime()
-  ) * 1_000;
-
   return {
     id: attempt.runId,
     friendlyId: attempt.runId,
@@ -121,10 +117,15 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
     version: null,
     machine: null,
     status: "failed",
-    queueTarget: attempt.connection && attempt.queue ? `${attempt.connection} / ${attempt.queue}` : "—",
+    queueTarget: attempt.queue ?? "—",
+    queue: attempt.queue ? {
+      connection: attempt.connection,
+      name: attempt.queue,
+      type: attempt.queue.startsWith("task/") ? "task" : "custom",
+    } : null,
     startedAt: attempt.startedAt,
-    queueDuration: "—",
-    duration: formatDuration(durationUs),
+    queueDuration: formatDuration(new Date(attempt.triggeredAt), new Date(attempt.startedAt), { style: "short" }),
+    duration: formatDuration(new Date(attempt.startedAt), new Date(attempt.finishedAt ?? attempt.observedAt), { style: "short" }),
   };
 }
 
@@ -149,11 +150,4 @@ function pagination(value: { next: string | null; previous: string | null }) {
 
 function period(value: string | null): ErrorGroupsQuery["period"] {
   return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as ErrorGroupsQuery["period"] : undefined;
-}
-
-function formatDuration(microseconds: number): string {
-  if (microseconds < 1_000) return `${microseconds}µs`;
-  const milliseconds = microseconds / 1_000;
-  if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
-  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
 }

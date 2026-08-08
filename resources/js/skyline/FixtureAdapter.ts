@@ -671,6 +671,7 @@ function fixtureOccurrence(runId: string, attemptNumber: number, jobType: string
     jobType,
     connection,
     queue,
+    triggeredAt: observedAt,
     startedAt: observedAt,
     finishedAt: observedAt,
     observedAt,

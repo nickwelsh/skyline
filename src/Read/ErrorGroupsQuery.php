@@ -83,6 +83,7 @@ final readonly class ErrorGroupsQuery
                 'skyline_runs.job_name',
                 'skyline_runs.connection',
                 'skyline_runs.queue',
+                'skyline_runs.triggered_at',
             ]);
     }
 
@@ -264,6 +265,7 @@ final readonly class ErrorGroupsQuery
             'jobType' => $row->job_name,
             'connection' => $row->connection,
             'queue' => $row->queue,
+            'triggeredAt' => Nanoseconds::toRfc3339((int) $row->triggered_at),
             'startedAt' => Nanoseconds::toRfc3339((int) $row->started_at),
             'finishedAt' => Nanoseconds::toRfc3339($row->finished_at === null ? null : (int) $row->finished_at),
             'observedAt' => Nanoseconds::toRfc3339($this->observedAt($row)),

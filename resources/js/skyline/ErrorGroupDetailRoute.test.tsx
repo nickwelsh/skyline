@@ -30,6 +30,10 @@ describe("Error-group detail source chrome", () => {
     const adapter = new FixtureAdapter();
     const group = (await adapter.errorGroups()).errorGroups[0];
     const data = presentErrorGroupDetail(await adapter.errorGroup(group.id, { period: "7d" }));
+    data.failedRuns.push(
+      { ...data.failedRuns[0], id: "run_task_queue", queueTarget: "task/invoices", queue: { connection: "redis", name: "task/invoices", type: "task" } },
+      { ...data.failedRuns[0], id: "run_unknown_queue", queueTarget: "—", queue: null },
+    );
     const router = createMemoryRouter([
       { path: "/errors/:errorId", loader: () => data, element: <ErrorGroupDetailRoute /> },
     ], { initialEntries: [`/errors/${group.id}?period=7d`] });
@@ -57,7 +61,14 @@ describe("Error-group detail source chrome", () => {
     expect(container.textContent).not.toContain("Machine");
     expect(container.textContent).not.toContain("Queue target");
     expect(container.textContent).not.toContain("Trace");
-    expect(container.textContent).toContain("redis / billing");
+    const queueCells = Array.from(container.querySelectorAll<HTMLTableCellElement>("tbody tr td:last-child"));
+    const customQueue = queueCells[0].querySelector("button")!;
+    expect(customQueue.textContent).toBe("billing");
+    expect(customQueue.querySelector("svg")?.getAttribute("class")).toContain("text-purple-500");
+    const taskQueue = queueCells.find((cell) => cell.querySelector("button")?.textContent === "task/invoices")!;
+    expect(taskQueue.querySelector("svg")?.getAttribute("class")).toContain("text-blue-500");
+    expect(queueCells.at(-1)?.textContent).toBe("–");
+    expect(queueCells.some((cell) => cell.querySelector("a button"))).toBe(false);
     const sidebar = container.querySelector<HTMLElement>('aside[aria-label="Error group details"]')!;
     expect(sidebar.textContent).toContain(data.errorGroup.friendlyId);
     expect(sidebar.querySelector(`a[href="${data.errorGroup.jobPath}"]`)).toBeNull();

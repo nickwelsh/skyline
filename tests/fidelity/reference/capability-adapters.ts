@@ -179,7 +179,7 @@ export function conditionRunsTableCapabilities(code: string) {
   if (start < 0 || end < 0) throw new Error("Pinned Trigger Runs Queue cell changed; capability adapter must be reviewed.");
   const sourceQueue = adapted.slice(start, end + "                </TableCell>".length);
   adapted = adapted.slice(0, start)
-    + `                {runsCapabilityCore ? <TableCell to={path}>{run.queueTarget}</TableCell> : (\n${sourceQueue}\n                )}`
+    + `                {runsCapabilityCore ? <TableCell to={path}>{run.queueTarget}</TableCell> : run.queue ? (\n${sourceQueue}\n                ) : <TableCell to={path}>–</TableCell>}`
     + adapted.slice(end + "                </TableCell>".length);
   return adapted;
 }

@@ -163,6 +163,7 @@ it('shows representative frames activity and cursor-paginated original occurrenc
     expect($first->json('activity'))->not->toBeEmpty()
         ->and(collect($first->json('activity'))->sum('occurrences'))->toBe(27)
         ->and($first->json('failedAttempts.0.id'))->toBe('attempt_error-run-46_1')
+        ->and($first->json('failedAttempts.0.triggeredAt'))->toBeString()
         ->and($first->json('failedAttempts.0.runHref'))->toBe('/skyline/runs/error-run-46')
         ->and($first->json('failedAttempts.0.attemptHref'))->toBe('/skyline/runs/error-run-46?node=attempt_error-run-46_1');
 

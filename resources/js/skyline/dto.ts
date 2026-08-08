@@ -293,6 +293,7 @@ export type ErrorGroupOccurrence = {
   jobType: string;
   connection: string | null;
   queue: string | null;
+  triggeredAt: string;
   startedAt: string;
   finishedAt: string | null;
   observedAt: string;

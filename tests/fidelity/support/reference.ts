@@ -354,7 +354,7 @@ function triggerRunList(page: any) {
 
 function triggerRunSummary(run: any) {
   const status = triggerStatus(run.status);
-  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: 0, tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: { name: run.queue ?? "default", type: run.queue?.startsWith("task/") ? "task" : "custom" }, region: "us-east-1", taskKind: "STANDARD", queueDurationMs: run.queueDurationUs === null ? null : run.queueDurationUs / 1_000, runDurationMs: run.durationUs === null ? null : run.durationUs / 1_000, queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—" };
+  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: 0, tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: run.queue ? { name: run.queue, type: run.queue.startsWith("task/") ? "task" : "custom" } : null, region: "us-east-1", taskKind: "STANDARD", queueDurationMs: run.queueDurationUs == null ? null : run.queueDurationUs / 1_000, runDurationMs: run.durationUs == null ? null : run.durationUs / 1_000, queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—" };
 }
 
 function triggerRun(detail: any) {
@@ -478,11 +478,12 @@ function triggerError(detail: any, layout: any) {
       id: attempt.runId,
       name: attempt.jobType,
       status: "failed",
-      triggeredAt: attempt.startedAt,
+      triggeredAt: attempt.triggeredAt,
       startedAt: attempt.startedAt,
       finishedAt: attempt.finishedAt ?? attempt.observedAt,
       activeDurationUs: Math.max(0, Date.parse(attempt.finishedAt ?? attempt.observedAt) - Date.parse(attempt.startedAt)) * 1_000,
-      queue: "default",
+      connection: attempt.connection,
+      queue: attempt.queue,
       isRoot: true,
     })),
     pagination: detail.pagination,

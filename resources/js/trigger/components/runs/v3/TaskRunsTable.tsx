@@ -4,6 +4,7 @@
  * Selection, write actions, deployment, machine, region, cost, delay, TTL, and tags remain external.
  */
 import { ClockIcon, CpuChipIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
+import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { formatDurationMilliseconds } from "~/utils/durations";
 import { Badge } from "~/components/primitives/Badge";
 import { CopyableText } from "~/components/primitives/CopyableText";
@@ -35,6 +36,7 @@ export type PresentedRun = {
   machine?: string | null;
   status: RunStatus;
   queueTarget: string;
+  queue?: { connection: string | null; name: string; type: "task" | "custom" } | null;
   startedAt?: string | null;
   queueDurationMs?: number | null;
   runDurationMs?: number | null;
@@ -211,7 +213,11 @@ function ErrorRunsTable({ total, hasFilters, runs, isLoading, showVersions, show
               <span className="flex items-center gap-1"><CpuChipIcon className="size-4 text-success" />{run.activeDuration ?? "–"}</span>
             </TableCell>
             {showMachines ? <TableCell to={run.path}>{run.machine ?? "–"}</TableCell> : null}
-            <TableCell to={run.path}>{run.queueTarget}</TableCell>
+            {run.queue ? (
+              <TableCell to={run.path} leadingContent={<ErrorRunQueue queue={run.queue} />}>
+                <span className="sr-only">{run.queue.connection ? `${run.queue.connection} / ${run.queue.name}` : run.queue.name}</span>
+              </TableCell>
+            ) : <TableCell to={run.path}>–</TableCell>}
           </TableRow>
         ))}
         {isLoading ? (
@@ -221,6 +227,27 @@ function ErrorRunsTable({ total, hasFilters, runs, isLoading, showVersions, show
         ) : null}
       </TableBody>
     </Table>
+  );
+}
+
+function ErrorRunQueue({ queue }: { queue: NonNullable<PresentedRun["queue"]> }) {
+  const task = queue.type === "task";
+  return (
+    <SimpleTooltip
+      buttonClassName="w-fit"
+      button={
+        <span className="flex items-center gap-1">
+          {task
+            ? <TasksIcon className="size-[1.125rem] text-blue-500" />
+            : <RectangleStackIcon className="size-[1.125rem] text-purple-500" />}
+          <span>{queue.name}</span>
+        </span>
+      }
+      content={task
+        ? `This queue was automatically created from your "${queue.name}" task`
+        : "This is a custom queue you added in your code."}
+      disableHoverableContent
+    />
   );
 }
 

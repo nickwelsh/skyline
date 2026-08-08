@@ -362,7 +362,7 @@ function summary(id: string, exceptionClass: string, fixture = primaryError): Er
 
 function occurrence(runId: string): ErrorGroupDetailDto["failedAttempts"][number] {
   return {
-    id: `occ_${runId}`, runId, attemptNumber: 2, jobType, connection: "redis", queue: "billing", startedAt: "2026-08-05T11:58:00Z", finishedAt: "2026-08-05T11:59:00Z",
+    id: `occ_${runId}`, runId, attemptNumber: 2, jobType, connection: "redis", queue: "billing", triggeredAt: "2026-08-05T11:57:59Z", startedAt: "2026-08-05T11:58:00Z", finishedAt: "2026-08-05T11:59:00Z",
     observedAt: "2026-08-05T11:59:00Z", runHref: `/skyline/runs/${runId}`, attemptHref: `/skyline/runs/${runId}?attempt=2`, exception: exception(),
   };
 }

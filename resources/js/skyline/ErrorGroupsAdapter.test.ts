@@ -101,6 +101,7 @@ describe("ErrorGroupsAdapter", () => {
         jobType: summary.jobType,
         connection: "redis",
         queue: "billing",
+        triggeredAt: "2026-08-04T11:59:59.999000000Z",
         startedAt: summary.lastObservedAt,
         finishedAt: summary.lastObservedAt,
         observedAt: summary.lastObservedAt,
@@ -114,6 +115,7 @@ describe("ErrorGroupsAdapter", () => {
         jobType: summary.jobType,
         connection: null,
         queue: null,
+        triggeredAt: summary.lastObservedAt,
         startedAt: summary.lastObservedAt,
         finishedAt: summary.lastObservedAt,
         observedAt: summary.lastObservedAt,
@@ -142,12 +144,13 @@ describe("ErrorGroupsAdapter", () => {
       version: null,
       machine: null,
       status: "failed",
-      queueTarget: "redis / billing",
+      queueTarget: "billing",
+      queue: { connection: "redis", name: "billing", type: "custom" },
       startedAt: summary.lastObservedAt,
-      queueDuration: "—",
-      duration: "0µs",
+      queueDuration: "1ms",
+      duration: "0ms",
     });
-    expect(presented.failedRuns[1].queueTarget).toBe("—");
+    expect(presented.failedRuns[1]).toMatchObject({ queueTarget: "—", queue: null });
     expect(presented).toMatchObject({
       errorGroup: { friendlyId: "error_abc" },
       canViewVersions: false,

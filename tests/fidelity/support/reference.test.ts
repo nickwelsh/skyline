@@ -58,7 +58,11 @@ describe("pinned Trigger Errors fixture", () => {
       expect.objectContaining({ date: expect.any(String), "20260804.1": expect.any(Number) }),
     ]);
     expect(detail.data.runList.runs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ status: "COMPLETED_WITH_ERRORS", taskIdentifier: expect.any(String) }),
+      expect.objectContaining({
+        status: "COMPLETED_WITH_ERRORS",
+        taskIdentifier: expect.any(String),
+        queue: expect.objectContaining({ name: "billing" }),
+      }),
     ]));
   });
 });
@@ -84,6 +88,7 @@ describe("pinned Trigger Runs fixture", () => {
     expect(filters).toContain('<SearchInput placeholder="Search Runs" />');
     expect(filters).toContain("<span>Jobs</span>");
     expect(table).toContain('formatDuration(new Date(run.createdAt), new Date(run.startedAt)');
+    expect(table).toContain('run.queue ? (');
     expect(table).toContain("formatDurationMilliseconds(run.usageDurationMs");
     expect(table).not.toContain("runsCapabilityCore ? run.duration");
     expect(table).toContain("run.queueTarget");
@@ -93,6 +98,8 @@ describe("pinned Trigger Runs fixture", () => {
     const fixtureSource = readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8");
     expect(fixtureSource).not.toContain("RunListAdapter");
     expect(fixtureSource).not.toContain("formatReferenceDuration");
+    expect(fixtureSource).toContain("queue: attempt.queue,");
+    expect(fixtureSource).not.toContain('queue: attempt.queue ?? "default"');
   });
 
   test("maps observed Runs into the capability-conditioned source row seam", async () => {
