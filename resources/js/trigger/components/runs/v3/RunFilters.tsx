@@ -176,16 +176,16 @@ function CreatedFilter() {
   const { value, replace } = useSearchParams();
   const from = value("triggeredFrom");
   const to = value("triggeredTo");
-  const period = publicPeriod(value("triggeredPeriod"), from, to);
+  const period = publicPeriod(value("period"), from, to);
   const apply = (next: TimeFilterApplyValues) => {
     if (next.period) {
       const milliseconds = periodToMilliseconds(next.period);
       if (!milliseconds) throw new Error(`Invalid time period: ${next.period}`);
       const triggeredTo = new Date();
-      replace({ triggeredPeriod: next.period, triggeredFrom: new Date(triggeredTo.getTime() - milliseconds).toISOString(), triggeredTo: triggeredTo.toISOString(), cursor: undefined, direction: undefined });
+      replace({ period: next.period, triggeredFrom: new Date(triggeredTo.getTime() - milliseconds).toISOString(), triggeredTo: triggeredTo.toISOString(), cursor: undefined, direction: undefined });
       return;
     }
-    replace({ triggeredPeriod: undefined, triggeredFrom: publicInstant(next.from), triggeredTo: publicInstant(next.to), cursor: undefined, direction: undefined });
+    replace({ period: undefined, triggeredFrom: publicInstant(next.from), triggeredTo: publicInstant(next.to), cursor: undefined, direction: undefined });
   };
   return <TimeFilter defaultPeriod="7d" period={period} from={period ? undefined : from} to={period ? undefined : to} shortcut={{ key: "d" }} onValueChange={apply} />;
 }

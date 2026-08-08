@@ -105,7 +105,7 @@ describe("semantic fidelity actions", () => {
     expect(canonicalSourceRunFilterUrl("/runs?triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z")).toBe(
       "/runs?triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z",
     );
-    expect(canonicalSourceRunFilterUrl("/runs?triggeredPeriod=2h&triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z")).toBe(
+    expect(canonicalSourceRunFilterUrl("/runs?period=2h&triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z")).toBe(
       "/runs?period=2h",
     );
   });

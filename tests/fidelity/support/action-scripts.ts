@@ -168,12 +168,10 @@ export function canonicalSourceRunFilterUrl(url: string) {
     parsed.searchParams.delete("to");
     parsed.searchParams.set("triggeredTo", new Date(Number(sourceTo)).toISOString());
   }
-  const triggeredPeriod = parsed.searchParams.get("triggeredPeriod");
-  if (triggeredPeriod) {
-    parsed.searchParams.delete("triggeredPeriod");
+  const period = parsed.searchParams.get("period");
+  if (period) {
     parsed.searchParams.delete("triggeredFrom");
     parsed.searchParams.delete("triggeredTo");
-    parsed.searchParams.set("period", triggeredPeriod);
   }
   const statuses = parsed.searchParams.getAll("statuses");
   if (statuses.length === 0) return `${parsed.pathname}${parsed.search}${parsed.hash}`;

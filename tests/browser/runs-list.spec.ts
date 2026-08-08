@@ -131,25 +131,27 @@ test("Created keeps fixed ranges exact and rolling periods shareable", async ({ 
   await expect(tooltip).toContainText("UTC");
   await expect(tooltip).toContainText("Local");
   await expect(tooltip).toContainText("Aug 5, 2026, 12:00:00 PM");
-  await expect(reachedDate).toHaveAttribute("aria-describedby", await tooltip.getAttribute("id"));
+  const tooltipId = await tooltip.getAttribute("id");
+  expect(tooltipId).toBeTruthy();
+  await expect(reachedDate).toHaveAttribute("aria-describedby", tooltipId!);
 
-  await page.goto(`${fixedUrl}&triggeredPeriod=invalid`);
+  await page.goto(`${fixedUrl}&period=invalid`);
   await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
   await expect(page).toHaveURL(/triggeredFrom=2026-08-05T12%3A00%3A00.000Z/);
   await expect(page).toHaveURL(/triggeredTo=2026-08-05T14%3A00%3A00.000Z/);
-  await page.goto(`${fixedUrl}&triggeredPeriod=1h`);
+  await page.goto(`${fixedUrl}&period=1h`);
   await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
   await page.goto(fixedUrl);
 
   await created.click();
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(new RegExp(`${fixedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
-  await expect(page).not.toHaveURL(/triggeredPeriod=/);
+  await expect(page).not.toHaveURL(/[?&]period=/);
 
   await page.getByRole("heading", { name: "Runs" }).click();
   await page.keyboard.press("d");
   await page.getByRole("button", { name: "1 hr" }).click();
-  await expect(page).toHaveURL(/triggeredPeriod=1h/);
+  await expect(page).toHaveURL(/[?&]period=1h/);
   await expect(page).toHaveURL(/triggeredFrom=2026-08-05T11%3A34%3A56.000Z/);
   const rollingUrl = page.url();
   await page.reload();
@@ -170,11 +172,11 @@ test("Created keeps fixed ranges exact and rolling periods shareable", async ({ 
   await page.getByPlaceholder("Custom").fill("2");
   await page.getByRole("button", { name: "hours" }).click();
   await page.keyboard.press("Control+Enter");
-  await expect(page).toHaveURL(/triggeredPeriod=2h/);
+  await expect(page).toHaveURL(/[?&]period=2h/);
   await page.reload();
   await expect(page.getByText("Created:2 hours", { exact: true })).toBeVisible();
   expect(apiRequests.length).toBeGreaterThan(0);
-  expect(apiRequests.every((url) => !new URL(url).searchParams.has("triggeredPeriod"))).toBe(true);
+  expect(apiRequests.every((url) => !new URL(url).searchParams.has("period"))).toBe(true);
 });
 
 test("paired pinned Trigger.dev and Skyline Runs fixture stays deterministic", async ({ page }) => {
