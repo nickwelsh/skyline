@@ -25,12 +25,7 @@ describe("RunListAdapter", () => {
     expect(presented).not.toHaveProperty("queueTimeSource");
     expect(presented).not.toHaveProperty("traceIdentity");
     expect(presented).not.toHaveProperty("attemptCount");
-    expect(presented).toMatchObject({
-      createdAt: "2026-08-05T12:00:00.000000000Z",
-      startedAt: "2026-08-05T12:00:00.001000000Z",
-      finishedAt: "2026-08-05T12:00:01.001000000Z",
-      usageDurationMs: 0,
-    });
+    expect(presented).toMatchObject({ queueDurationMs: 1, runDurationMs: 1_000, computeDurationMs: null });
   });
 
   it("keeps missing active duration truthful", () => {
