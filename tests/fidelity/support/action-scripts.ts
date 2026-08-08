@@ -18,12 +18,12 @@ type Proof = {
   timeRange?: boolean;
   timePeriod?: "2h";
 };
-type Step = { action: "click" | "activate" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture" | "wait"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; proof?: Proof; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
+type Step = { action: "click" | "activate" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture" | "wait" | "hover"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; proof?: Proof; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
 export type ActionScript = { id: string; start: string; comparePanelPersistence?: boolean; steps: Step[] };
 type ActionFile = { schemaVersion: number; scripts: ActionScript[] };
 
 const required = ["navigation-history", "dialogs-menus", "filters-pagination", "selection-inspector-timeline-copy", "preferences", "live-error-recovery", "keyboard-focus-shortcuts"];
-const actions = new Set(["click", "activate", "fill", "select", "choose", "press", "history", "reload", "fixture", "wait"]);
+const actions = new Set(["click", "activate", "fill", "select", "choose", "press", "history", "reload", "fixture", "wait", "hover"]);
 
 export function validateActionScripts(value: ActionFile) {
   if (value.schemaVersion !== 1 || !Array.isArray(value.scripts)) throw new Error("Invalid action-script contract.");
@@ -168,12 +168,12 @@ export function canonicalSourceRunFilterUrl(url: string) {
     parsed.searchParams.delete("to");
     parsed.searchParams.set("triggeredTo", new Date(Number(sourceTo)).toISOString());
   }
-  const triggeredFrom = parsed.searchParams.get("triggeredFrom");
-  const triggeredTo = parsed.searchParams.get("triggeredTo");
-  if (triggeredFrom && triggeredTo && Date.parse(triggeredTo) - Date.parse(triggeredFrom) === 2 * 60 * 60 * 1_000) {
+  const triggeredPeriod = parsed.searchParams.get("triggeredPeriod");
+  if (triggeredPeriod) {
+    parsed.searchParams.delete("triggeredPeriod");
     parsed.searchParams.delete("triggeredFrom");
     parsed.searchParams.delete("triggeredTo");
-    parsed.searchParams.set("period", "2h");
+    parsed.searchParams.set("period", triggeredPeriod);
   }
   const statuses = parsed.searchParams.getAll("statuses");
   if (statuses.length === 0) return `${parsed.pathname}${parsed.search}${parsed.hash}`;
@@ -255,6 +255,7 @@ async function perform(page: Page, step: Step, fixtureState: (state: string) => 
     }
     throw new Error("Semantic wait state invalid.");
   }
+  if (step.action === "hover") return locator(page, step.target).hover();
 }
 
 async function assertEffect(page: Page, effect: Effect, assertFocus: boolean) {

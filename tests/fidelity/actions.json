@@ -46,6 +46,7 @@
         { "action": "activate", "target": { "role": "button", "name": "Yesterday" } },
         { "action": "wait", "target": { "role": "button", "name": "Apply Ctrl Enter" }, "state": "visible" },
         { "action": "click", "target": { "role": "button", "name": "Apply Ctrl Enter" }, "proof": { "timeRange": true } },
+        { "action": "hover", "target": { "selector": "[role='combobox']:has-text('Created:') span[data-state]" }, "proof": { "visible": [{ "selector": "[role='tooltip']:visible" }] } },
         { "action": "click", "target": { "selector": "[role='combobox']:has-text('Created:')" } },
         { "action": "fill", "target": { "selector": "input[placeholder='Custom']" }, "value": "2" },
         { "action": "click", "target": { "role": "button", "name": "hours" } },

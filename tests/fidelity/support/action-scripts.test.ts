@@ -38,6 +38,7 @@ describe("semantic fidelity actions", () => {
       { action: "activate", target: { role: "button", name: "Yesterday" } },
       { action: "wait", target: { role: "button", name: "Apply Ctrl Enter" }, state: "visible" },
       { action: "click", target: { role: "button", name: "Apply Ctrl Enter" }, proof: { timeRange: true } },
+      { action: "hover", target: { selector: "[role='combobox']:has-text('Created:') span[data-state]" }, proof: { visible: [{ selector: "[role='tooltip']:visible" }] } },
       { action: "click", target: { selector: "[role='combobox']:has-text('Created:')" } },
       { action: "fill", target: { selector: "input[placeholder='Custom']" }, value: "2" },
       { action: "click", target: { role: "button", name: "hours" } },
@@ -98,6 +99,15 @@ describe("semantic fidelity actions", () => {
       "/runs?cursor=next&direction=forward&status=failed",
     );
     expect(() => canonicalSourceRunFilterUrl("/runs?statuses=EXECUTING")).toThrow("Unmapped source status query: EXECUTING");
+  });
+
+  test("canonicalizes only explicit rolling Run periods", () => {
+    expect(canonicalSourceRunFilterUrl("/runs?triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z")).toBe(
+      "/runs?triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z",
+    );
+    expect(canonicalSourceRunFilterUrl("/runs?triggeredPeriod=2h&triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z")).toBe(
+      "/runs?period=2h",
+    );
   });
 
   test("canonicalizes only adapter-encoded timeline state after the shared switch", () => {
