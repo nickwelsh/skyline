@@ -315,11 +315,11 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
           </div>
           <div className="space-y-4">
           {sections.map((section) => section.id === "favorites" ? (
-            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.favorites)}`} title={section.title} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.favorites} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, favorites: value } })}>
+            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections.favorites)}`} title={section.title} itemSpacingClassName="space-y-0" isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections.favorites} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, favorites: value } })}>
               <div role="navigation" aria-label="Favorites">{visibleFavorites.map((favorite) => <NavigationLink key={favorite.id} item={{ id: favorite.id, name: favorite.label, to: favorite.path, icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" }} active={location.pathname === favorite.path} labelOpacity={labelOpacity} />)}</div>
             </SideMenuSection>
           ) : (
-            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} data-skyline-extension={section.id === "metrics" ? "shell-observability-header" : undefined} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
+            <SideMenuSection key={`${section.id}:${Boolean(preferences.collapsedSections[section.id])}`} title={section.title} itemSpacingClassName="space-y-0" data-skyline-extension={section.id === "metrics" ? "shell-observability-header" : undefined} isSideMenuCollapsed={collapsed} initialCollapsed={preferences.collapsedSections[section.id]} onCollapseToggle={(value) => onPreferencesChange({ collapsedSections: { ...preferences.collapsedSections, [section.id]: value } })} headerMenu={capabilities.shell.sidebarCustomization ? <SidebarCustomizationMenu onCustomize={() => setCustomizeOpen(true)} /> : undefined}>
               {section.items.map((item) => <NavigationLink key={item.id} item={item} active={location.pathname === item.to} labelOpacity={labelOpacity} />)}
             </SideMenuSection>
           ))}

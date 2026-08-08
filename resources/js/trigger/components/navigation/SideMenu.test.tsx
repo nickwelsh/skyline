@@ -92,6 +92,7 @@ describe("SideMenu capabilities", () => {
 
     expect(section.className).toBe("group/section flex w-full cursor-pointer items-center justify-between overflow-hidden rounded-sm py-1 pl-1.5 pr-1 group-hover/sectionheader:bg-background-hover focus-custom");
     expect(section.getAttribute("data-skyline-extension")).toBe("shell-observability-header");
+    expect(section.parentElement?.nextElementSibling?.querySelector(".space-y-0")).not.toBeNull();
     for (const action of ["tasks", "runs", "logs", "errors", "queues"]) {
       const link = container.querySelector<HTMLElement>(`[data-action="${action}"]`)!;
       expect(link.className).toBe("h-8! block w-full group/menulink flex h-8 items-center gap-2 overflow-hidden rounded pl-1.75 pr-2 focus-custom w-full text-text-dimmed group-hover/menuitem:bg-background-hover group-hover/menuitem:text-text-bright hover:bg-background-hover hover:text-text-bright");

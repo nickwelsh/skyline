@@ -6,7 +6,7 @@ import ts from "typescript";
 import { describe, expect, test } from "vitest";
 import policy from "./reference-capabilities.json" with { type: "json" };
 import { conditionQueueControls, conditionQueueListMetricResources, conditionQueueMetricResources, conditionSideMenuItems, conditionSideMenuSections, conditionSideMenuShell } from "./reference/vite.config";
-import { conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./reference/capability-adapters";
+import { conditionErrorDetailCapabilities, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./reference/capability-adapters";
 
 const root = resolve(import.meta.dirname, "../..");
 const vendor = resolve(root, "tests/fidelity/reference/vendor/components/navigation");
@@ -19,6 +19,8 @@ const table = resolve(root, "tests/fidelity/reference/vendor/components/primitiv
 const miniChart = resolve(root, "tests/fidelity/reference/vendor/components/metrics/MiniLineChart.tsx");
 const sharedFilters = resolve(root, "tests/fidelity/reference/vendor/components/runs/v3/SharedFilters.tsx");
 const pathNameHook = resolve(root, "tests/fidelity/reference/vendor/hooks/usePathName.ts");
+const referenceErrorDetail = resolve(root, "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
+const skylineErrorDetail = resolve(root, "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
 
 describe("pinned shell capability adapters", () => {
   test("locks the reviewed policy digest", () => {
@@ -80,6 +82,15 @@ describe("pinned shell capability adapters", () => {
     expect(adapted).toContain('queues: "/skyline/queues"');
     expect(adapted).toContain('to={shellPublicRoutes[dataAction ?? ""] ?? to}');
     expect(adapted).toContain("<SourceSideMenuItem {...props} badge={action ? undefined : props.badge} />");
+  });
+
+  test("keeps unsupported Error detail pagination absent on both sides", () => {
+    const reference = conditionErrorDetailCapabilities(readFileSync(referenceErrorDetail, "utf8"), policy.errors);
+    const skyline = readFileSync(skylineErrorDetail, "utf8");
+
+    expect(reference).toContain("errorCapabilityPolicy.detailPagination ? <ListPagination");
+    expect(policy.errors.detailPagination).toBe(false);
+    expect(skyline).not.toContain("<ListPagination list={data}");
   });
 
   test("routes pinned Queue metric queries through observed fixture resources", () => {

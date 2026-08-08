@@ -1,7 +1,7 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Preserves ErrorGroupDetail, activity, paginated Runs-table treatment,
+ * Preserves ErrorGroupDetail, activity, Runs-table treatment,
  * ErrorDetailSidebar, resizable geometry, and route-state composition.
  * Server, tenant, status, assignment, ignore, resolve, alerts, versions,
  * replay, cancellation, and bulk actions are external or capability-hidden.
@@ -14,7 +14,6 @@ import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
-import { ListPagination } from "~/components/ListPagination";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { LinkButton } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
@@ -114,7 +113,6 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
               <Header3 id="runs-heading" className="mb-1 mt-2">Runs</Header3>
               <div className="flex items-center gap-2">
                 <LinkButton variant="secondary/small" to={data.viewAllRunsPath} LeadingIcon={RunsIcon}>View all runs</LinkButton>
-                <ListPagination list={data} />
               </div>
             </div>
             <div className="relative min-h-0 flex-1 overflow-hidden">
