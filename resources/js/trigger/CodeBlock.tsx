@@ -5,13 +5,24 @@
  */
 import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
-import { Highlight, type Language, type PrismTheme } from "prism-react-renderer";
+import { Highlight, Prism, type Language, type PrismTheme } from "prism-react-renderer";
 import { forwardRef, useCallback, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/primitives/Tooltip";
 import { cn } from "./utils/cn";
+
+async function setup() {
+  (typeof global !== "undefined" ? global : window).Prism = Prism;
+  // @ts-expect-error Prism language modules do not publish declarations.
+  await import("prismjs/components/prism-json");
+  // @ts-expect-error Prism language modules do not publish declarations.
+  await import("prismjs/components/prism-typescript");
+  // @ts-expect-error Prism language modules do not publish declarations.
+  await import("prismjs/components/prism-sql.js");
+}
+setup();
 
 type CodeBlockProps = {
   code: string;
@@ -237,7 +248,7 @@ function Chrome({ title }: { title?: string }) {
 
 function PlainCode({ code, maxHeight, isWrapped }: { code: string; maxHeight?: string; isWrapped: boolean }) {
   return (
-    <div dir="ltr" className="min-h-0 flex-1 overflow-auto px-2 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control" style={{ maxHeight }}>
+    <div dir="ltr" className="min-h-0 flex-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control overflow-auto px-2 py-3" style={{ maxHeight }}>
       <pre className={`relative mr-2 p-2 font-mono text-xs leading-relaxed ${isWrapped ? "whitespace-pre-wrap wrap-break-word" : ""}`} dir="ltr">{code}</pre>
     </div>
   );

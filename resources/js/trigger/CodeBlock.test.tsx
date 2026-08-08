@@ -46,6 +46,13 @@ describe("CodeBlock", () => {
     flushSync(() => root.unmount());
   });
 
+  it("loads the pinned source Prism grammars", async () => {
+    await vi.waitFor(() => {
+      const prism = (globalThis as typeof globalThis & { Prism?: { languages?: Record<string, unknown> } }).Prism;
+      expect(prism?.languages).toMatchObject({ json: expect.any(Object), typescript: expect.any(Object), sql: expect.any(Object) });
+    });
+  });
+
   it("closes its dialog on Escape while nested modal content is focused", async () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
