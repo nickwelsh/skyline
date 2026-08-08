@@ -108,6 +108,70 @@ export function conditionRunsTableCapabilities(code: string) {
       '  if (isLoading) return <TableBlankRow colSpan={colSpan}></TableBlankRow>;\n  if (runsCapabilityCore) return <TableBlankRow colSpan={colSpan}><Paragraph className="w-auto">No runs match your filters.</Paragraph></TableBlankRow>;',
     );
 
+  adapted = replaceRequired(adapted,
+    `{run.isPending ? (
+                      "–"
+                    ) : run.startedAt ? (
+                      formatDuration(new Date(run.createdAt), new Date(run.startedAt), {
+                        style: "short",
+                      })
+                    ) : run.isCancellable ? (
+                      <LiveTimer startTime={new Date(run.createdAt)} />
+                    ) : (
+                      formatDuration(new Date(run.createdAt), new Date(run.updatedAt), {
+                        style: "short",
+                      })
+                    )}`,
+    `{runsCapabilityCore ? run.queueDurationMs === null ? "–" : formatDurationMilliseconds(run.queueDurationMs, { style: "short" }) : run.isPending ? (
+                      "–"
+                    ) : run.startedAt ? (
+                      formatDuration(new Date(run.createdAt), new Date(run.startedAt), {
+                        style: "short",
+                      })
+                    ) : run.isCancellable ? (
+                      <LiveTimer startTime={new Date(run.createdAt)} />
+                    ) : (
+                      formatDuration(new Date(run.createdAt), new Date(run.updatedAt), {
+                        style: "short",
+                      })
+                    )}`,
+    "Runs queue duration",
+  );
+  adapted = replaceRequired(adapted,
+    `{run.startedAt && run.finishedAt ? (
+                      formatDuration(new Date(run.startedAt), new Date(run.finishedAt), {
+                        style: "short",
+                      })
+                    ) : run.startedAt ? (
+                      <LiveTimer startTime={new Date(run.startedAt)} />
+                    ) : (
+                      "–"
+                    )}`,
+    `{runsCapabilityCore ? run.runDurationMs === null ? "–" : formatDurationMilliseconds(run.runDurationMs, { style: "short" }) : run.startedAt && run.finishedAt ? (
+                      formatDuration(new Date(run.startedAt), new Date(run.finishedAt), {
+                        style: "short",
+                      })
+                    ) : run.startedAt ? (
+                      <LiveTimer startTime={new Date(run.startedAt)} />
+                    ) : (
+                      "–"
+                    )}`,
+    "Runs duration",
+  );
+  adapted = replaceRequired(adapted,
+    `{run.usageDurationMs > 0
+                      ? formatDurationMilliseconds(run.usageDurationMs, {
+                          style: "short",
+                        })
+                      : "–"}`,
+    `{runsCapabilityCore ? "–" : run.usageDurationMs > 0
+                      ? formatDurationMilliseconds(run.usageDurationMs, {
+                          style: "short",
+                        })
+                      : "–"}`,
+    "Runs compute duration",
+  );
+
   const queueStart = '                <TableCell to={path}>\n                  {run.queue.type === "task" ? (';
   const queueEnd = "                </TableCell>\n                {!runsCapabilityCore && showRegion";
   const start = adapted.indexOf(queueStart);
