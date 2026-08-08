@@ -4,6 +4,7 @@
  * Selection, write actions, deployment, machine, region, cost, delay, TTL, and tags remain external.
  */
 import { ClockIcon, CpuChipIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
+import { useEffect, useState } from "react";
 import { Badge } from "~/components/primitives/Badge";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTime } from "~/components/primitives/DateTime";
@@ -34,7 +35,13 @@ export type PresentedRun = {
   machine?: string | null;
   status: RunStatus;
   queueTarget: string;
+  createdAt?: string;
+  updatedAt?: string;
   startedAt?: string | null;
+  finishedAt?: string | null;
+  isPending?: boolean;
+  isCancellable?: boolean;
+  usageDurationMs?: number;
   queueDuration: string;
   duration: string;
   activeDuration?: string;
@@ -95,7 +102,7 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
               </div>
             }
           >Duration</TableHeaderCell>
-          <TableHeaderCell>Queue target</TableHeaderCell>
+          <TableHeaderCell>Queue</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -128,19 +135,19 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
               <TableCell to={run.path} className="w-[1%]" actionClassName="pr-0 tabular-nums">
                 <div className="flex items-center gap-1">
                   <RectangleStackIcon className="size-4 text-text-dimmed" />
-                  {run.queueDuration}
+                  {run.isPending ? "–" : run.createdAt && run.startedAt ? sourceDuration(new Date(run.createdAt), new Date(run.startedAt)) : run.createdAt && run.isCancellable ? <LiveTimer startTime={new Date(run.createdAt)} /> : run.createdAt && run.updatedAt ? sourceDuration(new Date(run.createdAt), new Date(run.updatedAt)) : run.queueDuration}
                 </div>
               </TableCell>
               <TableCell to={run.path} className="w-[1%]" actionClassName="px-4 tabular-nums">
                 <div className="flex items-center gap-1">
                   <ClockIcon className="size-4 text-blue-500" />
-                  {run.duration}
+                  {run.startedAt && run.finishedAt ? sourceDuration(new Date(run.startedAt), new Date(run.finishedAt)) : run.startedAt ? <LiveTimer startTime={new Date(run.startedAt)} /> : "–"}
                 </div>
               </TableCell>
               <TableCell to={run.path} actionClassName="pl-0 tabular-nums">
                 <div className="flex items-center gap-1">
                   <CpuChipIcon className="size-4 text-success" />
-                  {run.activeDuration ?? "–"}
+                  {run.usageDurationMs && run.usageDurationMs > 0 ? sourceDurationMilliseconds(run.usageDurationMs) : "–"}
                 </div>
               </TableCell>
               <TableCell to={run.path}>{run.queueTarget}</TableCell>
@@ -158,6 +165,43 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
       </TableBody>
     </Table>
   );
+}
+
+function LiveTimer({ startTime }: { startTime: Date }) {
+  const [now, setNow] = useState<Date>();
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(new Date()), 250);
+    return () => window.clearInterval(interval);
+  }, [startTime]);
+  return <>{now ? sourceDuration(startTime, now, 0) : "–"}</>;
+}
+
+function sourceDuration(start: Date, end: Date, maxDecimalPoints = 1) {
+  return sourceDurationMilliseconds(Math.abs(end.getTime() - start.getTime()), maxDecimalPoints);
+}
+
+function sourceDurationMilliseconds(milliseconds: number, maxDecimalPoints = 1) {
+  if (milliseconds < 1_000) return `${rounded(milliseconds, maxDecimalPoints)}ms`;
+  const units = [[86_400_000, "d"], [3_600_000, "h"], [60_000, "m"], [1_000, "s"]] as const;
+  const values: string[] = [];
+  let remaining = milliseconds;
+  for (const [size, suffix] of units) {
+    if (remaining < size && values.length === 0) continue;
+    if (values.length === 1) {
+      values.push(`${rounded(remaining / size, maxDecimalPoints)}${suffix}`);
+      break;
+    }
+    const count = Math.floor(remaining / size);
+    if (count > 0) {
+      values.push(`${count}${suffix}`);
+      remaining -= count * size;
+    }
+  }
+  return values.join(", ") || "0ms";
+}
+
+function rounded(value: number, maxDecimalPoints: number) {
+  return Number(value.toFixed(maxDecimalPoints)).toString();
 }
 
 function ErrorRunsTable({ total, hasFilters, runs, isLoading, showVersions, showMachines }: Required<Pick<TaskRunsTableProps, "runs" | "isLoading" | "showVersions" | "showMachines">> & Pick<TaskRunsTableProps, "total" | "hasFilters">) {
