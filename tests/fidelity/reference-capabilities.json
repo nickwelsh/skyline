@@ -7,7 +7,7 @@
     "detailVersions": false,
     "detailMachines": false,
     "detailPlatformColumns": false,
-    "detailPagination": false,
+    "detailPagination": true,
     "detailBulkReplay": false
   },
   "queues": {

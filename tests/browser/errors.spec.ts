@@ -135,6 +135,37 @@ test("Errors URL-cursor paginate groups and failed Attempts", async ({ page }) =
   await expect(page).toHaveURL(/cursor=previous-attempts&direction=backward/);
 });
 
+test("paired pinned Error-detail pagination preserves cursor URLs and keyboard shortcuts", async ({ page }) => {
+  const referencePage = await page.context().newPage();
+  await referencePage.goto(`http://127.0.0.1:4175/errors/${primaryError.fingerprint}`);
+
+  await expect(referencePage.locator('a[href*="cursor=next-attempts"]')).toBeVisible();
+  await referencePage.keyboard.press("k");
+  await expect(referencePage).toHaveURL(/cursor=next-attempts&direction=forward/);
+  await expect(referencePage.locator('a[href*="cursor=previous-attempts"]')).toBeVisible();
+  await referencePage.keyboard.press("j");
+  await expect(referencePage).toHaveURL(/cursor=previous-attempts&direction=backward/);
+
+  await page.route("**/skyline/api/errors/**", async (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get("cursor");
+    const response = detailResponse();
+    response.pagination = cursor === "next-attempts"
+      ? { previous: "previous-attempts", next: null }
+      : { previous: null, next: "next-attempts" };
+    await route.fulfill({ json: response });
+  });
+  await page.goto(`/skyline/errors/${errorId}`);
+
+  await expect(page.locator('a[href*="cursor=next-attempts"]')).toBeVisible();
+  await page.keyboard.press("k");
+  await expect(page).toHaveURL(/cursor=next-attempts&direction=forward/);
+  await expect(page.locator('a[href*="cursor=previous-attempts"]')).toBeVisible();
+  await page.keyboard.press("j");
+  await expect(page).toHaveURL(/cursor=previous-attempts&direction=backward/);
+
+  await referencePage.close();
+});
+
 test("Errors preserve All time and return matching evidence search results", async ({ page }) => {
   await routeErrors(page);
   await page.goto("/skyline/errors?period=24h");

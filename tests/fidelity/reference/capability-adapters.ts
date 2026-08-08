@@ -208,7 +208,7 @@ export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapa
 
   const pagination = "                  <ListPagination list={runList} />";
   if (!adapted.includes(pagination)) throw new Error("Pinned Trigger Error detail pagination changed; capability adapter must be reviewed.");
-  adapted = adapted.replace(pagination, "                  {errorCapabilityPolicy.detailPagination ? <ListPagination list={runList} /> : null}");
+  if (!policy.detailPagination) throw new Error("Pinned Trigger Error detail pagination is required by NW-224.");
 
   const bulkStart = adapted.indexOf("                  <PermissionLink\n                    hasPermission={canReplayRuns}");
   const bulkEnd = adapted.indexOf("                  </PermissionLink>", bulkStart);

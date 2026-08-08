@@ -36,6 +36,20 @@
     "data": [],
     "versions": []
   },
+  "detailPages": [
+    {
+      "cursor": null,
+      "pagination": { "previous": null, "next": "next-attempts" }
+    },
+    {
+      "cursor": "next-attempts",
+      "pagination": { "previous": "previous-attempts", "next": null }
+    },
+    {
+      "cursor": "previous-attempts",
+      "pagination": { "previous": null, "next": "next-attempts" }
+    }
+  ],
   "representative": {
     "class": "RuntimeException",
     "message": "Connection timed out while generating monthly invoices for tenant 7413 after the upstream accounting provider accepted the request but failed to return a response before the configured deadline; the captured occurrence keeps this complete evidence instead of folding dynamic text into the Error-group identity.",

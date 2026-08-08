@@ -46,6 +46,7 @@ function pinnedErrors(): Plugin {
       const imports = {
         bugIcon: resolve(appRoot, "assets/icons/BugIcon.tsx"),
         codeBlock: resolve(appRoot, "components/code/CodeBlock.tsx"),
+        listPagination: resolve(appRoot, "components/ListPagination.tsx"),
         statusBadge: resolve(appRoot, "components/errors/ErrorStatusBadge.tsx"),
         paragraph: resolve(appRoot, "components/primitives/Paragraph.tsx"),
         headers: resolve(appRoot, "components/primitives/Headers.tsx"),
@@ -60,6 +61,7 @@ function pinnedErrors(): Plugin {
 import { Suspense, useMemo, type ReactNode } from "react";
 import { BugIcon } from ${JSON.stringify(imports.bugIcon)};
 import { CodeBlock } from ${JSON.stringify(imports.codeBlock)};
+import { ListPagination } from ${JSON.stringify(imports.listPagination)};
 import { ErrorStatusBadge } from ${JSON.stringify(imports.statusBadge)};
 import { Paragraph } from ${JSON.stringify(imports.paragraph)};
 import { Header2, Header3 } from ${JSON.stringify(imports.headers)};
@@ -115,12 +117,14 @@ ${list}
 ${detail}
 ${blankActivity}
 
-export function PinnedTriggerErrors({ scenario, detail: showDetail }: { scenario: { errorGroups: ErrorGroupSummary[]; occurrences: ErrorOccurrences; activity: ErrorGroupOccurrences }; detail: boolean }) {
+export function PinnedTriggerErrors({ scenario, detail: showDetail }: { scenario: { errorGroups: ErrorGroupSummary[]; occurrences: ErrorOccurrences; activity: ErrorGroupOccurrences; detailPages: Array<{ cursor: string | null; pagination: NextRunList["pagination"] }> }; detail: boolean }) {
   const errorGroup = scenario.errorGroups[0];
+  const cursor = new URLSearchParams(window.location.search).get("cursor");
+  const detailPage = scenario.detailPages.find((page) => page.cursor === cursor) ?? scenario.detailPages[0];
   return showDetail ? (
     <ErrorGroupDetail
       errorGroup={errorGroup}
-      runList={undefined}
+      runList={{ runs: [], pagination: detailPage.pagination }}
       activity={scenario.activity as unknown as Promise<ErrorGroupOccurrences>}
       organizationSlug="reference"
       projectParam="reference"

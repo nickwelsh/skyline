@@ -84,13 +84,14 @@ describe("pinned shell capability adapters", () => {
     expect(adapted).toContain("<SourceSideMenuItem {...props} badge={action ? undefined : props.badge} />");
   });
 
-  test("keeps unsupported Error detail pagination absent on both sides", () => {
+  test("keeps required Error detail pagination present on both sides", () => {
     const reference = conditionErrorDetailCapabilities(readFileSync(referenceErrorDetail, "utf8"), policy.errors);
     const skyline = readFileSync(skylineErrorDetail, "utf8");
 
-    expect(reference).toContain("errorCapabilityPolicy.detailPagination ? <ListPagination");
-    expect(policy.errors.detailPagination).toBe(false);
-    expect(skyline).not.toContain("<ListPagination list={data}");
+    expect(policy.errors.detailPagination).toBe(true);
+    expect(reference).toContain("<ListPagination list={runList} />");
+    expect(reference).not.toContain("errorCapabilityPolicy.detailPagination ?");
+    expect(skyline).toContain("<ListPagination list={data} />");
   });
 
   test("routes pinned Queue metric queries through observed fixture resources", () => {
