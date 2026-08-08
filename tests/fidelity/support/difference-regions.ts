@@ -139,6 +139,11 @@ export type RendererRasterizationDefinition = {
   presentation: RendererRasterizationPresentation;
   pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
   measurements: Record<string, { runtime: RendererRuntime; trigger: RendererRasterizationElement; skyline: RendererRasterizationElement }>;
+  alternatives?: Array<{
+    captures: string[];
+    pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
+    triggerCropSha256: string;
+  }>;
 };
 export type { RendererRasterizationObservation };
 export type CapabilityOmissionObservation = {
@@ -179,7 +184,15 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
   for (const definition of definitions) {
     if (definition.category === "renderer-rasterization") {
       const resolved = validateRendererRasterizationObservation(definition, await discoverRendererRasterizationObservation(trigger, skyline, definition, capture), capture);
-      regions.push({ kind: "renderer-rasterization", id: definition.id, observation: resolved, expected: { presentation: definition.presentation, ...definition.measurements[capture] }, pixels: definition.pixels } satisfies RendererRasterizationRegion);
+      if (resolved.trigger.cropSha256 === resolved.skyline.cropSha256) continue;
+      regions.push({
+        kind: "renderer-rasterization",
+        id: definition.id,
+        observation: resolved,
+        expected: { presentation: definition.presentation, ...definition.measurements[capture] },
+        pixels: definition.pixels,
+        alternatives: rendererRasterizationAlternativesForCapture(definition, capture),
+      } satisfies RendererRasterizationRegion);
       continue;
     }
     if (definition.category === "branding-identity") {
@@ -436,12 +449,12 @@ export async function discoverRendererRasterizationObservation(trigger: Page, sk
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     })),
   });
-  const [triggerRuntime, skylineRuntime, triggerScreenshot, skylineScreenshot] = await Promise.all([
+  const [triggerRuntime, skylineRuntime] = await Promise.all([
     runtimeFor(trigger),
     runtimeFor(skyline),
-    trigger.screenshot({ animations: "disabled", caret: "hide" }),
-    skyline.screenshot({ animations: "disabled", caret: "hide" }),
   ]);
+  const triggerScreenshot = await trigger.screenshot({ animations: "disabled", caret: "hide" });
+  const skylineScreenshot = await skyline.screenshot({ animations: "disabled", caret: "hide" });
   if (JSON.stringify(triggerRuntime) !== JSON.stringify(skylineRuntime)) throw new Error(`Renderer rasterization ${definition.id} changed cross-side runtime.`);
 
   const observe = async (page: Page, screenshot: Buffer, selector: string, application: "trigger" | "skyline") => {
@@ -845,9 +858,13 @@ export function validateRendererRasterizationObservation(definition: RendererRas
       ["boxModelSha256", "box model"],
       ["quadsSha256", "quads"],
       ["backdropSha256", "backdrop"],
-      ["cropSha256", "crop"],
     ] as const) if (JSON.stringify(actual[key]) !== JSON.stringify(recorded[key])) throw new Error(`Renderer rasterization ${definition.id} changed ${application} ${label}.`);
   }
+  const approvedTriggerCrops = [expected.trigger.cropSha256, ...(definition.alternatives ?? []).filter((alternative) => alternative.captures.includes(capture)).map(({ triggerCropSha256 }) => triggerCropSha256)];
+  const approvedCrop = approvedTriggerCrops.includes(observation.trigger.cropSha256)
+    && observation.skyline.cropSha256 === expected.skyline.cropSha256;
+  const inactive = observation.trigger.cropSha256 === observation.skyline.cropSha256;
+  if (!inactive && !approvedCrop) throw new Error(`Renderer rasterization ${definition.id} changed exact crop evidence.`);
   for (const [key, label] of [
     ["rect", "geometry"],
     ["computedStyleSha256", "style"],
@@ -861,51 +878,137 @@ export function validateRendererRasterizationObservation(definition: RendererRas
   return observation;
 }
 
+export function rendererRasterizationAlternativesForCapture(definition: RendererRasterizationDefinition, capture: string) {
+  const measurement = definition.measurements[capture];
+  if (!measurement) return [];
+  return (definition.alternatives ?? []).filter((alternative) => alternative.captures.includes(capture)).map((alternative) => ({
+    expected: { presentation: definition.presentation, ...measurement, trigger: { ...measurement.trigger, cropSha256: alternative.triggerCropSha256 } },
+    pixels: alternative.pixels,
+  }));
+}
+
 function validateRendererRasterizationDefinition(definition: RendererRasterizationDefinition) {
-  const capture = "error-found@1024x768-classic";
+  const spec = rendererRasterizationDefinitionSpec(definition.id);
+  if (!spec) throw new Error(`Renderer-rasterization region ${definition.id} changed approved metadata.`);
+  for (const key of ["category", "decision", "acceptance", "citations", "captures", "triggerSelector", "skylineSelector", "environment", "presentation"] as const) {
+    if (!isDeepStrictEqual(definition[key], spec[key])) throw new Error(`Renderer-rasterization region ${definition.id} changed approved metadata.`);
+  }
+  if (!isDeepStrictEqual(definition.pixels, spec.pixels)) throw new Error(`Renderer-rasterization region ${definition.id} changed exact pixel evidence.`);
+  if (!isDeepStrictEqual(definition.measurements, spec.measurements)) throw new Error(`Renderer-rasterization region ${definition.id} changed exact measurement.`);
+  if (!isDeepStrictEqual(definition.alternatives ?? [], spec.alternatives ?? [])) throw new Error(`Renderer-rasterization region ${definition.id} changed exact alternatives.`);
+}
+
+function rendererRasterizationDefinitionSpec(id: string): RendererRasterizationDefinition | undefined {
   const selector = ".text-text-dimmed > [translate='no']";
-  const acceptance = ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."];
-  const citations = [
+  const environment = { chromiumRevision: "1208", chromiumVersion: "145.0.7632.6", architecture: "x64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
+  const runtime = { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
+  const originalCitations = [
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-af981c01",
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-5f779354",
   ];
-  const environment = { chromiumRevision: "1208", chromiumVersion: "145.0.7632.6", architecture: "x64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
-  const presentation = { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" };
-  if (definition.id !== "error-codeblock-corner-rasterization" || definition.decision !== "NW-216"
-    || JSON.stringify(definition.captures) !== JSON.stringify([capture])
-    || definition.triggerSelector !== selector || definition.skylineSelector !== selector
-    || JSON.stringify(definition.acceptance) !== JSON.stringify(acceptance)
-    || JSON.stringify(definition.citations) !== JSON.stringify(citations)
-    || JSON.stringify(definition.environment) !== JSON.stringify(environment)
-    || JSON.stringify(definition.presentation) !== JSON.stringify(presentation)) throw new Error(`Renderer-rasterization region ${definition.id} changed approved metadata.`);
-  if (definition.pixels.length !== 6 || new Set(definition.pixels.map(({ x, y }) => `${x},${y}`)).size !== 6) throw new Error(`Renderer-rasterization region ${definition.id} must own six unique coordinates.`);
-  const pixels = [
+  const extensionCitations = [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6938d6dc",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-9cebc0a5",
+  ];
+  const lightCitations = [
+    ...extensionCitations,
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6b20c68e",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-86de4313",
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e496a7d3",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-27e039b2",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-721d1ae5",
+  ];
+  const classicCitations = [
+    ...extensionCitations,
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-4d0553c1",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-299d4a96",
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e496a7d3",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
+  ];
+  const pixels6 = [
     { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
     { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
     { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
     { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
     { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
     { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
-  ];
-  if (JSON.stringify(definition.pixels) !== JSON.stringify(pixels)) throw new Error(`Renderer-rasterization region ${definition.id} changed exact pixel evidence.`);
-  const runtime = { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
-  const shared = {
-    selector,
-    rect: { x: 656, y: 117, width: 356, height: 58 },
-    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
-    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
-    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
-    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
-    boxModelSha256: "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83",
-    quadsSha256: "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7",
-    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
-  };
-  const measurement = {
+  ] as RendererRasterizationDefinition["pixels"];
+  const pixels12 = [
+    ...pixels6.slice(0, 2),
+    { x: 350, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
+    { x: 352, y: 0, trigger: [29, 30, 34, 255], skyline: [29, 31, 35, 255] },
+    ...pixels6.slice(2, 5),
+    { x: 350, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+    { x: 351, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
+    { x: 353, y: 1, trigger: [33, 34, 39, 255], skyline: [33, 35, 39, 255] },
+    pixels6[5],
+    { x: 353, y: 2, trigger: [32, 33, 38, 255], skyline: [32, 34, 38, 255] },
+  ] as RendererRasterizationDefinition["pixels"];
+  const pixels13 = [
+    { x: 3, y: 0, trigger: [227, 227, 229, 255], skyline: [226, 227, 228, 255] },
+    { x: 4, y: 0, trigger: [197, 198, 201, 255], skyline: [196, 198, 201, 255] },
+    { x: 352, y: 0, trigger: [228, 229, 230, 255], skyline: [227, 228, 229, 255] },
+    { x: 2, y: 1, trigger: [208, 209, 211, 255], skyline: [207, 208, 211, 255] },
+    { x: 3, y: 1, trigger: [207, 208, 211, 255], skyline: [207, 208, 210, 255] },
+    { x: 4, y: 1, trigger: [233, 234, 235, 255], skyline: [233, 233, 234, 255] },
+    { x: 5, y: 1, trigger: [248, 248, 248, 255], skyline: [247, 247, 248, 255] },
+    { x: 350, y: 1, trigger: [248, 248, 248, 255], skyline: [247, 247, 248, 255] },
+    { x: 351, y: 1, trigger: [233, 233, 234, 255], skyline: [232, 233, 234, 255] },
+    { x: 352, y: 1, trigger: [206, 207, 210, 255], skyline: [206, 207, 209, 255] },
+    { x: 353, y: 1, trigger: [209, 210, 213, 255], skyline: [209, 210, 212, 255] },
+    { x: 2, y: 2, trigger: [214, 215, 217, 255], skyline: [214, 214, 217, 255] },
+    { x: 353, y: 2, trigger: [213, 214, 216, 255], skyline: [212, 214, 216, 255] },
+  ] as RendererRasterizationDefinition["pixels"];
+  const definition = (captures: string[], acceptance: string[], citations: string[], presentation: RendererRasterizationPresentation, pixels: RendererRasterizationDefinition["pixels"], measurement: RendererRasterizationDefinition["measurements"][string]): RendererRasterizationDefinition => ({
+    id, category: "renderer-rasterization", decision: "NW-216", acceptance, citations, captures, triggerSelector: selector, skylineSelector: selector, environment, presentation, pixels,
+    measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])),
+  });
+  if (id === "error-codeblock-corner-rasterization") {
+    const captures = ["error-found@1024x768-classic"];
+    const shared = rendererRasterizationElementSpec(selector, { x: 656, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83", "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
+    return definition(captures, ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."], originalCitations, { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels6, rendererRasterizationMeasurementSpec(runtime, shared, "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+  }
+  if (id === "error-codeblock-classic-rasterization") {
+    const captures = ["error-found@1440x960-classic", "errors-affected-job-types@1440x960-classic", "errors-application-vendor-frames@1440x960-classic", "errors-long-exception@1440x960-classic", "errors-stack-expansion@1440x960-classic"];
+    const shared = rendererRasterizationElementSpec(selector, { x: 1072, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
+    const approved = definition(captures, ["Only the exact pinned Chromium Classic full twelve-pixel or left-edge six-pixel antialias state may differ across the five approved captures; zero activates no exception and every other pixel and semantic must remain exact."], classicCitations, { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels12, rendererRasterizationMeasurementSpec(runtime, shared, "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+    approved.alternatives = [{
+      captures,
+      pixels: pixels6,
+      triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50",
+    }];
+    return approved;
+  }
+  if (id === "error-codeblock-light-rasterization") {
+    const captures = ["error-found@1440x960-light", "error-found@1440x960-system-light", "errors-affected-job-types@1440x960-light"];
+    const shared = rendererRasterizationElementSpec(selector, { x: 1072, y: 117, width: 356, height: 58 }, "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939", "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de");
+    const measurement = rendererRasterizationMeasurementSpec(runtime, shared, "93768ec0233ea8b02028b19b7743d1d263219666ef23354eb3407f4c68759fa3", "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8");
+    const rightMeasurement = { ...measurement, trigger: { ...measurement.trigger, cropSha256: "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864" } };
+    const approved = definition(captures, ["Only the exact pinned Chromium Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias state may differ across the three approved captures; zero activates no exception and every other pixel and semantic must remain exact."], lightCitations, { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, pixels13, measurement);
+    approved.alternatives = [{
+      captures,
+      pixels: [pixels13[2], pixels13[7], pixels13[8], pixels13[9], pixels13[10], pixels13[12]],
+      triggerCropSha256: rightMeasurement.trigger.cropSha256,
+    }, {
+      captures,
+      pixels: [pixels13[0], pixels13[1], pixels13[3], pixels13[4], pixels13[5], pixels13[6], pixels13[11]],
+      triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5",
+    }];
+    return approved;
+  }
+}
+
+function rendererRasterizationElementSpec(selector: string, rect: Rect, computedStyleSha256: string, semanticDomSha256: string, boxModelSha256: string, quadsSha256: string, backdropSha256: string) {
+  return { selector, rect, computedStyleSha256, accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b", semanticDomSha256, effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", boxModelSha256, quadsSha256, backdropSha256 };
+}
+
+function rendererRasterizationMeasurementSpec(runtime: RendererRuntime, shared: ReturnType<typeof rendererRasterizationElementSpec>, triggerCropSha256: string, skylineCropSha256: string) {
+  return {
     runtime,
-    trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" },
-    skyline: { ...shared, domSha256: "110f621bf94a4b5fe7f97c2e5617dc81e7c3c58ba68e8631ef54ae368ade17f6", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
+    trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: triggerCropSha256 },
+    skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: skylineCropSha256 },
   };
-  if (!isDeepStrictEqual(definition.measurements, { [capture]: measurement })) throw new Error(`Renderer-rasterization region ${definition.id} changed exact measurement.`);
 }
 
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
@@ -979,9 +1082,12 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       const disjointCapabilityReuse = owner?.category === "capability-omission"
         && definition.category === "capability-omission"
         && !definition.captures.some((capture) => owner.captures.includes(capture));
+      const disjointRendererReuse = owner?.category === "renderer-rasterization"
+        && definition.category === "renderer-rasterization"
+        && !definition.captures.some((capture) => owner.captures.includes(capture));
       const sharedFrameworkAnchor = owner?.category === "framework-extension" && definition.category === "framework-extension"
         && owner.kind === "anchor" && kind === "anchor" && owner.anchorPair === anchorPair;
-      if (owner && !disjointCapabilityReuse && !sharedFrameworkAnchor) throw new Error(`Framework-extension regions ${owner.id} and ${definition.id} collide on selector ${selector}.`);
+      if (owner && !disjointCapabilityReuse && !disjointRendererReuse && !sharedFrameworkAnchor) throw new Error(`Framework-extension regions ${owner.id} and ${definition.id} collide on selector ${selector}.`);
       if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures, kind, anchorPair });
     }
   }

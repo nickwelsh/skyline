@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
@@ -76,6 +77,7 @@ export type RendererRasterizationRegion = {
   observation: RendererRasterizationObservation;
   expected: RendererRasterizationObservation;
   pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
+  alternatives?: Array<{ expected: RendererRasterizationObservation; pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }> }>;
 };
 export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion | RendererRasterizationRegion;
 
@@ -114,8 +116,8 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
 
 function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number, triggerImage: PNG, skylineImage: PNG): Mask[] {
   if (region.kind === "renderer-rasterization") {
-    validateRendererRasterization(region, triggerImage, skylineImage);
-    return region.pixels.map(({ x, y }, index) => boundedMask(`${region.id}:pixel-${index}`, {
+    const pixels = validateRendererRasterization(region, triggerImage, skylineImage);
+    return pixels.map(({ x, y }, index) => boundedMask(`${region.id}:pixel-${index}`, {
       x: region.observation.trigger.rect.x + x,
       y: region.observation.trigger.rect.y + y,
       width: 1,
@@ -228,9 +230,13 @@ function validateRendererRasterization(region: RendererRasterizationRegion, trig
       ["boxModelSha256", "box model"],
       ["quadsSha256", "quads"],
       ["backdropSha256", "backdrop"],
-      ["cropSha256", "crop"],
     ] as const) if (observed[key] !== expected[key]) throw new Error(`Allowed region ${region.id} changed ${application} ${label}.`);
   }
+  const approvedObservations = [region.expected, ...(region.alternatives ?? []).map(({ expected }) => expected)];
+  const approvedCrop = approvedObservations.some((expected) => region.observation.trigger.cropSha256 === expected.trigger.cropSha256
+    && region.observation.skyline.cropSha256 === expected.skyline.cropSha256);
+  const inactiveObservation = region.observation.trigger.cropSha256 === region.observation.skyline.cropSha256;
+  if (!inactiveObservation && !approvedCrop) throw new Error(`Allowed region ${region.id} changed exact crop evidence.`);
   const trigger = region.observation.trigger;
   const skyline = region.observation.skyline;
   for (const [key, label] of [
@@ -245,32 +251,62 @@ function validateRendererRasterization(region: RendererRasterizationRegion, trig
     ["backdropSha256", "backdrop"],
   ] as const) if (JSON.stringify(trigger[key]) !== JSON.stringify(skyline[key])) throw new Error(`Allowed region ${region.id} changed cross-side ${label}.`);
 
-  if (region.pixels.length !== 6) throw new Error(`Allowed region ${region.id} must contain six exact pixels.`);
+  const alternatives = [region.pixels, ...(region.alternatives ?? []).map(({ pixels }) => pixels)];
+  for (const pixels of alternatives) validateRendererPixels(region.id, trigger.rect, pixels);
+  const actual = exactRendererDeltas(triggerImage, skylineImage, trigger.rect);
+  if (actual.length === 0) return [];
+  const actualEvidence = JSON.stringify(canonicalRendererPixels(actual));
+  const triggerCropSha256 = rendererCropSha256(triggerImage, trigger.rect);
+  const skylineCropSha256 = rendererCropSha256(skylineImage, skyline.rect);
+  const states = [
+    { expected: region.expected, pixels: region.pixels },
+    ...(region.alternatives ?? []),
+  ];
+  const approvedState = states.find(({ expected, pixels }) => expected.trigger.cropSha256 === triggerCropSha256
+    && expected.skyline.cropSha256 === skylineCropSha256
+    && JSON.stringify(canonicalRendererPixels(pixels)) === actualEvidence);
+  if (!approvedState) throw new Error(`Allowed region ${region.id} changed exact renderer crop and pixel evidence.`);
+  return approvedState.pixels;
+}
+
+function canonicalRendererPixels(pixels: RendererRasterizationRegion["pixels"]) {
+  return [...pixels].sort((left, right) => left.y - right.y || left.x - right.x);
+}
+
+function rendererCropSha256(image: PNG, rect: Rect) {
+  const crop = visibleCrop(image, rect);
+  return createHash("sha256").update(`${crop.width}x${crop.height}\0`).update(crop.pixels).digest("hex");
+}
+
+function validateRendererPixels(id: string, rect: Rect, pixels: RendererRasterizationRegion["pixels"]) {
+  if (pixels.length === 0) throw new Error(`Allowed region ${id} must contain at least one exact pixel.`);
   const coordinates = new Set<string>();
-  for (const pixel of region.pixels) {
+  for (const pixel of pixels) {
     const coordinate = `${pixel.x},${pixel.y}`;
     if (!Number.isInteger(pixel.x) || !Number.isInteger(pixel.y) || pixel.x < 0 || pixel.y < 0
-      || pixel.x >= trigger.rect.width || pixel.y >= trigger.rect.height || coordinates.has(coordinate)) throw new Error(`Allowed region ${region.id} has an invalid or duplicate coordinate.`);
+      || pixel.x >= rect.width || pixel.y >= rect.height || coordinates.has(coordinate)) throw new Error(`Allowed region ${id} has an invalid or duplicate coordinate.`);
     coordinates.add(coordinate);
-    if (![pixel.trigger, pixel.skyline].every(validRgba)) throw new Error(`Allowed region ${region.id} has invalid RGBA evidence.`);
+    if (![pixel.trigger, pixel.skyline].every(validRgba)) throw new Error(`Allowed region ${id} has invalid RGBA evidence.`);
   }
-  for (const pixel of region.pixels) {
-    const x = trigger.rect.x + pixel.x;
-    const y = trigger.rect.y + pixel.y;
-    assertExactPixel(triggerImage, x, y, pixel.trigger, region.id, "Trigger");
-    assertExactPixel(skylineImage, x, y, pixel.skyline, region.id, "Skyline");
+}
+
+function exactRendererDeltas(trigger: PNG, skyline: PNG, rect: Rect): RendererRasterizationRegion["pixels"] {
+  const pixels: RendererRasterizationRegion["pixels"] = [];
+  const bounded = boundedRect("renderer rasterization", rect, trigger.width, trigger.height, 1);
+  for (let y = bounded.y; y < bounded.y + bounded.height; y += 1) {
+    for (let x = bounded.x; x < bounded.x + bounded.width; x += 1) {
+      const offset = (y * trigger.width + x) * 4;
+      const triggerPixel = [...trigger.data.subarray(offset, offset + 4)] as Rgba;
+      const skylinePixel = [...skyline.data.subarray(offset, offset + 4)] as Rgba;
+      if (triggerPixel.every((channel, index) => channel === skylinePixel[index])) continue;
+      pixels.push({ x: x - bounded.x, y: y - bounded.y, trigger: triggerPixel, skyline: skylinePixel });
+    }
   }
+  return pixels;
 }
 
 function validRgba(value: Rgba) {
   return Array.isArray(value) && value.length === 4 && value.every((channel) => Number.isInteger(channel) && channel >= 0 && channel <= 255);
-}
-
-function assertExactPixel(image: PNG, x: number, y: number, expected: Rgba, id: string, application: string) {
-  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= image.width || y >= image.height) throw new Error(`Allowed region ${id} has an out-of-bounds pixel coordinate.`);
-  const offset = (y * image.width + x) * 4;
-  const actual = [...image.data.subarray(offset, offset + 4)];
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Allowed region ${id} changed ${application} RGBA at ${x},${y}.`);
 }
 
 function assertMatchingProtectedNavigationPixels(trigger: PNG, skyline: PNG, id: string, triggerRect: Rect, skylineRect: Rect) {

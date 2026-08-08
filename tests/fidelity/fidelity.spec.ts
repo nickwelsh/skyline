@@ -53,10 +53,11 @@ for (const capture of captures) {
     await Promise.all([settleCapture(page), settleCapture(reference)]);
     await Promise.all([assertFixedCanvas(page, capture), assertFixedCanvas(reference, capture)]);
     const regions = await observeDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
-
-    const [triggerPng, skylinePng, triggerTree, rawSkylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
-      reference.screenshot({ animations: "disabled", caret: "hide" }),
-      page.screenshot({ animations: "disabled", caret: "hide" }),
+    const serializeRendererScreenshots = (allowedDifferences as unknown as AllowedDifferences).regions.some((region) => region.category === "renderer-rasterization" && region.captures.includes(capture));
+    const [triggerPng, skylinePng] = serializeRendererScreenshots
+      ? [await reference.screenshot({ animations: "disabled", caret: "hide" }), await page.screenshot({ animations: "disabled", caret: "hide" })]
+      : await Promise.all([reference.screenshot({ animations: "disabled", caret: "hide" }), page.screenshot({ animations: "disabled", caret: "hide" })]);
+    const [triggerTree, rawSkylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
       captureAccessibilityTree(reference),
       captureAccessibilityTree(page),
       captureAxe(reference),

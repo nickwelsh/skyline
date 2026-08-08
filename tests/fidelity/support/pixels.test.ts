@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { PNG } from "pngjs";
 import { describe, expect, test } from "vitest";
 import { comparePixels, type DifferenceRegion } from "./pixels";
@@ -182,20 +183,59 @@ describe("paired fidelity pixels", () => {
     expect(comparePixels(screenshot, screenshot, [region])).toMatchObject({ differingPixels: 0 });
   });
 
-  test("accepts only six exact renderer rasterization samples", () => {
-    const trigger = image([26, 27, 32, 255], 10, 10, rendererRegion().pixels.map(({ x, y, trigger }) => [1 + x, 1 + y, trigger]));
-    const skyline = image([26, 27, 32, 255], 10, 10, rendererRegion().pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline]));
-    const region = rendererRegion();
+  test("accepts validator-approved renderer rasterization tuple sets", () => {
+    const authored = rendererRegion();
+    const trigger = image([26, 27, 32, 255], 10, 10, authored.pixels.map(({ x, y, trigger }) => [1 + x, 1 + y, trigger]));
+    const skyline = image([26, 27, 32, 255], 10, 10, authored.pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline]));
+    const region = rendererFinalEvidence(authored, trigger, skyline);
+    const extension = { ...region, pixels: [
+      ...region.pixels,
+      { x: 0, y: 0, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 1, y: 0, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 2, y: 0, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 0, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 1, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 0, y: 2, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+    ] as typeof region.pixels };
+    const extensionTrigger = image([26, 27, 32, 255], 10, 10, extension.pixels.map(({ x, y, trigger }) => [1 + x, 1 + y, trigger]));
+    const extensionSkyline = image([26, 27, 32, 255], 10, 10, extension.pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline]));
 
     expect(comparePixels(trigger, skyline, [region])).toMatchObject({ differingPixels: 0, maskedPixels: 6 });
+    const calibratedExtension = rendererFinalEvidence(extension, extensionTrigger, extensionSkyline);
+    expect(comparePixels(extensionTrigger, extensionSkyline, [calibratedExtension])).toMatchObject({ differingPixels: 0, maskedPixels: 12 });
     expect(() => comparePixels(trigger, image([26, 27, 32, 255], 10, 10, [
       ...region.pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline] as [number, number, [number, number, number, number]]),
       [9, 9, [27, 27, 32, 255]],
     ]), [region])).toThrow(/1 unclassified pixel/i);
-    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.slice(0, 5) }])).toThrow(/six exact pixels/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: [] }])).toThrow(/at least one exact pixel/i);
     expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, x: 5 }) }])).toThrow(/coordinate|duplicate/i);
-    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, skyline: [29, 31, 36, 255] as [number, number, number, number] }) }])).toThrow(/RGBA/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, skyline: [29, 31, 36, 255] as [number, number, number, number] }) }])).toThrow(/RGBA|pixel evidence/i);
     expect(() => comparePixels(trigger, skyline, [{ ...region, observation: { ...region.observation, skyline: { ...region.observation.skyline, domSha256: "0".repeat(64) } } }])).toThrow(/DOM/i);
+  });
+
+  test("accepts only exact approved renderer alternatives or zero", () => {
+    const region = rendererRegion();
+    const alternativePixels = region.pixels.slice(3);
+    const alternativeExpected = {
+      ...region.expected,
+      trigger: { ...region.expected.trigger, cropSha256: "4".repeat(64) },
+    };
+    const uncalibrated = { ...region, alternatives: [{ expected: alternativeExpected, pixels: alternativePixels }] };
+    const base = [26, 27, 32, 255] as [number, number, number, number];
+    const trigger = image(base, 10, 10, alternativePixels.map(({ x, y, trigger: rgba }) => [1 + x, 1 + y, rgba]));
+    const skyline = image(base, 10, 10, alternativePixels.map(({ x, y, skyline: rgba }) => [1 + x, 1 + y, rgba]));
+
+    const approved = rendererFinalEvidence(uncalibrated, trigger, skyline, 0);
+    expect(comparePixels(trigger, skyline, [approved])).toMatchObject({ differingPixels: 0, maskedPixels: alternativePixels.length });
+    expect(comparePixels(image(base, 10, 10), image(base, 10, 10), [approved])).toMatchObject({ differingPixels: 0, maskedPixels: 0 });
+    const partial = alternativePixels.slice(1);
+    const partialTrigger = image(base, 10, 10, partial.map(({ x, y, trigger: rgba }) => [1 + x, 1 + y, rgba]));
+    const partialSkyline = image(base, 10, 10, partial.map(({ x, y, skyline: rgba }) => [1 + x, 1 + y, rgba]));
+    expect(() => comparePixels(partialTrigger, partialSkyline, [approved])).toThrow(/renderer|pixel|RGBA/i);
+    const crossed = structuredClone(approved);
+    crossed.alternatives![0].expected.trigger.cropSha256 = crossed.expected.trigger.cropSha256;
+    crossed.observation = structuredClone(crossed.expected);
+    expect(() => comparePixels(trigger, skyline, [crossed])).toThrow(/crop and pixel evidence/i);
   });
 
   test.each([
@@ -221,6 +261,26 @@ function image(color: [number, number, number, number], width: number, height: n
   for (let offset = 0; offset < png.data.length; offset += 4) png.data.set(color, offset);
   for (const [x, y, changed] of changes) png.data.set(changed, (y * width + x) * 4);
   return PNG.sync.write(png);
+}
+
+function rendererFinalEvidence(region: Extract<DifferenceRegion, { kind: "renderer-rasterization" }>, trigger: Buffer, skyline: Buffer, alternative?: number) {
+  const calibrated = structuredClone(region);
+  const expected = alternative === undefined ? calibrated.expected : calibrated.alternatives![alternative].expected;
+  expected.trigger.cropSha256 = screenshotCropSha256(trigger, expected.trigger.rect);
+  expected.skyline.cropSha256 = screenshotCropSha256(skyline, expected.skyline.rect);
+  calibrated.observation = structuredClone(expected);
+  return calibrated;
+}
+
+function screenshotCropSha256(buffer: Buffer, rect: { x: number; y: number; width: number; height: number }) {
+  const image = PNG.sync.read(buffer);
+  const x = Math.floor(rect.x);
+  const y = Math.floor(rect.y);
+  const width = Math.ceil(rect.x + rect.width) - x;
+  const height = Math.ceil(rect.y + rect.height) - y;
+  const pixels = Buffer.alloc(width * height * 4);
+  for (let row = 0; row < height; row += 1) image.data.copy(pixels, row * width * 4, ((y + row) * image.width + x) * 4, ((y + row) * image.width + x + width) * 4);
+  return createHash("sha256").update(`${width}x${height}\0`).update(pixels).digest("hex");
 }
 
 function region(skyline: Partial<Extract<DifferenceRegion, { kind?: "paired" }>["skyline"]> = {}): DifferenceRegion {
