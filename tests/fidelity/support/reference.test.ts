@@ -116,6 +116,16 @@ describe("pinned Trigger Runs fixture", () => {
 });
 
 describe("pinned Trigger Logs fixture", () => {
+  test("selects log detail through the source query and resource route", () => {
+    const fixtureSource = readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8");
+    const hostSource = readFileSync(resolve(import.meta.dirname, "../reference/main.ts"), "utf8");
+
+    expect(fixtureSource).toContain("return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`");
+    expect(fixtureSource).not.toContain("return `event=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`");
+    expect(hostSource).toContain('logs/:logParam"');
+    expect(hostSource).toContain('resource?.("log", params)');
+  });
+
   test("maps task filters and selected log into Trigger presenter contracts", async () => {
     const fixture = await createReferenceFixture();
     const list = fixture.loaders.logs as any;

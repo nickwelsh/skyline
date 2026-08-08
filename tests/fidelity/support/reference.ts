@@ -264,13 +264,18 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       sourcePathName,
       defaultSearch: (captureId: string) => {
         if (captureId.startsWith("runs-inspectors-") || detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
-        if (detailByCapture[captureId] === "log" || captureId === "log-found") return `event=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
+        if (detailByCapture[captureId] === "log" || captureId === "log-found") return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
         return "";
       },
       resource: (
         kind: string,
         params: Record<string, string | undefined>,
       ) => {
+        if (kind === "log") {
+          const selectedLog = (input.loaders.log as any).selectedLog;
+          if (params.logParam !== selectedLog?.id) throw new Response("Deterministic telemetry evidence was not found.", { status: 404, statusText: "Not Found" });
+          return structuredClone(selectedLog);
+        }
         if (kind === "queue-metric") {
           const query = params.query ?? "";
           const key = input.queueMetricMatchers.find(({ includes, excludes = [] }) =>
