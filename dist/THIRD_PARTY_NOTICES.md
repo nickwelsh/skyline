@@ -18,6 +18,7 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | `@popperjs/core` | 2.11.8 | MIT |
 | `@radix-ui/react-dialog` | 1.0.3 | MIT |
 | `@radix-ui/react-popover` | 1.0.5 | MIT |
+| `@radix-ui/react-radio-group` | 1.1.3 | MIT |
 | `@radix-ui/react-slider` | 1.1.2 | MIT |
 | `@radix-ui/react-switch` | 1.0.3 | MIT |
 | `@radix-ui/react-tooltip` | 1.0.5 | MIT |
@@ -37,10 +38,12 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | `lucide-react` | 0.229.0 | ISC |
 | `match-sorter` | 6.3.4 | MIT |
 | `non.geist` | 1.0.2 | MIT |
+| `parse-duration` | 2.1.4 | MIT |
 | Geist font software | bundled by non.geist 1.0.2 | OFL-1.1 |
 | `prism-react-renderer` | 2.4.1 | MIT |
 | `react` | 18.3.1 | MIT |
 | `react-dom` | 18.3.1 | MIT |
+| `react-day-picker` | 9.13.0 | MIT |
 | `react-grid-layout` | 2.2.2 | MIT |
 | `react-hotkeys-hook` | 4.4.1 | MIT |
 | `react-popper` | 2.3.0 | MIT |
