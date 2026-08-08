@@ -518,6 +518,16 @@ function triggerLog(event: any) {
   };
   const level = required("level", event.level);
   if (!["TRACE", "DEBUG", "INFO", "WARN", "ERROR"].includes(level)) throw new Error(`Invalid Trigger log fixture level: ${level}.`);
+  const attributes = event.variant === "log" && "attributes" in event
+    ? {
+        ...event.attributes,
+        "skyline.context": event.context,
+        "skyline.channel": event.channel,
+        "skyline.trace_id": event.relationships.traceId,
+        "skyline.span_id": event.relationships.spanId,
+        "skyline.parent_span_id": event.relationships.parentSpanId,
+      }
+    : undefined;
   return {
     id: required("id", event.id),
     runId: required("runId", event.runId),
@@ -532,7 +542,7 @@ function triggerLog(event: any) {
     status: level === "ERROR" ? "ERROR" : "OK",
     duration: event.durationUs ?? 0,
     level,
-    attributes: event.attributes ?? (event.variant === "log" ? { "log.context": event.context } : undefined),
+    attributes,
   };
 }
 

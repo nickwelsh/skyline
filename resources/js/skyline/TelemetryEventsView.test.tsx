@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { OperatingSystemContextProvider } from "../trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "../trigger/components/primitives/ShortcutsProvider";
 import type { PresentedTelemetryEvent, PresentedTelemetryEventDetail } from "./TelemetryEventsAdapter";
-import { TelemetryEventDetailView, TelemetryEventsTable } from "./TelemetryEventsView";
+import { TelemetryEventDetailView, TelemetryEventsTable, toTriggerLog } from "./TelemetryEventsView";
 
 describe("Telemetry-event adapters", () => {
   afterEach(() => { document.body.innerHTML = ""; });
@@ -50,12 +50,23 @@ describe("Telemetry-event adapters", () => {
   });
 
   it("feeds full captured log evidence into the exact upstream detail presenter", () => {
-    const shown = render(<MemoryRouter><TelemetryEventDetailView event={logDetail()} onClose={() => {}} /></MemoryRouter>);
+    const event = logDetail();
+    const shown = render(<MemoryRouter><TelemetryEventDetailView event={event} onClose={() => {}} /></MemoryRouter>);
 
     expect(shown.container.textContent).toContain("Application failed");
     expect(shown.container.textContent).toContain("log.channel");
     expect(shown.container.textContent).toContain("trace_1");
     expect(shown.container.textContent).toContain("Captured log detail was truncated");
+    expect(toTriggerLog(event).attributes).toEqual({
+      "log.channel": "stack",
+      "log.level": "error",
+      "log.message": "Application failed",
+      "skyline.context": { status: "failed" },
+      "skyline.channel": "stack",
+      "skyline.trace_id": "trace_1",
+      "skyline.span_id": "span_1",
+      "skyline.parent_span_id": null,
+    });
     flushSync(() => shown.root.unmount());
   });
 });

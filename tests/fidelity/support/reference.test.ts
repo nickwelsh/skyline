@@ -142,7 +142,16 @@ describe("pinned Trigger Logs fixture", () => {
       triggeredTimestamp: expect.any(String),
       level: "WARN",
       message: "Invoice import delayed",
-      attributes: expect.objectContaining({ "log.context": { code: 429 } }),
+      attributes: {
+        "log.level": "warn",
+        "log.message": "Invoice import delayed",
+        "log.context": { code: 429 },
+        "skyline.context": { code: 429 },
+        "skyline.channel": "stack",
+        "skyline.trace_id": "fda8d9cf9d53e8845fd0738b8407731d",
+        "skyline.span_id": "9adb4c77c49de9aa",
+        "skyline.parent_span_id": null,
+      },
     }));
   });
 });
