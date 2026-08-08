@@ -36,19 +36,21 @@ export default function RunsRoute() {
         <PageTitle title="Runs" />
       </NavBar>
       <PageBody scrollable={false}>
-        <div className="grid h-full max-h-full grid-rows-[auto_1fr] overflow-hidden">
-          <div className="flex items-start justify-between gap-x-2 p-2">
-            <RunsFilters options={data.filterOptions} />
-            <div className="flex items-center justify-end gap-x-2">
-              <ListPagination list={data} />
+        <div className="grid h-full max-h-full grid-rows-1 overflow-hidden">
+          <div className="grid h-full max-h-full grid-rows-[auto_1fr] overflow-hidden">
+            <div className="flex items-start justify-between gap-x-2 p-2">
+              <RunsFilters options={data.filterOptions} />
+              <div className="flex items-center justify-end gap-x-2">
+                <ListPagination list={data} />
+              </div>
             </div>
+            <TaskRunsTable
+              total={data.runs.length}
+              hasFilters={data.hasFilters}
+              runs={data.runs}
+              isLoading={isLoading}
+            />
           </div>
-          <TaskRunsTable
-            total={data.runs.length}
-            hasFilters={data.hasFilters}
-            runs={data.runs}
-            isLoading={isLoading}
-          />
         </div>
       </PageBody>
     </PageContainer>

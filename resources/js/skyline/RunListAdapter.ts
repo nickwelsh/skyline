@@ -43,21 +43,25 @@ export function presentRun(run: RunSummary, tableState: string) {
   const params = new URLSearchParams({ tableState });
   return {
     id: run.id,
+    friendlyId: run.id,
     path: `/runs/${encodeURIComponent(run.id)}?${params}`,
     isRoot: run.isRoot,
     jobType: run.name,
+    taskIdentifier: run.name,
+    rootTaskRunId: run.isRoot ? null : (run.parentRunId ?? "observed-parent"),
     status: run.status,
     queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—",
     traceIdentity: run.traceId,
     attemptCount: run.attemptCount,
     startedAt: run.startedAt,
+    finishedAt: run.finishedAt,
     queueDuration: formatRunDuration(run.queueDurationUs),
     duration: formatRunDuration(run.durationUs),
-    activeDuration: formatRunDuration(run.activeDurationUs),
+    activeDuration: formatRunDuration(run.activeDurationUs ?? run.durationUs),
   };
 }
 
-function formatRunDuration(microseconds: number | null | undefined): string {
+export function formatRunDuration(microseconds: number | null | undefined): string {
   if (microseconds === null || microseconds === undefined) return "—";
   if (microseconds < 1_000) return `${microseconds}µs`;
   const milliseconds = microseconds / 1_000;

@@ -18,11 +18,12 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page.getByTestId("side-menu-application")).toContainText("Production");
   await expect(page.getByTestId("side-menu-project")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
-  await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  await expect(page.locator("tbody").getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await expect(page.getByText("Trigger.dev")).toHaveCount(0);
   await expect(page.getByText("PROTOTYPE")).toHaveCount(0);
 
   await page.getByLabel("Search Runs").fill("invoice");
+  await page.getByLabel("Search Runs").press("Enter");
   await expect(page).toHaveURL(/search=invoice/);
   await page.getByLabel("Status").selectOption("running");
   await expect(page).toHaveURL(/status=running/);
@@ -46,7 +47,7 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await page.locator('a[href*="cursor=next-cursor"]').click();
   await expect(page).toHaveURL(/cursor=next-cursor/);
   await expect(page).toHaveURL(/direction=forward/);
-  await page.getByText("GenerateMonthlyInvoices", { exact: true }).click();
+  await page.locator("tbody").getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true }).click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run-01\?tableState=/);
   await page.goBack();
   await expect(page).toHaveURL(/cursor=next-cursor/);
@@ -60,7 +61,7 @@ test("paired pinned Trigger.dev and Skyline Runs fixture stays deterministic", a
   await page.setViewportSize(fixture.viewport);
   await routeRuns(page, pageResponse("completed"));
   await page.goto("/skyline/runs");
-  await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  await expect(page.locator("tbody").getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await expect(page.locator("main")).toHaveScreenshot("nw-217/skyline-runs.png", { animations: "disabled", caret: "hide", maxDiffPixels: 0 });
 });
@@ -94,7 +95,7 @@ test("Runs exposes loading, initial-empty, filtered-empty, API-error, and pollin
   await expect(page.getByTestId("side-menu")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeGreaterThanOrEqual(1024);
-  await expect(page.getByText("GenerateMonthlyInvoices", { exact: true })).toBeVisible();
+  await expect(page.locator("tbody").getByText("App\\Jobs\\GenerateMonthlyInvoices", { exact: true })).toBeVisible();
   await expect.poll(() => requests).toBeGreaterThan(1);
   await expect(page.getByText("Completed", { exact: true })).toBeVisible();
   const requestsAfterCompletion = requests;

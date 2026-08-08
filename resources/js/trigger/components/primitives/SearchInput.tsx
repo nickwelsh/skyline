@@ -117,6 +117,7 @@ export function SearchInput({
       >
         <Input
           type="text"
+          aria-label={placeholder}
           ref={inputRef}
           variant="secondary-small"
           placeholder={placeholder}

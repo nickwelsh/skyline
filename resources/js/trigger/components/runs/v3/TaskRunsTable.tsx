@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "~/components/primitives/Table";
 import { SimpleTooltip } from "~/components/primitives/Tooltip";
-import { descriptionForTaskRunStatus, TaskRunStatusCombo, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
+import { descriptionForTaskRunStatus, filterableTaskRunStatuses, TaskRunStatusCombo, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
 
 export type PresentedRun = {
   id: string;
@@ -27,6 +27,8 @@ export type PresentedRun = {
   path: string;
   isRoot?: boolean;
   jobType: string;
+  taskIdentifier?: string;
+  rootTaskRunId?: string | null;
   version?: string | null;
   machine?: string | null;
   status: RunStatus;
@@ -61,17 +63,27 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
         <TableRow>
           <TableHeaderCell>ID</TableHeaderCell>
           <TableHeaderCell>Job</TableHeaderCell>
-          <TableHeaderCell>Status</TableHeaderCell>
+          <TableHeaderCell
+            disableTooltipHoverableContent
+            tooltip={
+              <div className="flex flex-col divide-y divide-grid-dimmed">
+                {filterableTaskRunStatuses.map((status) => (
+                  <div key={status} className="grid grid-cols-[8rem_1fr] gap-x-2 py-2 first:pt-1 last:pb-1">
+                    <div className="mb-0.5 flex items-center gap-1.5 whitespace-nowrap"><TaskRunStatusCombo status={status} /></div>
+                    <Paragraph variant="extra-small" className="text-wrap! text-text-dimmed">{descriptionForTaskRunStatus(status)}</Paragraph>
+                  </div>
+                ))}
+              </div>
+            }
+          >Status</TableHeaderCell>
           <TableHeaderCell>Started</TableHeaderCell>
           <TableHeaderCell colSpan={3}>Duration</TableHeaderCell>
-          <TableHeaderCell>Attempts</TableHeaderCell>
           <TableHeaderCell>Queue target</TableHeaderCell>
-          <TableHeaderCell>Trace</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody>
         {resolvedTotal === 0 ? (
-          <TableBlankRow colSpan={10}>
+          <TableBlankRow colSpan={8}>
             {!isLoading && (
               <Paragraph className="w-auto">
                 {hasFilters ? "No runs match your filters." : "No runs found"}
@@ -82,47 +94,45 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
           runs.map((run) => (
             <TableRow key={run.id}>
               <TableCell to={run.path} isTabbableCell>
-                <RunId value={run.id} />
+                <RunId value={run.friendlyId ?? run.id} copyValue={run.id} />
               </TableCell>
               <TableCell to={run.path}>
                 <span className="flex items-center gap-x-1">
-                  <span>{shortName(run.jobType)}</span>
-                  {run.isRoot ? <Badge variant="extra-small">Root</Badge> : null}
+                  <span>{run.taskIdentifier ?? run.jobType}</span>
+                  {run.rootTaskRunId === null || run.isRoot ? <Badge variant="extra-small">Root</Badge> : null}
                 </span>
               </TableCell>
               <TableCell to={run.path}>
-                <TaskRunStatusCombo status={run.status} />
+                <SimpleTooltip content={descriptionForTaskRunStatus(run.status)} disableHoverableContent button={<TaskRunStatusCombo status={run.status} />} />
               </TableCell>
               <TableCell to={run.path}>
-                {run.startedAt ? <DateTimeShort date={run.startedAt} /> : "–"}
+                {run.startedAt ? <DateTime date={run.startedAt} /> : "–"}
               </TableCell>
               <TableCell to={run.path} className="w-[1%]" actionClassName="pr-0 tabular-nums">
-                <span className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   <RectangleStackIcon className="size-4 text-text-dimmed" />
                   {run.queueDuration}
-                </span>
+                </div>
               </TableCell>
               <TableCell to={run.path} className="w-[1%]" actionClassName="px-4 tabular-nums">
-                <span className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   <ClockIcon className="size-4 text-blue-500" />
                   {run.duration}
-                </span>
+                </div>
               </TableCell>
               <TableCell to={run.path} actionClassName="pl-0 tabular-nums">
-                <span className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   <CpuChipIcon className="size-4 text-success" />
                   {run.activeDuration ?? "–"}
-                </span>
+                </div>
               </TableCell>
-              <TableCell to={run.path} className="tabular-nums">{run.attemptCount}</TableCell>
               <TableCell to={run.path}>{run.queueTarget}</TableCell>
-              <TableCell to={run.path} className="font-mono">{run.traceIdentity}</TableCell>
             </TableRow>
           ))
         )}
         {isLoading && (
           <TableBlankRow
-            colSpan={10}
+            colSpan={8}
             className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-2 bg-background-dimmed"
           >
             <Spinner /> <span className="text-text-dimmed">Loading…</span>
@@ -205,8 +215,4 @@ function RunId({ value, copyValue = value }: { value: string; copyValue?: string
       disableHoverableContent
     />
   );
-}
-
-function shortName(name: string) {
-  return name.split("\\").at(-1) ?? name;
 }

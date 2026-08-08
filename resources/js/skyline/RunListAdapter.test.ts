@@ -7,9 +7,20 @@ describe("RunListAdapter", () => {
     const presented = presentRun(run(), "state");
 
     expect(presented).toEqual(expect.objectContaining({
+      id: "run_1",
+      friendlyId: "run_1",
+      path: "/runs/run_1?tableState=state",
       isRoot: false,
+      jobType: "App\\Jobs\\Invoice",
+      taskIdentifier: "App\\Jobs\\Invoice",
+      rootTaskRunId: "run_parent",
+      status: "completed",
+      startedAt: "2026-08-05T12:00:00.001000000Z",
+      finishedAt: "2026-08-05T12:00:01.001000000Z",
       queueDuration: "1ms",
       duration: "1.00s",
+      activeDuration: "1.00s",
+      queueTarget: "redis / default",
     }));
     expect(presented).not.toHaveProperty("driverId");
     expect(presented).not.toHaveProperty("queueTimeSource");

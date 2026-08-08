@@ -9,10 +9,11 @@ import { ListPagination } from "./ListPagination";
 describe("ListPagination", () => {
   afterEach(() => { document.body.innerHTML = ""; });
 
-  it("omits controls when neither cursor exists", () => {
+  it("retains the source disabled pagination pair when neither cursor exists", () => {
     const container = render({});
 
-    expect(container.innerHTML).toBe("");
+    expect(container.innerHTML).not.toBe("");
+    expect(container.textContent).toBe("");
   });
 
   it("renders a previous cursor with backward direction", () => {

@@ -19,9 +19,7 @@ export const DirectionSchema = z.union([z.literal("forward"), z.literal("backwar
 export type Direction = z.infer<typeof DirectionSchema>;
 
 export function ListPagination({ list, className }: { list: List; className?: string }) {
-  if (!list.pagination.previous && !list.pagination.next) {
-    return null;
-  }
+  const bothDisabled = !list.pagination.previous && !list.pagination.next;
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -29,7 +27,8 @@ export function ListPagination({ list, className }: { list: List; className?: st
       <NextButton cursor={list.pagination.next} />
       <div
         className={cn(
-          "order-2 h-6 w-px bg-surface-control transition-colors peer-hover/next:bg-surface-control-hover peer-hover/prev:bg-surface-control-hover"
+          "order-2 h-6 w-px bg-surface-control transition-colors peer-hover/next:bg-surface-control-hover peer-hover/prev:bg-surface-control-hover",
+          bothDisabled && "opacity-30"
         )}
       />
     </div>
