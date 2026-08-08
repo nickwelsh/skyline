@@ -6,6 +6,8 @@ import { isNw223State, nw223InspectorState, nw223TraceState } from "./nw223";
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
+const rootSurfaces = new Set(["jobs", "runs", "errors", "logs", "queues"]);
+const detailSurfaces = new Set(["job", "run", "error", "log", "queue"]);
 
 export type FidelityScenario = { id: string; surface: string; state: string; kind: "root" | "detail" | "owned" };
 export type FixtureCatalog = { job: string; run: string; error: string; log: string; queue: string };
@@ -15,7 +17,12 @@ export function parseScenario(capture: string): FidelityScenario {
   const separator = id.indexOf("-");
   const surface = id.slice(0, separator);
   const state = id.slice(separator + 1);
-  return { id, surface, state, kind: rootStates.has(state) ? "root" : detailStates.has(state) ? "detail" : "owned" };
+  const kind = rootSurfaces.has(surface) && rootStates.has(state)
+    ? "root"
+    : detailSurfaces.has(surface) && detailStates.has(state)
+      ? "detail"
+      : "owned";
+  return { id, surface, state, kind };
 }
 
 export async function fixtureCatalog(adapter = new FixtureAdapter()): Promise<FixtureCatalog> {

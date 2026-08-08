@@ -51,6 +51,8 @@ describe("packaged Skyline fidelity fixture", () => {
 
   test.each([
     ["jobs-loading@1440x960-classic", "root", "/skyline/jobs"],
+    ["errors-loading@1440x960-classic", "root", "/skyline/errors"],
+    ["error-loading@1440x960-classic", "detail", "/skyline/errors/error-1"],
     ["run-stale-refresh@1440x960-dark", "detail", "/skyline/runs/run-1"],
     ["log-found@390x844-classic", "detail", "/skyline/logs?event=log-1"],
     ["shell-customized@1024x768-classic", "owned", "/skyline/runs"],
