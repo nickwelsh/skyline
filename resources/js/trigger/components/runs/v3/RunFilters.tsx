@@ -22,7 +22,7 @@ import {
 } from "~/components/primitives/Select";
 import { ShortcutKey } from "~/components/primitives/ShortcutKey";
 import { Switch } from "~/components/primitives/Switch";
-import { TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
+import { periodToMilliseconds, TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/primitives/Tooltip";
 import { useSearchParams } from "~/hooks/useSearchParam";
 import { useShortcutKeys } from "~/hooks/useShortcutKeys";
@@ -176,15 +176,16 @@ function CreatedFilter() {
   const { value, replace } = useSearchParams();
   const from = value("triggeredFrom");
   const to = value("triggeredTo");
-  const period = publicPeriod(from, to);
+  const period = publicPeriod(value("triggeredPeriod"), from, to);
   const apply = (next: TimeFilterApplyValues) => {
     if (next.period) {
-      const milliseconds = periodMilliseconds(next.period);
+      const milliseconds = periodToMilliseconds(next.period);
+      if (!milliseconds) throw new Error(`Invalid time period: ${next.period}`);
       const triggeredTo = new Date();
-      replace({ triggeredFrom: new Date(triggeredTo.getTime() - milliseconds).toISOString(), triggeredTo: triggeredTo.toISOString(), cursor: undefined, direction: undefined });
+      replace({ triggeredPeriod: next.period, triggeredFrom: new Date(triggeredTo.getTime() - milliseconds).toISOString(), triggeredTo: triggeredTo.toISOString(), cursor: undefined, direction: undefined });
       return;
     }
-    replace({ triggeredFrom: publicInstant(next.from), triggeredTo: publicInstant(next.to), cursor: undefined, direction: undefined });
+    replace({ triggeredPeriod: undefined, triggeredFrom: publicInstant(next.from), triggeredTo: publicInstant(next.to), cursor: undefined, direction: undefined });
   };
   return <TimeFilter defaultPeriod="7d" period={period} from={period ? undefined : from} to={period ? undefined : to} shortcut={{ key: "d" }} onValueChange={apply} />;
 }
@@ -248,18 +249,11 @@ export function filterIcon(filterKey: string): ReactNode | undefined { return ["
 function queueValue(connection?: string, queue?: string) { return connection && queue ? `${connection}\u0000${queue}` : ""; }
 function sourceStatusIndex(status: RunStatus) { return ({ queued: 2, running: 4, retrying: 5, completed: 6, failed: 7 } as const)[status]; }
 
-function publicPeriod(from?: string, to?: string) {
-  if (!from || !to) return undefined;
-  const duration = Date.parse(to) - Date.parse(from);
-  for (const [size, unit] of [[86_400_000, "d"], [3_600_000, "h"], [60_000, "m"]] as const) {
-    if (duration > 0 && duration % size === 0) return `${duration / size}${unit}`;
-  }
-  return undefined;
-}
-function periodMilliseconds(period: string) {
-  const match = period.match(/^(\d+)([mhd])$/);
-  if (!match) throw new Error(`Invalid time period: ${period}`);
-  return Number(match[1]) * (match[2] === "m" ? 60_000 : match[2] === "h" ? 3_600_000 : 86_400_000);
+function publicPeriod(period?: string, from?: string, to?: string) {
+  if (!period || !from || !to) return undefined;
+  const milliseconds = periodToMilliseconds(period);
+  if (!milliseconds || Date.parse(to) - Date.parse(from) !== milliseconds) return undefined;
+  return period;
 }
 function publicInstant(value?: string) { return value ? new Date(/^\d+$/.test(value) ? Number(value) : value).toISOString() : undefined; }
 

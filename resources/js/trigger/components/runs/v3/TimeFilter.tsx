@@ -13,7 +13,6 @@ import {
   subDays,
   subWeeks,
 } from "date-fns";
-import parse from "parse-duration";
 import { type ReactNode, startTransition, useCallback, useEffect, useRef, useState } from "react";
 import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { DateTime } from "~/components/primitives/DateTime";
@@ -117,7 +116,7 @@ const timeUnits = [
 ];
 
 // Parse a period string (e.g., "90m", "2h", "7d") into value and unit
-function parsePeriodString(period: string): { value: number; unit: string } | null {
+export function parsePeriodString(period: string): { value: number; unit: string } | null {
   const match = period.match(/^(\d+)([mhd])$/);
   if (match) {
     return { value: parseInt(match[1], 10), unit: match[2] };
@@ -125,11 +124,18 @@ function parsePeriodString(period: string): { value: number; unit: string } | nu
   return null;
 }
 
+export function periodToMilliseconds(period: string): number | undefined {
+  const parsed = parsePeriodString(period);
+  if (!parsed || parsed.value <= 0) return undefined;
+  const unitMilliseconds = parsed.unit === "m" ? 60_000 : parsed.unit === "h" ? 3_600_000 : 86_400_000;
+  return parsed.value * unitMilliseconds;
+}
+
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-// Convert a period string to days using parse-duration
+// Convert a period string to days through the shared grammar.
 function periodToDays(period: string): number {
-  const ms = parse(period);
+  const ms = periodToMilliseconds(period);
   if (!ms) return 0;
   return ms / MS_PER_DAY;
 }
@@ -142,7 +148,7 @@ function dateRangeToDays(from?: Date): number {
 }
 
 const DEFAULT_PERIOD = "7d";
-const defaultPeriodMs = parse(DEFAULT_PERIOD);
+const defaultPeriodMs = periodToMilliseconds(DEFAULT_PERIOD);
 if (!defaultPeriodMs) {
   throw new Error("Invalid default period");
 }
@@ -224,7 +230,7 @@ export function timeFilterFromTo(props: {
 }): { from: Date; to: Date; isDefault: boolean } {
   const time = timeFilters(props);
 
-  const periodMs = time.period ? parse(time.period) : undefined;
+  const periodMs = time.period ? periodToMilliseconds(time.period) : undefined;
 
   if (periodMs) {
     return {
@@ -250,7 +256,7 @@ export function timeFilterFromTo(props: {
     };
   }
 
-  const defaultPeriodMs = parse(props.defaultPeriod) ?? 24 * 60 * 60 * 1_000;
+  const defaultPeriodMs = periodToMilliseconds(props.defaultPeriod) ?? 24 * 60 * 60 * 1_000;
   return {
     from: new Date(Date.now() - defaultPeriodMs),
     to: time.to ?? new Date(),

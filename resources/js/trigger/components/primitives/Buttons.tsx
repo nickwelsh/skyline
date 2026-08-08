@@ -107,6 +107,7 @@ const variant = {
   "secondary/small": createVariant("small", "secondary"),
   "secondary/small-icon": createVariant("small-icon", "secondary"),
   "secondary/medium": createVariant("medium", "secondary"),
+  "tertiary/small": createVariant("small", "tertiary"),
   "tertiary/medium": createVariant("medium", "tertiary"),
   "minimal/small": createVariant("small", "minimal"),
   "minimal/medium": createVariant("medium", "minimal"),

@@ -113,6 +113,70 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page).toHaveURL(/cursor=next-cursor/);
 });
 
+test("Created keeps fixed ranges exact and rolling periods shareable", async ({ page }) => {
+  await page.clock.setFixedTime(new Date("2026-08-05T12:34:56.000Z"));
+  await routeRuns(page, pageResponse("completed"));
+  const apiRequests: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/skyline/api/runs")) apiRequests.push(request.url());
+  });
+  const fixedUrl = "/skyline/runs?triggeredFrom=2026-08-05T12%3A00%3A00.000Z&triggeredTo=2026-08-05T14%3A00%3A00.000Z";
+
+  await page.goto(fixedUrl);
+  const created = page.locator("[role='combobox']").filter({ hasText: /^Created:/ });
+  await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
+  const reachedDate = created.locator("span[data-state]").first();
+  await reachedDate.hover();
+  const tooltip = page.locator("[role='tooltip']:visible");
+  await expect(tooltip).toContainText("UTC");
+  await expect(tooltip).toContainText("Local");
+  await expect(tooltip).toContainText("Aug 5, 2026, 12:00:00 PM");
+  await expect(reachedDate).toHaveAttribute("aria-describedby", await tooltip.getAttribute("id"));
+
+  await page.goto(`${fixedUrl}&triggeredPeriod=invalid`);
+  await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
+  await expect(page).toHaveURL(/triggeredFrom=2026-08-05T12%3A00%3A00.000Z/);
+  await expect(page).toHaveURL(/triggeredTo=2026-08-05T14%3A00%3A00.000Z/);
+  await page.goto(`${fixedUrl}&triggeredPeriod=1h`);
+  await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
+  await page.goto(fixedUrl);
+
+  await created.click();
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page).toHaveURL(new RegExp(`${fixedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
+  await expect(page).not.toHaveURL(/triggeredPeriod=/);
+
+  await page.getByRole("heading", { name: "Runs" }).click();
+  await page.keyboard.press("d");
+  await page.getByRole("button", { name: "1 hr" }).click();
+  await expect(page).toHaveURL(/triggeredPeriod=1h/);
+  await expect(page).toHaveURL(/triggeredFrom=2026-08-05T11%3A34%3A56.000Z/);
+  const rollingUrl = page.url();
+  await page.reload();
+  await expect(page.getByText("Created:1 hr", { exact: true })).toBeVisible();
+
+  await page.goto(`${fixedUrl}&search=invoice`);
+  await page.goBack();
+  await expect(page).toHaveURL(rollingUrl);
+  await expect(page.getByText("Created:1 hr", { exact: true })).toBeVisible();
+  await page.goForward();
+  await expect(page).toHaveURL(`${fixedUrl}&search=invoice`);
+  await expect(created).toContainText("Aug 5, 2026, 8:00:00 AM – 10:00:00 AM");
+  await page.goBack();
+  await expect(page).toHaveURL(rollingUrl);
+
+  await page.getByRole("heading", { name: "Runs" }).click();
+  await page.keyboard.press("d");
+  await page.getByPlaceholder("Custom").fill("2");
+  await page.getByRole("button", { name: "hours" }).click();
+  await page.keyboard.press("Control+Enter");
+  await expect(page).toHaveURL(/triggeredPeriod=2h/);
+  await page.reload();
+  await expect(page.getByText("Created:2 hours", { exact: true })).toBeVisible();
+  expect(apiRequests.length).toBeGreaterThan(0);
+  expect(apiRequests.every((url) => !new URL(url).searchParams.has("triggeredPeriod"))).toBe(true);
+});
+
 test("paired pinned Trigger.dev and Skyline Runs fixture stays deterministic", async ({ page }) => {
   const triggerReference = new URL("./runs-list.spec.ts-snapshots/nw-217-trigger-runs.png", import.meta.url);
   const sourceHash = createHash("sha256").update(readFileSync(triggerReference)).digest("hex");
