@@ -52,6 +52,7 @@
     "clsx": "1.2.1",
     "date-fns": "4.1.0",
     "framer-motion": "10.12.11",
+    "humanize-duration": "3.27.3",
     "lucide-react": "0.229.0",
     "match-sorter": "6.3.4",
     "non.geist": "1.0.2",
@@ -76,6 +77,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.11.1",
     "@playwright/test": "1.58.2",
+    "@types/humanize-duration": "3.27.1",
     "@types/node": "24.13.3",
     "@types/pngjs": "6.0.5",
     "@types/react": "18.2.69",

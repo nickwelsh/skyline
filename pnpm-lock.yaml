@@ -79,6 +79,9 @@ importers:
       framer-motion:
         specifier: 10.12.11
         version: 10.12.11(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      humanize-duration:
+        specifier: 3.27.3
+        version: 3.27.3
       lucide-react:
         specifier: 0.229.0
         version: 0.229.0(react@18.3.1)
@@ -146,6 +149,9 @@ importers:
       '@playwright/test':
         specifier: 1.58.2
         version: 1.58.2
+      '@types/humanize-duration':
+        specifier: 3.27.1
+        version: 3.27.1
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3
@@ -1174,6 +1180,9 @@ packages:
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
+  '@types/humanize-duration@3.27.1':
+    resolution: {integrity: sha512-K3e+NZlpCKd6Bd/EIdqjFJRFHbrq5TzPPLwREk5Iv/YoIjQrs6ljdAUCo+Lb2xFlGNOjGSE0dqsVD19cZL137w==}
+
   '@types/js-cookie@2.2.7':
     resolution: {integrity: sha512-aLkWa0C0vO5b4Sr798E26QgOkss68Un0bLjs7u9qxzPT5CG+8DuNTffWES58YzJs3hrVAOs1wonycqEBqNJubA==}
 
@@ -1510,6 +1519,9 @@ packages:
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
+
+  humanize-duration@3.27.3:
+    resolution: {integrity: sha512-iimHkHPfIAQ8zCDQLgn08pRqSVioyWvnGfaQ8gond2wf7Jq2jJ+24ykmnRyiz3fIldcn4oUuQXpjqKLhSVR7lw==}
 
   hyphenate-style-name@1.1.0:
     resolution: {integrity: sha512-WDC/ui2VVRrz3jOVi+XtjqkDjiVjTtFaAGiW37k6b+ohyQ5wYDOGkvCZa8+H0nx3gyvv0+BST9xuOgIyGQ00gw==}
@@ -3179,6 +3191,8 @@ snapshots:
 
   '@types/estree@1.0.9': {}
 
+  '@types/humanize-duration@3.27.1': {}
+
   '@types/js-cookie@2.2.7': {}
 
   '@types/node@24.13.3':
@@ -3512,6 +3526,8 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
+
+  humanize-duration@3.27.3: {}
 
   hyphenate-style-name@1.1.0: {}
 
