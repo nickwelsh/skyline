@@ -25,6 +25,113 @@ export function conditionReferencePathName(code: string) {
     );
 }
 
+export function conditionRunsRouteCapabilities(code: string) {
+  const filters = "                  <RunsFilters\n                    possibleTasks={list.possibleTasks}";
+  const selection = "                  allowSelection\n";
+  const group = '    <ResizablePanelGroup orientation="horizontal" className="max-h-full">\n';
+  const panel = '      <ResizablePanel id="runs-main" min={"100px"}>\n';
+  const handle = '      <ResizableHandle\n        id="runs-handle"';
+  const groupEnd = "    </ResizablePanelGroup>";
+  const title = '<PageTitle title="Runs" accessory={<RunsHelpTooltip />} />';
+  if (![filters, selection, group, panel, handle, groupEnd, title].every((marker) => code.includes(marker))) {
+    throw new Error("Pinned Trigger Runs route capability seam changed; capability adapter must be reviewed.");
+  }
+
+  let adapted = code
+    .replace(filters, "                  <RunsFilters\n                    hideSearch\n                    possibleTasks={list.possibleTasks}")
+    .replace(title, '<PageTitle title="Runs" />')
+    .replace(selection, "")
+    .replace(group, "")
+    .replace(panel, "");
+  const handleStart = adapted.indexOf(handle);
+  const groupEndIndex = adapted.indexOf(groupEnd, handleStart);
+  const mainPanelEnd = adapted.lastIndexOf("      </ResizablePanel>\n", handleStart);
+  if (handleStart < 0 || groupEndIndex < 0 || mainPanelEnd < 0) {
+    throw new Error("Pinned Trigger Runs resizable seam changed; capability adapter must be reviewed.");
+  }
+  adapted = adapted.slice(0, mainPanelEnd)
+    + adapted.slice(mainPanelEnd + "      </ResizablePanel>\n".length, handleStart)
+    + adapted.slice(groupEndIndex + groupEnd.length);
+  return adapted;
+}
+
+export function conditionRunsFilterCapabilities(code: string) {
+  const filtersStart = "const filterTypes = [";
+  const filtersEnd = "] as const;";
+  const start = code.indexOf(filtersStart);
+  const end = code.indexOf(filtersEnd, start);
+  const taskLabel = "                    <span>Tasks</span>";
+  const appliedTaskLabel = '                    label="Task"';
+  const aiImport = 'import { AIFilterInput } from "./AIFilterInput";';
+  const aiControl = "      {!props.hideSearch && <AIFilterInput />}";
+  if (start < 0 || end < 0 || !code.includes(taskLabel) || !code.includes(appliedTaskLabel) || !code.includes(aiImport) || !code.includes(aiControl)) {
+    throw new Error("Pinned Trigger Runs filter capability seam changed; capability adapter must be reviewed.");
+  }
+  const adapted = code.slice(0, start)
+    + 'const filterTypes = [\n  { name: "queues", title: "Queues", icon: <RectangleStackIcon className="size-4" /> },\n] as const;'
+    + code.slice(end + filtersEnd.length);
+  return adapted
+    .replace(aiImport, 'import { SearchInput } from "~/components/primitives/SearchInput";')
+    .replace(aiControl, '      <SearchInput placeholder="Search Runs" />')
+    .replace(taskLabel, "                    <span>Jobs</span>")
+    .replace(appliedTaskLabel, '                    label="Job"');
+}
+
+export function conditionRunsTableCapabilities(code: string) {
+  const declaration = "export function TaskRunsTable({";
+  if (!code.includes(declaration) || !code.includes("type RunsTableProps = {") || !code.includes("<RunActionsCell")) {
+    throw new Error("Pinned Trigger Runs table capability seam changed; capability adapter must be reviewed.");
+  }
+  const adapted = code.replace(declaration, "function SourceTaskRunsTable({");
+  return `${adapted}
+export function TaskRunsTable(props: RunsTableProps) {
+  if (props.additionalTableState?.errorId) return <SourceTaskRunsTable {...props} />;
+  return <CapabilityRunsTable {...props} />;
+}
+
+function CapabilityRunsTable({ total, hasFilters, runs, isLoading = false, variant = "dimmed", showTopBorder = true, stickyHeader = false, additionalTableState, rootOnlyDefault }: RunsTableProps) {
+  const organization = useOrganization();
+  const project = useProject();
+  const params = new URLSearchParams();
+  if (additionalTableState) for (const [key, value] of Object.entries(additionalTableState)) params.set(key, value);
+  if (rootOnlyDefault !== undefined) params.set("rootOnly", String(rootOnlyDefault));
+  const tableState = params.toString();
+  return (
+    <Table variant={variant} className="max-h-full overflow-y-auto" showTopBorder={showTopBorder} stickyHeader={stickyHeader}>
+      <TableHeader>
+        <TableRow>
+          <TableHeaderCell>ID</TableHeaderCell>
+          <TableHeaderCell>Job</TableHeaderCell>
+          <TableHeaderCell disableTooltipHoverableContent tooltip={<div className="flex flex-col divide-y divide-grid-dimmed">{filterableTaskRunStatuses.map((status) => <div key={status} className="grid grid-cols-[8rem_1fr] gap-x-2 py-2 first:pt-1 last:pb-1"><div className="mb-0.5 flex items-center gap-1.5 whitespace-nowrap"><TaskRunStatusCombo status={status} /></div><Paragraph variant="extra-small" className="text-wrap! text-text-dimmed">{descriptionForTaskRunStatus(status)}</Paragraph></div>)}</div>}>Status</TableHeaderCell>
+          <TableHeaderCell>Started</TableHeaderCell>
+          <TableHeaderCell colSpan={3}>Duration</TableHeaderCell>
+          <TableHeaderCell>Queue target</TableHeaderCell>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {total === 0 ? <TableBlankRow colSpan={8}>{!isLoading && <Paragraph className="w-auto">{hasFilters ? "No runs match your filters." : "No runs found"}</Paragraph>}</TableBlankRow> : runs.map((run) => {
+          const search = new URLSearchParams();
+          if (tableState) search.set("tableState", encodeURIComponent(tableState));
+          const path = v3RunSpanPath(organization, project, run.environment, run, { spanId: run.spanId }, search);
+          return <TableRow key={run.id}>
+            <TableCell to={path} isTabbableCell><TruncatedCopyableValue value={run.friendlyId} /></TableCell>
+            <TableCell to={path}><span className="flex items-center gap-x-1">{run.taskIdentifier}{run.rootTaskRunId === null ? <Badge variant="extra-small">Root</Badge> : null}</span></TableCell>
+            <TableCell to={path}><SimpleTooltip content={descriptionForTaskRunStatus(run.status)} disableHoverableContent button={<TaskRunStatusCombo status={run.status} />} /></TableCell>
+            <TableCell to={path}>{run.startedAt ? <DateTime date={run.startedAt} /> : "–"}</TableCell>
+            <TableCell to={path} className="w-[1%]" actionClassName="pr-0 tabular-nums"><div className="flex items-center gap-1"><RectangleStackIcon className="size-4 text-text-dimmed" />{run.queueDuration}</div></TableCell>
+            <TableCell to={path} className="w-[1%]" actionClassName="px-4 tabular-nums"><div className="flex items-center gap-1"><ClockIcon className="size-4 text-blue-500" />{run.duration}</div></TableCell>
+            <TableCell to={path} actionClassName="pl-0 tabular-nums"><div className="flex items-center gap-1"><CpuChipIcon className="size-4 text-success" />{run.activeDuration}</div></TableCell>
+            <TableCell to={path}>{run.queueTarget}</TableCell>
+          </TableRow>;
+        })}
+        {isLoading && <TableBlankRow colSpan={8} className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-2 bg-background-dimmed"><Spinner /> <span className="text-text-dimmed">Loading…</span></TableBlankRow>}
+      </TableBody>
+    </Table>
+  );
+}
+`;
+}
+
 export function conditionErrorDetailCapabilities(code: string, policy: ErrorCapabilityPolicy) {
   let adapted = code;
   if (policy.hiddenMutableRegions?.includes("detail-status")) {

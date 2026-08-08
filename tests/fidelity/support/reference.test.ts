@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities } from "../reference/capability-adapters";
+import {
+  conditionErrorDetailCapabilities,
+  conditionErrorRunTableCapabilities,
+  conditionRunsFilterCapabilities,
+  conditionRunsRouteCapabilities,
+  conditionRunsTableCapabilities,
+} from "../reference/capability-adapters";
 import { createReferenceFixture, referenceQueueMetricKey, triggerJobs } from "./reference";
 
 describe("pinned Trigger Errors fixture", () => {
@@ -53,6 +59,48 @@ describe("pinned Trigger Errors fixture", () => {
     expect(detail.data.runList.runs).toEqual(expect.arrayContaining([
       expect.objectContaining({ status: "COMPLETED_WITH_ERRORS", taskIdentifier: expect.any(String) }),
     ]));
+  });
+});
+
+describe("pinned Trigger Runs fixture", () => {
+  test("conditions unsupported route, filters, and table branches without editing pinned source", () => {
+    const root = resolve(import.meta.dirname, "../reference/vendor");
+    const route = conditionRunsRouteCapabilities(
+      readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx"), "utf8"),
+    );
+    const filters = conditionRunsFilterCapabilities(
+      readFileSync(resolve(root, "components/runs/v3/RunFilters.tsx"), "utf8"),
+    );
+    const table = conditionRunsTableCapabilities(
+      readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
+    );
+
+    expect(route).toContain("hideSearch");
+    expect(route).not.toContain("allowSelection\n");
+    expect(route).not.toContain('<ResizableHandle\n        id="runs-handle"');
+    expect(filters).toContain('const filterTypes = [\n  { name: "queues"');
+    expect(filters).toContain('<SearchInput placeholder="Search Runs" />');
+    expect(filters).toContain("<span>Jobs</span>");
+    expect(table).toContain("run.queueDuration");
+    expect(table).toContain("run.duration");
+    expect(table).toContain("run.activeDuration");
+    expect(table).toContain("run.queueTarget");
+    expect(table).toContain("if (props.additionalTableState?.errorId) return <SourceTaskRunsTable {...props} />");
+    expect(table).toContain("return <CapabilityRunsTable {...props} />");
+  });
+
+  test("maps observed Runs into the capability-conditioned source row seam", async () => {
+    const fixture = await createReferenceFixture();
+    const list = fixture.loaders.runs as any;
+
+    expect(list.data.runs[0]).toEqual(expect.objectContaining({
+      friendlyId: expect.any(String),
+      taskIdentifier: expect.any(String),
+      queueDuration: expect.any(String),
+      duration: expect.any(String),
+      activeDuration: expect.any(String),
+      queueTarget: expect.stringContaining(" / "),
+    }));
   });
 });
 

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionRunsFilterCapabilities, conditionRunsRouteCapabilities, conditionRunsTableCapabilities, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -48,6 +48,8 @@ function capabilityAdapters(): Plugin {
   const segmentedControlSource = join(vendorRoot, "components/primitives/SegmentedControl.tsx");
   const errorDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
   const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
+  const runsFilterSource = join(vendorRoot, "components/runs/v3/RunFilters.tsx");
+  const runsRouteSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx");
   const sharedFiltersSource = join(vendorRoot, "components/runs/v3/SharedFilters.tsx");
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
   const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
@@ -69,7 +71,9 @@ function capabilityAdapters(): Plugin {
       if (source === segmentedControlSource) return conditionJobSegmentedControlMarker(code);
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
-      if (source === taskRunsTableSource) return conditionErrorRunTableCapabilities(code, capabilityPolicy.errors);
+      if (source === taskRunsTableSource) return conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(code, capabilityPolicy.errors));
+      if (source === runsFilterSource) return conditionRunsFilterCapabilities(code);
+      if (source === runsRouteSource) return conditionRunsRouteCapabilities(code);
       if (source === sharedFiltersSource) return conditionQueueTimeFilterAnchor(code);
       if (source === sideMenuSource) return conditionSideMenuShell(code);
       if (source === sideMenuItemSource) return conditionSideMenuItems(code);

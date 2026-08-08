@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
+import { formatRunDuration } from "../../../resources/js/skyline/RunListAdapter";
 import { nw222InspectorState, nw222States, nw222TraceState } from "./nw222";
 import { nw223InspectorState, nw223States, nw223TraceState } from "./nw223";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
@@ -354,7 +355,7 @@ function triggerRunList(page: any) {
 
 function triggerRunSummary(run: any) {
   const status = triggerStatus(run.status);
-  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: Math.round((run.activeDurationUs ?? run.durationUs ?? 0) / 1_000), tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: { name: run.queue ?? "default", type: run.queue?.startsWith("task/") ? "task" : "custom" }, region: "us-east-1", taskKind: "STANDARD" };
+  return { id: run.id, number: 1, friendlyId: run.id, createdAt: run.triggeredAt, updatedAt: run.finishedAt ?? run.startedAt ?? run.triggeredAt, startedAt: run.startedAt ?? undefined, delayUntil: undefined, hasFinished: ["COMPLETED_SUCCESSFULLY", "COMPLETED_WITH_ERRORS", "CANCELED", "SYSTEM_FAILURE", "CRASHED", "TIMED_OUT"].includes(status), finishedAt: run.finishedAt ?? undefined, isTest: false, status, version: "20260804.1", taskIdentifier: run.name, spanId: `span_${run.id}`, isReplayable: false, isCancellable: false, isPending: ["PENDING", "PENDING_VERSION", "DELAYED"].includes(status), environment: { id: "environment", organizationId: "organization", type: "PRODUCTION", slug: "prod" }, ttl: undefined, costInCents: 0, baseCostInCents: 0, usageDurationMs: Math.round((run.activeDurationUs ?? run.durationUs ?? 0) / 1_000), tags: [], depth: run.isRoot === false ? 1 : 0, rootTaskRunId: run.isRoot === false ? "run_root" : null, metadata: null, metadataType: null, machinePreset: "small-1x", queue: { name: run.queue ?? "default", type: run.queue?.startsWith("task/") ? "task" : "custom" }, region: "us-east-1", taskKind: "STANDARD", queueDuration: formatRunDuration(run.queueDurationUs), duration: formatRunDuration(run.durationUs), activeDuration: formatRunDuration(run.activeDurationUs ?? run.durationUs), queueTarget: run.connection && run.queue ? `${run.connection} / ${run.queue}` : "—" };
 }
 
 function triggerRun(detail: any) {
