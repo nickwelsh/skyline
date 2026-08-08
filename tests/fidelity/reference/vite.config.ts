@@ -173,10 +173,20 @@ export function QueueOverrideConcurrencyButton(props: Parameters<typeof SourceQu
 
 export function conditionSideMenuItems(code: string) {
   const declaration = "export function SideMenuItem({";
-  const adapted = code.replace(declaration, "function SourceSideMenuItem({");
-  if (adapted === code) throw new Error("Pinned Trigger SideMenuItem declaration changed; capability adapter must be reviewed.");
+  const linkTarget = "      to={to}";
+  if (!code.includes(declaration) || code.split(linkTarget).length !== 2) throw new Error("Pinned Trigger SideMenuItem declaration changed; capability adapter must be reviewed.");
+  const adapted = code
+    .replace(declaration, "function SourceSideMenuItem({")
+    .replace(linkTarget, '      to={shellPublicRoutes[dataAction ?? ""] ?? to}');
   return `${adapted}
 const shellCapabilityPolicy = ${JSON.stringify(capabilityPolicy.shell)};
+const shellPublicRoutes: Record<string, string> = {
+  tasks: "/skyline/jobs",
+  runs: "/skyline/runs",
+  logs: "/skyline/logs",
+  errors: "/skyline/errors",
+  queues: "/skyline/queues",
+};
 export function SideMenuItem(props: Parameters<typeof SourceSideMenuItem>[0]) {
   const action = props["data-action"];
   return action && !shellCapabilityPolicy.supportedActions.includes(action)

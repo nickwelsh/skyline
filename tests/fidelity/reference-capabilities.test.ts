@@ -69,6 +69,19 @@ describe("pinned shell capability adapters", () => {
     expect(() => conditionReferencePathName(hook.replace("return navigation.location.pathname;", "return changed;"))).toThrow(/must be reviewed/i);
   });
 
+  test("adapts supported shell links at the public routing boundary", () => {
+    const item = readFileSync(resolve(vendor, "SideMenuItem.tsx"), "utf8");
+    const adapted = conditionSideMenuItems(item);
+
+    expect(adapted).toContain('tasks: "/skyline/jobs"');
+    expect(adapted).toContain('runs: "/skyline/runs"');
+    expect(adapted).toContain('logs: "/skyline/logs"');
+    expect(adapted).toContain('errors: "/skyline/errors"');
+    expect(adapted).toContain('queues: "/skyline/queues"');
+    expect(adapted).toContain('to={shellPublicRoutes[dataAction ?? ""] ?? to}');
+    expect(adapted).toContain("<SourceSideMenuItem {...props} badge={action ? undefined : props.badge} />");
+  });
+
   test("routes pinned Queue metric queries through observed fixture resources", () => {
     const source = readFileSync(queueMetrics, "utf8");
     const list = readFileSync(queueList, "utf8");
