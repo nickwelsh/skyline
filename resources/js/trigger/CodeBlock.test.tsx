@@ -53,6 +53,29 @@ describe("CodeBlock", () => {
     });
   });
 
+  it("rerenders JSON with the pinned Prism grammar after async setup", async () => {
+    const prism = (globalThis as typeof globalThis & { Prism: { languages: Record<string, unknown> } }).Prism;
+    await vi.waitFor(() => expect(prism.languages.json).toBeDefined());
+    const jsonGrammar = prism.languages.json;
+    delete prism.languages.json;
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(
+      <CodeBlock code={'{"message":"Invoice import delayed"}'} language="json" showOpenInModal={false} />,
+    ));
+    expect(container.querySelector(".token.property")).toBeNull();
+    prism.languages.json = jsonGrammar;
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".token.property")?.textContent).toBe('"message"');
+      expect(container.querySelector(".token.string")?.textContent).toBe('"Invoice import delayed"');
+    });
+
+    flushSync(() => root.unmount());
+  });
+
   it("keeps source default Code blocks unnamed", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
@@ -63,6 +86,20 @@ describe("CodeBlock", () => {
     const viewer = container.querySelector<HTMLElement>("[translate='no']")!;
     expect(viewer.getAttribute("aria-label")).toBeNull();
     expect(viewer.querySelector("button")?.getAttribute("aria-label")).toBeNull();
+
+    flushSync(() => root.unmount());
+  });
+
+  it("keeps the source title element and typography", () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(<CodeBlock code="Invoice import delayed" rowTitle="Message" showOpenInModal={false} />));
+
+    const title = container.querySelector("[translate='no'] > div:first-child > p");
+    expect(title?.textContent).toBe("Message");
+    expect(title?.className).toContain("font-medium");
 
     flushSync(() => root.unmount());
   });

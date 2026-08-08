@@ -6,10 +6,11 @@
 import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { Highlight, Prism, type Language, type PrismTheme } from "prism-react-renderer";
-import { forwardRef, useCallback, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
+import { Paragraph } from "./components/primitives/Paragraph";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/primitives/Tooltip";
 import { cn } from "./utils/cn";
 
@@ -255,7 +256,7 @@ function PlainCode({ code, maxHeight, isWrapped }: { code: string; maxHeight?: s
 }
 
 function TitleRow({ title }: { title: ReactNode }) {
-  return <div className="flex items-center justify-between px-3"><div className="w-full border-b border-grid-dimmed py-2 text-sm text-text-bright">{title}</div></div>;
+  return <div className="flex items-center justify-between px-3"><Paragraph variant="small/bright" className="w-full border-b border-grid-dimmed py-2">{title}</Paragraph></div>;
 }
 
 function HighlightCode({ theme, code, language, showLineNumbers, highlightLines, maxLineWidth, className, preClassName, isWrapped, maxHeight }: {
@@ -270,11 +271,39 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
   isWrapped: boolean;
   maxHeight?: string;
 }) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    Promise.all([
+      // @ts-expect-error Prism language modules do not publish declarations.
+      import("prismjs/components/prism-json"),
+      // @ts-expect-error Prism language modules do not publish declarations.
+      import("prismjs/components/prism-typescript"),
+      // @ts-expect-error Prism language modules do not publish declarations.
+      import("prismjs/components/prism-sql.js"),
+    ]).then(() => setIsLoaded(true));
+  }, []);
+
+  const containerClasses = cn(
+    "min-h-0 flex-1 px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control",
+    "overflow-auto",
+    className,
+  );
+  const preClasses = cn(
+    "relative mr-2 font-mono leading-relaxed",
+    preClassName,
+    isWrapped && "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word",
+  );
+
+  if (!isLoaded) {
+    return <div dir="ltr" className={containerClasses} style={{ maxHeight }}><pre className={preClasses}>{code}</pre></div>;
+  }
+
   return (
     <Highlight theme={theme} code={code} language={language}>
       {({ className: inheritedClassName, style, tokens, getLineProps, getTokenProps }) => (
-        <div dir="ltr" className={cn("min-h-0 flex-1 overflow-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control", className)} style={{ maxHeight }}>
-          <pre className={cn("relative mr-2 font-mono leading-relaxed", preClassName, isWrapped && "[&_span]:whitespace-pre-wrap [&_span]:wrap-break-word", inheritedClassName)} style={style} dir="ltr">
+        <div dir="ltr" className={containerClasses} style={{ maxHeight }}>
+          <pre className={cn(preClasses, inheritedClassName)} style={style} dir="ltr">
             {tokens.map((line, index) => {
               if (index === tokens.length - 1 && line.length === 1 && line[0].content === "\n") return null;
               const lineNumber = index + 1;
