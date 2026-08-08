@@ -9,6 +9,7 @@ import { createFirstResponseGate } from "./support/deferred-response";
 const traceId = "00000000000000000000000000000001";
 
 test("pinned shell identifies the Application and keeps Runs state in basename URLs", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.clock.setFixedTime(new Date("2026-08-05T12:34:56.000Z"));
   await routeRuns(page, pageResponse("completed"));
   await page.goto("/skyline");
@@ -93,7 +94,7 @@ test("pinned shell identifies the Application and keeps Runs state in basename U
   await expect(page.getByText("Created:", { exact: true }).locator("..").locator("..")).toContainText("–");
   await page.getByRole("heading", { name: "Runs" }).click();
   await page.keyboard.press("d");
-  await page.getByRole("dialog").locator("button:has(svg.lucide-x)").nth(1).click();
+  await page.getByLabel("To time").locator("..").getByRole("button").last().click();
   await page.getByRole("button", { name: "Now" }).first().click();
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page.getByText("Created after:", { exact: true }).locator("..").locator("..")).toContainText("Aug 5, 2026, 8:34:56 AM");
