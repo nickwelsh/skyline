@@ -182,6 +182,22 @@ describe("paired fidelity pixels", () => {
     expect(comparePixels(screenshot, screenshot, [region])).toMatchObject({ differingPixels: 0 });
   });
 
+  test("accepts only six exact renderer rasterization samples", () => {
+    const trigger = image([26, 27, 32, 255], 10, 10, rendererRegion().pixels.map(({ x, y, trigger }) => [1 + x, 1 + y, trigger]));
+    const skyline = image([26, 27, 32, 255], 10, 10, rendererRegion().pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline]));
+    const region = rendererRegion();
+
+    expect(comparePixels(trigger, skyline, [region])).toMatchObject({ differingPixels: 0, maskedPixels: 6 });
+    expect(() => comparePixels(trigger, image([26, 27, 32, 255], 10, 10, [
+      ...region.pixels.map(({ x, y, skyline }) => [1 + x, 1 + y, skyline] as [number, number, [number, number, number, number]]),
+      [9, 9, [27, 27, 32, 255]],
+    ]), [region])).toThrow(/1 unclassified pixel/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.slice(0, 5) }])).toThrow(/six exact pixels/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, x: 5 }) }])).toThrow(/coordinate|duplicate/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, skyline: [29, 31, 36, 255] as [number, number, number, number] }) }])).toThrow(/RGBA/i);
+    expect(() => comparePixels(trigger, skyline, [{ ...region, observation: { ...region.observation, skyline: { ...region.observation.skyline, domSha256: "0".repeat(64) } } }])).toThrow(/DOM/i);
+  });
+
   test.each([
     ["partial containment", { x: 8.25, y: 1, width: 3, height: 3 }, { x: 7, y: 2, width: 3, height: 4 }],
     ["crossing owner", { x: 8.25, y: 3, width: 3, height: 2 }, { x: 7, y: 2, width: 4, height: 4 }],
@@ -291,4 +307,36 @@ function capabilityOmissionWithRects(rects: Array<{ triggerRect: { x: number; y:
 
 function singleCapabilityRect(rect: { x: number; y: number; width: number; height: number }) {
   return capabilityOmissionWithRects([{ triggerRect: rect, skylineRect: rect }]);
+}
+
+function rendererRegion(): Extract<DifferenceRegion, { kind: "renderer-rasterization" }> {
+  const rect = { x: 1, y: 1, width: 6, height: 4 };
+  const shared = {
+    selector: ".text-text-dimmed > [translate='no']",
+    rect,
+    computedStyleSha256: "a".repeat(64),
+    accessibilitySha256: "b".repeat(64),
+    domSha256: "c".repeat(64),
+    semanticDomSha256: "5".repeat(64),
+    cssRulesSha256: "d".repeat(64),
+    effectiveCssRulesSha256: "6".repeat(64),
+    boxModelSha256: "e".repeat(64),
+    quadsSha256: "f".repeat(64),
+    backdropSha256: "1".repeat(64),
+  };
+  const observation = {
+    runtime: { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" },
+    presentation: { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" },
+    trigger: { ...shared, cropSha256: "2".repeat(64) },
+    skyline: { ...shared, cropSha256: "3".repeat(64) },
+  };
+  const pixels = [
+    { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
+    { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
+    { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+    { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
+  ] as Array<{ x: number; y: number; trigger: [number, number, number, number]; skyline: [number, number, number, number] }>;
+  return { kind: "renderer-rasterization", id: "error-codeblock-corner", observation, expected: observation, pixels };
 }

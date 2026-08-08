@@ -64,6 +64,22 @@ describe("source-fidelity oracle", () => {
     })).toThrow(/unclassified/i);
   });
 
+  test("renderer rasterization requires the exact pinned six-pixel decision", () => {
+    const region = rendererRasterizationRegion();
+    const manifest = (renderer = region) => ({ decision: "NW-216", categories: ["renderer-rasterization"], regions: [renderer] });
+
+    expect(() => validateAllowedDifferences(manifest())).not.toThrow();
+    expect(() => validateAllowedDifferences(manifest({ ...region, captures: ["error-found@1440x960-classic"] }))).toThrow(/capture/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, triggerSelector: ".text-text-dimmed > [translate='no'], main" }))).toThrow(/selector/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, environment: { ...region.environment, chromiumVersion: "150.0.0.0" } }))).toThrow(/environment/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.slice(0, 5) }))).toThrow(/six|pixel/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, x: 5 }) }))).toThrow(/coordinate|duplicate/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { "error-found@1024x768-classic": { ...region.measurements["error-found@1024x768-classic"], skyline: { ...region.measurements["error-found@1024x768-classic"].skyline, domSha256: "f".repeat(64) } } } }))).toThrow(/measurement/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, acceptance: ["Changed"] }))).toThrow(/metadata/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, citations: region.citations.slice(0, 1) }))).toThrow(/metadata/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { "error-found@1024x768-classic": { ...region.measurements["error-found@1024x768-classic"], trigger: { ...region.measurements["error-found@1024x768-classic"].trigger, cropSha256: "f".repeat(64) } } } }))).toThrow(/measurement/i);
+  });
+
   test("branding identity reflow requires the exact NW-226 seam and protected evidence", () => {
     const capture = "error-found@1024x768-classic";
     const element = (rect: { x: number; y: number; width: number; height: number }, pixel = "d") => ({
@@ -378,3 +394,61 @@ describe("source-fidelity oracle", () => {
     return createHash("sha256").update(readFileSync(join(root, path))).digest("hex");
   }
 });
+
+function rendererRasterizationRegion() {
+  const capture = "error-found@1024x768-classic";
+  const rect = { x: 656, y: 117, width: 356, height: 58 };
+  const shared = {
+    selector: ".text-text-dimmed > [translate='no']",
+    rect,
+    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
+    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
+    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
+    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
+    boxModelSha256: "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83",
+    quadsSha256: "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7",
+    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
+  };
+  return {
+    id: "error-codeblock-corner-rasterization",
+    category: "renderer-rasterization",
+    decision: "NW-216",
+    acceptance: ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."],
+    citations: [
+      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-af981c01",
+      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-5f779354",
+    ],
+    captures: [capture],
+    triggerSelector: ".text-text-dimmed > [translate='no']",
+    skylineSelector: ".text-text-dimmed > [translate='no']",
+    environment: {
+      chromiumRevision: "1208",
+      chromiumVersion: "145.0.7632.6",
+      architecture: "x64",
+      deviceScaleFactor: 1,
+      locale: "en-US",
+      timezone: "UTC",
+    },
+    presentation: {
+      borderColor: "rgb(39, 42, 46)",
+      backgroundColor: "rgba(0, 0, 0, 0)",
+      backdropColor: "rgb(26, 27, 31)",
+      borderRadius: "6px",
+    },
+    pixels: [
+      { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
+      { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
+      { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
+      { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
+      { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+      { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
+    ],
+    measurements: {
+      [capture]: {
+        runtime: { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" },
+        trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" },
+        skyline: { ...shared, domSha256: "110f621bf94a4b5fe7f97c2e5617dc81e7c3c58ba68e8631ef54ae368ade17f6", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
+      },
+    },
+  };
+}

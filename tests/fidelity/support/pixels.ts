@@ -48,7 +48,36 @@ type PresenterExtensionObservation = {
   triggerAccessibilitySha256: string; skylineAccessibilitySha256: string;
   anchorRect: Rect; anchorComputedStyleSha256: string; anchorAccessibilitySha256: string; anchorAccessibleName: string;
 };
-export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion;
+type Rgba = [number, number, number, number];
+export type RendererRasterizationElement = {
+  selector: string;
+  rect: Rect;
+  computedStyleSha256: string;
+  accessibilitySha256: string;
+  domSha256: string;
+  semanticDomSha256: string;
+  cssRulesSha256: string;
+  effectiveCssRulesSha256: string;
+  boxModelSha256: string;
+  quadsSha256: string;
+  backdropSha256: string;
+  cropSha256: string;
+};
+export type RendererRasterizationPresentation = { borderColor: string; backgroundColor: string; backdropColor: string; borderRadius: string };
+export type RendererRasterizationObservation = {
+  runtime: { browserVersion: string; platform: string; deviceScaleFactor: number; locale: string; timezone: string };
+  presentation: RendererRasterizationPresentation;
+  trigger: RendererRasterizationElement;
+  skyline: RendererRasterizationElement;
+};
+export type RendererRasterizationRegion = {
+  kind: "renderer-rasterization";
+  id: string;
+  observation: RendererRasterizationObservation;
+  expected: RendererRasterizationObservation;
+  pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
+};
+export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion | RendererRasterizationRegion;
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
@@ -84,6 +113,15 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
 }
 
 function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number, triggerImage: PNG, skylineImage: PNG): Mask[] {
+  if (region.kind === "renderer-rasterization") {
+    validateRendererRasterization(region, triggerImage, skylineImage);
+    return region.pixels.map(({ x, y }, index) => boundedMask(`${region.id}:pixel-${index}`, {
+      x: region.observation.trigger.rect.x + x,
+      y: region.observation.trigger.rect.y + y,
+      width: 1,
+      height: 1,
+    }, "both", imageWidth, imageHeight));
+  }
   if (region.kind === "branding-identity") {
     if (region.identityPairs.length !== Object.keys(region.expected.identityPairs).length) throw new Error(`Allowed region ${region.id} changed identity pair count.`);
     for (const pair of region.identityPairs) {
@@ -170,6 +208,69 @@ function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeigh
   if (JSON.stringify(region.trigger.computedStyle) !== JSON.stringify(region.skyline.computedStyle)) throw new Error(`Allowed region ${region.id} changed computed style.`);
   if (region.trigger.accessibleName !== region.skyline.accessibleName) throw new Error(`Allowed region ${region.id} changed accessible name.`);
   return [boundedMask(region.id, region.trigger.rect, "both", imageWidth, imageHeight)];
+}
+
+function validateRendererRasterization(region: RendererRasterizationRegion, triggerImage: PNG, skylineImage: PNG) {
+  if (JSON.stringify(region.observation.runtime) !== JSON.stringify(region.expected.runtime)) throw new Error(`Allowed region ${region.id} changed renderer runtime.`);
+  if (JSON.stringify(region.observation.presentation) !== JSON.stringify(region.expected.presentation)) throw new Error(`Allowed region ${region.id} changed renderer presentation.`);
+  for (const application of ["trigger", "skyline"] as const) {
+    const observed = region.observation[application];
+    const expected = region.expected[application];
+    if (observed.selector !== expected.selector) throw new Error(`Allowed region ${region.id} changed ${application} selector.`);
+    if (JSON.stringify(observed.rect) !== JSON.stringify(expected.rect)) throw new Error(`Allowed region ${region.id} changed ${application} geometry.`);
+    for (const [key, label] of [
+      ["computedStyleSha256", "style"],
+      ["accessibilitySha256", "accessibility"],
+      ["domSha256", "DOM"],
+      ["semanticDomSha256", "semantic DOM"],
+      ["cssRulesSha256", "CSS rules"],
+      ["effectiveCssRulesSha256", "effective CSS rules"],
+      ["boxModelSha256", "box model"],
+      ["quadsSha256", "quads"],
+      ["backdropSha256", "backdrop"],
+      ["cropSha256", "crop"],
+    ] as const) if (observed[key] !== expected[key]) throw new Error(`Allowed region ${region.id} changed ${application} ${label}.`);
+  }
+  const trigger = region.observation.trigger;
+  const skyline = region.observation.skyline;
+  for (const [key, label] of [
+    ["selector", "selector"],
+    ["rect", "geometry"],
+    ["computedStyleSha256", "style"],
+    ["accessibilitySha256", "accessibility"],
+    ["semanticDomSha256", "semantic DOM"],
+    ["effectiveCssRulesSha256", "effective CSS rules"],
+    ["boxModelSha256", "box model"],
+    ["quadsSha256", "quads"],
+    ["backdropSha256", "backdrop"],
+  ] as const) if (JSON.stringify(trigger[key]) !== JSON.stringify(skyline[key])) throw new Error(`Allowed region ${region.id} changed cross-side ${label}.`);
+
+  if (region.pixels.length !== 6) throw new Error(`Allowed region ${region.id} must contain six exact pixels.`);
+  const coordinates = new Set<string>();
+  for (const pixel of region.pixels) {
+    const coordinate = `${pixel.x},${pixel.y}`;
+    if (!Number.isInteger(pixel.x) || !Number.isInteger(pixel.y) || pixel.x < 0 || pixel.y < 0
+      || pixel.x >= trigger.rect.width || pixel.y >= trigger.rect.height || coordinates.has(coordinate)) throw new Error(`Allowed region ${region.id} has an invalid or duplicate coordinate.`);
+    coordinates.add(coordinate);
+    if (![pixel.trigger, pixel.skyline].every(validRgba)) throw new Error(`Allowed region ${region.id} has invalid RGBA evidence.`);
+  }
+  for (const pixel of region.pixels) {
+    const x = trigger.rect.x + pixel.x;
+    const y = trigger.rect.y + pixel.y;
+    assertExactPixel(triggerImage, x, y, pixel.trigger, region.id, "Trigger");
+    assertExactPixel(skylineImage, x, y, pixel.skyline, region.id, "Skyline");
+  }
+}
+
+function validRgba(value: Rgba) {
+  return Array.isArray(value) && value.length === 4 && value.every((channel) => Number.isInteger(channel) && channel >= 0 && channel <= 255);
+}
+
+function assertExactPixel(image: PNG, x: number, y: number, expected: Rgba, id: string, application: string) {
+  if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= image.width || y >= image.height) throw new Error(`Allowed region ${id} has an out-of-bounds pixel coordinate.`);
+  const offset = (y * image.width + x) * 4;
+  const actual = [...image.data.subarray(offset, offset + 4)];
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Allowed region ${id} changed ${application} RGBA at ${x},${y}.`);
 }
 
 function assertMatchingProtectedNavigationPixels(trigger: PNG, skyline: PNG, id: string, triggerRect: Rect, skylineRect: Rect) {

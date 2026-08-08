@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import type { NormalizedAccessibilityNode } from "./accessibility";
 import type { DiscoveryStep } from "./discovery";
-import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion } from "./pixels";
+import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion, RendererRasterizationElement, RendererRasterizationObservation, RendererRasterizationPresentation, RendererRasterizationRegion } from "./pixels";
 
 type Rect = { x: number; y: number; width: number; height: number };
 export type FrameworkExtensionDefinition = {
@@ -123,11 +124,28 @@ export type BrandingIdentityObservation = {
   navigation: { triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement };
   protectedPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementMeasurement; skyline: BrandingIdentityElementMeasurement }>;
 };
+type RendererRuntime = { browserVersion: string; platform: string; deviceScaleFactor: number; locale: string; timezone: string };
+type Rgba = [number, number, number, number];
+export type RendererRasterizationDefinition = {
+  id: string;
+  category: "renderer-rasterization";
+  decision: string;
+  acceptance: string[];
+  citations: string[];
+  captures: string[];
+  triggerSelector: string;
+  skylineSelector: string;
+  environment: { chromiumRevision: string; chromiumVersion: string; architecture: string; deviceScaleFactor: number; locale: string; timezone: string };
+  presentation: RendererRasterizationPresentation;
+  pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
+  measurements: Record<string, { runtime: RendererRuntime; trigger: RendererRasterizationElement; skyline: RendererRasterizationElement }>;
+};
+export type { RendererRasterizationObservation };
 export type CapabilityOmissionObservation = {
   selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
   protectedSelectors?: Array<ProtectedSelectorDefinition & ProtectedSelectorMeasurement>;
 };
-export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition | BrandingIdentityDefinition;
+export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition | BrandingIdentityDefinition | RendererRasterizationDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
 export type FrameworkExtensionObservation = {
   skylineSelector: string;
@@ -159,6 +177,11 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
   const definitions = applicableExtensionDefinitions(capture, manifest);
   const regions: DifferenceRegion[] = [];
   for (const definition of definitions) {
+    if (definition.category === "renderer-rasterization") {
+      const resolved = validateRendererRasterizationObservation(definition, await discoverRendererRasterizationObservation(trigger, skyline, definition, capture), capture);
+      regions.push({ kind: "renderer-rasterization", id: definition.id, observation: resolved, expected: { presentation: definition.presentation, ...definition.measurements[capture] }, pixels: definition.pixels } satisfies RendererRasterizationRegion);
+      continue;
+    }
     if (definition.category === "branding-identity") {
       const resolved = validateBrandingIdentityObservation(definition, await discoverBrandingIdentityObservation(trigger, skyline, definition, capture), capture);
       regions.push({ kind: "branding-identity", id: definition.id, identityPairs: resolved.identityPairs, navigation: resolved.navigation, protectedPairs: resolved.protectedPairs, expected: definition.measurements[capture] });
@@ -183,6 +206,11 @@ export async function observeDifferenceRegions(trigger: Page, skyline: Page, cap
 export async function waitForDifferenceRegions(trigger: Page, skyline: Page, capture: string, manifest: AllowedDifferences) {
   const waits: Promise<void>[] = [];
   for (const definition of applicableExtensionDefinitions(capture, manifest)) {
+    if (definition.category === "renderer-rasterization") {
+      waits.push(trigger.locator(definition.triggerSelector).first().waitFor({ state: "attached" }));
+      waits.push(skyline.locator(definition.skylineSelector).first().waitFor({ state: "attached" }));
+      continue;
+    }
     if (definition.category === "branding-identity") {
       for (const pair of definition.identityPairs) {
         waits.push(trigger.locator(pair.triggerSelector).first().waitFor({ state: "attached" }));
@@ -395,6 +423,169 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
     for (const protectedSelector of applicationSelectors) protectedSelector.crop = captureProtectedElementCrop(screenshot, viewport, protectedSelector.rect, protectedSelector, captureContext);
   }
   return { selectorPairs, protectedSelectors };
+}
+
+export async function discoverRendererRasterizationObservation(trigger: Page, skyline: Page, definition: RendererRasterizationDefinition, capture: string): Promise<RendererRasterizationObservation> {
+  if (!definition.captures.includes(capture)) throw new Error(`Renderer rasterization ${definition.id} does not permit capture ${capture}.`);
+  const runtimeFor = async (page: Page): Promise<RendererRuntime> => ({
+    browserVersion: page.context().browser()?.version() ?? "",
+    ...await page.evaluate(() => ({
+      platform: navigator.platform,
+      deviceScaleFactor: devicePixelRatio,
+      locale: navigator.language,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    })),
+  });
+  const [triggerRuntime, skylineRuntime, triggerScreenshot, skylineScreenshot] = await Promise.all([
+    runtimeFor(trigger),
+    runtimeFor(skyline),
+    trigger.screenshot({ animations: "disabled", caret: "hide" }),
+    skyline.screenshot({ animations: "disabled", caret: "hide" }),
+  ]);
+  if (JSON.stringify(triggerRuntime) !== JSON.stringify(skylineRuntime)) throw new Error(`Renderer rasterization ${definition.id} changed cross-side runtime.`);
+
+  const observe = async (page: Page, screenshot: Buffer, selector: string, application: "trigger" | "skyline") => {
+    const dom = await observeElementDom(page, definition.id, selector, `${application} renderer surface`);
+    validateProtectedElementPresentation(definition.id, `${application} renderer surface`, dom);
+    const accessibilitySha256 = await fingerprintCapabilityAccessibility(page.locator(selector));
+    const details = await page.evaluate((target) => {
+      const matches = document.querySelectorAll(target);
+      if (matches.length !== 1) return { count: matches.length, observation: null };
+      const element = matches[0] as HTMLElement;
+      const canonicalAttributes = (node: Element, omitClass = false) => Array.from(node.attributes)
+        .filter(({ name }) => !omitClass || name !== "class")
+        .map(({ name, value }) => {
+          if (name === "class") return [name, value.split(/\s+/).filter(Boolean).sort().join(" ")];
+          if (name === "style") return [name, Array.from((node as HTMLElement).style).sort().map((property) => [property, (node as HTMLElement).style.getPropertyValue(property), (node as HTMLElement).style.getPropertyPriority(property)])];
+          return [name, value];
+        })
+        .sort(([left], [right]) => String(left).localeCompare(String(right)));
+      const canonicalNode = (node: Node): unknown => node.nodeType === Node.TEXT_NODE
+        ? ["#text", node.textContent]
+        : node.nodeType === Node.ELEMENT_NODE
+          ? [(node as Element).tagName.toLowerCase(), canonicalAttributes(node as Element), Array.from(node.childNodes).map(canonicalNode)]
+          : [node.nodeName, node.textContent];
+      const standardStyle = (node: Element) => {
+        const style = getComputedStyle(node);
+        return Array.from(style).filter((property) => !property.startsWith("--")).sort()
+          .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+      };
+      const canonicalSemanticNode = (node: Node): unknown => {
+        if (node.nodeType === Node.TEXT_NODE) return ["#text", node.textContent];
+        if (node.nodeType !== Node.ELEMENT_NODE) return [node.nodeName, node.textContent];
+        const child = node as Element;
+        if (child.matches("span.token")) return ["#token", standardStyle(child), child.textContent];
+        const children: unknown[] = [];
+        for (const canonicalChild of Array.from(child.childNodes).map(canonicalSemanticNode)) {
+          const previous = children.at(-1);
+          if (Array.isArray(previous) && Array.isArray(canonicalChild)
+            && previous[0] === "#token" && canonicalChild[0] === "#token"
+            && JSON.stringify(previous[1]) === JSON.stringify(canonicalChild[1])) {
+            previous[2] = `${String(previous[2])}${String(canonicalChild[2])}`;
+          } else children.push(canonicalChild);
+        }
+        return [child.tagName.toLowerCase(), canonicalAttributes(child), children];
+      };
+      const declarations = (style: CSSStyleDeclaration, includeCustomProperties: boolean) => Array.from(style)
+        .filter((property) => includeCustomProperties || !property.startsWith("--"))
+        .sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+      const matchingRules: unknown[] = [];
+      const effectiveMatchingRules: unknown[] = [];
+      const visitRules = (rules: CSSRuleList, conditions: string[] = []) => {
+        for (const rule of Array.from(rules)) {
+          if (rule instanceof CSSStyleRule) {
+            const selectors = rule.selectorText.split(",").map((value) => value.trim());
+            const matchedSelectors = selectors.filter((value) => {
+              try { return element.matches(value.replace(/::[\w-]+(?:\([^)]*\))?/g, "")); }
+              catch { return false; }
+            });
+            if (matchedSelectors.length) {
+              matchingRules.push([conditions, rule.selectorText, declarations(rule.style, true)]);
+              effectiveMatchingRules.push([conditions, matchedSelectors.sort(), declarations(rule.style, false)]);
+            }
+          } else if ("cssRules" in rule) {
+            const header = rule.cssText.slice(0, rule.cssText.indexOf("{")).trim();
+            try { visitRules((rule as CSSGroupingRule).cssRules, [...conditions, header]); } catch { /* inaccessible rules cannot style the local fixture */ }
+          }
+        }
+      };
+      for (const sheet of Array.from(document.styleSheets)) {
+        try { visitRules(sheet.cssRules); } catch { /* no cross-origin fixture styles */ }
+      }
+      const style = getComputedStyle(element);
+      let backdropColor = "rgba(0, 0, 0, 0)";
+      for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+        const candidate = getComputedStyle(ancestor).backgroundColor;
+        if (candidate !== "rgba(0, 0, 0, 0)" && candidate !== "transparent") {
+          backdropColor = candidate;
+          break;
+        }
+      }
+      return {
+        count: matches.length,
+        observation: {
+          canonicalDom: canonicalNode(element),
+          semanticDom: canonicalSemanticNode(element),
+          matchingRules,
+          effectiveMatchingRules,
+          backdrop: { color: backdropColor },
+          presentation: {
+            borderColor: style.borderTopColor,
+            backgroundColor: style.backgroundColor,
+            backdropColor,
+            borderRadius: style.borderTopLeftRadius,
+          },
+        },
+      };
+    }, selector);
+    requireSingleMatch(details.count, definition.id, `${application} renderer details`);
+    if (!details.observation) throw new Error(`Renderer rasterization ${definition.id} lacks ${application} renderer details.`);
+
+    const session = await page.context().newCDPSession(page);
+    let boxModel: unknown;
+    let quads: unknown;
+    try {
+      await session.send("DOM.enable");
+      const document = await session.send("DOM.getDocument") as { root: { nodeId: number } };
+      const match = await session.send("DOM.querySelector", { nodeId: document.root.nodeId, selector }) as { nodeId: number };
+      if (!match.nodeId) throw new Error(`Renderer rasterization ${definition.id} lost ${application} selector.`);
+      boxModel = await session.send("DOM.getBoxModel", { nodeId: match.nodeId });
+      quads = await session.send("DOM.getContentQuads", { nodeId: match.nodeId });
+    } finally {
+      await session.detach();
+    }
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error(`Renderer rasterization ${definition.id} requires a fixed viewport.`);
+    const crop = captureProtectedElementCrop(screenshot, viewport, dom.rect);
+    if (crop.status !== "visible") throw new Error(`Renderer rasterization ${definition.id} surface is outside the viewport.`);
+    return {
+      element: {
+        selector,
+        rect: dom.rect,
+        computedStyleSha256: dom.computedStyleSha256,
+        accessibilitySha256,
+        domSha256: digest(details.observation.canonicalDom),
+        semanticDomSha256: digest(details.observation.semanticDom),
+        cssRulesSha256: digest(details.observation.matchingRules),
+        effectiveCssRulesSha256: digest(details.observation.effectiveMatchingRules),
+        boxModelSha256: digest(boxModel),
+        quadsSha256: digest(quads),
+        backdropSha256: digest(details.observation.backdrop),
+        cropSha256: crop.screenshotSha256,
+      },
+      presentation: details.observation.presentation,
+    };
+  };
+  const [triggerEvidence, skylineEvidence] = await Promise.all([
+    observe(trigger, triggerScreenshot, definition.triggerSelector, "trigger"),
+    observe(skyline, skylineScreenshot, definition.skylineSelector, "skyline"),
+  ]);
+  if (JSON.stringify(triggerEvidence.presentation) !== JSON.stringify(skylineEvidence.presentation)) throw new Error(`Renderer rasterization ${definition.id} changed cross-side presentation.`);
+  return { runtime: triggerRuntime, presentation: triggerEvidence.presentation, trigger: triggerEvidence.element, skyline: skylineEvidence.element };
+}
+
+function digest(value: unknown) {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
 export function validateCapabilityOmissionObservation(definition: CapabilityOmissionDefinition, observation: CapabilityOmissionObservation, capture: string) {
@@ -633,10 +824,96 @@ export function accessibilityOmissionSelectors(regions: DifferenceRegion[], appl
   });
 }
 
+export function validateRendererRasterizationObservation(definition: RendererRasterizationDefinition, observation: RendererRasterizationObservation, capture: string) {
+  if (!definition.captures.includes(capture)) throw new Error(`Renderer rasterization ${definition.id} does not permit capture ${capture}.`);
+  const expected = definition.measurements[capture];
+  if (!expected) throw new Error(`Renderer rasterization ${definition.id} lacks measurement for ${capture}.`);
+  if (JSON.stringify(observation.runtime) !== JSON.stringify(expected.runtime)) throw new Error(`Renderer rasterization ${definition.id} changed runtime evidence.`);
+  if (JSON.stringify(observation.presentation) !== JSON.stringify(definition.presentation)) throw new Error(`Renderer rasterization ${definition.id} changed presentation evidence.`);
+  for (const application of ["trigger", "skyline"] as const) {
+    const actual = observation[application];
+    const recorded = expected[application];
+    for (const [key, label] of [
+      ["selector", "selector"],
+      ["rect", "geometry"],
+      ["computedStyleSha256", "style"],
+      ["accessibilitySha256", "accessibility"],
+      ["domSha256", "DOM"],
+      ["semanticDomSha256", "semantic DOM"],
+      ["cssRulesSha256", "CSS rules"],
+      ["effectiveCssRulesSha256", "effective CSS rules"],
+      ["boxModelSha256", "box model"],
+      ["quadsSha256", "quads"],
+      ["backdropSha256", "backdrop"],
+      ["cropSha256", "crop"],
+    ] as const) if (JSON.stringify(actual[key]) !== JSON.stringify(recorded[key])) throw new Error(`Renderer rasterization ${definition.id} changed ${application} ${label}.`);
+  }
+  for (const [key, label] of [
+    ["rect", "geometry"],
+    ["computedStyleSha256", "style"],
+    ["accessibilitySha256", "accessibility"],
+    ["semanticDomSha256", "semantic DOM"],
+    ["effectiveCssRulesSha256", "effective CSS rules"],
+    ["boxModelSha256", "box model"],
+    ["quadsSha256", "quads"],
+    ["backdropSha256", "backdrop"],
+  ] as const) if (JSON.stringify(observation.trigger[key]) !== JSON.stringify(observation.skyline[key])) throw new Error(`Renderer rasterization ${definition.id} changed cross-side ${label}.`);
+  return observation;
+}
+
+function validateRendererRasterizationDefinition(definition: RendererRasterizationDefinition) {
+  const capture = "error-found@1024x768-classic";
+  const selector = ".text-text-dimmed > [translate='no']";
+  const acceptance = ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."];
+  const citations = [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-af981c01",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-5f779354",
+  ];
+  const environment = { chromiumRevision: "1208", chromiumVersion: "145.0.7632.6", architecture: "x64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
+  const presentation = { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" };
+  if (definition.id !== "error-codeblock-corner-rasterization" || definition.decision !== "NW-216"
+    || JSON.stringify(definition.captures) !== JSON.stringify([capture])
+    || definition.triggerSelector !== selector || definition.skylineSelector !== selector
+    || JSON.stringify(definition.acceptance) !== JSON.stringify(acceptance)
+    || JSON.stringify(definition.citations) !== JSON.stringify(citations)
+    || JSON.stringify(definition.environment) !== JSON.stringify(environment)
+    || JSON.stringify(definition.presentation) !== JSON.stringify(presentation)) throw new Error(`Renderer-rasterization region ${definition.id} changed approved metadata.`);
+  if (definition.pixels.length !== 6 || new Set(definition.pixels.map(({ x, y }) => `${x},${y}`)).size !== 6) throw new Error(`Renderer-rasterization region ${definition.id} must own six unique coordinates.`);
+  const pixels = [
+    { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
+    { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
+    { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+    { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
+  ];
+  if (JSON.stringify(definition.pixels) !== JSON.stringify(pixels)) throw new Error(`Renderer-rasterization region ${definition.id} changed exact pixel evidence.`);
+  const runtime = { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" };
+  const shared = {
+    selector,
+    rect: { x: 656, y: 117, width: 356, height: 58 },
+    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
+    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
+    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
+    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
+    boxModelSha256: "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83",
+    quadsSha256: "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7",
+    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
+  };
+  const measurement = {
+    runtime,
+    trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" },
+    skyline: { ...shared, domSha256: "110f621bf94a4b5fe7f97c2e5617dc81e7c3c58ba68e8631ef54ae368ade17f6", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
+  };
+  if (!isDeepStrictEqual(definition.measurements, { [capture]: measurement })) throw new Error(`Renderer-rasterization region ${definition.id} changed exact measurement.`);
+}
+
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
   const frameworks = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension");
   const presenters = manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension");
   const identities = manifest.regions.filter((region): region is BrandingIdentityDefinition => region.category === "branding-identity");
+  const renderers = manifest.regions.filter((region): region is RendererRasterizationDefinition => region.category === "renderer-rasterization");
+  for (const renderer of renderers) validateRendererRasterizationDefinition(renderer);
   for (const capture of new Set(identities.flatMap(({ captures }) => captures))) {
     if (identities.filter((definition) => definition.captures.includes(capture)).length !== 1) throw new Error(`Branding-identity capture ${capture} has duplicate ownership.`);
   }
@@ -660,12 +937,14 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
     }
     const selectors = definition.category === "branding-identity"
       ? [...definition.identityPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), definition.triggerNavigationSelector, definition.skylineNavigationSelector, ...definition.protectedPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector])]
+      : definition.category === "renderer-rasterization"
+      ? [definition.triggerSelector, definition.skylineSelector]
       : definition.category === "presenter-extension"
       ? [definition.triggerSelector, definition.skylineSelector, definition.triggerAnchorSelector, definition.skylineAnchorSelector]
       : definition.category === "framework-extension"
         ? [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : []), definition.triggerAnchorSelector, definition.skylineAnchorSelector]
         : [...definition.selectorPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), ...(definition.protectedSelectors ?? []).map(({ selector }) => selector)];
-    if (definition.category !== "capability-omission" && definition.category !== "branding-identity") {
+    if (definition.category !== "capability-omission" && definition.category !== "branding-identity" && definition.category !== "renderer-rasterization") {
       const extensions = definition.category === "presenter-extension"
         ? [definition.triggerSelector, definition.skylineSelector]
         : [definition.skylineSelector, ...(definition.skylineAccessibilitySelector ? [definition.skylineAccessibilitySelector] : [])];
@@ -688,10 +967,11 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       const skylineSelectors = [...definition.identityPairs.map(({ skylineSelector }) => skylineSelector), definition.skylineNavigationSelector, ...definition.protectedPairs.map(({ skylineSelector }) => skylineSelector)];
       if (definition.identityPairs.length === 0 || definition.protectedPairs.length === 0 || new Set(definition.identityPairs.map(({ id }) => id)).size !== definition.identityPairs.length || new Set(definition.protectedPairs.map(({ id }) => id)).size !== definition.protectedPairs.length || new Set(triggerSelectors).size !== triggerSelectors.length || new Set(skylineSelectors).size !== skylineSelectors.length || definition.protectedPairs.some((pair) => pair.captures && (pair.captures.length === 0 || new Set(pair.captures).size !== pair.captures.length || pair.captures.some((capture) => !definition.captures.includes(capture))))) throw new Error(`Branding-identity region ${definition.id} has invalid selector ownership.`);
     }
-    const anchorPair = definition.category === "capability-omission" || definition.category === "branding-identity" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
+    const anchorPair = definition.category === "capability-omission" || definition.category === "branding-identity" || definition.category === "renderer-rasterization" ? undefined : `${definition.triggerAnchorSelector}\0${definition.skylineAnchorSelector}`;
     for (const selector of new Set(selectors)) {
       const kind = definition.category === "capability-omission" ? "capability"
         : definition.category === "branding-identity" ? "identity"
+        : definition.category === "renderer-rasterization" ? "extension"
         : selector === definition.skylineSelector
           || (definition.category === "framework-extension" && selector === definition.skylineAccessibilitySelector)
           || (definition.category === "presenter-extension" && selector === definition.triggerSelector) ? "extension" : "anchor";

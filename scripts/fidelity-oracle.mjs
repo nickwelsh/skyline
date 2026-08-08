@@ -134,13 +134,16 @@ function bundleFixtureHash(root) {
 }
 
 export function validateAllowedDifferences(differences) {
-  const accepted = new Set(["branding-terminology", "branding-identity", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension"]);
+  const accepted = new Set(["branding-terminology", "branding-identity", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension", "renderer-rasterization"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
   const lockedRegions = [];
   for (const region of differences.regions ?? []) {
     if (!accepted.has(region.category)) fail(`Unclassified allowed-difference region: ${region.id}`);
-    if (region.category === "framework-extension") {
+    if (region.category === "renderer-rasterization") {
+      validateRendererRasterizationRegion(region);
+      lockedRegions.push(region);
+    } else if (region.category === "framework-extension") {
       const complete = region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
         && region.accessibleRole && region.accessibleName && region.anchorAccessibleRole && region.anchorAccessibleName
         && region.decision && region.acceptance && Array.isArray(region.captures) && region.captures.length > 0
@@ -247,7 +250,9 @@ export function validateAllowedDifferences(differences) {
   const selectorOwners = new Map();
   for (const region of lockedRegions) {
     for (const capture of region.captures) {
-      const ownership = region.category === "capability-omission" ? "capability-omission" : region.category === "branding-identity" ? "branding-identity" : "extension";
+      const ownership = region.category === "capability-omission" ? "capability-omission"
+        : region.category === "branding-identity" ? "branding-identity"
+        : region.category === "renderer-rasterization" ? "renderer-rasterization" : "extension";
       const key = `${ownership}:${capture}`;
       const owner = captureOwners.get(key);
       if (owner) fail(`Locked regions ${owner} and ${region.id} overlap capture ${capture}.`);
@@ -255,6 +260,8 @@ export function validateAllowedDifferences(differences) {
     }
     const selectors = region.category === "branding-identity"
       ? [...region.identityPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector]), region.triggerNavigationSelector, region.skylineNavigationSelector, ...region.protectedPairs.flatMap((pair) => [pair.triggerSelector, pair.skylineSelector])]
+      : region.category === "renderer-rasterization"
+      ? [region.triggerSelector, region.skylineSelector]
       : region.category === "presenter-extension"
       ? [region.triggerSelector, region.skylineSelector, region.triggerAnchorSelector, region.skylineAnchorSelector]
       : region.category === "framework-extension"
@@ -271,6 +278,95 @@ export function validateAllowedDifferences(differences) {
       selectorOwners.set(selector, owners);
     }
   }
+}
+
+function validateRendererRasterizationRegion(region) {
+  const capture = "error-found@1024x768-classic";
+  const selector = ".text-text-dimmed > [translate='no']";
+  const environment = {
+    chromiumRevision: "1208",
+    chromiumVersion: "145.0.7632.6",
+    architecture: "x64",
+    deviceScaleFactor: 1,
+    locale: "en-US",
+    timezone: "UTC",
+  };
+  const presentation = {
+    borderColor: "rgb(39, 42, 46)",
+    backgroundColor: "rgba(0, 0, 0, 0)",
+    backdropColor: "rgb(26, 27, 31)",
+    borderRadius: "6px",
+  };
+  const pixels = [
+    { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
+    { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
+    { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
+    { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
+    { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
+  ];
+  const acceptance = ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."];
+  const citations = [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-af981c01",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-5f779354",
+  ];
+  if (JSON.stringify(region.captures) !== JSON.stringify([capture])) fail(`Invalid renderer-rasterization capture: ${region.id}`);
+  if (region.triggerSelector !== selector || region.skylineSelector !== selector) fail(`Invalid renderer-rasterization selector: ${region.id}`);
+  if (JSON.stringify(region.environment) !== JSON.stringify(environment)) fail(`Invalid renderer-rasterization environment: ${region.id}`);
+  if (JSON.stringify(region.presentation) !== JSON.stringify(presentation)) fail(`Invalid renderer-rasterization presentation: ${region.id}`);
+  const complete = region.id === "error-codeblock-corner-rasterization"
+    && region.category === "renderer-rasterization"
+    && region.decision === "NW-216"
+    && JSON.stringify(region.acceptance) === JSON.stringify(acceptance)
+    && JSON.stringify(region.citations) === JSON.stringify(citations)
+    && region.measurements && hasExactKeys(region.measurements, [capture]);
+  if (!complete) fail(`Invalid renderer-rasterization metadata: ${region.id}`);
+  if (JSON.stringify(region.pixels) !== JSON.stringify(pixels)) {
+    const coordinates = Array.isArray(region.pixels) ? region.pixels.map((pixel) => `${pixel?.x},${pixel?.y}`) : [];
+    if (!Array.isArray(region.pixels) || region.pixels.length !== 6) fail(`Renderer-rasterization region ${region.id} must contain six exact pixels.`);
+    if (new Set(coordinates).size !== coordinates.length) fail(`Renderer-rasterization region ${region.id} has a duplicate pixel coordinate.`);
+    fail(`Renderer-rasterization region ${region.id} changed exact pixel evidence.`);
+  }
+
+  const measurement = region.measurements[capture];
+  if (!measurement || !hasExactKeys(measurement, ["runtime", "trigger", "skyline"])) fail(`Invalid renderer-rasterization measurement: ${region.id}`);
+  const runtime = { browserVersion: environment.chromiumVersion, platform: "Linux x86_64", deviceScaleFactor: 1, locale: environment.locale, timezone: environment.timezone };
+  if (JSON.stringify(measurement.runtime) !== JSON.stringify(runtime)) fail(`Invalid renderer-rasterization environment: ${region.id}`);
+  const elementKeys = ["selector", "rect", "computedStyleSha256", "accessibilitySha256", "domSha256", "semanticDomSha256", "cssRulesSha256", "effectiveCssRulesSha256", "boxModelSha256", "quadsSha256", "backdropSha256", "cropSha256"];
+  for (const application of ["trigger", "skyline"]) {
+    const element = measurement[application];
+    const valid = hasExactKeys(element, elementKeys) && element.selector === selector
+      && JSON.stringify(element.rect) === JSON.stringify({ x: 656, y: 117, width: 356, height: 58 })
+      && elementKeys.filter((key) => key.endsWith("Sha256")).every((key) => /^[a-f0-9]{64}$/.test(element[key] ?? ""));
+    if (!valid) fail(`Invalid renderer-rasterization measurement: ${region.id}`);
+  }
+  const shared = {
+    selector,
+    rect: { x: 656, y: 117, width: 356, height: 58 },
+    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
+    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
+    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
+    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
+    boxModelSha256: "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83",
+    quadsSha256: "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7",
+    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
+  };
+  const exactMeasurement = {
+    runtime,
+    trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" },
+    skyline: { ...shared, domSha256: "110f621bf94a4b5fe7f97c2e5617dc81e7c3c58ba68e8631ef54ae368ade17f6", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
+  };
+  if (!isDeepStrictEqual(measurement, exactMeasurement)) fail(`Invalid renderer-rasterization measurement: ${region.id}`);
+  for (const [key, label] of [
+    ["rect", "geometry"],
+    ["computedStyleSha256", "style"],
+    ["accessibilitySha256", "accessibility"],
+    ["semanticDomSha256", "semantic DOM"],
+    ["effectiveCssRulesSha256", "effective CSS rules"],
+    ["boxModelSha256", "box model"],
+    ["quadsSha256", "quads"],
+    ["backdropSha256", "backdrop"],
+  ]) if (JSON.stringify(measurement.trigger[key]) !== JSON.stringify(measurement.skyline[key])) fail(`Invalid renderer-rasterization cross-side ${label}: ${region.id}`);
 }
 
 function validateBrandingIdentityRegion(region) {
