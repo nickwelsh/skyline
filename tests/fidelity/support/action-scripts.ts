@@ -15,13 +15,15 @@ type Proof = {
   checked?: { target: Target; value: boolean };
   clipboard?: string;
   focus?: { target?: Target; withinRole?: string; name: string };
+  timeRange?: boolean;
+  timePeriod?: "2h";
 };
-type Step = { action: "click" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; proof?: Proof; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
+type Step = { action: "click" | "activate" | "fill" | "select" | "choose" | "press" | "history" | "reload" | "fixture" | "wait"; target?: Target; option?: { name: string; nativeName?: string; value: string }; effect?: Effect; proof?: Proof; value?: string; key?: string; direction?: "back" | "forward"; state?: string };
 export type ActionScript = { id: string; start: string; comparePanelPersistence?: boolean; steps: Step[] };
 type ActionFile = { schemaVersion: number; scripts: ActionScript[] };
 
 const required = ["navigation-history", "dialogs-menus", "filters-pagination", "selection-inspector-timeline-copy", "preferences", "live-error-recovery", "keyboard-focus-shortcuts"];
-const actions = new Set(["click", "fill", "select", "choose", "press", "history", "reload", "fixture"]);
+const actions = new Set(["click", "activate", "fill", "select", "choose", "press", "history", "reload", "fixture", "wait"]);
 
 export function validateActionScripts(value: ActionFile) {
   if (value.schemaVersion !== 1 || !Array.isArray(value.scripts)) throw new Error("Invalid action-script contract.");
@@ -57,7 +59,7 @@ export async function runActionScript(page: Page, script: ActionScript, options:
     const observation = await observeAction(page, `${index + 1}:${step.action}`);
     if (script.comparePanelPersistence === false) observation.storage = withoutPanelPersistence(observation.storage);
     if (effect) {
-      observation.visible = await assertEffect(page, effect);
+      observation.visible = await assertEffect(page, effect, step.effect !== undefined);
       observation.activeElement = { tag: "SEMANTIC", role: "combobox", name: effect.focus };
     }
     if (proof) {
@@ -117,6 +119,29 @@ async function assertProof(page: Page, proof: Proof) {
     } else {
       throw new Error("Semantic focus proof target missing.");
     }
+  }
+  if (proof.timeRange) {
+    const params = new URL(page.url()).searchParams;
+    const from = params.get("from") ?? params.get("triggeredFrom");
+    const to = params.get("to") ?? params.get("triggeredTo");
+    expect(from).toBeTruthy();
+    expect(to).toBeTruthy();
+    const label = page.locator("[role='combobox']").filter({ hasText: /^Created:/ });
+    await expect(label).toHaveCount(1);
+    await expect(label).toContainText("–");
+    visible.push("time-range:committed");
+  }
+  if (proof.timePeriod) {
+    await expect.poll(() => {
+      const params = new URL(page.url()).searchParams;
+      if (params.get("period") === proof.timePeriod) return proof.timePeriod;
+      const from = params.get("from") ?? params.get("triggeredFrom");
+      const to = params.get("to") ?? params.get("triggeredTo");
+      return from && to && Date.parse(to) - Date.parse(from) === 2 * 60 * 60 * 1_000 ? "2h" : null;
+    }).toBe(proof.timePeriod);
+    const label = page.locator("[role='combobox']").filter({ hasText: "Created:2 hours" });
+    await expect(label).toHaveCount(1);
+    visible.push("time-period:2h");
   }
   return {
     visible,
@@ -187,6 +212,20 @@ function locator(page: Page, target?: Target) {
 
 async function perform(page: Page, step: Step, fixtureState: (state: string) => Promise<void>) {
   if (step.action === "click") return locator(page, step.target).click();
+  if (step.action === "activate") {
+    const control = locator(page, step.target);
+    await expect(control).toHaveCount(1);
+    await expect(control).toBeVisible();
+    await expect(control).toBeEnabled();
+    await control.focus();
+    await expect(control).toBeFocused();
+    expect(await control.evaluate((element) => ({
+      active: document.activeElement === element,
+      name: element.getAttribute("aria-label") ?? element.textContent?.trim(),
+      role: element.getAttribute("role") ?? element.tagName.toLowerCase(),
+    }))).toEqual({ active: true, name: step.target!.name, role: step.target!.role });
+    return page.keyboard.press("Enter");
+  }
   if (step.action === "fill") return locator(page, step.target).fill(step.value ?? "");
   if (step.action === "select") return locator(page, step.target).selectOption(step.value ?? "");
   if (step.action === "choose") {
@@ -206,9 +245,19 @@ async function perform(page: Page, step: Step, fixtureState: (state: string) => 
   if (step.action === "history") return step.direction === "back" ? page.goBack() : page.goForward();
   if (step.action === "reload") return page.reload();
   if (step.action === "fixture") return fixtureState(step.state ?? "");
+  if (step.action === "wait") {
+    const control = locator(page, step.target);
+    if (step.state === "hidden") return expect(control).toBeHidden();
+    if (step.state === "visible") {
+      await expect(control).toHaveCount(1);
+      await expect(control).toBeVisible();
+      return expect(control).toBeEnabled();
+    }
+    throw new Error("Semantic wait state invalid.");
+  }
 }
 
-async function assertEffect(page: Page, effect: Effect) {
+async function assertEffect(page: Page, effect: Effect, assertFocus: boolean) {
   const selected = locator(page, effect.selected.target);
   await expect(selected).toBeVisible();
   if ((await selected.evaluate((element) => element.tagName)) === "SELECT") {
@@ -219,8 +268,10 @@ async function assertEffect(page: Page, effect: Effect) {
   }
   for (const target of effect.visible) await expect(locator(page, target)).toBeVisible();
   for (const target of effect.hidden) await expect(locator(page, target)).toHaveCount(0);
-  await selected.focus();
-  expect(await selected.evaluate((element) => document.activeElement === element)).toBe(true);
+  if (assertFocus) {
+    await selected.focus();
+    expect(await selected.evaluate((element) => document.activeElement === element)).toBe(true);
+  }
   return [
     `selected:${effect.focus}`,
     ...effect.visible.map((target) => `visible:${target.role}:${target.name}`),

@@ -39,18 +39,16 @@ for (const script of actionFile.scripts as ActionScript[]) {
       await Promise.all([page.evaluate(() => navigator.clipboard.writeText("")), reference.evaluate(() => navigator.clipboard.writeText(""))]);
     }
 
-    const [trigger, skyline] = await Promise.all([
-      runActionScript(reference, script, {
-        basePath: "/oracle",
-        fixtureState: (state) => reference.evaluate((value) => (window as Window & { __oracleSetFixtureState?: (state: string) => void }).__oracleSetFixtureState?.(value), state),
-        canonicalizeUrl: canonicalizeActionUrl(script.id),
-      }),
-      runActionScript(page, script, {
-        basePath: "/skyline",
-        fixtureState: async (state) => fixture.setState(state),
-        canonicalizeUrl: canonicalizeActionUrl(script.id),
-      }),
-    ]);
+    const trigger = await runActionScript(reference, script, {
+      basePath: "/oracle",
+      fixtureState: (state) => reference.evaluate((value) => (window as Window & { __oracleSetFixtureState?: (state: string) => void }).__oracleSetFixtureState?.(value), state),
+      canonicalizeUrl: canonicalizeActionUrl(script.id),
+    });
+    const skyline = await runActionScript(page, script, {
+      basePath: "/skyline",
+      fixtureState: async (state) => fixture.setState(state),
+      canonicalizeUrl: canonicalizeActionUrl(script.id),
+    });
     assertNoFidelityDifferences(collectFidelityDifferences({ triggerInteractions: trigger, skylineInteractions: skyline }));
     proof(resolve(root, "tests/fidelity/oracle/actions", `${script.id}.json`), `${JSON.stringify({ trigger, skyline }, null, 2)}\n`);
     await reference.close();
