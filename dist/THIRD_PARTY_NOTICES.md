@@ -33,6 +33,7 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | `clsx` | 1.2.1 | MIT |
 | `date-fns` | 4.1.0 | MIT |
 | `framer-motion` | 10.12.11 | MIT |
+| `humanize-duration` | 3.27.3 | Unlicense |
 | `lucide-react` | 0.229.0 | ISC |
 | `match-sorter` | 6.3.4 | MIT |
 | `non.geist` | 1.0.2 | MIT |
