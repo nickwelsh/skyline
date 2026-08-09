@@ -265,6 +265,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       canonicalUrl,
       sourcePathName,
       defaultSearch: (captureId: string) => {
+        if (captureId === "runs-exception-error") return "";
         if (captureId.startsWith("runs-inspectors-") || detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
         if (detailByCapture[captureId] === "log" || captureId === "log-found") return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
         return "";
@@ -292,7 +293,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         const captureState = captureId.startsWith("runs-") ? captureId.slice("runs-".length) : "";
         const state = sessionStorage.getItem(fixtureStateKey) ?? captureState;
         if (state === "exception-loading") return new Promise(() => {});
-        if (state === "exception-error") throw new Error("Exception evidence unavailable.");
+        if (state === "exception-error") return Response.redirect(new URL(location.pathname, location.origin), 302);
         const value = input.resources?.spanStates?.[state]?.[params.spanParam ?? ""]
           ?? input.resources?.spans?.[params.spanParam ?? ""];
         if (value === undefined) {

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { prepareCapture, settleCapture } from "./support/capture";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { parseScenario } from "./support/skyline";
-import { seedOwnedState } from "./support/states";
+import { exposeOwnedState, seedOwnedState } from "./support/states";
 import { captureAccessibilityTree } from "./support/accessibility";
 import { captureAxe } from "./support/axe";
 import { observeAction } from "./support/actions";
@@ -68,6 +68,26 @@ test("reference stale refresh keeps resolved content instead of initial loading 
   await expect(page.getByRole("heading", { name: runId, exact: true })).toBeVisible();
   await expect(page.getByLabel("Loading Run", { exact: true })).toHaveCount(0);
 });
+
+for (const theme of ["classic", "dark", "light"] as const) {
+  test(`reference runs exception error retains the run breadcrumb in ${theme}`, async ({ page }) => {
+    const capture = `runs-exception-error@1440x960-${theme}`;
+    const scenario = parseScenario(capture);
+    await prepareCapture(page, capture, "/reference");
+    await seedOwnedState(page, scenario, "/reference");
+    await installReferenceFixture(page, await createReferenceFixture());
+    await page.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`, { waitUntil: "domcontentloaded", timeout: 10_000 });
+    await waitForReference(page);
+
+    const breadcrumb = page.locator("svg[viewBox='0 0 9 26']");
+    await expect(breadcrumb).toHaveCount(1);
+    await exposeOwnedState(page, scenario, "trigger");
+    await settleCapture(page);
+    await expect(breadcrumb).toHaveCount(1);
+    await expect(page).toHaveURL(/\/oracle\/runs-exception-error$/);
+    await expect.poll(() => page.evaluate(() => (window as Window & { __oracleCanonicalUrl?: string }).__oracleCanonicalUrl)).toMatch(/^\/skyline\/runs\//);
+  });
+}
 
 test("reference paired jobs-populated readiness", async ({ page }) => {
   const capture = "jobs-populated@1440x960-classic";
