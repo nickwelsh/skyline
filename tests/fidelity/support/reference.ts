@@ -240,7 +240,9 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
     const canonicalUrl = (captureId: string) => {
       if (input.canonicalUrls?.[captureId]) return input.canonicalUrls[captureId];
       const prefix = captureId.slice(0, captureId.indexOf("-"));
-      const detail = captureId.startsWith("runs-inspectors-") ? "run" : detailByCapture[captureId];
+      const detail = captureId.startsWith("runs-inspectors-")
+        ? "run"
+        : detailByCapture[captureId] ?? (["job", "run", "error", "log", "queue"].includes(prefix) ? prefix : undefined);
       return detail ? input.canonicalUrls?.[`${detail}-found`] ?? `/skyline/${prefix}` : input.canonicalUrls?.[`${prefix}-populated`] ?? "/skyline/runs";
     };
     const sourcePathName = (pathname: string) => {
