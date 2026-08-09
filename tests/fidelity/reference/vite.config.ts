@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionRunsFilterCapabilities, conditionRunsRouteCapabilities, conditionRunsTableCapabilities, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunQueueSemantics, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionRunsFilterCapabilities, conditionRunsRouteCapabilities, conditionRunsTableCapabilities, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -71,7 +71,7 @@ function capabilityAdapters(): Plugin {
       if (source === segmentedControlSource) return conditionJobSegmentedControlMarker(code);
       if (source === errorsListSource) return hideErrorsListMutations(code);
       if (source === errorDetailSource) return conditionErrorDetailCapabilities(code, capabilityPolicy.errors);
-      if (source === taskRunsTableSource) return conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(code, capabilityPolicy.errors));
+      if (source === taskRunsTableSource) return conditionErrorRunQueueSemantics(conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(code, capabilityPolicy.errors)));
       if (source === runsFilterSource) return conditionRunsFilterCapabilities(code);
       if (source === runsRouteSource) return conditionRunsRouteCapabilities(code);
       if (source === sharedFiltersSource) return conditionQueueTimeFilterAnchor(code);

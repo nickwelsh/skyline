@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
+import ts from "typescript";
 import {
   conditionErrorDetailCapabilities,
+  conditionErrorRunQueueSemantics,
   conditionErrorRunTableCapabilities,
   conditionRunsFilterCapabilities,
   conditionRunsRouteCapabilities,
@@ -17,10 +19,11 @@ describe("pinned Trigger Errors fixture", () => {
       readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx"), "utf8"),
       { hiddenMutableRegions: ["detail-status"], detailVersions: false, detailMachines: false, detailPlatformColumns: false, detailPagination: true, detailBulkReplay: false },
     );
-    const table = conditionErrorRunTableCapabilities(
-      readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8"),
+    const sourceTable = readFileSync(resolve(root, "components/runs/v3/TaskRunsTable.tsx"), "utf8");
+    const table = conditionErrorRunQueueSemantics(conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(
+      sourceTable,
       { detailVersions: false, detailMachines: false, detailPlatformColumns: false },
-    );
+    )));
 
     expect(detail).toContain("errorCapabilityPolicy.detailVersions ? <LogsVersionFilter /> : null");
     expect(detail).toContain("errorCapabilityPolicy.detailVersions && errorGroup.affectedVersions.length > 0");
@@ -33,6 +36,15 @@ describe("pinned Trigger Errors fixture", () => {
     expect(table).toContain("showErrorMachines ? (");
     expect(table).toContain("showErrorPlatformColumns ? (");
     expect(table).toContain("colSpan={visibleColumnCount}");
+    expect(table).toContain("isErrorRunTable ? (");
+    expect(table).toContain("<TableCell to={path} leadingContent={");
+    expect(table).toContain('<span className="sr-only">{(run as NextRunListItem & { queueTarget: string }).queueTarget}</span>');
+    expect(table).not.toContain("resources/js/");
+    expect(ts.transpileModule(table, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX }, reportDiagnostics: true }).diagnostics?.filter(({ category }) => category === ts.DiagnosticCategory.Error)).toEqual([]);
+    expect(() => conditionErrorRunQueueSemantics(conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(
+      sourceTable.replace('<TableCell to={path}>\n                  {run.queue.type === "task" ? (', '<TableCell to={path}>\n                  {changed ? ('),
+      { detailVersions: false, detailMachines: false, detailPlatformColumns: false },
+    )))).toThrow(/must be reviewed/i);
   });
 
   test("enables every source-owned supported shell item", async () => {

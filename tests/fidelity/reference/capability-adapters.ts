@@ -303,6 +303,29 @@ export function conditionErrorRunTableCapabilities(code: string, policy: Pick<Er
   return `${adapted}\nconst errorRunTableCapabilityPolicy = ${JSON.stringify(policy)};\n`;
 }
 
+export function conditionErrorRunQueueSemantics(code: string) {
+  const runsCapability = "runsCapabilityCore ? <TableCell to={path}>{run.queueTarget}</TableCell> : run.queue ? (";
+  const queueStart = '                <TableCell to={path}>\n                  {run.queue.type === "task" ? (';
+  const queueEnd = "                </TableCell>";
+  const start = code.indexOf(queueStart);
+  const end = code.indexOf(queueEnd, start);
+  if (!code.includes(runsCapability) || start < 0 || end < 0 || code.indexOf(queueStart, start + 1) >= 0) {
+    throw new Error("Pinned Trigger Error Runs Queue semantics changed; capability adapter must be reviewed.");
+  }
+  const sourceCell = code.slice(start, end + queueEnd.length);
+  const sourceContent = sourceCell.slice('                <TableCell to={path}>\n'.length, -queueEnd.length);
+  const semanticCell = `                isErrorRunTable ? (
+                  <TableCell to={path} leadingContent={<>
+${sourceContent}
+                  </>}>
+                    <span className="sr-only">{(run as NextRunListItem & { queueTarget: string }).queueTarget}</span>
+                  </TableCell>
+                ) : (
+${sourceCell}
+                )`;
+  return code.replace(sourceCell, semanticCell);
+}
+
 function wrapErrorRange(code: string, startMarker: string, endMarker: string, opening: string, closing: string, label: string) {
   const start = code.indexOf(startMarker);
   const end = code.indexOf(endMarker, start);

@@ -105,6 +105,23 @@ test("reference error-found settles at its canonical error route", async ({ page
   expect(errors).toEqual([]);
 });
 
+test("reference error run queue keeps tooltip and run link as sibling controls", async ({ page }) => {
+  await installReferenceFixture(page, await createReferenceFixture());
+  await page.goto("http://127.0.0.1:4185/oracle/error-found", { waitUntil: "domcontentloaded", timeout: 10_000 });
+  await waitForReference(page);
+
+  const queueButton = page.getByRole("button", { name: "billing", exact: true }).first();
+  const queueCell = queueButton.locator("xpath=ancestor::td");
+  await expect(queueCell.locator("a button, button a")).toHaveCount(0);
+  await expect(queueCell).toMatchAriaSnapshot(`
+    - cell:
+      - button "billing"
+      - link "redis / billing"
+  `);
+  await queueButton.hover();
+  await expect(page.getByRole("tooltip")).toHaveText("This is a custom queue you added in your code.");
+});
+
 test("reference log-found selects its pinned log without fallback", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
