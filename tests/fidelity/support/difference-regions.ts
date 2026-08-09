@@ -438,6 +438,146 @@ export async function discoverCapabilityOmissionObservation(trigger: Page, skyli
   return { selectorPairs, protectedSelectors };
 }
 
+type RendererDetailsPageResult = {
+  count: number;
+  observation: null | {
+    canonicalDom: unknown;
+    semanticDom: unknown;
+    matchingRules: unknown[];
+    effectiveMatchingRules: unknown[];
+    backdrop: { color: string };
+    presentation: RendererRasterizationPresentation;
+  };
+};
+
+export function observeRendererDetailsInPage(input: { target: string }): RendererDetailsPageResult {
+  const matchingEffectiveSelectors = (selectorText: string, matches: (selector: string) => boolean) => {
+    const selectors: string[] = [];
+    let start = 0;
+    let parentheses = 0;
+    let brackets = 0;
+    let quote: "'" | '"' | undefined;
+    let escaped = false;
+    for (let index = 0; index < selectorText.length; index += 1) {
+      const character = selectorText[index];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (character === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (quote) {
+        if (character === quote) quote = undefined;
+        continue;
+      }
+      if (character === "'" || character === '"') {
+        quote = character;
+        continue;
+      }
+      if (character === "(") parentheses += 1;
+      else if (character === ")") parentheses = Math.max(0, parentheses - 1);
+      else if (character === "[") brackets += 1;
+      else if (character === "]") brackets = Math.max(0, brackets - 1);
+      else if (character === "," && parentheses === 0 && brackets === 0) {
+        selectors.push(selectorText.slice(start, index).trim());
+        start = index + 1;
+      }
+    }
+    selectors.push(selectorText.slice(start).trim());
+    return selectors.filter((selector) => {
+      if (!selector) return false;
+      try { return matches(selector); } catch { return false; }
+    }).sort();
+  };
+
+  const matches = document.querySelectorAll(input.target);
+  if (matches.length !== 1) return { count: matches.length, observation: null };
+  const element = matches[0] as HTMLElement;
+  const canonicalAttributes = (node: Element, omitClass = false) => Array.from(node.attributes)
+    .filter(({ name }) => !omitClass || name !== "class")
+    .map(({ name, value }) => {
+      if (name === "class") return [name, value.split(/\s+/).filter(Boolean).sort().join(" ")];
+      if (name === "style") return [name, Array.from((node as HTMLElement).style).sort().map((property) => [property, (node as HTMLElement).style.getPropertyValue(property), (node as HTMLElement).style.getPropertyPriority(property)])];
+      return [name, value];
+    })
+    .sort(([left], [right]) => String(left).localeCompare(String(right)));
+  const canonicalNode = (node: Node): unknown => node.nodeType === Node.TEXT_NODE
+    ? ["#text", node.textContent]
+    : node.nodeType === Node.ELEMENT_NODE
+      ? [(node as Element).tagName.toLowerCase(), canonicalAttributes(node as Element), Array.from(node.childNodes).map(canonicalNode)]
+      : [node.nodeName, node.textContent];
+  const standardStyle = (node: Element) => {
+    const style = getComputedStyle(node);
+    return Array.from(style).filter((property) => !property.startsWith("--")).sort()
+      .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+  };
+  const canonicalSemanticNode = (node: Node): unknown => {
+    if (node.nodeType === Node.TEXT_NODE) return ["#text", node.textContent];
+    if (node.nodeType !== Node.ELEMENT_NODE) return [node.nodeName, node.textContent];
+    const child = node as Element;
+    if (child.matches("span.token")) return ["#token", standardStyle(child), child.textContent];
+    const children: unknown[] = [];
+    for (const canonicalChild of Array.from(child.childNodes).map(canonicalSemanticNode)) {
+      const previous = children.at(-1);
+      if (Array.isArray(previous) && Array.isArray(canonicalChild)
+        && previous[0] === "#token" && canonicalChild[0] === "#token"
+        && JSON.stringify(previous[1]) === JSON.stringify(canonicalChild[1])) {
+        previous[2] = `${String(previous[2])}${String(canonicalChild[2])}`;
+      } else children.push(canonicalChild);
+    }
+    return [child.tagName.toLowerCase(), canonicalAttributes(child), children];
+  };
+  const declarations = (style: CSSStyleDeclaration, includeCustomProperties: boolean) => Array.from(style)
+    .filter((property) => includeCustomProperties || !property.startsWith("--"))
+    .sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
+  const matchingRules: unknown[] = [];
+  const effectiveMatchingRules: unknown[] = [];
+  const visitRules = (rules: CSSRuleList, conditions: string[] = []) => {
+    for (const rule of Array.from(rules)) {
+      if (rule instanceof CSSStyleRule) {
+        const matchedSelectors = matchingEffectiveSelectors(rule.selectorText, (selector) => element.matches(selector.replace(/::[\w-]+(?:\([^)]*\))?/g, "")));
+        if (matchedSelectors.length) {
+          matchingRules.push([conditions, rule.selectorText, declarations(rule.style, true)]);
+          effectiveMatchingRules.push([conditions, matchedSelectors, declarations(rule.style, false)]);
+        }
+      } else if ("cssRules" in rule) {
+        const header = rule.cssText.slice(0, rule.cssText.indexOf("{")).trim();
+        try { visitRules((rule as CSSGroupingRule).cssRules, [...conditions, header]); } catch { /* inaccessible rules cannot style the local fixture */ }
+      }
+    }
+  };
+  for (const sheet of Array.from(document.styleSheets)) {
+    try { visitRules(sheet.cssRules); } catch { /* no cross-origin fixture styles */ }
+  }
+  const style = getComputedStyle(element);
+  let backdropColor = "rgba(0, 0, 0, 0)";
+  for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
+    const candidate = getComputedStyle(ancestor).backgroundColor;
+    if (candidate !== "rgba(0, 0, 0, 0)" && candidate !== "transparent") {
+      backdropColor = candidate;
+      break;
+    }
+  }
+  return {
+    count: matches.length,
+    observation: {
+      canonicalDom: canonicalNode(element),
+      semanticDom: canonicalSemanticNode(element),
+      matchingRules,
+      effectiveMatchingRules,
+      backdrop: { color: backdropColor },
+      presentation: {
+        borderColor: style.borderTopColor,
+        backgroundColor: style.backgroundColor,
+        backdropColor,
+        borderRadius: style.borderTopLeftRadius,
+      },
+    },
+  };
+}
+
 export async function discoverRendererRasterizationObservation(trigger: Page, skyline: Page, definition: RendererRasterizationDefinition, capture: string): Promise<RendererRasterizationObservation> {
   if (!definition.captures.includes(capture)) throw new Error(`Renderer rasterization ${definition.id} does not permit capture ${capture}.`);
   const runtimeFor = async (page: Page): Promise<RendererRuntime> => ({
@@ -461,96 +601,7 @@ export async function discoverRendererRasterizationObservation(trigger: Page, sk
     const dom = await observeElementDom(page, definition.id, selector, `${application} renderer surface`);
     validateProtectedElementPresentation(definition.id, `${application} renderer surface`, dom);
     const accessibilitySha256 = await fingerprintCapabilityAccessibility(page.locator(selector));
-    const details = await page.evaluate((target) => {
-      const matches = document.querySelectorAll(target);
-      if (matches.length !== 1) return { count: matches.length, observation: null };
-      const element = matches[0] as HTMLElement;
-      const canonicalAttributes = (node: Element, omitClass = false) => Array.from(node.attributes)
-        .filter(({ name }) => !omitClass || name !== "class")
-        .map(({ name, value }) => {
-          if (name === "class") return [name, value.split(/\s+/).filter(Boolean).sort().join(" ")];
-          if (name === "style") return [name, Array.from((node as HTMLElement).style).sort().map((property) => [property, (node as HTMLElement).style.getPropertyValue(property), (node as HTMLElement).style.getPropertyPriority(property)])];
-          return [name, value];
-        })
-        .sort(([left], [right]) => String(left).localeCompare(String(right)));
-      const canonicalNode = (node: Node): unknown => node.nodeType === Node.TEXT_NODE
-        ? ["#text", node.textContent]
-        : node.nodeType === Node.ELEMENT_NODE
-          ? [(node as Element).tagName.toLowerCase(), canonicalAttributes(node as Element), Array.from(node.childNodes).map(canonicalNode)]
-          : [node.nodeName, node.textContent];
-      const standardStyle = (node: Element) => {
-        const style = getComputedStyle(node);
-        return Array.from(style).filter((property) => !property.startsWith("--")).sort()
-          .map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
-      };
-      const canonicalSemanticNode = (node: Node): unknown => {
-        if (node.nodeType === Node.TEXT_NODE) return ["#text", node.textContent];
-        if (node.nodeType !== Node.ELEMENT_NODE) return [node.nodeName, node.textContent];
-        const child = node as Element;
-        if (child.matches("span.token")) return ["#token", standardStyle(child), child.textContent];
-        const children: unknown[] = [];
-        for (const canonicalChild of Array.from(child.childNodes).map(canonicalSemanticNode)) {
-          const previous = children.at(-1);
-          if (Array.isArray(previous) && Array.isArray(canonicalChild)
-            && previous[0] === "#token" && canonicalChild[0] === "#token"
-            && JSON.stringify(previous[1]) === JSON.stringify(canonicalChild[1])) {
-            previous[2] = `${String(previous[2])}${String(canonicalChild[2])}`;
-          } else children.push(canonicalChild);
-        }
-        return [child.tagName.toLowerCase(), canonicalAttributes(child), children];
-      };
-      const declarations = (style: CSSStyleDeclaration, includeCustomProperties: boolean) => Array.from(style)
-        .filter((property) => includeCustomProperties || !property.startsWith("--"))
-        .sort().map((property) => [property, style.getPropertyValue(property), style.getPropertyPriority(property)]);
-      const matchingRules: unknown[] = [];
-      const effectiveMatchingRules: unknown[] = [];
-      const visitRules = (rules: CSSRuleList, conditions: string[] = []) => {
-        for (const rule of Array.from(rules)) {
-          if (rule instanceof CSSStyleRule) {
-            const selectors = rule.selectorText.split(",").map((value) => value.trim());
-            const matchedSelectors = selectors.filter((value) => {
-              try { return element.matches(value.replace(/::[\w-]+(?:\([^)]*\))?/g, "")); }
-              catch { return false; }
-            });
-            if (matchedSelectors.length) {
-              matchingRules.push([conditions, rule.selectorText, declarations(rule.style, true)]);
-              effectiveMatchingRules.push([conditions, matchedSelectors.sort(), declarations(rule.style, false)]);
-            }
-          } else if ("cssRules" in rule) {
-            const header = rule.cssText.slice(0, rule.cssText.indexOf("{")).trim();
-            try { visitRules((rule as CSSGroupingRule).cssRules, [...conditions, header]); } catch { /* inaccessible rules cannot style the local fixture */ }
-          }
-        }
-      };
-      for (const sheet of Array.from(document.styleSheets)) {
-        try { visitRules(sheet.cssRules); } catch { /* no cross-origin fixture styles */ }
-      }
-      const style = getComputedStyle(element);
-      let backdropColor = "rgba(0, 0, 0, 0)";
-      for (let ancestor = element.parentElement; ancestor; ancestor = ancestor.parentElement) {
-        const candidate = getComputedStyle(ancestor).backgroundColor;
-        if (candidate !== "rgba(0, 0, 0, 0)" && candidate !== "transparent") {
-          backdropColor = candidate;
-          break;
-        }
-      }
-      return {
-        count: matches.length,
-        observation: {
-          canonicalDom: canonicalNode(element),
-          semanticDom: canonicalSemanticNode(element),
-          matchingRules,
-          effectiveMatchingRules,
-          backdrop: { color: backdropColor },
-          presentation: {
-            borderColor: style.borderTopColor,
-            backgroundColor: style.backgroundColor,
-            backdropColor,
-            borderRadius: style.borderTopLeftRadius,
-          },
-        },
-      };
-    }, selector);
+    const details = await page.evaluate<RendererDetailsPageResult, { target: string }>(observeRendererDetailsInPage, { target: selector });
     requireSingleMatch(details.count, definition.id, `${application} renderer details`);
     if (!details.observation) throw new Error(`Renderer rasterization ${definition.id} lacks ${application} renderer details.`);
 

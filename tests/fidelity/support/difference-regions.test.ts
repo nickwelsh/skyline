@@ -11,6 +11,7 @@ import {
   fingerprintAccessibility,
   fingerprintCapabilityAccessibility,
   fingerprintComputedStyle,
+  observeRendererDetailsInPage,
   omitFrameworkExtensionAccessibility,
   observeElementAccessibility,
   observeElementDom,
@@ -39,6 +40,36 @@ import {
 } from "./difference-regions";
 
 describe("framework-extension fidelity regions", () => {
+  test("matches effective selector lists without splitting nested commas", () => {
+    const nested = ".missing:is(.one, .two):not([data-label='a,b']):where([data-theme='dark'], [data-theme='dark'] *)";
+    const selector = `${nested}, [data-list="x,y"], .plain`;
+    document.head.innerHTML = `<style>${selector} { color: red; }</style>`;
+    document.body.innerHTML = `<main data-theme="dark"><span class="plain">Evidence</span></main>`;
+
+    const result = observeRendererDetailsInPage({ target: ".plain" });
+
+    expect((result.observation?.effectiveMatchingRules[0] as [unknown, string[]])[1]).toEqual([".plain"]);
+  });
+
+  test("preserves simple selector-list matching", () => {
+    document.head.innerHTML = `<style>.first, .second, .third { color: red; }</style>`;
+    document.body.innerHTML = `<span class="second">Evidence</span>`;
+
+    const result = observeRendererDetailsInPage({ target: ".second" });
+
+    expect((result.observation?.effectiveMatchingRules[0] as [unknown, string[]])[1]).toEqual([".second"]);
+  });
+
+  test("keeps the renderer details evaluator self-contained when serialized", () => {
+    const serialized = Function(`return (${observeRendererDetailsInPage.toString()})`)() as typeof observeRendererDetailsInPage;
+    document.head.innerHTML = `<style>.first, :where(.second, .third) { color: red; }</style>`;
+    document.body.innerHTML = `<span class="second">Evidence</span>`;
+
+    const result = serialized({ target: ".second" });
+
+    expect((result.observation?.effectiveMatchingRules[0] as [unknown, string[]])[1]).toEqual([":where(.second, .third)"]);
+  });
+
   test("capability markers fingerprint ignored wrapper subtrees without role identity", async () => {
     const snapshot = "- text: unavailable";
     const ariaSnapshot = vi.fn(async () => snapshot);
