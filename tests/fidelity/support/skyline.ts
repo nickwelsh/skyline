@@ -72,11 +72,18 @@ function singular(surface: string) {
 export async function installSkylineFixture(page: Page, scenario: FidelityScenario, adapter = new FixtureAdapter()) {
   const catalog = await fixtureCatalog(adapter);
   const active = { ...scenario };
-  await page.route("**/skyline/api/**", async (route) => fulfillApi(route, active, adapter));
-  return { catalog, setState: (state: string) => { active.state = state; } };
+  let resolveInitialState!: () => void;
+  const initialStateReady = new Promise<void>((resolve) => { resolveInitialState = resolve; });
+  let initialStatePending = true;
+  await page.route("**/skyline/api/**", async (route) => fulfillApi(route, active, adapter, () => {
+    if (!initialStatePending) return;
+    initialStatePending = false;
+    resolveInitialState();
+  }));
+  return { catalog, initialStateReady, setState: (state: string) => { active.state = state; } };
 }
 
-async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: FixtureAdapter) {
+async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: FixtureAdapter, initialStateReady?: () => void) {
   const url = new URL(route.request().url());
   const path = url.pathname.replace(/^\/skyline\/api\//, "");
   const inspectorRequest = path.match(/^runs\/([^/]+)\/nodes\/([^/]+)$/);
@@ -100,8 +107,10 @@ async function fulfillApi(route: Route, scenario: FidelityScenario, adapter: Fix
       : response;
     const transformed = ownedResponse(empty, scenario, path);
     await route.fulfill({ json: transformed });
+    if (applies) initialStateReady?.();
   } catch (error) {
     await route.fulfill({ status: 404, json: { error: { code: "not_found", message: error instanceof Error ? error.message : "Fixture missing." } } });
+    if (applies) initialStateReady?.();
   }
 }
 

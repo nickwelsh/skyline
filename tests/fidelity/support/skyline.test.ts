@@ -1,8 +1,9 @@
-import { describe, expect, test } from "vitest";
+import type { Page, Route } from "@playwright/test";
+import { describe, expect, test, vi } from "vitest";
 import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import fixture from "../fixtures.json" with { type: "json" };
 import type { JobsPageDto, JobsQuery } from "../../../resources/js/skyline/dto";
-import { fixtureCatalog, parseScenario, responseFor, scenarioPath, type FixtureCatalog } from "./skyline";
+import { fixtureCatalog, installSkylineFixture, parseScenario, responseFor, scenarioPath, type FixtureCatalog } from "./skyline";
 
 const catalog: FixtureCatalog = { job: "job-1", run: "run-1", error: "error-1", log: "log-1", queue: "queue-1" };
 
@@ -47,6 +48,29 @@ describe("packaged Skyline fidelity fixture", () => {
     await responseFor("jobs", new URLSearchParams("search=invoice&period=24h&cursor=opaque-next"), adapter);
 
     expect(adapter.query).toEqual({ search: "invoice", period: "24h", cursor: "opaque-next" });
+  });
+
+  test("reports the initial detail response before stale fixture state can change", async () => {
+    let handler: ((route: Route) => Promise<void>) | undefined;
+    const page = { route: vi.fn(async (_pattern, value) => { handler = value; }) } as unknown as Page;
+    const installed = await installSkylineFixture(page, parseScenario("error-stale-refresh@1440x960-dark"));
+    let release!: () => void;
+    const response = new Promise<void>((resolve) => { release = resolve; });
+    const route = {
+      request: () => ({ url: () => `http://127.0.0.1:4184/skyline/api/errors/${installed.catalog.error}` }),
+      fulfill: vi.fn(async () => response),
+    } as unknown as Route;
+    let ready = false;
+    void installed.initialStateReady.then(() => { ready = true; });
+
+    const handling = handler!(route);
+    await Promise.resolve();
+    expect(ready).toBe(false);
+    release();
+    await handling;
+    await installed.initialStateReady;
+
+    expect(ready).toBe(true);
   });
 
   test.each([

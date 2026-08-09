@@ -38,6 +38,10 @@ for (const capture of captures) {
     ]);
     await reference.locator("html[data-oracle-ready='true']").waitFor();
     if (scenario.state === "stale-refresh") {
+      await Promise.all([
+        fixture.initialStateReady,
+        reference.waitForFunction(() => Boolean((window as typeof window & { __oracleRouter?: { state?: { loaderData?: Record<string, unknown> } } }).__oracleRouter?.state?.loaderData?.["reference-surface-page"])),
+      ]);
       fixture.setState("loading");
       await page.evaluate(() => {
         const url = new URL(location.href);
