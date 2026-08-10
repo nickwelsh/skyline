@@ -1,7 +1,7 @@
 /*!
  * Adapted from Trigger.dev apps/webapp/app/components/primitives/TreeView/TreeView.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Skyline adaptation: local cn import and visual-only external node depth.
+ * Skyline adaptation: local cn import only.
  */
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -214,6 +214,16 @@ export function useTree<TData, TFilterValue>({
     reducer,
     concreteStateFromInput({ tree, selectedId, collapsedIds, filter })
   );
+
+  // id -> index lookup so getNodeProps resolves in O(1) instead of scanning
+  // the whole tree per rendered row.
+  const treeIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    tree.forEach((node, index) => {
+      map.set(node.id, index);
+    });
+    return map;
+  }, [tree]);
 
   //sync external selectedId prop into internal state
   useEffect(() => {
@@ -518,13 +528,16 @@ export function useTree<TData, TFilterValue>({
     (id: string) => {
       const node = state.nodes[id];
       if (!node) return {};
+      const treeItemIndex = treeIndexById.get(id) ?? -1;
+      const treeItem = tree[treeItemIndex];
       return {
         "aria-expanded": node.expanded,
+        "aria-level": treeItem.level + 1,
         role: "treeitem",
         tabIndex: node.selected ? -1 : undefined,
       };
     },
-    [state]
+    [state, treeIndexById]
   );
 
   return {
