@@ -45,6 +45,7 @@ type CodeBlockProps = {
   extensionId?: string;
   regionLabel?: string;
   preClassName?: string;
+  isolateModalEscape?: boolean;
 };
 
 const dimAmount = 0.5;
@@ -97,6 +98,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   extensionId,
   regionLabel,
   preClassName,
+  isolateModalEscape = false,
 }, ref) {
   const expandButton = useRef<HTMLButtonElement>(null);
   const [mouseOver, setMouseOver] = useState(false);
@@ -194,6 +196,11 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent
           className="flex flex-col gap-0 p-0 pt-[2.9rem] sm:h-[80vh] sm:max-h-[80vh] sm:!w-[80vw] sm:!max-w-[80vw]"
+          onKeyDown={(event) => {
+            if (!isolateModalEscape || event.key !== "Escape") return;
+            event.stopPropagation();
+            setIsModalOpen(false);
+          }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             window.setTimeout(() => expandButton.current?.focus(), 0);

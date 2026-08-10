@@ -10,6 +10,7 @@ import failureScenario from "./fixtures/nw-222-failure-scenario.json" with { typ
 import triggerFailureBaseline from "./fixtures/nw-222-trigger-failure-baseline.json" with { type: "json" };
 import { createFirstResponseGate } from "./support/deferred-response";
 import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
+import { applyRunState } from "../fidelity/support/run-states";
 
 const runId = "run_01J8R4NQX6K3PV4W0A1H2Z7M9C";
 const rootNodeId = `run_${runId}`;
@@ -47,6 +48,8 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.getByRole("tabpanel")).toContainText("Completed");
   await expect(page.getByRole("tabpanel")).toContainText("Triggered");
   await expect(page.getByRole("tabpanel")).toContainText("Dequeued");
+  await page.getByRole("tabpanel").getByText("Triggered", { exact: true }).hover();
+  await expect(page.getByRole("tooltip")).toHaveText("The run was triggered");
   await expect(page.getByRole("link", { name: /Child:/ })).toHaveAttribute("href", /\/skyline\/runs\/run_01J8R4H9S9J12V04CNH6F6JQ3M/);
   await page.locator('[data-node-id="run_run_01J8R4H9S9J12V04CNH6F6JQ3M"]').click();
   await expect(page.getByRole("tabpanel").locator("dt", { hasText: "Run" }).locator("+ dd")).toHaveText("run_01J8R4H9S9J12V04CNH6F6JQ3M");
@@ -379,9 +382,7 @@ async function failureVisuals(container: ReturnType<Page["locator"]>) {
 test("active Run polls while preserving selection and interaction state", async ({ page }) => {
   const adapter = new FixtureAdapter();
   const detail = await adapter.trace(runId);
-  detail.run.status = "running";
-  detail.trace.rootStatus = "executing";
-  detail.trace.polling = true;
+  applyRunState(detail, "running");
   detail.trace.pollIntervalMs = 50;
   let traceRequests = 0;
   await routeDetail(page, detail, async (nodeId) => adapter.inspector(nodeId, runId), () => {
@@ -399,6 +400,9 @@ test("active Run polls while preserving selection and interaction state", async 
   await expect(page).toHaveURL(new RegExp(`node=${failedAttemptId}`));
   await expect(page.getByRole("switch", { name: "Errors only" })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByRole("tab", { name: "Metadata" })).toHaveAttribute("aria-selected", "true");
+  await page.locator(`[data-node-id="${rootNodeId}"]`).click();
+  await expect(page.getByRole("tabpanel").getByText("Finished", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tabpanel").getByText("Started", { exact: true })).toHaveCount(0);
 });
 
 test("Run detail preserves loading, stale-refresh, API-error, and not-found treatments", async ({ page }) => {

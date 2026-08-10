@@ -35,6 +35,7 @@ import { Slider } from "~/components/primitives/Slider";
 import { Spinner } from "~/components/primitives/Spinner";
 import { Switch } from "~/components/primitives/Switch";
 import * as Timeline from "~/components/primitives/Timeline";
+import { RunTimeline, type TimelineSpanRun } from "~/components/run/RunTimeline";
 import { RunIcon, type NodeKind } from "~/components/runs/v3/RunIcon";
 import { SpanTitle, type SpanLevel } from "~/components/runs/v3/SpanTitle";
 import { TaskRunStatusCombo, TaskRunStatusIcon, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
@@ -607,7 +608,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   }
 
   return (
-    <section className="grid h-full grid-rows-[2.5rem_2rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
+    <section className="grid h-full grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)] overflow-hidden bg-background-bright" aria-label="Run inspector">
       <InspectorHeader node={node} onClose={onClose} />
       <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
         {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, ...(inspector?.context ? [{ id: "context", label: "Context", key: "x" }] : []), { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
@@ -629,6 +630,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
           <pre className="my-3 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
         )}
       </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-grid-dimmed px-2 py-2" />
     </section>
   );
 }
@@ -662,13 +664,13 @@ function InspectorOverview({ data, node, inspector, failure }: {
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
   const missingAttemptException = inspector.kind === "attempt" && inspector.status === "failed" && !inspector.exception;
   if (attempt && inspector.exception) {
-    const attemptRun = { ...data.run, startedAt: attempt.startedAt, finishedAt: attempt.finishedAt, durationUs: inspector.durationUs };
+    const attemptRun = { ...data.run, status: nodeStatus(inspector), startedAt: attempt.startedAt, finishedAt: attempt.finishedAt, durationUs: inspector.durationUs };
     return (
       <div className="flex flex-col gap-4 pt-3">
         <div className="border-b border-grid-bright pb-3">
           <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
         </div>
-        <RunLifecycleTimeline run={attemptRun} />
+        <RunTimeline run={timelineRun(attemptRun)} />
         <div className="-mt-[1.1875rem]">
           <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />
         </div>
@@ -681,7 +683,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
         <div className="border-b border-grid-bright pb-3">
           <TaskRunStatusCombo status={nodeStatus(inspector)} className="text-sm" />
         </div>
-        <RunLifecycleTimeline run={data.run} />
+        <RunTimeline run={timelineRun(data.run)} />
         {inspector.exception && <ExceptionPreview key={inspector.id} exception={inspector.exception} extensionId="attempt-exception-evidence" />}
       </div>
     );
@@ -719,36 +721,15 @@ function InspectorOverview({ data, node, inspector, failure }: {
   );
 }
 
-function RunLifecycleTimeline({ run }: { run: RouteData["run"] }) {
-  const entries = [
-    { label: "Triggered", value: run.triggeredAt },
-    { label: "Dequeued", value: run.startedAt },
-    { label: "Started", value: run.startedAt },
-    { label: "Finished", value: run.finishedAt },
-  ].filter((entry): entry is { label: string; value: string } => Boolean(entry.value));
-
-  return (
-    <ol className="max-w-80">
-      {entries.map((entry, index) => {
-        const previous = index > 0 ? new Date(entries[index - 1].value) : null;
-        const current = new Date(entry.value);
-        const elapsed = previous ? Math.max(0, current.getTime() - previous.getTime()) : null;
-        return (
-          <li key={entry.label} className="grid min-h-11 grid-cols-[1rem_1fr_auto] gap-x-2">
-            <span className="relative flex justify-center">
-              {index < entries.length - 1 && <span className="absolute bottom-0 top-3 w-1 bg-green-500" />}
-              <span className={cn("relative z-10 mt-1 size-2 rounded-full border-2 border-green-500 bg-background-bright", index === 0 || index === entries.length - 1 ? "rounded-sm" : "")} />
-            </span>
-            <span className="text-sm text-text-bright">
-              {entry.label}
-              {elapsed !== null && <span className="block text-xs text-text-faint">{formatMilliseconds(elapsed)}</span>}
-            </span>
-            <time className="text-xs tabular-nums text-text-dimmed" dateTime={entry.value}>{formatTimestamp(current, index === 0)}</time>
-          </li>
-        );
-      })}
-    </ol>
-  );
+function timelineRun(run: RouteData["run"]): TimelineSpanRun {
+  return {
+    createdAt: new Date(run.triggeredAt),
+    startedAt: run.startedAt ? new Date(run.startedAt) : null,
+    updatedAt: new Date(run.finishedAt ?? run.startedAt ?? run.triggeredAt),
+    completedAt: run.finishedAt ? new Date(run.finishedAt) : null,
+    isFinished: run.finishedAt !== null,
+    isError: run.status === "failed",
+  };
 }
 
 function InspectorDetails({ inspector, renderDetails: RenderDetails }: { inspector: Inspector; renderDetails: InspectorDetailsRenderer }) {
@@ -796,7 +777,7 @@ function InspectorTab({ active, enabled, shortcut, onClick, children }: { active
 
 function RelationshipLinks({ data }: { data: RouteData }) {
   return (
-    <span className="flex items-center gap-3">
+    <span data-skyline-extension="run-relationships" className="flex items-center gap-3">
       {data.relationships.parent ? <Link className="text-text-link" to={data.relationships.parent.path}>Parent Run</Link> : <span>This is the root Run</span>}
       {data.relationships.children.map((child) => <Link key={child.id} className="text-text-link" to={child.path}>Child: {child.name ?? child.id}</Link>)}
     </span>
@@ -839,11 +820,6 @@ function formatDuration(microseconds: number | null): string {
   const milliseconds = microseconds / 1_000;
   if (milliseconds < 1_000) return `${Math.round(milliseconds)}ms`;
   return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)}s`;
-}
-
-function formatMilliseconds(milliseconds: number): string {
-  if (milliseconds < 1_000) return `${milliseconds} milliseconds`;
-  return `${(milliseconds / 1_000).toFixed(milliseconds >= 10_000 ? 1 : 2)} seconds`;
 }
 
 function formatTimestamp(date: Date, includeDate: boolean): string {

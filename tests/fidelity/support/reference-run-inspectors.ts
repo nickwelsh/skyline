@@ -21,7 +21,10 @@ export function triggerRunInspectorResources(
     if (!inspector) throw new Error(`Missing Trigger reference inspector fixture: ${node.id}`);
 
     if (node.kind === "run" && node.runId === detail.run.id) {
-      return [node.id, structuredClone(baseRunResource)];
+      const resource = structuredClone(baseRunResource);
+      resource.run.taskIdentifier = node.label;
+      delete resource.run.context;
+      return [node.id, resource];
     }
 
     if (node.kind === "attempt" && inspector.exception) {

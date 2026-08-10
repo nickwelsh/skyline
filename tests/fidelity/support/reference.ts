@@ -34,6 +34,19 @@ export const referenceDetailLifecyclePolicy = {
       "stale-refresh": "stale",
     },
   },
+  run: {
+    defaultSelectionStates: ["loading", "found", "stale-refresh"],
+    pageStates: {
+      loading: "resolved",
+      "stale-refresh": "resolved",
+      "api-error": "error",
+      "not-found": "not-found",
+    },
+    resourceStates: {
+      loading: "pending",
+      "stale-refresh": "stale",
+    },
+  },
 } as const;
 
 type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "activity" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentSchedulingDelay" | "environmentThrottled" | "environmentLive" | "live";
@@ -305,6 +318,7 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         const lifecycleState = captureId.slice(separator + 1);
         const lifecycle = input.detailLifecyclePolicy[lifecycleSurface];
         if (lifecycle?.defaultSelectionStates.includes(lifecycleState as never)) {
+          if (lifecycleSurface === "run") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
           return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
         }
         if (captureId === "runs-exception-error") return "";
@@ -346,6 +360,8 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         const captureId = decodeURIComponent(location.pathname.replace(/^\/oracle\//, "").split("@")[0] ?? "");
         const captureState = captureId.startsWith("runs-") ? captureId.slice("runs-".length) : "";
         const state = sessionStorage.getItem(fixtureStateKey) ?? captureState;
+        const runResourceState = input.detailLifecyclePolicy.run.resourceStates[state as keyof typeof input.detailLifecyclePolicy.run.resourceStates];
+        if (runResourceState === "pending" || runResourceState === "stale") return new Promise(() => {});
         if (state === "exception-loading") return new Promise(() => {});
         if (state === "exception-error") return Response.redirect(new URL(location.pathname, location.origin), 302);
         const value = input.resources?.spanStates?.[state]?.[params.spanParam ?? ""]
@@ -432,13 +448,17 @@ function triggerRunSummary(run: any) {
 function triggerRun(detail: any) {
   const summary = triggerRunSummary(detail.run);
   const startedAt = Date.parse(detail.trace.rootStartedAt ?? detail.run.startedAt ?? detail.run.triggeredAt);
-  const events = detail.trace.nodes.map((node: any) => ({
+  const nodes = detail.trace.nodes;
+  const events = nodes.map((node: any) => ({
     id: node.id,
     parentId: node.parentId ?? undefined,
     runId: node.runId,
+    children: nodes.filter((candidate: any) => candidate.parentId === node.id).map((candidate: any) => candidate.id),
+    hasChildren: nodes.some((candidate: any) => candidate.parentId === node.id),
+    level: node.level,
     data: {
       message: node.label,
-      style: { icon: "task", variant: node.isError ? "failed" : "primary" },
+      style: { icon: triggerRunIcon(node.kind), variant: node.isError ? "failed" : "primary" },
       startTime: new Date(startedAt + node.offsetUs / 1_000),
       duration: node.isPartial ? null : (node.durationUs ?? 0) * 1_000,
       isError: node.isError,
@@ -473,6 +493,15 @@ function triggerRun(detail: any) {
     maximumLiveReloadingSetting: 1_000, resizable: { parent: undefined, tree: undefined }, runsList: null,
     canReplayRun: false, canCancelRun: false,
   };
+}
+
+function triggerRunIcon(kind: string) {
+  if (kind === "run") return "task";
+  if (kind === "attempt") return "attempt";
+  if (kind === "query") return "database";
+  if (kind === "request") return "trace";
+  if (["cache", "redis", "storage", "process"].includes(kind)) return kind;
+  return "trace";
 }
 
 function triggerSpanRun(detail: any) {
@@ -513,7 +542,6 @@ function triggerSpanRun(detail: any) {
       isScheduled: false,
       outputType: "application/json",
       relationships: {},
-      context: "{}",
       maxDurationInSeconds: undefined,
       engine: "V1",
       region: null,

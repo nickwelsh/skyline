@@ -31,6 +31,15 @@ describe("pinned Trigger Run inspector resources", () => {
     expect(JSON.stringify(failed)).not.toMatch(/\/workspace|\/Users\//);
   });
 
+  test("does not invent Run Context and keeps the selected root label", async () => {
+    const { detail, inspectors } = await fixture();
+    const resources = triggerRunInspectorResources(detail, inspectors, baseRunResource(detail));
+    const root = resources[`run_${runId}`] as any;
+
+    expect(root.run.taskIdentifier).toBe("GenerateMonthlyInvoices");
+    expect(root.run).not.toHaveProperty("context");
+  });
+
   test("maps query nodes into pinned span-detail resources", async () => {
     const { detail, inspectors } = await fixture();
     const resources = triggerRunInspectorResources(detail, inspectors, baseRunResource(detail));
@@ -74,6 +83,8 @@ function baseRunResource(detail: Awaited<ReturnType<FixtureAdapter["trace"]>>) {
     type: "run" as const,
     run: {
       friendlyId: detail.run.id,
+      taskIdentifier: "invented-label",
+      context: "{}",
       status: "COMPLETED_SUCCESSFULLY",
       isFinished: true,
       isRunning: false,

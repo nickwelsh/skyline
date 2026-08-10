@@ -53,6 +53,9 @@ describe("Run detail source primitives", () => {
     expect(collapsedStates[0]).toBe("true");
     await vi.waitFor(() => expect(loadInspector).toHaveBeenCalledWith(`run_${runId}`, expect.any(AbortSignal)));
     expect(container.querySelector('[data-group-id="panel-run-tree"]')).toBe(treeGroup);
+    const pendingFrame = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
+    expect(pendingFrame.className).toContain("grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)]");
+    expect(pendingFrame.lastElementChild?.className).toContain("border-t");
 
     await act(async () => resolveInspector(inspector));
     await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull());
@@ -119,6 +122,36 @@ describe("Run detail source primitives", () => {
     const group = container.querySelector('[data-group-id="panel-run-parent-v3"]');
 
     expect(group?.className).toContain("h-full max-h-full");
+    await act(async () => root.unmount());
+  });
+
+  it("uses the pinned RunBody timeline/footer and explicit relationship extension", async () => {
+    const { container, root } = await renderRoute();
+    const inspector = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
+    const timeline = inspector.querySelector<HTMLElement>('[data-run-timeline]')!;
+
+    expect(inspector.className).toContain("grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)]");
+    expect(timeline.className).toBe("min-w-fit max-w-80");
+    expect(timeline.textContent).toContain("Triggered");
+    expect(timeline.textContent).toContain("Dequeued");
+    expect(timeline.textContent).not.toContain("Started");
+    expect(timeline.textContent).toContain("Finished");
+    expect(inspector.lastElementChild?.className).toContain("border-t");
+    expect(container.querySelector('[data-skyline-extension="run-relationships"]')).not.toBeNull();
+    for (const label of ["Replay run", "Cancel run", "Export trace", "Context"]) {
+      expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent?.includes(label))).toBe(false);
+    }
+
+    await act(async () => root.unmount());
+  });
+
+  it("fails closed a direct unsupported Context tab", async () => {
+    const { container, root, router } = await renderRoute({ initialEntry: `/runs/${runId}?node=run_${runId}&tab=context` });
+
+    await vi.waitFor(() => expect(router.state.location.search).toBe(`?node=run_${runId}`));
+    expect(container.querySelector('[role="tab"][aria-label="Context"]')).toBeNull();
+    expect(container.querySelector('[role="tabpanel"]')?.getAttribute("aria-label")).toBe("Overview");
+
     await act(async () => root.unmount());
   });
 

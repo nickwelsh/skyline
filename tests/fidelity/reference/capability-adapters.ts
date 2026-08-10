@@ -7,6 +7,45 @@ type ErrorCapabilityPolicy = {
   detailBulkReplay?: boolean;
 };
 
+type RunDetailCapabilityPolicy = { replay: boolean; cancel: boolean };
+type RunInspectorCapabilityPolicy = { context: boolean; export: boolean };
+
+export function conditionRunDetailCapabilities(code: string, policy: RunDetailCapabilityPolicy) {
+  const replayStart = '          <Dialog key={`replay-${run.friendlyId}`}>\n';
+  const replayEnd = "          </Dialog>";
+  const start = code.indexOf(replayStart);
+  const end = code.indexOf(replayEnd, start);
+  const cancel = "          {run.isFinished ? null : (";
+  if (start < 0 || end < 0 || !code.includes(cancel)) {
+    throw new Error("Pinned Trigger Run replay/cancel seams changed; capability adapter must be reviewed.");
+  }
+  const replay = code.slice(start, end + replayEnd.length);
+  const adapted = code.slice(0, start)
+    + `          {runDetailCapabilityPolicy.replay ? (\n${replay}\n          ) : null}`
+    + code.slice(end + replayEnd.length);
+  return `${adapted.replace(cancel, "          {runDetailCapabilityPolicy.cancel && !run.isFinished && (")}\nconst runDetailCapabilityPolicy = ${JSON.stringify(policy)};\n`;
+}
+
+export function conditionRunInspectorCapabilities(code: string, policy: RunInspectorCapabilityPolicy) {
+  const tab = '  const tab = value("tab");';
+  const contextMarker = '            isActive={tab === "context"}';
+  const contextStart = code.lastIndexOf("          <TabButton", code.indexOf(contextMarker));
+  const contextEndMarker = "          </TabButton>";
+  const contextEnd = code.indexOf(contextEndMarker, code.indexOf(contextMarker));
+  const exportMarker = "          {run.logsDeletedAt === null ? (";
+  if (!code.includes(tab) || contextStart < 0 || contextEnd < 0 || !code.includes(exportMarker)) {
+    throw new Error("Pinned Trigger Run inspector Context/export seams changed; capability adapter must be reviewed.");
+  }
+  const context = code.slice(contextStart, contextEnd + contextEndMarker.length);
+  let adapted = code.slice(0, contextStart)
+    + `          {runInspectorCapabilityPolicy.context ? (\n${context}\n          ) : null}`
+    + code.slice(contextEnd + contextEndMarker.length);
+  adapted = adapted
+    .replace(tab, '  let tab = value("tab");\n  if (!runInspectorCapabilityPolicy.context && tab === "context") tab = undefined;')
+    .replace(exportMarker, "          {runInspectorCapabilityPolicy.export && run.logsDeletedAt === null ? (");
+  return `${adapted}\nconst runInspectorCapabilityPolicy = ${JSON.stringify(policy)};\n`;
+}
+
 export function conditionReferencePathName(code: string) {
   const locationReturn = "return location.pathname;";
   const navigationReturn = "return navigation.location.pathname;";

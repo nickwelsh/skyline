@@ -111,6 +111,7 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
           regionLabel="Exception"
           preClassName="text-xs leading-4"
           maxLines={20}
+          isolateModalEscape
           showCopyButton={false}
           showLineNumbers={false}
           modalContent={<div className="flex flex-col gap-2 border-t border-grid-bright px-4 py-3">{metadata}{trace}</div>}

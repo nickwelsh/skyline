@@ -108,14 +108,18 @@ describe("CodeBlock", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
+    const onParentKeyDown = vi.fn();
 
     flushSync(() => root.render(
-      <CodeBlock
-        label="Properties"
-        code="select * from users"
-        showTextWrapping
-        modalContent={<SqlCapturePreview sql="select * from users where id = ?" bindings={[{ position: 0, column: null, value: 1 }]} />}
-      />,
+      <div onKeyDown={onParentKeyDown}>
+        <CodeBlock
+          label="Properties"
+          code="select * from users"
+          showTextWrapping
+          isolateModalEscape
+          modalContent={<SqlCapturePreview sql="select * from users where id = ?" bindings={[{ position: 0, column: null, value: 1 }]} />}
+        />
+      </div>,
     ));
 
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: vi.fn() } });
@@ -133,9 +137,12 @@ describe("CodeBlock", () => {
     expect(document.activeElement).toBe(bindings);
     await new Promise((resolve) => window.setTimeout(resolve, 1_600));
     expect(document.body.textContent).not.toContain("Copied");
+    onParentKeyDown.mockClear();
     flushSync(() => bindings.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
     expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(onParentKeyDown).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(document.activeElement).toBe(viewer.querySelector('button[aria-label="Expand Properties"]')));
 
     flushSync(() => root.unmount());
   });

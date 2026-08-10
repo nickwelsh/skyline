@@ -16,6 +16,12 @@
     "knownEmptyMetricQueries": ["live"],
     "hiddenMutableRegions": ["environment-pause-resume", "queue-pause-resume", "queue-concurrency-override"]
   },
+  "runDetail": {
+    "replay": false,
+    "cancel": false,
+    "context": false,
+    "export": false
+  },
   "shell": {
     "supportedActions": ["tasks", "runs", "logs", "errors", "queues", "favorite"],
     "supportedSections": ["Favorites", "Observability"],

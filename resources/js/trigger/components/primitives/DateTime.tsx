@@ -14,6 +14,7 @@ import { SimpleTooltip } from "./Tooltip";
 
 type DateTimeShortProps = {
   date: Date | string;
+  previousDate?: Date | string | null;
   timeZone?: string;
   hour12?: boolean;
   includeSeconds?: boolean;
@@ -93,12 +94,15 @@ export const DateTimeShort = ({ date, hour12 = true }: DateTimeShortProps) => {
   );
 };
 
-export const DateTimeAccurate = ({ date, hour12 = true }: DateTimeShortProps) => {
+export const DateTimeAccurate = ({ date, previousDate = null, hour12 = true }: DateTimeShortProps) => {
   const realDate = typeof date === "string" ? new Date(date) : date;
+  const realPreviousDate = typeof previousDate === "string" ? new Date(previousDate) : previousDate;
   const locales = browserLocales();
   const timeZone = browserTimeZone();
-  const datePart = new Intl.DateTimeFormat(locales, { month: "short", day: "numeric", timeZone }).format(realDate);
   const timePart = formatDateTimeShort(realDate, timeZone, locales, hour12);
+  const sameDay = realPreviousDate && new Intl.DateTimeFormat("en-CA", { timeZone }).format(realDate) === new Intl.DateTimeFormat("en-CA", { timeZone }).format(realPreviousDate);
+  if (sameDay) return <span suppressHydrationWarning>{timePart.replace(/\s/g, String.fromCharCode(32))}</span>;
+  const datePart = new Intl.DateTimeFormat(locales, { month: "short", day: "numeric", timeZone }).format(realDate);
 
   return <span suppressHydrationWarning>{`${datePart} ${timePart}`.replace(/\s/g, String.fromCharCode(32))}</span>;
 };

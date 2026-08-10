@@ -7,6 +7,8 @@ import {
   conditionErrorRunQueueSemantics,
   conditionErrorRunTableCapabilities,
   conditionRunsFilterCapabilities,
+  conditionRunDetailCapabilities,
+  conditionRunInspectorCapabilities,
   conditionRunsRouteCapabilities,
   conditionRunsTableCapabilities,
 } from "../reference/capability-adapters";
@@ -80,6 +82,53 @@ describe("pinned Trigger Errors fixture", () => {
 });
 
 describe("pinned Trigger Runs fixture", () => {
+  test("fail-closes unsupported Run mutations, export, and Context at exact source seams", () => {
+    const root = resolve(import.meta.dirname, "../reference/vendor");
+    const detail = conditionRunDetailCapabilities(
+      readFileSync(resolve(root, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx"), "utf8"),
+      { replay: false, cancel: false },
+    );
+    const inspector = conditionRunInspectorCapabilities(
+      readFileSync(resolve(root, "routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx"), "utf8"),
+      { context: false, export: false },
+    );
+
+    expect(detail).toContain("runDetailCapabilityPolicy.replay ? (");
+    expect(detail).toContain("runDetailCapabilityPolicy.cancel && !run.isFinished && (");
+    expect(inspector).toContain('if (!runInspectorCapabilityPolicy.context && tab === "context") tab = undefined;');
+    expect(inspector).toContain("runInspectorCapabilityPolicy.context ? (");
+    expect(inspector).toContain("runInspectorCapabilityPolicy.export && run.logsDeletedAt === null ? (");
+  });
+
+  test("projects the captured trace into a valid source FlatTree with truthful units and icons", async () => {
+    const fixture = await createReferenceFixture();
+    const detail = fixture.loaders.run as any;
+    const events = detail.trace.events;
+    const byId = new Map<string, any>(events.map((event: any) => [event.id, event]));
+
+    expect(events[0]).toMatchObject({
+      parentId: undefined,
+      level: 0,
+      hasChildren: true,
+      data: { style: { icon: "task" }, offset: 0 },
+    });
+    expect(events.find((event: any) => event.data.attemptNumber === 1)).toMatchObject({
+      level: 1,
+      data: { style: { icon: "attempt" } },
+    });
+    expect(events.find((event: any) => event.data.message.startsWith("insert into"))).toMatchObject({
+      data: { style: { icon: "database" } },
+    });
+    for (const event of events) {
+      expect(event.children).toEqual(events.filter((candidate: any) => candidate.parentId === event.id).map((candidate: any) => candidate.id));
+      expect(event.hasChildren).toBe(event.children.length > 0);
+      expect(event.level).toBe(event.parentId ? byId.get(event.parentId)?.level + 1 : 0);
+      expect(event.data.offset % 1_000).toBe(0);
+      if (event.data.duration !== null) expect(event.data.duration % 1_000).toBe(0);
+      for (const marker of event.data.timelineEvents) expect(marker.offset % 1_000).toBe(0);
+    }
+  });
+
   test("conditions unsupported route, filters, and table branches without editing pinned source", () => {
     const root = resolve(import.meta.dirname, "../reference/vendor");
     const route = conditionRunsRouteCapabilities(

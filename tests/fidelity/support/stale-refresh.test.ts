@@ -10,11 +10,11 @@ describe("stale refresh transition", () => {
     });
   });
 
-  test("keeps page-owned detail transitions on route revalidation", () => {
+  test("keeps the Run page resolved while its selected source inspector goes stale", () => {
     expect(staleRefreshPlan({ id: "run-stale-refresh", surface: "run", state: "stale-refresh", kind: "detail" })).toEqual({
-      referenceState: undefined,
-      selectedDetail: undefined,
-      transition: "page",
+      referenceState: "stale-refresh",
+      selectedDetail: { skyline: "node", reference: "span" },
+      transition: "resource",
     });
   });
 

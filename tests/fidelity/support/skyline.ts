@@ -4,6 +4,7 @@ import fixture from "../fixtures.json" with { type: "json" };
 import { isNw222State, nw222InspectorState, nw222TraceState } from "./nw222";
 import { isNw223State, nw223InspectorState, nw223TraceState } from "./nw223";
 import { queueActivityWaitHistory } from "./queue-states";
+import { applyRunState } from "./run-states";
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
@@ -189,19 +190,13 @@ function ownedResponse(response: unknown, scenario: FidelityScenario, path: stri
   if (["runs-mixed-pagination", "logs-pagination", "queues-paginated-runs"].includes(scenario.id) && clone.pagination) clone.pagination.next = "fixture-next";
   if (scenario.id === "queues-idle" && clone.queueTarget?.recordedRunCounts) clone.queueTarget.recordedRunCounts = { queued: 0, running: 0, retrying: 0, completed: 4, failed: 0 };
   if (scenario.id === "queues-busy" && clone.queueTarget?.recordedRunCounts) clone.queueTarget.recordedRunCounts = { queued: 2, running: 3, retrying: 1, completed: 4, failed: 1 };
-  if (scenario.id === "runs-active") setRunStatus(clone, "running");
-  if (scenario.id === "runs-successful") setRunStatus(clone, "completed");
-  if (scenario.id === "runs-failed") setRunStatus(clone, "failed");
+  if (scenario.id === "runs-active") applyRunState(clone as never, "running");
+  if (scenario.id === "runs-successful") applyRunState(clone as never, "completed");
+  if (scenario.id === "runs-failed") applyRunState(clone as never, "failed");
   if (scenario.id === "runs-retried" && clone.run) clone.run.attemptCount = Math.max(2, clone.run.attemptCount ?? 0);
   if (scenario.id === "logs-long-content") {
     const event = path === "logs" ? clone.telemetryEvents?.[0] : clone.telemetryEvent;
     if (event?.variant === "log") event.message = `${event.message} ${"long-value ".repeat(80)}`;
   }
   return clone;
-}
-
-function setRunStatus(response: Record<string, any>, status: string) {
-  if (response.run) response.run.status = status;
-  if (response.trace) response.trace.status = status;
-  if (Array.isArray(response.runs) && response.runs[0]) response.runs[0].status = status;
 }

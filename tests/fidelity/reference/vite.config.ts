@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
-import { conditionErrorDetailCapabilities, conditionErrorRunQueueSemantics, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionRunsFilterCapabilities, conditionRunsRouteCapabilities, conditionRunsTableCapabilities, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
+import { conditionErrorDetailCapabilities, conditionErrorRunQueueSemantics, conditionErrorRunTableCapabilities, conditionJobDetailMarkers, conditionJobSegmentedControlMarker, conditionQueueBigNumberMarkers, conditionQueueDetailMarkers, conditionQueueListMarkers, conditionQueueMetricCardMarkers, conditionQueueMiniChartMarkers, conditionReferencePathName, conditionRunDetailCapabilities, conditionRunInspectorCapabilities, conditionRunsFilterCapabilities, conditionRunsRouteCapabilities, conditionRunsTableCapabilities, conditionQueueTableMarkers, conditionQueueTimeFilterAnchor } from "./capability-adapters";
 
 const directory = dirname(fileURLToPath(import.meta.url));
 const vendorRoot = join(directory, "vendor");
@@ -50,6 +50,8 @@ function capabilityAdapters(): Plugin {
   const taskRunsTableSource = join(vendorRoot, "components/runs/v3/TaskRunsTable.tsx");
   const runsFilterSource = join(vendorRoot, "components/runs/v3/RunFilters.tsx");
   const runsRouteSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs._index/route.tsx");
+  const runDetailSource = join(vendorRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route.tsx");
+  const runInspectorSource = join(vendorRoot, "routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx");
   const sharedFiltersSource = join(vendorRoot, "components/runs/v3/SharedFilters.tsx");
   const sideMenuSource = join(vendorRoot, "components/navigation/SideMenu.tsx");
   const sideMenuItemSource = join(vendorRoot, "components/navigation/SideMenuItem.tsx");
@@ -74,6 +76,8 @@ function capabilityAdapters(): Plugin {
       if (source === taskRunsTableSource) return conditionErrorRunQueueSemantics(conditionRunsTableCapabilities(conditionErrorRunTableCapabilities(code, capabilityPolicy.errors)));
       if (source === runsFilterSource) return conditionRunsFilterCapabilities(code);
       if (source === runsRouteSource) return conditionRunsRouteCapabilities(code);
+      if (source === runDetailSource) return conditionRunDetailCapabilities(code, capabilityPolicy.runDetail);
+      if (source === runInspectorSource) return conditionRunInspectorCapabilities(code, capabilityPolicy.runDetail);
       if (source === sharedFiltersSource) return conditionQueueTimeFilterAnchor(code);
       if (source === sideMenuSource) return conditionSideMenuShell(code);
       if (source === sideMenuItemSource) return conditionSideMenuItems(code);

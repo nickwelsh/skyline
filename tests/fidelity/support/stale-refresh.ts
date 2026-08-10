@@ -23,6 +23,14 @@ export function staleRefreshPlan(scenario: FidelityScenario) {
     };
   }
 
+  if (scenario.surface === "run") {
+    return {
+      referenceState: "stale-refresh" as const,
+      selectedDetail: { skyline: "node" as const, reference: "span" as const },
+      transition: "resource" as const,
+    };
+  }
+
   return {
     referenceState: undefined,
     selectedDetail: undefined,
