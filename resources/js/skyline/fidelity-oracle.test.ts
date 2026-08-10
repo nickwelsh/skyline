@@ -354,6 +354,8 @@ describe("source-fidelity oracle", () => {
   test("the runner applies allowed pixels and AX omissions instead of raw empty masks", () => {
     const runner = readFileSync(join(root, "tests/fidelity/fidelity.spec.ts"), "utf8");
     expect(runner).toContain("observeDifferenceRegions(reference, page, capture");
+    expect(runner).toContain("captureStableBreadcrumbRasterization(reference, page, capture");
+    expect(runner).toContain("captureStableBrandingIdentityObservation(reference, page, brandingDefinition, capture");
     expect(runner).toContain('captureAccessibilityTreeOmitting(reference, accessibilityOmissionSelectors(regions, "trigger"))');
     expect(runner).toContain('captureAccessibilityTreeOmitting(page, accessibilityOmissionSelectors(regions, "skyline"))');
     expect(runner).toContain("measurePixels(triggerPng, skylinePng, regions)");
@@ -363,7 +365,9 @@ describe("source-fidelity oracle", () => {
   test("measurement discovery is read-only and uses the strict paired observer", () => {
     const discovery = readFileSync(join(root, "tests/fidelity/framework-extension.discovery.ts"), "utf8");
     expect(discovery).toContain("discoverFrameworkExtensionObservation(trigger, skyline, definition, step)");
-    expect(discovery).toContain("expect(captures).toHaveLength(28)");
+    expect(discovery).toContain("expect(captures).toHaveLength(31)");
+    expect(discovery).toContain('capture.startsWith("error-stale-refresh@")');
+    expect(discovery).toContain("transitionToStaleRefresh(skyline, trigger, fixture, scenario)");
     expect(discovery).toContain('test(`discover exact NW-224 ${capture}`');
     expect(discovery.indexOf("for (const capture of captures)")).toBeLessThan(discovery.indexOf('test(`discover exact NW-224 ${capture}`'));
     expect(discovery).toContain("FRAMEWORK_EXTENSION_MEASUREMENT=");

@@ -64,6 +64,39 @@ describe("breadcrumb renderer rasterization policy", () => {
     })).toThrow(/capture evidence/i);
   });
 
+  test("fingerprints exact evidence independently of object insertion order", () => {
+    const observation = classicObservation();
+    const reorder = (element: NonNullable<BreadcrumbRasterizationObservation["trigger"]>["svg"]) => {
+      const { cropSha256, ...snapshot } = element;
+      return { ...snapshot, cropSha256 };
+    };
+    const reorderedTrigger = { svg: reorder(observation.trigger!.svg), line: reorder(observation.trigger!.line) };
+    const reorderedSkyline = { svg: reorder(observation.skyline!.svg), line: reorder(observation.skyline!.line) };
+
+    expect(fingerprintBreadcrumbRasterizationCandidate(zeroState, reorderedTrigger, reorderedSkyline))
+      .toBe(fingerprintBreadcrumbRasterizationCandidate(zeroState, observation.trigger!, observation.skyline!));
+    expect(fingerprintBreadcrumbRasterizationCandidate(zeroState, {
+      ...reorderedTrigger,
+      svg: { ...reorderedTrigger.svg, computedStyleSha256: "f".repeat(64) },
+    }, reorderedSkyline)).not.toBe(fingerprintBreadcrumbRasterizationCandidate(zeroState, observation.trigger!, observation.skyline!));
+  });
+
+  test("rejects missing and unclassified candidate evidence keys", () => {
+    const observation = classicObservation();
+    const trigger = observation.trigger!;
+    const skyline = observation.skyline!;
+    expect(() => fingerprintBreadcrumbRasterizationCandidate(zeroState, { ...trigger, unexpected: true } as typeof trigger, skyline)).toThrow(/evidence keys/i);
+    expect(() => fingerprintBreadcrumbRasterizationCandidate(zeroState, {
+      ...trigger,
+      svg: { ...trigger.svg, rect: { ...trigger.svg.rect, unexpected: 1 } } as typeof trigger.svg,
+    }, skyline)).toThrow(/evidence keys/i);
+    const { accessibilitySha256: _missing, ...incompleteSvg } = trigger.svg;
+    expect(() => fingerprintBreadcrumbRasterizationCandidate(zeroState, {
+      ...trigger,
+      svg: incompleteSvg as typeof trigger.svg,
+    }, skyline)).toThrow(/evidence keys/i);
+  });
+
   test("fails closed on unknown captures, one-sided presence, and absent surfaces", () => {
     const observation = classicObservation();
     expect(() => validateBreadcrumbRasterizationObservation(approved, "runs-new@1440x960-classic", observation)).toThrow(/unknown capture/i);

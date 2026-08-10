@@ -12,6 +12,7 @@ import {
   type BreadcrumbSideEvidence,
 } from "./breadcrumb-rasterization";
 import { captureProtectedElementCrop, fingerprintCapabilityAccessibility, observeElementDom, observeRendererDetailsInPage, requireSingleMatch } from "./difference-regions";
+import { captureExactStableObservation } from "./exact-observation";
 
 export const breadcrumbRasterizationPolicy = validateBreadcrumbRasterizationPolicy(policyJson as unknown as BreadcrumbRasterizationPolicy);
 
@@ -27,15 +28,72 @@ export async function observeBreadcrumbRasterization(
   skylineScreenshot: Buffer,
 ) {
   if (!isBreadcrumbRasterizationCapture(capture)) throw new Error(`Breadcrumb renderer does not permit unknown capture ${capture}.`);
-  const [triggerSide, skylineSide, runtime, viewport] = await Promise.all([
-    observeSide(trigger, triggerScreenshot, "trigger"),
-    observeSide(skyline, skylineScreenshot, "skyline"),
-    runtimeFor(trigger),
-    viewportFor(trigger),
+  const snapshot = await observeSnapshot(trigger, skyline);
+  return resolveObservation(capture, snapshot, triggerScreenshot, skylineScreenshot);
+}
+
+type ScreenshotPair = { triggerScreenshot: Buffer; skylineScreenshot: Buffer };
+
+export async function captureStableBreadcrumbRasterization(
+  trigger: Page,
+  skyline: Page,
+  capture: string,
+  captureScreenshots: () => Promise<ScreenshotPair> = () => capturePairScreenshots(trigger, skyline),
+) {
+  if (!isBreadcrumbRasterizationCapture(capture)) throw new Error(`Breadcrumb renderer does not permit unknown capture ${capture}.`);
+  let accepted = false;
+  let acceptedRegion: ReturnType<typeof resolveObservation>;
+  const { observation, artifact } = await captureExactStableObservation({
+    label: `Breadcrumb renderer ${capture}`,
+    read: () => observeSnapshot(trigger, skyline),
+    capture: captureScreenshots,
+    accept: (snapshot, screenshots) => {
+      try {
+        acceptedRegion = resolveObservation(capture, snapshot, screenshots.triggerScreenshot, screenshots.skylineScreenshot);
+        accepted = true;
+        return true;
+      } catch (error) {
+        if (error instanceof Error && /changed (finite state|exact capture) evidence/.test(error.message)) return false;
+        throw error;
+      }
+    },
+    advance: () => advanceFrame(trigger, skyline),
+  });
+  if (!accepted) throw new Error(`Breadcrumb renderer ${capture} did not capture approved exact evidence.`);
+  return {
+    region: acceptedRegion,
+    ...artifact,
+  };
+}
+
+async function capturePairScreenshots(trigger: Page, skyline: Page): Promise<ScreenshotPair> {
+  const [triggerScreenshot, skylineScreenshot] = await Promise.all([
+    trigger.screenshot({ animations: "disabled", caret: "hide" }),
+    skyline.screenshot({ animations: "disabled", caret: "hide" }),
   ]);
+  return { triggerScreenshot, skylineScreenshot };
+}
+
+async function observeSnapshot(trigger: Page, skyline: Page) {
+  const [triggerSide, skylineSide, triggerRuntime, skylineRuntime, triggerViewport, skylineViewport] = await Promise.all([
+    observeSide(trigger, "trigger"),
+    observeSide(skyline, "skyline"),
+    runtimeFor(trigger),
+    runtimeFor(skyline),
+    viewportFor(trigger),
+    viewportFor(skyline),
+  ]);
+  if (JSON.stringify(triggerRuntime) !== JSON.stringify(skylineRuntime)) throw new Error("Breadcrumb renderer changed cross-side runtime evidence.");
+  if (JSON.stringify(triggerViewport) !== JSON.stringify(skylineViewport)) throw new Error("Breadcrumb renderer changed cross-side viewport evidence.");
+  return { trigger: triggerSide, skyline: skylineSide, runtime: triggerRuntime, viewport: triggerViewport };
+}
+
+function resolveObservation(capture: string, snapshot: Awaited<ReturnType<typeof observeSnapshot>>, triggerScreenshot: Buffer, skylineScreenshot: Buffer) {
+  const triggerSide = addCrops(snapshot.trigger, triggerScreenshot, snapshot.viewport, "trigger");
+  const skylineSide = addCrops(snapshot.skyline, skylineScreenshot, snapshot.viewport, "skyline");
   const observation: BreadcrumbRasterizationObservation = {
-    runtime,
-    viewport,
+    runtime: snapshot.runtime,
+    viewport: snapshot.viewport,
     trigger: triggerSide,
     skyline: skylineSide,
     pixels: triggerSide && skylineSide ? exactDeltas(triggerScreenshot, skylineScreenshot, triggerSide.svg.rect) : [],
@@ -44,20 +102,23 @@ export async function observeBreadcrumbRasterization(
   return breadcrumbRasterizationRegion(breadcrumbRasterizationPolicy, capture, observation);
 }
 
-async function observeSide(page: Page, screenshot: Buffer, application: "trigger" | "skyline"): Promise<BreadcrumbSideEvidence | null> {
+type BreadcrumbElementSnapshot = Omit<BreadcrumbElementEvidence, "cropSha256">;
+type BreadcrumbSideSnapshot = { svg: BreadcrumbElementSnapshot; line: BreadcrumbElementSnapshot };
+
+async function observeSide(page: Page, application: "trigger" | "skyline"): Promise<BreadcrumbSideSnapshot | null> {
   const { svg, line } = breadcrumbRasterizationPolicy.selectors;
   const [svgCount, lineCount] = await Promise.all([page.locator(svg).count(), page.locator(line).count()]);
   if (svgCount === 0 && lineCount === 0) return null;
   requireSingleMatch(svgCount, "run-breadcrumb-rasterization", `${application} breadcrumb SVG`);
   requireSingleMatch(lineCount, "run-breadcrumb-rasterization", `${application} breadcrumb line`);
   const [svgEvidence, lineEvidence] = await Promise.all([
-    observeElement(page, screenshot, application, "svg", svg),
-    observeElement(page, screenshot, application, "line", line),
+    observeElement(page, application, "svg", svg),
+    observeElement(page, application, "line", line),
   ]);
   return { svg: svgEvidence, line: lineEvidence };
 }
 
-async function observeElement(page: Page, screenshot: Buffer, application: "trigger" | "skyline", elementType: "svg" | "line", selector: string): Promise<BreadcrumbElementEvidence> {
+async function observeElement(page: Page, application: "trigger" | "skyline", elementType: "svg" | "line", selector: string): Promise<BreadcrumbElementSnapshot> {
   const label = `${application} breadcrumb ${elementType}`;
   const dom = await observeElementDom(page, "run-breadcrumb-rasterization", selector, label);
   const [accessibilitySha256, details, outerHtml, paint, quads] = await Promise.all([
@@ -72,10 +133,6 @@ async function observeElement(page: Page, screenshot: Buffer, application: "trig
   ]);
   requireSingleMatch(details.count, "run-breadcrumb-rasterization", `${label} renderer details`);
   if (!details.observation) throw new Error(`Breadcrumb renderer lacks ${label} details.`);
-  const viewport = page.viewportSize();
-  if (!viewport) throw new Error("Breadcrumb renderer requires a fixed viewport.");
-  const crop = captureProtectedElementCrop(screenshot, viewport, dom.rect);
-  if (crop.status !== "visible") throw new Error(`Breadcrumb renderer ${label} is outside the viewport.`);
   return {
     rect: dom.rect,
     canonicalDomSha256: digest(details.observation.canonicalDom),
@@ -85,11 +142,27 @@ async function observeElement(page: Page, screenshot: Buffer, application: "trig
     effectiveCssSha256: digest(details.observation.effectiveMatchingRules),
     quadsSha256: digest(quads),
     backdropSha256: digest(details.observation.backdrop),
-    cropSha256: crop.screenshotSha256,
     paint,
     outerHtmlSha256: digest(outerHtml),
     matchingRulesSha256: digest(details.observation.matchingRules),
   };
+}
+
+function addCrops(side: BreadcrumbSideSnapshot | null, screenshot: Buffer, viewport: { width: number; height: number }, application: "trigger" | "skyline"): BreadcrumbSideEvidence | null {
+  if (!side) return null;
+  const addCrop = (element: BreadcrumbElementSnapshot, elementType: "svg" | "line"): BreadcrumbElementEvidence => {
+    const crop = captureProtectedElementCrop(screenshot, viewport, element.rect);
+    if (crop.status !== "visible") throw new Error(`Breadcrumb renderer ${application} breadcrumb ${elementType} is outside the viewport.`);
+    return { ...element, cropSha256: crop.screenshotSha256 };
+  };
+  return { svg: addCrop(side.svg, "svg"), line: addCrop(side.line, "line") };
+}
+
+async function advanceFrame(trigger: Page, skyline: Page) {
+  await Promise.all([
+    trigger.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))),
+    skyline.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))),
+  ]);
 }
 
 async function contentQuads(page: Page, selector: string) {

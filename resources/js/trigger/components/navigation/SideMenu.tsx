@@ -221,8 +221,8 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
       id: "metrics",
       title: "Observability",
       items: [
-        { id: "logs", name: "Logs", to: "/logs", icon: LogsIcon, activeIconColor: "text-text-bright", capability: "logs" },
-        { id: "errors", name: "Errors", to: "/errors", icon: BugIcon, activeIconColor: "text-error", capability: "errors" },
+        { id: "logs", name: "Logs", to: "/logs", icon: LogsIcon, activeIconColor: "text-logs", capability: "logs" },
+        { id: "errors", name: "Errors", to: "/errors", icon: BugIcon, activeIconColor: "text-errors", capability: "errors" },
         { id: "query", name: "Query", to: "/query", icon: AdjustmentsHorizontalIcon, activeIconColor: "text-text-bright", capability: "query" },
         { id: "queues", name: "Queues", to: "/queues", icon: QueuesIcon, activeIconColor: "text-queues", capability: "queues" },
         { id: "dashboards", name: "Dashboards", to: "/dashboards", icon: ChartBarIcon, activeIconColor: "text-text-bright", capability: "dashboards" },

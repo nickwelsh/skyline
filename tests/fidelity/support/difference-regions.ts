@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import type { NormalizedAccessibilityNode } from "./accessibility";
 import type { DiscoveryStep } from "./discovery";
+import { captureExactStableObservation } from "./exact-observation";
 import type { CapabilityOmissionRegion, DifferenceRegion, FrameworkExtensionRegion, PresenterExtensionRegion, RendererRasterizationElement, RendererRasterizationObservation, RendererRasterizationPresentation, RendererRasterizationRegion } from "./pixels";
 
 type Rect = { x: number; y: number; width: number; height: number };
@@ -275,44 +276,100 @@ export async function waitForDifferenceRegions(trigger: Page, skyline: Page, cap
 }
 
 export async function discoverBrandingIdentityObservation(trigger: Page, skyline: Page, definition: BrandingIdentityDefinition, capture: string, diagnosticStep?: DiscoveryStep): Promise<BrandingIdentityObservation> {
+  return (await captureStableBrandingIdentityObservation(trigger, skyline, definition, capture, diagnosticStep)).observation;
+}
+
+type BrandingIdentityElementSnapshot = Omit<BrandingIdentityElementMeasurement, "crop">;
+type BrandingIdentitySnapshot = {
+  identityPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementSnapshot; skyline: BrandingIdentityElementSnapshot }>;
+  navigation: { triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementSnapshot; skyline: BrandingIdentityElementSnapshot };
+  protectedPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; trigger: BrandingIdentityElementSnapshot; skyline: BrandingIdentityElementSnapshot }>;
+};
+
+export async function captureStableBrandingIdentityObservation(
+  trigger: Page,
+  skyline: Page,
+  definition: BrandingIdentityDefinition,
+  capture: string,
+  diagnosticStep?: DiscoveryStep,
+  captureScreenshots?: () => Promise<{ triggerScreenshot: Buffer; skylineScreenshot: Buffer }>,
+) {
   if (!definition.captures.includes(capture)) throw new Error(`Branding identity ${definition.id} does not permit capture ${capture}.`);
   const step: DiscoveryStep = diagnosticStep ?? ((_label, action) => action());
-  const [triggerScreenshot, skylineScreenshot] = await Promise.all([
-    step("branding:screenshot:trigger", () => trigger.screenshot({ animations: "disabled", caret: "hide" })),
-    step("branding:screenshot:skyline", () => skyline.screenshot({ animations: "disabled", caret: "hide" })),
-  ]);
-  const observe = async (page: Page, screenshot: Buffer, selector: string, label: string): Promise<BrandingIdentityElementMeasurement> => {
+  const { observation, artifact } = await captureExactStableObservation({
+    label: `Branding identity ${definition.id} ${capture}`,
+    read: () => observeBrandingIdentitySnapshot(trigger, skyline, definition, capture, step),
+    capture: captureScreenshots ?? (async () => {
+      const [triggerScreenshot, skylineScreenshot] = await Promise.all([
+        step("branding:screenshot:trigger", () => trigger.screenshot({ animations: "disabled", caret: "hide" })),
+        step("branding:screenshot:skyline", () => skyline.screenshot({ animations: "disabled", caret: "hide" })),
+      ]);
+      return { triggerScreenshot, skylineScreenshot };
+    }),
+    advance: () => advanceObservationFrame(trigger, skyline),
+  });
+  return {
+    observation: addBrandingIdentityCrops(observation, artifact.triggerScreenshot, artifact.skylineScreenshot, trigger, skyline, definition.id),
+    ...artifact,
+  };
+}
+
+async function observeBrandingIdentitySnapshot(trigger: Page, skyline: Page, definition: BrandingIdentityDefinition, capture: string, step: DiscoveryStep): Promise<BrandingIdentitySnapshot> {
+  const observe = async (page: Page, selector: string, label: string): Promise<BrandingIdentityElementSnapshot> => {
     const dom = await step(`branding:dom:${label}`, () => observeElementDom(page, definition.id, selector, label));
     const element = await step(`branding:ax:${label}`, () => observeCapabilityElementAccessibility(page, selector, dom));
     validateProtectedElementPresentation(definition.id, label, element);
-    const viewport = page.viewportSize();
-    if (!viewport) throw new Error(`Branding identity ${definition.id} requires a fixed viewport.`);
-    const crop = captureProtectedElementCrop(screenshot, viewport, element.rect);
-    if (crop.status !== "visible") throw new Error(`Branding identity ${definition.id} ${label} is outside the viewport.`);
-    return { rect: element.rect, computedStyleSha256: element.computedStyleSha256, accessibilitySha256: element.accessibilitySha256, crop };
+    return { rect: element.rect, computedStyleSha256: element.computedStyleSha256, accessibilitySha256: element.accessibilitySha256 };
   };
   const identityPairs = [];
   for (const pair of definition.identityPairs) identityPairs.push({
     ...pair,
-    trigger: await observe(trigger, triggerScreenshot, pair.triggerSelector, `${pair.id}:trigger`),
-    skyline: await observe(skyline, skylineScreenshot, pair.skylineSelector, `${pair.id}:skyline`),
+    trigger: await observe(trigger, pair.triggerSelector, `${pair.id}:trigger`),
+    skyline: await observe(skyline, pair.skylineSelector, `${pair.id}:skyline`),
   });
   const protectedPairs = [];
   for (const pair of applicableBrandingProtectedPairs(definition, capture)) protectedPairs.push({
     ...pair,
-    trigger: await observe(trigger, triggerScreenshot, pair.triggerSelector, `${pair.id}:protected:trigger`),
-    skyline: await observe(skyline, skylineScreenshot, pair.skylineSelector, `${pair.id}:protected:skyline`),
+    trigger: await observe(trigger, pair.triggerSelector, `${pair.id}:protected:trigger`),
+    skyline: await observe(skyline, pair.skylineSelector, `${pair.id}:protected:skyline`),
   });
   return {
     identityPairs,
     navigation: {
       triggerSelector: definition.triggerNavigationSelector,
       skylineSelector: definition.skylineNavigationSelector,
-      trigger: await observe(trigger, triggerScreenshot, definition.triggerNavigationSelector, "navigation:trigger"),
-      skyline: await observe(skyline, skylineScreenshot, definition.skylineNavigationSelector, "navigation:skyline"),
+      trigger: await observe(trigger, definition.triggerNavigationSelector, "navigation:trigger"),
+      skyline: await observe(skyline, definition.skylineNavigationSelector, "navigation:skyline"),
     },
     protectedPairs,
   };
+}
+
+function addBrandingIdentityCrops(snapshot: BrandingIdentitySnapshot, triggerScreenshot: Buffer, skylineScreenshot: Buffer, trigger: Page, skyline: Page, id: string): BrandingIdentityObservation {
+  const add = (element: BrandingIdentityElementSnapshot, screenshot: Buffer, page: Page, label: string): BrandingIdentityElementMeasurement => {
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error(`Branding identity ${id} requires a fixed viewport.`);
+    const crop = captureProtectedElementCrop(screenshot, viewport, element.rect);
+    if (crop.status !== "visible") throw new Error(`Branding identity ${id} ${label} is outside the viewport.`);
+    return { ...element, crop };
+  };
+  const pair = <T extends { trigger: BrandingIdentityElementSnapshot; skyline: BrandingIdentityElementSnapshot }>(value: T, label: string) => ({
+    ...value,
+    trigger: add(value.trigger, triggerScreenshot, trigger, `${label}:trigger`),
+    skyline: add(value.skyline, skylineScreenshot, skyline, `${label}:skyline`),
+  });
+  return {
+    identityPairs: snapshot.identityPairs.map((value) => pair(value, value.id)),
+    navigation: pair(snapshot.navigation, "navigation"),
+    protectedPairs: snapshot.protectedPairs.map((value) => pair(value, `${value.id}:protected`)),
+  };
+}
+
+async function advanceObservationFrame(trigger: Page, skyline: Page) {
+  await Promise.all([
+    trigger.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))),
+    skyline.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))),
+  ]);
 }
 
 export function validateBrandingIdentityObservation(definition: BrandingIdentityDefinition, observation: BrandingIdentityObservation, capture: string) {

@@ -109,6 +109,15 @@ describe("SideMenu capabilities", () => {
     expect(detail.querySelector('[data-action="errors"]')?.className).not.toContain("bg-tertiary");
   });
 
+  it("preserves the pinned active icon tokens for observability routes", () => {
+    const logs = renderSideMenu(fixtureCapabilities.navigation, false, undefined, "/logs");
+    expect(logs.querySelector('[data-action="logs"] svg')?.getAttribute("class")).toContain("text-logs");
+
+    document.body.replaceChildren();
+    const errors = renderSideMenu(fixtureCapabilities.navigation, false, undefined, "/errors");
+    expect(errors.querySelector('[data-action="errors"] svg')?.getAttribute("class")).toContain("text-errors");
+  });
+
   it("keeps Appearance in a dedicated row before the unchanged source footer", () => {
     const container = renderSideMenu(fixtureCapabilities.navigation);
     const inner = container.querySelector<HTMLElement>('[data-testid="side-menu"] > .absolute.inset-0.grid')!;

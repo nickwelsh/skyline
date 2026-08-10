@@ -8,9 +8,9 @@ import { captureAccessibilityTree, captureAccessibilityTreeOmitting } from "./su
 import { observeAction } from "./support/actions";
 import { additionalAxeViolations, captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
-import { observeBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
+import { captureStableBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
-import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences, waitForDifferenceRegions } from "./support/difference-regions";
+import { accessibilityOmissionSelectors, captureStableBrandingIdentityObservation, observeDifferenceRegions, validateBrandingIdentityObservation, type AllowedDifferences, type BrandingIdentityDefinition, waitForDifferenceRegions } from "./support/difference-regions";
 import { measurePixels } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
@@ -47,13 +47,37 @@ for (const capture of captures) {
     await Promise.all([applyLiveSystemChange(page, capture), applyLiveSystemChange(reference, capture)]);
     await Promise.all([settleCapture(page), settleCapture(reference)]);
     await Promise.all([assertFixedCanvas(page, capture), assertFixedCanvas(reference, capture)]);
-    const baseRegions = await observeDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
-    const serializeRendererScreenshots = (allowedDifferences as unknown as AllowedDifferences).regions.some((region) => region.category === "renderer-rasterization" && !("rendererKind" in region && region.rendererKind === "breadcrumb") && region.captures.includes(capture));
-    const [triggerPng, skylinePng] = serializeRendererScreenshots
-      ? [await reference.screenshot({ animations: "disabled", caret: "hide" }), await page.screenshot({ animations: "disabled", caret: "hide" })]
-      : await Promise.all([reference.screenshot({ animations: "disabled", caret: "hide" }), page.screenshot({ animations: "disabled", caret: "hide" })]);
-    const breadcrumbRegion = await observeBreadcrumbRasterization(reference, page, capture, triggerPng, skylinePng);
-    const regions = breadcrumbRegion ? [...baseRegions, breadcrumbRegion] : baseRegions;
+    const manifest = allowedDifferences as unknown as AllowedDifferences;
+    const serializeRendererScreenshots = manifest.regions.some((region) => region.category === "renderer-rasterization" && !("rendererKind" in region && region.rendererKind === "breadcrumb") && region.captures.includes(capture));
+    const captureScreenshots = async () => {
+      const [triggerScreenshot, skylineScreenshot] = serializeRendererScreenshots
+        ? [await reference.screenshot({ animations: "disabled", caret: "hide" }), await page.screenshot({ animations: "disabled", caret: "hide" })]
+        : await Promise.all([reference.screenshot({ animations: "disabled", caret: "hide" }), page.screenshot({ animations: "disabled", caret: "hide" })]);
+      return { triggerScreenshot, skylineScreenshot };
+    };
+    const brandingDefinition = manifest.regions.find((region): region is BrandingIdentityDefinition => region.category === "branding-identity" && region.captures.includes(capture));
+    if (!brandingDefinition) throw new Error(`Branding identity lacks ${capture}.`);
+    let identityCapture: Awaited<ReturnType<typeof captureStableBrandingIdentityObservation>> | undefined;
+    const breadcrumbCapture = await captureStableBreadcrumbRasterization(reference, page, capture, async () => {
+      identityCapture = await captureStableBrandingIdentityObservation(reference, page, brandingDefinition, capture, undefined, captureScreenshots);
+      return {
+        triggerScreenshot: identityCapture.triggerScreenshot,
+        skylineScreenshot: identityCapture.skylineScreenshot,
+      };
+    });
+    if (!identityCapture) throw new Error(`Branding identity ${capture} was not captured.`);
+    const identity = validateBrandingIdentityObservation(brandingDefinition, identityCapture.observation, capture);
+    const retainedManifest = { regions: manifest.regions.filter((region) => region.id !== brandingDefinition.id) };
+    const baseRegions = await observeDifferenceRegions(reference, page, capture, retainedManifest);
+    const { triggerScreenshot: triggerPng, skylineScreenshot: skylinePng, region: breadcrumbRegion } = breadcrumbCapture;
+    const regions = [...baseRegions, {
+      kind: "branding-identity" as const,
+      id: brandingDefinition.id,
+      identityPairs: identity.identityPairs,
+      navigation: identity.navigation,
+      protectedPairs: identity.protectedPairs,
+      expected: brandingDefinition.measurements[capture],
+    }, ...(breadcrumbRegion ? [breadcrumbRegion] : [])];
     const [triggerTree, rawSkylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
       captureAccessibilityTree(reference),
       captureAccessibilityTree(page),

@@ -7,9 +7,10 @@ import { discoverFrameworkExtensionObservation, type FrameworkExtensionDefinitio
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
+import { transitionToStaleRefresh } from "./support/stale-refresh";
 
 const detailStates = ["single-occurrence", "many-occurrences", "affected-job-types", "application-vendor-frames", "stack-expansion", "linked-runs", "long-exception"];
-const captures = expectedCaptureIds(matrix as unknown as FidelityMatrix).filter((capture) => capture.startsWith("error-found@") || detailStates.some((state) => capture.startsWith(`errors-${state}@`)));
+const captures = expectedCaptureIds(matrix as unknown as FidelityMatrix).filter((capture) => capture.startsWith("error-found@") || capture.startsWith("error-stale-refresh@") || detailStates.some((state) => capture.startsWith(`errors-${state}@`)));
 const definition: FrameworkExtensionDefinition = {
   id: "php-exception-evidence",
   category: "framework-extension",
@@ -26,7 +27,7 @@ const definition: FrameworkExtensionDefinition = {
   measurements: {},
 };
 
-expect(captures).toHaveLength(28);
+expect(captures).toHaveLength(31);
 const referenceFixture = createReferenceFixture();
 
 for (const capture of captures) {
@@ -47,6 +48,9 @@ for (const capture of captures) {
         step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
       ]);
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
+      if (scenario.state === "stale-refresh") {
+        await step("state:stale-refresh", () => transitionToStaleRefresh(skyline, trigger, fixture, scenario));
+      }
       const state = scenario.id === "errors-stack-expansion" ? "stack-expansion" : scenario.state;
       await Promise.all([
         step(`state:skyline-${state}`, () => exposeOwnedState(skyline, scenario, "skyline")),

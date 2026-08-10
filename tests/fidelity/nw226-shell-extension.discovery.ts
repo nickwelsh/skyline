@@ -3,9 +3,9 @@ import type { FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import allowedDifferences from "./allowed-differences.json" with { type: "json" };
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
-import { breadcrumbRasterizationPolicy, observeBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
+import { breadcrumbRasterizationPolicy, captureStableBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
 import { createDiscoveryStep, type DiscoveryStep } from "./support/discovery";
-import { discoverBrandingIdentityObservation, discoverFrameworkExtensionObservation, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
+import { captureStableBrandingIdentityObservation, discoverFrameworkExtensionObservation, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
 import { nw226BrandingIdentityDefinition, nw226ShellExtensionDefinitions } from "./support/nw226-shell-extensions";
 import { measurePixels, type DifferenceRegion } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
@@ -57,7 +57,29 @@ for (const capture of captures) {
       await Promise.all([step("settle:skyline", () => settleCapture(skyline)), step("settle:trigger", () => settleCapture(trigger))]);
       await Promise.all([step("canvas:skyline", () => assertFixedCanvas(skyline, capture)), step("canvas:trigger", () => assertFixedCanvas(trigger, capture))]);
 
-      const identity = await discoverBrandingIdentityObservation(trigger, skyline, identityDefinition, capture, step);
+      const serializeRendererScreenshots = (allowedDifferences as unknown as AllowedDifferences).regions.some((region) => region.category === "renderer-rasterization" && !("rendererKind" in region && region.rendererKind === "breadcrumb") && region.captures.includes(capture));
+      const captureScreenshots = async () => {
+        const [triggerScreenshot, skylineScreenshot] = serializeRendererScreenshots
+          ? [
+              await step("branding:screenshot:trigger", () => trigger.screenshot({ animations: "disabled", caret: "hide" })),
+              await step("branding:screenshot:skyline", () => skyline.screenshot({ animations: "disabled", caret: "hide" })),
+            ]
+          : await Promise.all([
+              step("branding:screenshot:trigger", () => trigger.screenshot({ animations: "disabled", caret: "hide" })),
+              step("branding:screenshot:skyline", () => skyline.screenshot({ animations: "disabled", caret: "hide" })),
+            ]);
+        return { triggerScreenshot, skylineScreenshot };
+      };
+      let identityCapture: Awaited<ReturnType<typeof captureStableBrandingIdentityObservation>> | undefined;
+      const breadcrumbCapture = await captureStableBreadcrumbRasterization(trigger, skyline, capture, async () => {
+        identityCapture = await captureStableBrandingIdentityObservation(trigger, skyline, identityDefinition, capture, step, captureScreenshots);
+        return {
+          triggerScreenshot: identityCapture.triggerScreenshot,
+          skylineScreenshot: identityCapture.skylineScreenshot,
+        };
+      });
+      if (!identityCapture) throw new Error(`Branding identity ${capture} was not captured.`);
+      const identity = identityCapture.observation;
       process.stdout.write(`\nBRANDING_IDENTITY_MEASUREMENT=${JSON.stringify({ definition: identityDefinition.id, capture, measurement: {
         identityPairs: Object.fromEntries(identity.identityPairs.map(({ id, trigger, skyline }) => [id, { trigger, skyline }])),
         navigation: { trigger: identity.navigation.trigger, skyline: identity.navigation.skyline },
@@ -89,11 +111,7 @@ for (const capture of captures) {
         process.stdout.write(`\nFRAMEWORK_EXTENSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement })}\n`);
         regions.push({ kind: "framework-extension", id: definition.id, extension: observation, expected: { ...definition, ...measurement } });
       }
-      const [triggerPng, skylinePng] = await Promise.all([
-        trigger.screenshot({ animations: "disabled", caret: "hide" }),
-        skyline.screenshot({ animations: "disabled", caret: "hide" }),
-      ]);
-      const breadcrumbRegion = await observeBreadcrumbRasterization(trigger, skyline, capture, triggerPng, skylinePng);
+      const { triggerScreenshot: triggerPng, skylineScreenshot: skylinePng, region: breadcrumbRegion } = breadcrumbCapture;
       if (breadcrumbRegion) regions.push(breadcrumbRegion);
       process.stdout.write(`\nBREADCRUMB_RENDERER_MEASUREMENT=${JSON.stringify({
         capture,

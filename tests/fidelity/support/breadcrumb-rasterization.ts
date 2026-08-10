@@ -70,7 +70,51 @@ export function validateBreadcrumbRasterizationPolicy(policy: BreadcrumbRasteriz
 }
 
 export function fingerprintBreadcrumbRasterizationCandidate(stateSha256: string, trigger: BreadcrumbSideEvidence, skyline: BreadcrumbSideEvidence) {
-  return digest({ stateSha256, trigger, skyline });
+  return digest({ stateSha256, trigger: orderedSide(trigger), skyline: orderedSide(skyline) });
+}
+
+function orderedSide(side: BreadcrumbSideEvidence): BreadcrumbSideEvidence {
+  requireExactKeys(side, ["svg", "line"], "side");
+  return { svg: orderedElement(side.svg), line: orderedElement(side.line) };
+}
+
+function orderedElement(element: BreadcrumbElementEvidence): BreadcrumbElementEvidence {
+  requireExactKeys(element, [
+    "rect",
+    "canonicalDomSha256",
+    "semanticDomSha256",
+    "accessibilitySha256",
+    "computedStyleSha256",
+    "effectiveCssSha256",
+    "quadsSha256",
+    "backdropSha256",
+    "cropSha256",
+    "paint",
+    "outerHtmlSha256",
+    "matchingRulesSha256",
+  ], "element");
+  requireExactKeys(element.rect, ["x", "y", "width", "height"], "rect");
+  requireExactKeys(element.paint, ["currentColor", "stroke", "strokeWidth", "strokeLinecap"], "paint");
+  return {
+    rect: element.rect,
+    canonicalDomSha256: element.canonicalDomSha256,
+    semanticDomSha256: element.semanticDomSha256,
+    accessibilitySha256: element.accessibilitySha256,
+    computedStyleSha256: element.computedStyleSha256,
+    effectiveCssSha256: element.effectiveCssSha256,
+    quadsSha256: element.quadsSha256,
+    backdropSha256: element.backdropSha256,
+    cropSha256: element.cropSha256,
+    paint: element.paint,
+    outerHtmlSha256: element.outerHtmlSha256,
+    matchingRulesSha256: element.matchingRulesSha256,
+  };
+}
+
+function requireExactKeys(value: object, expected: string[], label: string) {
+  const actual = Object.keys(value).sort();
+  const approved = [...expected].sort();
+  if (!same(actual, approved)) throw new Error(`Breadcrumb renderer changed candidate ${label} evidence keys.`);
 }
 
 export function validateBreadcrumbRasterizationObservation(policy: BreadcrumbRasterizationPolicy, capture: string, observation: BreadcrumbRasterizationObservation) {
