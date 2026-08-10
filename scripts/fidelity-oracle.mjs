@@ -137,12 +137,17 @@ export function validateAllowedDifferences(differences) {
   const accepted = new Set(["branding-terminology", "branding-identity", "equivalent-fixture-data", "capability-omission", "react-router-url", "invisible-integration", "framework-extension", "presenter-extension", "renderer-rasterization"]);
   if (differences.decision !== "NW-216") fail("Allowed-difference manifest lacks its accepted decision.");
   for (const category of differences.categories ?? []) if (!accepted.has(category)) fail(`Unclassified allowed-difference category: ${category}`);
+  const breadcrumbRegions = (differences.regions ?? []).filter((region) => region.category === "renderer-rasterization" && region.rendererKind === "breadcrumb");
+  if (breadcrumbRegions.length !== 1) fail("Breadcrumb renderer manifest requires exactly one approved region.");
   const lockedRegions = [];
   for (const region of differences.regions ?? []) {
     if (!accepted.has(region.category)) fail(`Unclassified allowed-difference region: ${region.id}`);
     if (region.category === "renderer-rasterization") {
-      validateRendererRasterizationRegion(region);
-      lockedRegions.push(region);
+      if (region.rendererKind === "breadcrumb") validateBreadcrumbRasterizationRegion(region);
+      else {
+        validateRendererRasterizationRegion(region);
+        lockedRegions.push(region);
+      }
     } else if (region.category === "framework-extension") {
       const complete = region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
         && region.accessibleRole && region.accessibleName && region.anchorAccessibleRole && region.anchorAccessibleName
@@ -279,6 +284,38 @@ export function validateAllowedDifferences(differences) {
       selectorOwners.set(selector, owners);
     }
   }
+}
+
+function validateBreadcrumbRasterizationRegion(region) {
+  const expected = {
+    id: "run-breadcrumb-rasterization",
+    category: "renderer-rasterization",
+    rendererKind: "breadcrumb",
+    decision: "NW-216",
+    acceptance: [
+      "Lock the exact 196 visible breadcrumb captures to their audited finite state and strict DOM, source SVG, CSS, accessibility, geometry, stroke, backdrop, runtime, and crop evidence.",
+      "Require the breadcrumb to remain absent on both sides for the other 243 canonical captures; reject unknown captures, states, crossed evidence, and one-sided presence.",
+      "Apply no wildcard, coordinate mask, pixel tolerance, or lossy group compression.",
+    ],
+    citations: [
+      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-900b4652",
+      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-25c4c4f4",
+      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e414fc8c",
+      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-cc5fa12d",
+    ],
+    policyFile: "tests/fidelity/breadcrumb-rasterization-policy.json",
+    policySha256: "787e2637697c12767ae7afb79d8e03af07a75436a49240c4206ad5eac55c63d1",
+    captures: [],
+    measurements: {},
+  };
+  if (!isDeepStrictEqual(region, expected)) fail("Invalid breadcrumb renderer manifest metadata.");
+  const policy = readJson(join(scriptRoot, region.policyFile));
+  if (digest(JSON.stringify(policy)) !== region.policySha256) fail("Invalid breadcrumb renderer policy hash.");
+  const captures = Object.keys(policy.captures ?? {});
+  const absent = policy.absentCaptures ?? [];
+  const states = policy.states ?? [];
+  if (captures.length !== 196 || absent.length !== 243 || states.length !== 9 || new Set([...captures, ...absent]).size !== 439) fail("Invalid breadcrumb renderer policy cardinality.");
+  if (states.some((state) => digest(JSON.stringify(state.pixels)) !== state.sha256)) fail("Invalid breadcrumb renderer finite state.");
 }
 
 function validateRendererRasterizationRegion(region) {

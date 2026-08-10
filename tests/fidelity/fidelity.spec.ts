@@ -8,6 +8,7 @@ import { captureAccessibilityTree, captureAccessibilityTreeOmitting } from "./su
 import { observeAction } from "./support/actions";
 import { additionalAxeViolations, captureAxe } from "./support/axe";
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
+import { observeBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
 import { assertNoFidelityDifferences, collectFidelityDifferences } from "./support/differences";
 import { accessibilityOmissionSelectors, observeDifferenceRegions, type AllowedDifferences, waitForDifferenceRegions } from "./support/difference-regions";
 import { measurePixels } from "./support/pixels";
@@ -56,11 +57,13 @@ for (const capture of captures) {
     await Promise.all([applyLiveSystemChange(page, capture), applyLiveSystemChange(reference, capture)]);
     await Promise.all([settleCapture(page), settleCapture(reference)]);
     await Promise.all([assertFixedCanvas(page, capture), assertFixedCanvas(reference, capture)]);
-    const regions = await observeDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
-    const serializeRendererScreenshots = (allowedDifferences as unknown as AllowedDifferences).regions.some((region) => region.category === "renderer-rasterization" && region.captures.includes(capture));
+    const baseRegions = await observeDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);
+    const serializeRendererScreenshots = (allowedDifferences as unknown as AllowedDifferences).regions.some((region) => region.category === "renderer-rasterization" && !("rendererKind" in region && region.rendererKind === "breadcrumb") && region.captures.includes(capture));
     const [triggerPng, skylinePng] = serializeRendererScreenshots
       ? [await reference.screenshot({ animations: "disabled", caret: "hide" }), await page.screenshot({ animations: "disabled", caret: "hide" })]
       : await Promise.all([reference.screenshot({ animations: "disabled", caret: "hide" }), page.screenshot({ animations: "disabled", caret: "hide" })]);
+    const breadcrumbRegion = await observeBreadcrumbRasterization(reference, page, capture, triggerPng, skylinePng);
+    const regions = breadcrumbRegion ? [...baseRegions, breadcrumbRegion] : baseRegions;
     const [triggerTree, rawSkylineTree, triggerAxe, skylineAxe, triggerInteraction, skylineInteraction] = await Promise.all([
       captureAccessibilityTree(reference),
       captureAccessibilityTree(page),

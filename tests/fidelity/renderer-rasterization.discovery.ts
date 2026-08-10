@@ -8,7 +8,7 @@ import { createReferenceFixture, installReferenceFixture } from "./support/refer
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
 
-const definitions = allowedDifferences.regions.filter(({ category }) => category === "renderer-rasterization") as unknown as RendererRasterizationDefinition[];
+const definitions = allowedDifferences.regions.filter((region) => region.category === "renderer-rasterization" && !("rendererKind" in region)) as unknown as RendererRasterizationDefinition[];
 const referenceFixture = createReferenceFixture();
 
 for (const definition of definitions) {

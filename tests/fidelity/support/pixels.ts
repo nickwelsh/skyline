@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
+import type { BreadcrumbRasterizationRegion } from "./breadcrumb-rasterization";
 
 type Rect = { x: number; y: number; width: number; height: number };
 type ProtectedCrop = { status: "visible"; rect: Rect; screenshotSha256: string } | { status: "below-viewport" } | { status: "right-of-viewport" };
@@ -79,7 +80,7 @@ export type RendererRasterizationRegion = {
   pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }>;
   alternatives?: Array<{ expected: RendererRasterizationObservation; pixels: Array<{ x: number; y: number; trigger: Rgba; skyline: Rgba }> }>;
 };
-export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion | RendererRasterizationRegion;
+export type DifferenceRegion = PairedRegion | FrameworkExtensionRegion | PresenterExtensionRegion | CapabilityOmissionRegion | BrandingIdentityRegion | RendererRasterizationRegion | BreadcrumbRasterizationRegion;
 
 export function comparePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regions: DifferenceRegion[]) {
   const comparison = measurePixels(triggerBuffer, skylineBuffer, regions);
@@ -115,6 +116,17 @@ export function measurePixels(triggerBuffer: Buffer, skylineBuffer: Buffer, regi
 }
 
 function validateRegion(region: DifferenceRegion, imageWidth: number, imageHeight: number, triggerImage: PNG, skylineImage: PNG): Mask[] {
+  if (region.kind === "breadcrumb-rasterization") {
+    validateRendererPixels(region.id, region.rect, region.pixels);
+    const actual = exactRendererDeltas(triggerImage, skylineImage, region.rect);
+    if (JSON.stringify(canonicalRendererPixels(actual)) !== JSON.stringify(canonicalRendererPixels(region.pixels))) throw new Error(`Allowed region ${region.id} changed exact breadcrumb pixel evidence.`);
+    return region.pixels.map(({ x, y }, index) => boundedMask(`${region.id}:pixel-${index}`, {
+      x: region.rect.x + x,
+      y: region.rect.y + y,
+      width: 1,
+      height: 1,
+    }, "both", imageWidth, imageHeight));
+  }
   if (region.kind === "renderer-rasterization") {
     const pixels = validateRendererRasterization(region, triggerImage, skylineImage);
     return pixels.map(({ x, y }, index) => boundedMask(`${region.id}:pixel-${index}`, {

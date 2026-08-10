@@ -145,12 +145,24 @@ export type RendererRasterizationDefinition = {
     triggerCropSha256: string;
   }>;
 };
+export type BreadcrumbRasterizationManifestDefinition = {
+  id: "run-breadcrumb-rasterization";
+  category: "renderer-rasterization";
+  rendererKind: "breadcrumb";
+  decision: "NW-216";
+  acceptance: string[];
+  citations: string[];
+  policyFile: "tests/fidelity/breadcrumb-rasterization-policy.json";
+  policySha256: string;
+  captures: string[];
+  measurements: Record<string, never>;
+};
 export type { RendererRasterizationObservation };
 export type CapabilityOmissionObservation = {
   selectorPairs: Array<{ id: string; triggerSelector: string; skylineSelector: string; skylineBoundary?: true } & CapabilityOmissionMeasurement>;
   protectedSelectors?: Array<ProtectedSelectorDefinition & ProtectedSelectorMeasurement>;
 };
-export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition | BrandingIdentityDefinition | RendererRasterizationDefinition;
+export type AllowedDifferenceDefinition = FrameworkExtensionDefinition | PresenterExtensionDefinition | CapabilityOmissionDefinition | BrandingIdentityDefinition | RendererRasterizationDefinition | BreadcrumbRasterizationManifestDefinition;
 export type AllowedDifferences = { regions: AllowedDifferenceDefinition[] };
 export type FrameworkExtensionObservation = {
   skylineSelector: string;
@@ -875,7 +887,7 @@ export function applicableCapabilityOmissions(capture: string, manifest: Allowed
 
 function applicableExtensionDefinitions(capture: string, manifest: AllowedDifferences) {
   validateFrameworkExtensionDefinitions(manifest);
-  return manifest.regions.filter((region) => region.captures.includes(capture));
+  return manifest.regions.filter((region): region is Exclude<AllowedDifferenceDefinition, BreadcrumbRasterizationManifestDefinition> => !isBreadcrumbRasterizationManifest(region) && region.captures.includes(capture));
 }
 
 export function accessibilityOmissionSelectors(regions: DifferenceRegion[], application: "trigger" | "skyline") {
@@ -1128,10 +1140,13 @@ function rendererRasterizationMeasurementSpec(runtime: RendererRuntime, shared: 
 }
 
 export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferences) {
+  const breadcrumbs = manifest.regions.filter(isBreadcrumbRasterizationManifest);
+  if (breadcrumbs.length > 1) throw new Error("Breadcrumb renderer requires one exact approved manifest region.");
+  if (breadcrumbs[0]) validateBreadcrumbRasterizationManifest(breadcrumbs[0]);
   const frameworks = manifest.regions.filter((region): region is FrameworkExtensionDefinition => region.category === "framework-extension");
   const presenters = manifest.regions.filter((region): region is PresenterExtensionDefinition => region.category === "presenter-extension");
   const identities = manifest.regions.filter((region): region is BrandingIdentityDefinition => region.category === "branding-identity");
-  const renderers = manifest.regions.filter((region): region is RendererRasterizationDefinition => region.category === "renderer-rasterization");
+  const renderers = manifest.regions.filter((region): region is RendererRasterizationDefinition => region.category === "renderer-rasterization" && !isBreadcrumbRasterizationManifest(region));
   for (const renderer of renderers) validateRendererRasterizationDefinition(renderer);
   for (const capture of new Set(identities.flatMap(({ captures }) => captures))) {
     if (identities.filter((definition) => definition.captures.includes(capture)).length !== 1) throw new Error(`Branding-identity capture ${capture} has duplicate ownership.`);
@@ -1147,7 +1162,7 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
 
   const captureOwners = new Map<string, string>();
   const selectorOwners = new Map<string, { id: string; category: AllowedDifferenceDefinition["category"]; captures: string[]; kind: "extension" | "anchor" | "capability" | "identity"; anchorPair?: string }>();
-  for (const definition of manifest.regions) {
+  for (const definition of manifest.regions.filter((region): region is Exclude<AllowedDifferenceDefinition, BreadcrumbRasterizationManifestDefinition> => !isBreadcrumbRasterizationManifest(region))) {
     for (const capture of definition.category === "capability-omission" ? definition.captures : []) {
       const key = `capability-omission:${capture}`;
       const owner = captureOwners.get(key);
@@ -1207,6 +1222,35 @@ export function validateFrameworkExtensionDefinitions(manifest: AllowedDifferenc
       if (!owner) selectorOwners.set(selector, { id: definition.id, category: definition.category, captures: definition.captures, kind, anchorPair });
     }
   }
+}
+
+function isBreadcrumbRasterizationManifest(definition: AllowedDifferenceDefinition): definition is BreadcrumbRasterizationManifestDefinition {
+  return "rendererKind" in definition && definition.rendererKind === "breadcrumb";
+}
+
+function validateBreadcrumbRasterizationManifest(definition: BreadcrumbRasterizationManifestDefinition) {
+  const expected = {
+    id: "run-breadcrumb-rasterization",
+    category: "renderer-rasterization",
+    rendererKind: "breadcrumb",
+    decision: "NW-216",
+    acceptance: [
+      "Lock the exact 196 visible breadcrumb captures to their audited finite state and strict DOM, source SVG, CSS, accessibility, geometry, stroke, backdrop, runtime, and crop evidence.",
+      "Require the breadcrumb to remain absent on both sides for the other 243 canonical captures; reject unknown captures, states, crossed evidence, and one-sided presence.",
+      "Apply no wildcard, coordinate mask, pixel tolerance, or lossy group compression.",
+    ],
+    citations: [
+      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-900b4652",
+      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-25c4c4f4",
+      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e414fc8c",
+      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-cc5fa12d",
+    ],
+    policyFile: "tests/fidelity/breadcrumb-rasterization-policy.json",
+    policySha256: "787e2637697c12767ae7afb79d8e03af07a75436a49240c4206ad5eac55c63d1",
+    captures: [],
+    measurements: {},
+  } as const;
+  if (!isDeepStrictEqual(definition, expected)) throw new Error("Breadcrumb renderer changed approved manifest metadata.");
 }
 
 function hasValidProtectedSelectorViewportPolicy(policy: ProtectedSelectorViewportPolicy) {

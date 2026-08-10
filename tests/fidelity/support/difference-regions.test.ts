@@ -124,7 +124,7 @@ describe("framework-extension fidelity regions", () => {
   });
 
   test("locks the exact 29-capture Classic, Light, and Dark renderer states", () => {
-    const renderers = allowedDifferences.regions.filter((region) => region.category === "renderer-rasterization") as unknown as RendererRasterizationDefinition[];
+    const renderers = allowedDifferences.regions.filter((region) => region.category === "renderer-rasterization" && !("rendererKind" in region)) as unknown as RendererRasterizationDefinition[];
     const byId = (id: string) => renderers.find((definition) => definition.id === id)!;
     const classic = byId("error-codeblock-classic-rasterization");
     const classicRight = byId("error-codeblock-classic-right-rasterization");

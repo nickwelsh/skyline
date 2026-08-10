@@ -2,10 +2,16 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, test } from "vitest";
-import { actionCaptureId, expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
+import { actionCaptureId, expectedCaptureIds, fidelityInputHashes, type FidelityMatrix, recordFidelityBundle, validateAllowedDifferences as validateAllowedDifferencesRaw, validateFidelityBundleEnvelope } from "../../../scripts/fidelity-oracle.mjs";
 import { assertPinnedRecordingEnvironment } from "../../../tests/fidelity/global-setup";
+import allowedDifferences from "../../../tests/fidelity/allowed-differences.json" with { type: "json" };
 
 const root = resolve(import.meta.dirname, "../../..");
+const breadcrumbRegion = allowedDifferences.regions.find(({ id }) => id === "run-breadcrumb-rasterization")!;
+const validateAllowedDifferences = (differences: { regions?: unknown[]; [key: string]: unknown }) => validateAllowedDifferencesRaw({
+  ...differences,
+  regions: [...(differences.regions ?? []), breadcrumbRegion],
+});
 describe("source-fidelity oracle", () => {
   test("the acceptance matrix expands every required capture", () => {
     const matrix = JSON.parse(readFileSync(join(root, "tests/fidelity/matrix.json"), "utf8"));

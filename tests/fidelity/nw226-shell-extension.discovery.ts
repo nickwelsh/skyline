@@ -3,6 +3,7 @@ import type { FidelityMatrix } from "../../scripts/fidelity-oracle.mjs";
 import allowedDifferences from "./allowed-differences.json" with { type: "json" };
 import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
+import { breadcrumbRasterizationPolicy, observeBreadcrumbRasterization } from "./support/breadcrumb-rasterization-browser";
 import { createDiscoveryStep, type DiscoveryStep } from "./support/discovery";
 import { discoverBrandingIdentityObservation, discoverFrameworkExtensionObservation, observeDifferenceRegions, type AllowedDifferences } from "./support/difference-regions";
 import { nw226BrandingIdentityDefinition, nw226ShellExtensionDefinitions } from "./support/nw226-shell-extensions";
@@ -88,6 +89,13 @@ for (const capture of captures) {
         trigger.screenshot({ animations: "disabled", caret: "hide" }),
         skyline.screenshot({ animations: "disabled", caret: "hide" }),
       ]);
+      const breadcrumbRegion = await observeBreadcrumbRasterization(trigger, skyline, capture, triggerPng, skylinePng);
+      if (breadcrumbRegion) regions.push(breadcrumbRegion);
+      process.stdout.write(`\nBREADCRUMB_RENDERER_MEASUREMENT=${JSON.stringify({
+        capture,
+        expectedPresence: capture in breadcrumbRasterizationPolicy.captures,
+        maskedPixels: breadcrumbRegion?.pixels.length ?? 0,
+      })}\n`);
       const comparison = measurePixels(triggerPng, skylinePng, regions);
       process.stdout.write(`\nNW226_CLASSIFICATION=${JSON.stringify({ capture, ...comparison })}\n`);
       expect(comparison.differingPixels).toBe(0);

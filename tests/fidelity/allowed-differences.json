@@ -19420,6 +19420,27 @@
             "triggerCropSha256": "e093373e48bc2777d172b84f3f668f3bbbf4bc6c2b8ee2dff89906bc59892a62"
           }
         ]
+      },
+      {
+        "id": "run-breadcrumb-rasterization",
+        "category": "renderer-rasterization",
+        "rendererKind": "breadcrumb",
+        "decision": "NW-216",
+        "acceptance": [
+          "Lock the exact 196 visible breadcrumb captures to their audited finite state and strict DOM, source SVG, CSS, accessibility, geometry, stroke, backdrop, runtime, and crop evidence.",
+          "Require the breadcrumb to remain absent on both sides for the other 243 canonical captures; reject unknown captures, states, crossed evidence, and one-sided presence.",
+          "Apply no wildcard, coordinate mask, pixel tolerance, or lossy group compression."
+        ],
+        "citations": [
+          "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-900b4652",
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-25c4c4f4",
+          "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e414fc8c",
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-cc5fa12d"
+        ],
+        "policyFile": "tests/fidelity/breadcrumb-rasterization-policy.json",
+        "policySha256": "787e2637697c12767ae7afb79d8e03af07a75436a49240c4206ad5eac55c63d1",
+        "captures": [],
+        "measurements": {}
       }
   ]
 }
