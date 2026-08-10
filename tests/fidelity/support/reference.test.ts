@@ -248,6 +248,38 @@ describe("pinned Trigger failed-Attempt fixture", () => {
 });
 
 describe("pinned Trigger Queues fixture", () => {
+  test("keeps Queue detail resolved while observed metric resources own stale refresh", () => {
+    expect(referenceDetailLifecyclePolicy.queue).toEqual({
+      defaultSelectionStates: [],
+      pageStates: {
+        loading: "pending",
+        "stale-refresh": "resolved",
+        "api-error": "error",
+        "not-found": "not-found",
+      },
+      resourceStates: {
+        "stale-refresh": "stale",
+      },
+    });
+  });
+
+  test("keeps Queue activity and scheduling-delay resource evidence distinct", async () => {
+    const fixture = await createReferenceFixture();
+    const metrics = fixture.resources?.queueMetricStates?.activityWaitHistory;
+
+    expect(metrics?.activity).toEqual(expect.arrayContaining([
+      expect.objectContaining({ t: expect.any(String), queued: expect.any(Number), running: expect.any(Number) }),
+    ]));
+    expect(metrics?.schedulingDelay).toEqual(expect.arrayContaining([
+      expect.objectContaining({ t: expect.any(String), p50: expect.any(Number), p95: expect.any(Number), samples: 1 }),
+    ]));
+    expect(metrics?.activity).not.toEqual(metrics?.schedulingDelay);
+    expect(metrics?.activity?.map((point) => [point.queued, point.running])).toEqual([[3, 0], [0, 2], [1, 1]]);
+    expect(metrics?.schedulingDelay?.map((point) => point.p95)).toEqual([15, 80, 35]);
+    expect(metrics?.queueDepth).toBeUndefined();
+    expect(metrics?.throughput).toBeUndefined();
+  });
+
   test("classifies exact environment live query separately from broker-only live data", () => {
     expect(referenceQueueMetricKey("SELECT timeBucket() AS t, max(max_env_queued) AS env_queued, max(max_env_running) AS env_running FROM env_metrics GROUP BY t ORDER BY t")).toBe("environmentLive");
     expect(referenceQueueMetricKey("SELECT q_limit FROM queue_metrics")).toBe("live");
@@ -290,7 +322,7 @@ describe("pinned Trigger Queues fixture", () => {
     }));
     expect(fixture.resources?.queueMetrics).toEqual(expect.objectContaining({
       concurrency: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), running: expect.any(Number), limit: null })]),
-      queueDepth: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number) })]),
+      activity: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), queued: expect.any(Number), enqueued: expect.any(Number), started: expect.any(Number) })]),
       schedulingDelay: expect.arrayContaining([expect.objectContaining({ t: expect.any(String), p50: expect.any(Number), p95: expect.any(Number), samples: 1 })]),
       environmentSaturation: [],
       environmentBacklog: [],

@@ -57,10 +57,10 @@ describe("NW-221 Queue capability discovery definitions", () => {
     expect(definitions.every((definition) => (definition.protectedSelectors?.length ?? 0) > 0 && Object.keys(definition.protectedMeasurements ?? {}).length === 0)).toBe(true);
     expect(definitions.flatMap((definition) => definition.protectedSelectors ?? []).map(({ id }) => id)).toEqual(expect.arrayContaining([
       "connection", "queue-identities", "root-recorded-queued", "root-recorded-running",
-      "detail-identity", "detail-status-counts", "detail-activity", "detail-recorded-runs",
+      "detail-identity", "detail-overview", "detail-recorded-queued-activity", "detail-activity", "detail-scheduling-delay", "detail-recorded-runs",
     ]));
     expect(definitions[0].protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual(["connection", "period", "root-recorded-running"]);
-    expect(definitions[2].protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual(["period", "detail-queue-time-samples", "detail-p95", "detail-recorded-runs"]);
+    expect(definitions[2].protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual(["period", "detail-recorded-queued-activity", "detail-scheduling-delay", "detail-recorded-runs"]);
     expect(definitions.flatMap(({ protectedSelectors }) => protectedSelectors ?? []).filter(({ allowRightOfViewport }) => allowRightOfViewport).every(({ allowRightOfViewport }) => JSON.stringify(allowRightOfViewport) === JSON.stringify({ width: 390, height: 844 }))).toBe(true);
   });
 

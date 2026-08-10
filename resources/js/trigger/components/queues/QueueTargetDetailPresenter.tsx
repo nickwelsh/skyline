@@ -8,16 +8,16 @@ import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
 import { Button } from "~/components/primitives/Buttons";
 import { Card, CardHeader } from "~/components/primitives/charts/Card";
-import { Header3 } from "~/components/primitives/Headers";
 import { Spinner } from "~/components/primitives/Spinner";
-import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
+import { TaskRunsList } from "~/components/runs/v3/TaskRunsList";
+import type { PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { useLocation } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
 import { QueueBigNumber } from "./QueueBigNumber";
 import { QueueTargetCharts } from "./QueueTargetCharts";
 import { QueuePeriodFilter, QueueRunStatusFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
-import { RecordedStatusBreakdown, type PresentedQueueTarget } from "./QueueTargetsPresenter";
+import type { PresentedQueueTarget } from "./QueueTargetsPresenter";
 
 type ActivityPoint = { timestamp: string; recordedRuns: number; recordedRunCounts: Record<RunStatus, number> };
 type QueueTimePoint = { timestamp: string; sampleCount: number; medianUs: number | null; p95Us: number | null; maximumUs: number | null };
@@ -55,7 +55,11 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
   return (
     <MetricsLayout.Root>
       <MetricsLayout.Filters className="pl-1.5 pr-2">
-        <div />
+        <div data-skyline-protected="queue-detail-overview" className="translate-y-px self-end pl-2">
+          <div className="flex border-b border-grid-bright">
+            <div className="flex flex-col items-center pt-1"><span className="text-sm text-text-bright">Overview</span><span className="mt-1 h-0.5 w-full bg-indigo-500" /></div>
+          </div>
+        </div>
         <div className="flex items-center gap-1.5">
           {!showRecordedRuns && (
             <section data-skyline-extension="queue-recorded-runs" data-skyline-protected="queue-detail-recorded-runs" aria-label="Recorded runs">
@@ -66,18 +70,10 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Recorded Runs" formattedValue={data.queueTarget.recordedRuns} protectedMarker="queue-detail-recorded-runs-stat" capabilityBoundary="queue-detail-concurrency" />
-        <QueueBigNumber title="Queue-time samples" value={data.queueTarget.queueTimeSampleCount} protectedMarker="queue-detail-queue-time-samples" />
-        <QueueBigNumber title="Median queue time" formattedValue={data.queueTarget.medianQueueTime} protectedMarker="queue-detail-median" />
-        <QueueBigNumber title="Queue time p95" formattedValue={data.queueTarget.p95QueueTime} protectedMarker="queue-detail-p95" />
+        <QueueBigNumber title="Concurrency" formattedValue="Unavailable" capabilityBoundary="queue-detail-concurrency" />
+        <QueueBigNumber title="Recorded Runs" formattedValue={data.queueTarget.recordedRuns} suffix={`Recorded queued ${data.queueTarget.recordedRunCounts.queued.toLocaleString()}`} protectedMarker="queue-detail-recorded-runs-stat" />
         <QueueBigNumber title="Maximum queue time" formattedValue={data.queueTarget.maximumQueueTime} protectedMarker="queue-detail-maximum" />
       </MetricsLayout.Grid>
-      <MetricsLayout.Content inset>
-        <section data-skyline-protected="queue-detail-status-counts" className="rounded-lg border border-grid-bright bg-background-bright px-4 py-3">
-          <Header3 className="mb-2">Recorded Run status counts</Header3>
-          <RecordedStatusBreakdown counts={data.queueTarget.recordedRunCounts} />
-        </section>
-      </MetricsLayout.Content>
       <MetricsLayout.Content inset>
         <QueueTargetCharts activity={data.activity} queueTime={data.queueTime} recordedRuns={showRecordedRuns ? <RecordedRunsCard data={data} loading={loading} onClose={closeRecordedRuns} /> : undefined} />
       </MetricsLayout.Content>
@@ -87,7 +83,7 @@ export function QueueTargetDetailPresenter({ data, loading }: { data: QueueTarge
 
 function RecordedRunsCard({ data, loading, onClose }: { data: QueueTargetDetailPresentation; loading: boolean; onClose: () => void }) {
   return (
-    <section id="queue-recorded-runs-panel" data-skyline-extension="queue-recorded-runs" data-skyline-protected="queue-detail-recorded-runs" aria-label="Recorded runs" className="h-52 min-w-0 sm:col-span-2" onKeyDown={(event) => {
+    <section id="queue-recorded-runs-panel" data-skyline-extension="queue-recorded-runs" data-skyline-protected="queue-detail-recorded-runs" aria-label="Recorded runs" className="aspect-[2/1] min-w-0 sm:col-span-2 sm:aspect-[4/1]" onKeyDown={(event) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
       event.stopPropagation();
@@ -99,14 +95,10 @@ function RecordedRunsCard({ data, loading, onClose }: { data: QueueTargetDetailP
           <span className="flex items-center gap-1"><QueueRunStatusFilter statuses={data.statusOptions} /><ListPagination list={data} /><Button variant="secondary/small" aria-label="Close recorded runs" onClick={onClose}>Close</Button></span>
         </CardHeader>
         <div id="queue-recorded-runs-content" className="relative min-h-0 flex-1 overflow-auto">
-          {data.runs.length > 0 ? <TaskRunsTable runs={data.runs} isLoading={loading} /> : <RunsEmpty filtered={data.hasAnyRuns && data.hasFilters} />}
+          <TaskRunsList list={{ runs: data.runs, hasAnyRuns: data.hasAnyRuns, hasFilters: data.hasFilters }} isLoading={loading} />
           {loading && data.runs.length === 0 && <div aria-label="Loading Queue-target Runs" className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div>}
         </div>
       </Card>
     </section>
   );
-}
-
-function RunsEmpty({ filtered }: { filtered: boolean }) {
-  return <div className="grid min-h-32 place-items-center text-center"><div><h2 className="font-medium text-text-bright">{filtered ? "No matching Runs" : "No Runs in this range"}</h2><p className="mt-1 text-sm text-text-dimmed">{filtered ? "Change or clear filters to see recorded Runs." : "No confirmed Runs were observed for this Queue target."}</p></div></div>;
 }

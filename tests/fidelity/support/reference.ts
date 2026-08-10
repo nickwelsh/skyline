@@ -4,6 +4,7 @@ import { nw222InspectorState, nw222States, nw222TraceState } from "./nw222";
 import { nw223InspectorState, nw223States, nw223TraceState } from "./nw223";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
 import { fixtureCatalog } from "./skyline";
+import { queueActivityWaitHistory } from "./queue-states";
 
 export const referenceDetailLifecyclePolicy = {
   log: {
@@ -21,9 +22,21 @@ export const referenceDetailLifecyclePolicy = {
       "not-found": "not-found",
     },
   },
+  queue: {
+    defaultSelectionStates: [],
+    pageStates: {
+      loading: "pending",
+      "stale-refresh": "resolved",
+      "api-error": "error",
+      "not-found": "not-found",
+    },
+    resourceStates: {
+      "stale-refresh": "stale",
+    },
+  },
 } as const;
 
-type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentSchedulingDelay" | "environmentThrottled" | "environmentLive" | "live";
+type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "activity" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentSchedulingDelay" | "environmentThrottled" | "environmentLive" | "live";
 
 export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey; includes: string[]; excludes?: string[] }> = [
   { key: "gate", includes: ["peak_keys"] },
@@ -34,8 +47,8 @@ export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey;
   { key: "environmentSchedulingDelay", includes: ["wait_quantiles", "FROM env_metrics"] },
   { key: "environmentThrottled", includes: ["throttled_count", "FROM env_metrics"] },
   { key: "concurrency", includes: ["max(max_running) AS running", "max(max_limit) AS limit"] },
-  { key: "queueDepth", includes: ["max(max_queued) AS queued"], excludes: ["max(max_running)"] },
-  { key: "throughput", includes: ["enqueued", "started"] },
+  { key: "activity", includes: ["max(max_queued) AS queued"], excludes: ["max(max_running)"] },
+  { key: "activity", includes: ["enqueued", "started"] },
   { key: "schedulingDelay", includes: ["wait_quantiles"] },
   { key: "throttled", includes: ["throttled_count"] },
   { key: "live", includes: ["q_limit"] },
@@ -52,6 +65,7 @@ export type ReferenceFixture = {
     spans?: Record<string, unknown>;
     spanStates?: Record<string, Record<string, unknown>>;
     queueMetrics?: Record<string, Array<Record<string, unknown>>>;
+    queueMetricStates?: { activityWaitHistory: Record<string, Array<Record<string, unknown>>> };
   };
   queueMetricMatchers: typeof referenceQueueMetricMatchers;
   sourceFeatureFlags: {
@@ -136,6 +150,9 @@ export async function createReferenceFixture(adapter = new FixtureAdapter()): Pr
       spans: spanStates.exception,
       spanStates: { ...spanStates, ...operationSpanStates },
       queueMetrics: triggerQueueMetricRows(queue, queues),
+      queueMetricStates: {
+        activityWaitHistory: triggerQueueMetricRows(queueActivityWaitHistory(queue), queues),
+      },
     },
     canonicalUrls: {
       "jobs-populated": "/skyline/jobs", "job-found": `/skyline/jobs/${catalog.job}`,
@@ -317,7 +334,11 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
           const key = input.queueMetricMatchers.find(({ includes, excludes = [] }) =>
             includes.every((part) => query.includes(part)) && excludes.every((part) => !query.includes(part)))?.key;
           if (!key) throw new Error(`Unknown Trigger reference Queue metric query: ${query}`);
-          const rows = input.resources?.queueMetrics?.[key];
+          const captureId = decodeURIComponent(location.pathname.replace(/^\/oracle\//, "").split("@")[0] ?? "");
+          const metrics = captureId === "queues-activity-wait-history"
+            ? input.resources?.queueMetricStates?.activityWaitHistory
+            : input.resources?.queueMetrics;
+          const rows = metrics?.[key];
           if (!rows) throw new Error(`Missing Trigger reference Queue metric resource: ${key}`);
           return structuredClone(rows);
         }
@@ -618,8 +639,7 @@ function triggerQueueMetricRows(detail: any, page: any) {
     gate: [{ peak_keys: 0, peak_wait: 0 }],
     peak: [{ peak_queued: Math.max(0, ...activity.map((point: any) => point.queued)), worst_wait: Math.max(0, ...schedulingDelay.map((point: any) => point.p99)) }],
     concurrency: activity.map(({ t, running, limit }: any) => ({ t, running, limit })),
-    queueDepth: activity.map(({ t, queued }: any) => ({ t, queued })),
-    throughput: activity.map(({ t, enqueued, started }: any) => ({ t, enqueued, started })),
+    activity,
     schedulingDelay,
     throttled: activity.map(({ t }: any) => ({ t, throttled: 0 })),
     environmentSaturation: [],

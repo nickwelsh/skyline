@@ -28,13 +28,13 @@ export function QueueBigNumber({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Header3 className="leading-6">{title}</Header3>
       </div>
-      <div data-skyline-capability={capabilityMarker} className="text-[3.75rem] font-normal tabular-nums leading-none text-text-bright">
+      <div data-skyline-capability={capabilityMarker} className="relative text-[3.75rem] font-normal tabular-nums leading-none text-text-bright">
         <div className="flex flex-wrap items-baseline gap-2">
           {formattedValue ?? (value == null ? "–" : value.toLocaleString())}
           {suffix && <div className="text-xs tabular-nums text-text-dimmed">{suffix}</div>}
         </div>
+        {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-0" /> : null}
       </div>
-      {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-0" /> : null}
     </div>
   );
 }

@@ -17,4 +17,12 @@ describe("stale refresh transition", () => {
       transition: "page",
     });
   });
+
+  test("revalidates Queue detail while its observed metric resource stays stale", () => {
+    expect(staleRefreshPlan({ id: "queue-stale-refresh", surface: "queue", state: "stale-refresh", kind: "detail" })).toEqual({
+      referenceState: "stale-refresh",
+      selectedDetail: undefined,
+      transition: "resource",
+    });
+  });
 });

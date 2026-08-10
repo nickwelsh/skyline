@@ -15,6 +15,14 @@ export function staleRefreshPlan(scenario: FidelityScenario) {
     };
   }
 
+  if (scenario.surface === "queue") {
+    return {
+      referenceState: "stale-refresh" as const,
+      selectedDetail: undefined,
+      transition: "resource" as const,
+    };
+  }
+
   return {
     referenceState: undefined,
     selectedDetail: undefined,

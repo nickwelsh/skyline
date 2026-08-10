@@ -26,9 +26,11 @@ export function QueueTargetCharts({
   return (
     <ChartSyncProvider>
       <section aria-label="Queue-target activity" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <MetricChartCard title="Recorded Run status activity" protectedMarker="queue-detail-activity" capabilityBoundary="queue-detail-concurrency-limit" className="aspect-[2/1]" showLegend points={activity.map((point) => ({ timestamp: point.timestamp, ...point.recordedRunCounts }))} series={statuses.map((status) => ({ key: status, color: getRunStatusChartColor(status) ?? "var(--color-queues-chart)", label: `${status[0].toUpperCase()}${status.slice(1)}` }))} />
-        <MetricChartCard title="Scheduling delay" className="aspect-[2/1]" showLegend points={queueTime.map((point) => ({ timestamp: point.timestamp, p50: waitPoint(point.medianUs, point.sampleCount), p95: waitPoint(point.p95Us, point.sampleCount), maximum: waitPoint(point.maximumUs, point.sampleCount) }))} series={[{ key: "p50", color: "#22D3EE", label: "p50" }, { key: "p95", color: "#F59E0B", label: "p95" }, { key: "maximum", color: "#EF4444", label: "Max" }]} valueFormat={formatWaitMs} />
-        <div className="relative h-52 sm:col-span-2">{recordedRuns}<span aria-hidden="true" data-skyline-capability-boundary="queue-detail-throttled" className="pointer-events-none absolute inset-0" /></div>
+        <MetricChartCard title="Concurrency" capabilityBoundary="queue-detail-concurrency-limit" className="aspect-[2/1]" unavailable series={[]} />
+        <MetricChartCard title="Recorded queued activity" protectedMarker="queue-detail-recorded-queued-activity" className="aspect-[2/1]" points={activity.map((point) => ({ timestamp: point.timestamp, queued: point.recordedRunCounts.queued }))} series={[{ key: "queued", color: getRunStatusChartColor("queued") ?? "var(--color-queues-chart)", label: "Queued" }]} />
+        <MetricChartCard title="Recorded Run status activity" protectedMarker="queue-detail-activity" className="aspect-[2/1]" showLegend points={activity.map((point) => ({ timestamp: point.timestamp, ...point.recordedRunCounts }))} series={statuses.map((status) => ({ key: status, color: getRunStatusChartColor(status) ?? "var(--color-queues-chart)", label: `${status[0].toUpperCase()}${status.slice(1)}` }))} />
+        <MetricChartCard title="Scheduling delay" protectedMarker="queue-detail-scheduling-delay" className="aspect-[2/1]" showLegend points={queueTime.map((point) => ({ timestamp: point.timestamp, p50: waitPoint(point.medianUs, point.sampleCount), p95: waitPoint(point.p95Us, point.sampleCount), maximum: waitPoint(point.maximumUs, point.sampleCount) }))} series={[{ key: "p50", color: "#22D3EE", label: "p50" }, { key: "p95", color: "#F59E0B", label: "p95" }, { key: "maximum", color: "#EF4444", label: "Max" }]} valueFormat={formatWaitMs} />
+        {recordedRuns ?? <MetricChartCard title="Throttled" capabilityBoundary="queue-detail-throttled" className="aspect-[2/1] sm:col-span-2 sm:aspect-[4/1]" unavailable series={[]} />}
       </section>
     </ChartSyncProvider>
   );
@@ -44,6 +46,7 @@ export function MetricChartCard({
   valueFormat,
   warningOverlay,
   simpleEmpty = false,
+  unavailable = false,
   capabilityMarker,
   capabilityBoundary,
   protectedMarker,
@@ -57,18 +60,21 @@ export function MetricChartCard({
   valueFormat?: (value: number) => string;
   warningOverlay?: { series: string; below: string; color?: string };
   simpleEmpty?: boolean;
+  unavailable?: boolean;
   capabilityMarker?: string;
   capabilityBoundary?: string;
   protectedMarker?: string;
 }) {
   return (
     <div data-skyline-protected={protectedMarker} className={`relative ${className ?? "h-full"}`}>
-      <ChartCard title={<span className="flex min-h-6 flex-col gap-1"><span className="flex items-center gap-1">{title}<button type="button" aria-label={`${title} information`} title={`${title} from captured Queue activity.`} className="rounded-sm text-text-dimmed focus-custom"><InformationCircleIcon className="size-3.5" /></button></span>{showLegend && points.length > 0 ? <span className="flex flex-wrap items-center gap-2">{[...series, ...(extraLegend ?? []).map((item) => ({ ...item, key: item.label }))].map((item) => <span key={item.key} className="flex items-center gap-1 text-xs font-normal text-text-dimmed"><span className="size-2.5 rounded-[2px]" style={{ backgroundColor: item.color }} />{item.label}</span>)}</span> : null}</span>}>
-        {simpleEmpty && points.length === 0
+      <ChartCard title={<span className="flex min-h-6 flex-col gap-1"><span className="flex items-center gap-1">{title}<button type="button" aria-label={`${title} information`} title={`${title}${unavailable ? " is unavailable" : ""} from captured Queue activity.`} className="rounded-sm text-text-dimmed focus-custom"><InformationCircleIcon className="size-3.5" /></button></span>{showLegend && points.length > 0 ? <span className="flex flex-wrap items-center gap-2">{[...series, ...(extraLegend ?? []).map((item) => ({ ...item, key: item.label }))].map((item) => <span key={item.key} className="flex items-center gap-1 text-xs font-normal text-text-dimmed"><span className="size-2.5 rounded-[2px]" style={{ backgroundColor: item.color }} />{item.label}</span>)}</span> : null}</span>}>
+        {unavailable
+          ? <div role="img" aria-label={`${title} unavailable`} className="grid h-full place-items-center text-xs text-text-dimmed">Unavailable</div>
+          : simpleEmpty && points.length === 0
           ? <div role="img" aria-label={`${title} chart`} className="grid h-full place-items-center text-xs text-text-dimmed">No activity</div>
           : <QueueMetricSeries title={title} points={points} series={series} valueFormat={valueFormat} warningOverlay={warningOverlay} capabilityMarker={capabilityMarker} />}
       </ChartCard>
-      {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-0" /> : null}
+      {capabilityBoundary ? <span aria-hidden="true" data-skyline-capability-boundary={capabilityBoundary} className="pointer-events-none absolute inset-x-0 bottom-0 top-10" /> : null}
     </div>
   );
 }

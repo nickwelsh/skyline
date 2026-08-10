@@ -3,6 +3,7 @@ import { FixtureAdapter } from "../../../resources/js/skyline/FixtureAdapter";
 import fixture from "../fixtures.json" with { type: "json" };
 import { isNw222State, nw222InspectorState, nw222TraceState } from "./nw222";
 import { isNw223State, nw223InspectorState, nw223TraceState } from "./nw223";
+import { queueActivityWaitHistory } from "./queue-states";
 
 const rootStates = new Set(["loading", "populated", "initial-empty", "filtered-empty", "api-error"]);
 const detailStates = new Set(["loading", "found", "stale-refresh", "api-error", "not-found"]);
@@ -165,6 +166,9 @@ function period(search: URLSearchParams) {
 function ownedResponse(response: unknown, scenario: FidelityScenario, path: string) {
   if (scenario.kind !== "owned") return response;
   const clone = structuredClone(response) as Record<string, any>;
+  if (scenario.id === "queues-activity-wait-history" && /^queues\/[^/]+$/.test(path)) {
+    return queueActivityWaitHistory(clone as never);
+  }
   if (scenario.surface === "runs" && isNw222State(scenario.state)) {
     if (/^runs\/[^/]+$/.test(path)) return nw222TraceState(clone as never, scenario.state);
     const inspector = path.match(/^runs\/[^/]+\/nodes\/(.+)$/);

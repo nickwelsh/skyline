@@ -44,13 +44,12 @@ export function queueCapabilityDefinitions(matrix: FidelityMatrix): CapabilityOm
   const detailProtected = [
     skylineProtectedSelector("detail-identity", "[data-skyline-protected='queue-detail-identity']"),
     skylineProtectedSelector("period", "[data-skyline-protected='queue-period']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
+    skylineProtectedSelector("detail-overview", "[data-skyline-protected='queue-detail-overview']"),
     skylineProtectedSelector("detail-recorded-runs-stat", "[data-skyline-protected='queue-detail-recorded-runs-stat']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-queue-time-samples", "[data-skyline-protected='queue-detail-queue-time-samples']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
-    skylineProtectedSelector("detail-median", "[data-skyline-protected='queue-detail-median']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-p95", "[data-skyline-protected='queue-detail-p95']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-maximum", "[data-skyline-protected='queue-detail-maximum']", { allowBelowViewport: true }),
-    skylineProtectedSelector("detail-status-counts", "[data-skyline-protected='queue-detail-status-counts']", { allowBelowViewport: true }),
+    skylineProtectedSelector("detail-recorded-queued-activity", "[data-skyline-protected='queue-detail-recorded-queued-activity']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-activity", "[data-skyline-protected='queue-detail-activity']", { allowBelowViewport: true }),
+    skylineProtectedSelector("detail-scheduling-delay", "[data-skyline-protected='queue-detail-scheduling-delay']", { allowBelowViewport: true, allowRightOfViewport: mobileProtectedSelectorViewport }),
     skylineProtectedSelector("detail-recorded-runs", "[data-skyline-protected='queue-detail-recorded-runs']", { allowRightOfViewport: mobileProtectedSelectorViewport }),
   ];
 

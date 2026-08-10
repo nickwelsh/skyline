@@ -9,13 +9,15 @@ import { ListPagination } from "~/components/ListPagination";
 import { MetricsLayout } from "~/components/layout/MetricsLayout";
 import {
   Table,
+  TableBlankRow,
   TableBody,
   TableCell,
   TableHeader,
   TableHeaderCell,
   TableRow,
 } from "~/components/primitives/Table";
-import { Spinner } from "~/components/primitives/Spinner";
+import { DateTimeShort } from "~/components/primitives/DateTime";
+import { Paragraph } from "~/components/primitives/Paragraph";
 import type { RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { QueueBigNumber } from "./QueueBigNumber";
 import { QueueConnectionFilter, QueuePeriodFilter, QueueSearchFilter, type QueueTimeRangeOption } from "./QueueTargetFilters";
@@ -58,22 +60,19 @@ export function QueueTargetsPresenter({ data, loading }: { data: QueueTargetsPre
         </div>
       </MetricsLayout.Filters>
       <MetricsLayout.Grid>
-        <QueueBigNumber title="Recorded queued" value={data.environment.queued} suffix="Runs" protectedMarker="queue-root-recorded-queued" capabilityBoundary="queue-root-environment-limit" />
+        <QueueBigNumber title="Recorded queued" value={data.environment.queued} suffix="Runs" protectedMarker="queue-root-recorded-queued" />
         <QueueBigNumber title="Recorded running" value={data.environment.running} suffix="Runs" protectedMarker="queue-root-recorded-running" capabilityBoundary="queue-root-running" />
+        <QueueBigNumber title="Allocated" formattedValue="–" />
+        <QueueBigNumber title="Environment limit" formattedValue="Unavailable" capabilityBoundary="queue-root-environment-limit" />
       </MetricsLayout.Grid>
       <MetricsLayout.Content>
-        <div className="relative min-h-32">
-          {data.queueTargets.length > 0
-            ? <QueueTargetsTable targets={data.queueTargets} loading={loading} />
-            : <QueueTargetsEmpty filtered={data.hasAnyQueueTargets && data.hasFilters} />}
-          {loading && data.queueTargets.length === 0 && <LoadingState label="Loading Queue targets" />}
-        </div>
+        <QueueTargetsTable targets={data.queueTargets} loading={loading} filtered={data.hasAnyQueueTargets && data.hasFilters} />
       </MetricsLayout.Content>
     </MetricsLayout.Root>
   );
 }
 
-function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget[]; loading: boolean }) {
+function QueueTargetsTable({ targets, loading, filtered }: { targets: PresentedQueueTarget[]; loading: boolean; filtered: boolean }) {
   return (
     <div data-skyline-protected="queue-list-target-evidence"><Table containerClassName="border-t">
       <TableHeader>
@@ -85,10 +84,12 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
           <TableHeaderCell alignment="right">Median</TableHeaderCell>
           <TableHeaderCell alignment="right">p95</TableHeaderCell>
           <TableHeaderCell alignment="right">Max</TableHeaderCell>
+          <TableHeaderCell>First observed</TableHeaderCell>
+          <TableHeaderCell>Last observed</TableHeaderCell>
         </TableRow>
       </TableHeader>
       <TableBody aria-busy={loading} className={loading ? "opacity-50" : undefined}>
-        {targets.map((target) => (
+        {targets.length > 0 ? targets.map((target) => (
           <TableRow key={target.id}>
             <TableCell
               to={target.path}
@@ -104,8 +105,12 @@ function QueueTargetsTable({ targets, loading }: { targets: PresentedQueueTarget
             <MetricCell target={target} value={target.medianQueueTime} bright={target.queueTimeSampleCount > 0} />
             <TableCell to={target.path} alignment="right" capabilityBoundary={target.recordedRunCounts.queued > 0 ? `queue-target-${target.id}-health` : undefined} actionClassName="pl-16 tabular-nums" className={target.queueTimeSampleCount > 0 ? "w-[1%] text-text-bright" : "w-[1%]"}>{target.p95QueueTime}</TableCell>
             <TableCell to={target.path} alignment="right" capabilityBoundary={`queue-target-${target.id}-pause-resume`} actionClassName="pl-16 tabular-nums" className={target.queueTimeSampleCount > 0 ? "w-[1%] text-text-bright" : "w-[1%]"}>{target.maximumQueueTime}</TableCell>
+            <TableCell to={target.path}>{target.firstObservedAt ? <DateTimeShort date={target.firstObservedAt} /> : "–"}</TableCell>
+            <TableCell to={target.path}>{target.lastObservedAt ? <DateTimeShort date={target.lastObservedAt} /> : "–"}</TableCell>
           </TableRow>
-        ))}
+        )) : (
+          <TableBlankRow colSpan={9}>{!loading ? <Paragraph className="w-auto">{filtered ? "No queues found matching your filters" : "No queues found"}</Paragraph> : null}</TableBlankRow>
+        )}
       </TableBody>
     </Table></div>
   );
@@ -123,12 +128,4 @@ export function RecordedStatusBreakdown({ counts }: { counts: Record<RunStatus, 
       ))}
     </dl>
   );
-}
-
-function QueueTargetsEmpty({ filtered }: { filtered: boolean }) {
-  return <div className="grid min-h-32 place-items-center py-6 text-center text-text-dimmed"><h2 className="font-medium text-text-bright">{filtered ? "No queues found matching your filters" : "No queues found"}</h2></div>;
-}
-
-function LoadingState({ label }: { label: string }) {
-  return <div aria-label={label} className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div>;
 }

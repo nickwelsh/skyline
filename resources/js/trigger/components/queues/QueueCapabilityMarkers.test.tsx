@@ -24,11 +24,11 @@ describe("Queue truthfulness", () => {
     expect(boundaries).toHaveLength(16);
     expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.childElementCount === 0 && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none"))).toBe(true);
     expect(container.querySelectorAll("[data-skyline-protected]")).toHaveLength(6);
-    expect(container.textContent).toContain("Recorded queued");
-    expect(container.textContent).toContain("Recorded running");
+    for (const label of ["Recorded queued", "Recorded running", "Allocated", "Environment limit"]) expect(container.textContent).toContain(label);
     expect(container.textContent).toContain("redis / reports");
-    for (const label of ["Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max", "queued", "running", "retrying", "completed", "failed"]) expect(container.textContent).toContain(label);
-    expect(container.textContent).not.toMatch(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/);
+    for (const label of ["Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max", "First observed", "Last observed", "queued", "running", "retrying", "completed", "failed"]) expect(container.textContent).toContain(label);
+    expect(container.textContent).not.toMatch(/Limited by|Backlog|Pause\/resume/);
+    expect(container.querySelectorAll("thead th")).toHaveLength(9);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-filter-controls"]')).toHaveLength(1);
     expect(container.querySelectorAll('[data-skyline-anchor="queue-period-filter"]')).toHaveLength(1);
     expect(container.querySelectorAll('label[data-skyline-extension="queue-connection-filter"]')).toHaveLength(1);
@@ -51,14 +51,14 @@ describe("Queue truthfulness", () => {
       "queue-detail-throttled",
     ]);
     expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.childElementCount === 0 && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none"))).toBe(true);
-    expect(container.querySelectorAll("[data-skyline-protected]")).toHaveLength(9);
-    for (const label of ["Recorded Runs", "Queue-time samples", "Median queue time", "Queue time p95", "Maximum queue time", "Recorded Run status counts"]) expect(container.textContent).toContain(label);
+    expect(container.querySelectorAll("[data-skyline-protected]")).toHaveLength(8);
+    for (const label of ["Overview", "Recorded Runs", "Recorded queued", "Maximum queue time", "Recorded queued activity", "Recorded Run status activity", "Scheduling delay"]) expect(container.textContent).toContain(label);
     for (const status of ["queued", "running", "retrying", "completed", "failed"]) expect(container.textContent).toContain(status);
-    expect(container.textContent).not.toMatch(/Concurrency|Oldest wait|Queue depth|Throttled|No concurrency keys configured/);
+    expect(container.textContent).not.toMatch(/Oldest wait|Queue depth|No concurrency keys configured|Recorded Run status counts/);
     expect(container.querySelector('button[aria-label="Concurrency keys"]')).toBeNull();
     expect(container.querySelector('[role="img"][aria-label="Recorded Run status activity chart"]')).not.toBeNull();
     expect(container.querySelector('[role="img"][aria-label="Scheduling delay chart"]')).not.toBeNull();
-    expect(container.querySelector("[aria-label='Queue-target activity']")?.lastElementChild?.className).toBe("relative h-52 sm:col-span-2");
+    expect(container.querySelectorAll("[aria-label='Queue-target activity'] [role='img']")).toHaveLength(5);
     const extension = container.querySelector<HTMLElement>("[data-skyline-extension='queue-recorded-runs']")!;
     const period = container.querySelector<HTMLElement>("[data-skyline-anchor='queue-period-filter']")!;
     expect(extension.hasAttribute("data-skyline-capability")).toBe(false);

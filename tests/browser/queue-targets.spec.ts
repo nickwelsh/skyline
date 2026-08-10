@@ -22,13 +22,13 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page.getByText("redis / this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "redis / shared", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "sqs / shared", exact: true })).toBeVisible();
-  for (const metric of ["Recorded queued", "Recorded running"]) {
+  for (const metric of ["Recorded queued", "Recorded running", "Allocated", "Environment limit"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const column of ["Name", "Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max"]) {
+  for (const column of ["Name", "Recorded Runs", "Status counts", "Queue-time samples", "Median", "p95", "Max", "First observed", "Last observed"]) {
     await expect(page.getByRole("columnheader", { name: column, exact: true })).toBeVisible();
   }
-  await expect(page.getByText(/Allocated|Environment limit|Limited by|Backlog|Pause\/resume/)).toHaveCount(0);
+  await expect(page.getByText(/Limited by|Backlog|Pause\/resume/)).toHaveCount(0);
   await expect(page.getByText("Broker depth")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /pause|resume/i })).toHaveCount(0);
 
@@ -70,16 +70,18 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(page).toHaveURL(new RegExp(`/skyline/queues/${queueId}`));
   await expect(page.getByRole("heading", { name: "redis / this-is-a-very-long-observed-billing-queue-name-that-must-not-distort-the-table" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Concurrency keys" })).toHaveCount(0);
-  for (const metric of ["Recorded Runs", "Queue-time samples", "Median queue time", "Queue time p95", "Maximum queue time"]) {
+  for (const metric of ["Concurrency", "Recorded Runs", "Maximum queue time"]) {
     await expect(page.getByRole("heading", { name: metric }).first()).toBeVisible();
   }
-  for (const chart of ["Recorded Run status activity", "Scheduling delay"]) {
+  for (const chart of ["Recorded queued activity", "Recorded Run status activity", "Scheduling delay"]) {
     await expect(page.getByRole("img", { name: `${chart} chart` })).toBeVisible();
   }
-  await expect(page.getByRole("group", { name: "Recorded Run status counts" })).toContainText("retrying");
+  await expect(page.getByText("Retrying", { exact: true })).toBeVisible();
   await expect(page.getByText("Max", { exact: true })).toBeVisible();
   await expect(page.getByText(/Throughput|Started|Falling behind|p99/)).toHaveCount(0);
-  await expect(page.getByText(/Concurrency|Oldest wait|Queue depth|Throttled/)).toHaveCount(0);
+  await expect(page.getByText(/Oldest wait|Queue depth/)).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "Concurrency unavailable" })).toContainText("Unavailable");
+  await expect(page.getByRole("img", { name: "Throttled unavailable" })).toContainText("Unavailable");
   await expect(page.getByText("Recorded Runs, not broker depth")).toHaveCount(0);
   const recordedRuns = page.getByRole("region", { name: "Recorded runs" });
   await expect(recordedRuns).toBeVisible();
@@ -92,7 +94,7 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
   await expect(recordedRunsButton).toBeFocused();
   await recordedRunsButton.press("Enter");
   await expect(recordedRuns.getByRole("table")).toBeVisible();
-  await expect(recordedRuns).toHaveCSS("height", "208px");
+  expect(await recordedRuns.getAttribute("class")).toContain("sm:aspect-[4/1]");
   await expect(recordedRunsButton).toHaveAttribute("aria-expanded", "true");
   await expect(recordedRunsButton).toHaveAttribute("aria-controls", "queue-recorded-runs-content");
   expect(await charts.boundingBox()).toEqual(chartBounds);
@@ -110,7 +112,7 @@ test("Queues preserve URL filters, keyboard clearing, detail charts, pagination,
 
   await page.getByLabel("Run status", { exact: true }).selectOption(["failed"]);
   await expect(page).toHaveURL(/status=failed/);
-  await recordedRuns.getByText("Invoice", { exact: true }).click();
+  await recordedRuns.getByText("App\\Jobs\\Invoice", { exact: true }).click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run_1$/);
 });
 
@@ -206,10 +208,10 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
 
   mode = "initial-empty";
   await page.goto("/skyline/queues");
-  await expect(page.getByRole("heading", { name: "No queues found" })).toBeVisible();
+  await expect(page.getByText("No queues found", { exact: true })).toBeVisible();
   mode = "filtered-empty";
   await page.goto("/skyline/queues?search=missing");
-  await expect(page.getByRole("heading", { name: "No queues found matching your filters" })).toBeVisible();
+  await expect(page.getByText("No queues found matching your filters", { exact: true })).toBeVisible();
   mode = "error";
   await page.goto("/skyline/queues");
   await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
@@ -221,13 +223,13 @@ test("Queues cover loading, initial-empty, filtered-empty, API-error, not-found,
   detailMode = "filtered-empty";
   await page.goto(`/skyline/queues/${queueId}?status=failed`);
   await page.getByRole("region", { name: "Recorded runs" }).getByRole("button", { name: "Recorded runs" }).click();
-  await expect(page.getByRole("heading", { name: "No matching Runs" })).toBeVisible();
+  await expect(page.getByText("No runs match your filters.", { exact: true })).toBeVisible();
   detailMode = "populated";
   delayDetail = true;
   await page.getByLabel("Run status", { exact: true }).selectOption([]);
   await expect(page.getByLabel("Loading Queue-target Runs")).toBeVisible();
   delayDetail = false;
-  await expect(page.getByText("Invoice", { exact: true })).toBeVisible();
+  await expect(page.getByText("App\\Jobs\\Invoice", { exact: true })).toBeVisible();
   detailMode = "idle";
   await page.reload();
   await expect(page.getByRole("heading", { name: "Recorded Runs" }).first()).toBeVisible();
@@ -269,7 +271,15 @@ test("Queues cursor-paginate list and recorded Runs through URL-backed API reads
   await expect(page.getByText("redis / billing", { exact: true })).toBeVisible();
 
   await page.goto(`/skyline/queues/${queueId}?cursor=next-runs&direction=forward`);
-  await expect(page.getByRole("region", { name: "Recorded runs" }).getByRole("table")).toBeVisible();
+  const recordedRuns = page.getByRole("region", { name: "Recorded runs" });
+  await expect(recordedRuns.getByRole("table")).toBeVisible();
+  for (const column of ["ID", "Job", "Status", "Started", "Duration", "Queue"]) {
+    await expect(recordedRuns.getByRole("columnheader", { name: column, exact: true })).toBeVisible();
+  }
+  const violations = (await new AxeBuilder({ page }).include('#queue-recorded-runs-panel').analyze()).violations
+    .filter((violation) => violation.impact === "serious" || violation.impact === "critical")
+    .map((violation) => ({ id: violation.id, nodes: violation.nodes.length }));
+  expect(violations).toEqual([{ id: "button-name", nodes: 2 }]);
   await expect(page).toHaveURL(/cursor=next-runs&direction=forward/);
   await expect(page.getByText("run_2", { exact: true })).toBeVisible();
   await page.locator('a[href*="direction=backward"]').click();
