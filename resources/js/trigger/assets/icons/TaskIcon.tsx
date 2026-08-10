@@ -24,3 +24,18 @@ export function TaskIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function TaskIconSmall({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="9" y="14" width="2" height="4" rx="1" fill="currentColor" />
+      <rect x="9" y="2" width="2" height="4" rx="1" fill="currentColor" />
+      <rect x="11" y="9" width="2" height="9" rx="1" transform="rotate(90 11 9)" fill="currentColor" />
+      <rect x="18" y="9" width="2" height="4" rx="1" transform="rotate(90 18 9)" fill="currentColor" />
+      <rect x="5.0531" y="16.3611" width="2" height="8.99589" rx="1" transform="rotate(-135 5.0531 16.3611)" fill="currentColor" />
+      <rect x="13.3185" y="8.09583" width="2" height="4" rx="1" transform="rotate(-135 13.3185 8.09583)" fill="currentColor" />
+      <rect x="16.2304" y="14.8163" width="2" height="4.00064" rx="1" transform="rotate(135 16.2304 14.8163)" fill="currentColor" />
+      <rect x="11.4161" y="10.002" width="2" height="8.99796" rx="1" transform="rotate(135 11.4161 10.002)" fill="currentColor" />
+    </svg>
+  );
+}

@@ -62,10 +62,10 @@ test("paired pinned Trigger Logs preserve list/detail geometry, selection, links
   await page.goto("/skyline/logs");
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Logs" })).toHaveAttribute("href", "/skyline/logs");
   await expect(page.getByPlaceholder("Search logs…")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Tasks/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Run ID/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Created: 1hr/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Level/ })).toBeVisible();
+  await expect(filterCombobox(page, /Tasks/)).toBeVisible();
+  await expect(filterCombobox(page, /Run ID/)).toBeVisible();
+  await expect(filterCombobox(page, /Created:/)).toContainText("1 hr");
+  await expect(filterCombobox(page, /Level/)).toBeVisible();
   await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["Time", "Run", "Task", "Level", "Message"]);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   expect(await visuals(page)).toEqual(referenceList);
@@ -155,19 +155,31 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await expect(page).toHaveURL(/levels=ERROR/);
   await toggleLevel(page, "WARN");
   await expect(page).toHaveURL(/levels=ERROR&levels=WARN/);
-  await page.getByRole("button", { name: /^Tasks$/ }).click();
-  await page.getByRole("menuitemcheckbox", { name: "App\\Jobs\\GenerateMonthlyInvoices" }).click();
-  await page.getByRole("button", { name: /^Run ID$/ }).click();
-  await page.getByLabel("Run ID value").fill("run_invoice");
+  const taskRequest = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/skyline/api/logs") && new URL(request.url()).searchParams.get("jobType") === "App\\Jobs\\GenerateMonthlyInvoices");
+  await filterCombobox(page, /^Tasks$/).click();
+  const taskOption = page.getByRole("option", { name: "App\\Jobs\\GenerateMonthlyInvoices" });
+  await expect(page.getByRole("listbox").filter({ has: taskOption })).not.toHaveAttribute("aria-multiselectable", "true");
+  await taskOption.click();
+  await taskRequest;
+  await expect(page).toHaveURL(/tasks=App%5CJobs%5CGenerateMonthlyInvoices/);
+  await filterCombobox(page, /^Run ID$/).click();
+  const runId = page.getByPlaceholder("run_");
+  await expect(runId).toHaveAttribute("maxlength", "512");
+  await expect(page.getByRole("button", { name: "Apply" })).toBeDisabled();
+  await runId.fill("run_invoice");
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(/runId=run_invoice/);
-  await page.getByRole("button", { name: /Created:/ }).click();
-  await page.getByRole("menuitemcheckbox", { name: "Last 7 days" }).click();
-  await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
+  await filterCombobox(page, /Created:/).click();
+  await expect(page.getByPlaceholder("Custom")).toHaveCount(0);
+  await expect(page.getByText("Or specify exact time range")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "1 min" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Last 7 days" }).click();
+  await expect(page).toHaveURL(/tasks=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/runId=run_invoice/);
   await expect(page).toHaveURL(/period=7d/);
   await expect(page.getByLabel("Loading Telemetry events")).toHaveCount(0);
-  await page.getByRole("menuitemcheckbox", { name: "All time" }).click();
+  await filterCombobox(page, /Created:/).click();
+  await page.getByRole("button", { name: "All time" }).click();
   await expect(page).toHaveURL(/period=all/);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(/\/skyline\/logs$/);
@@ -176,6 +188,20 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await expect(page.getByText("Showing all 2 logs")).toHaveCount(0);
   await page.locator('a[href*="cursor=opaque-previous"]').click();
   await expect(page).toHaveURL(/cursor=opaque-previous&direction=backward/);
+});
+
+test("Logs unsupported direct URL filters fail closed", async ({ page }) => {
+  await routeLogs(page);
+  const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/skyline/api/logs"));
+  await page.goto("/skyline/logs?period=5m&from=1785888000000&to=1785891600000&levels=FATAL");
+  const request = new URL((await requestPromise).url());
+
+  expect(request.searchParams.has("period")).toBe(false);
+  expect(request.searchParams.has("from")).toBe(false);
+  expect(request.searchParams.has("to")).toBe(false);
+  expect(request.searchParams.has("levels[]")).toBe(false);
+  await expect(filterCombobox(page, /Created:/)).toContainText("1 hr");
+  await expect(filterCombobox(page, /Level/)).not.toContainText("FATAL");
 });
 
 test("Logs cover operation/log, loading, long, capture-disabled, empty, filtered-empty, errors, and detail failures", async ({ page }) => {
@@ -259,9 +285,13 @@ async function routeLogs(page: Page, options: { paginate?: boolean } = {}) {
 }
 
 async function toggleLevel(page: Page, level: string) {
-  const option = page.getByRole("menuitemcheckbox", { name: level });
-  if (!await option.isVisible()) await page.getByRole("button", { name: /Level/ }).click();
+  const option = page.getByRole("option", { name: level });
+  if (!await option.isVisible()) await filterCombobox(page, /Level/).click();
   await option.click();
+}
+
+function filterCombobox(page: Page, text: RegExp) {
+  return page.getByRole("combobox").filter({ hasText: text });
 }
 
 function listResponse(url = new URL("https://example.test")): TelemetryEventsPageDto {

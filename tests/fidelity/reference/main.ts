@@ -138,16 +138,11 @@ function ReferenceRoot() {
     document.documentElement.dataset.oracleFixtureVersion = fixtureVersion;
     delete document.documentElement.dataset.oracleReady;
     const defaultSearch = referencePort().defaultSearch?.(capture.id);
-    if (defaultSearch && !location.search && !["loading", "stale-refresh", "api-error", "not-found"].includes(capture.state)) {
+    if (defaultSearch && !location.search) {
       void navigate(`${location.pathname}?${defaultSearch}`, { replace: true });
       return;
     }
-    const refreshState = capture.state === "stale-refresh";
-    if (refreshState && !location.search.includes("__oracle_refresh=1") && navigation.state === "idle") {
-      void navigate(`${location.pathname}?__oracle_refresh=1`, { replace: true });
-      return;
-    }
-    if (navigation.state !== (refreshState ? "loading" : "idle")) return;
+    if (navigation.state !== "idle") return;
     let cancelled = false;
     void document.fonts.ready.then(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))).then(() => {
       if (!cancelled) document.documentElement.dataset.oracleReady = "true";

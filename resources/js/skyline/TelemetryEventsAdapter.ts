@@ -42,7 +42,7 @@ export function telemetryEventsQuery(request: Request): TelemetryEventsQuery {
   return compactQuery({
     search: queryValue(params, "search"),
     levels: levels.length > 0 ? levels : undefined,
-    jobType: queryValue(params, "jobType"),
+    jobType: queryValue(params, "tasks") ?? queryValue(params, "jobType"),
     runId: queryValue(params, "runId"),
     period: period(params.get("period")),
     cursor: queryValue(params, "cursor"),

@@ -15,6 +15,7 @@ import { measurePixels } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
+import { transitionToStaleRefresh } from "./support/stale-refresh";
 
 const root = resolve(import.meta.dirname, "../..");
 const captures = expectedCaptureIds(matrix as unknown as FidelityMatrix);
@@ -39,18 +40,7 @@ for (const capture of captures) {
     ]);
     await reference.locator("html[data-oracle-ready='true']").waitFor();
     if (scenario.state === "stale-refresh") {
-      await Promise.all([
-        fixture.initialStateReady,
-        reference.waitForFunction(() => Boolean((window as typeof window & { __oracleRouter?: { state?: { loaderData?: Record<string, unknown> } } }).__oracleRouter?.state?.loaderData?.["reference-surface-page"])),
-      ]);
-      fixture.setState("loading");
-      await page.evaluate(() => {
-        const url = new URL(location.href);
-        url.searchParams.set("oracleRefresh", "1");
-        history.pushState(null, "", url);
-        dispatchEvent(new PopStateEvent("popstate"));
-      });
-      await page.clock.runFor(10);
+      await transitionToStaleRefresh(page, reference, fixture, scenario);
     }
     await Promise.all([exposeOwnedState(page, scenario, "skyline"), exposeOwnedState(reference, scenario, "trigger")]);
     await waitForDifferenceRegions(reference, page, capture, allowedDifferences as unknown as AllowedDifferences);

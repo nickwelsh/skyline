@@ -1,6 +1,7 @@
 /*!
  * Literal reached TimeFilter closure from Trigger.dev apps/webapp/app/components/runs/v3/SharedFilters.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
+ * Optional inputs condition values to a host's server-backed time contract.
  */
 import * as Ariakit from "@ariakit/react";
 import {
@@ -364,6 +365,10 @@ export interface TimeFilterProps {
   maxPeriodDays?: number;
   /** Optional className override for the value text in the filter pill */
   valueClassName?: string;
+  /** Restrict preset periods to values backed by the current server contract. */
+  periodOptions?: ReadonlyArray<{ label: string; value: string }>;
+  /** Hide custom durations and date ranges when the server cannot apply them. */
+  allowCustomValues?: boolean;
 }
 
 export function TimeFilter({
@@ -378,15 +383,22 @@ export function TimeFilter({
   onValueChange,
   maxPeriodDays,
   valueClassName,
+  periodOptions,
+  allowCustomValues = true,
 }: TimeFilterProps = {}) {
   const { value } = useSearchParams();
   // In controlled mode (onValueChange provided) the caller owns all three values via local
   // state, so don't fall back to the URL — otherwise selecting a custom date range (which
   // sets period to undefined) would read the page-level URL period and override the range.
   const controlled = onValueChange !== undefined;
-  const periodValue = controlled ? period : (period ?? value("period"));
-  const fromValue = controlled ? from : (from ?? value("from"));
-  const toValue = controlled ? to : (to ?? value("to"));
+  const rawPeriodValue = controlled ? period : (period ?? value("period"));
+  const rawFromValue = controlled ? from : (from ?? value("from"));
+  const rawToValue = controlled ? to : (to ?? value("to"));
+  const periodValue = allowCustomValues || !periodOptions || periodOptions.some((option) => option.value === rawPeriodValue)
+    ? rawPeriodValue
+    : undefined;
+  const fromValue = allowCustomValues ? rawFromValue : undefined;
+  const toValue = allowCustomValues ? rawToValue : undefined;
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useShortcutKeys({
@@ -447,6 +459,8 @@ export function TimeFilter({
           applyShortcut={applyShortcut}
           onValueChange={onValueChange}
           maxPeriodDays={maxPeriodDays}
+          periodOptions={periodOptions}
+          allowCustomValues={allowCustomValues}
         />
       )}
     </FilterMenuProvider>
@@ -477,6 +491,8 @@ export function TimeDropdown({
   onApply,
   onValueChange,
   maxPeriodDays,
+  periodOptions,
+  allowCustomValues = true,
 }: {
   trigger: ReactNode;
   period?: string;
@@ -490,6 +506,8 @@ export function TimeDropdown({
   onValueChange?: (values: TimeFilterApplyValues) => void;
   /** When set an upgrade message will be shown if you select a period further back than this number of days */
   maxPeriodDays?: number;
+  periodOptions?: ReadonlyArray<{ label: string; value: string }>;
+  allowCustomValues?: boolean;
 }) {
   const [open, setOpen] = useState<boolean | undefined>();
   const { replace } = useSearchParams();
@@ -497,7 +515,8 @@ export function TimeDropdown({
   const [toValue, setToValue] = useState(to);
 
   // Section selection state: "duration" or "dateRange"
-  const initialSection: SectionType = from || to ? "dateRange" : "duration";
+  const availablePeriods = periodOptions ?? timePeriods;
+  const initialSection: SectionType = allowCustomValues && (from || to) ? "dateRange" : "duration";
   const [activeSection, setActiveSection] = useState<SectionType>(initialSection);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [selectedQuickDate, setSelectedQuickDate] = useState<string | null>(null);
@@ -505,7 +524,7 @@ export function TimeDropdown({
   // Selection state: preset value or "custom"
   const initialCustom = getInitialCustomDuration(period);
   const isInitialCustom =
-    period && !timePeriods.some((p) => p.value === period) && initialCustom.value !== "";
+    allowCustomValues && period && !availablePeriods.some((p) => p.value === period) && initialCustom.value !== "";
   const [selectedPeriod, setSelectedPeriod] = useState<string>(
     isInitialCustom ? "custom" : (period ?? defaultPeriod)
   );
@@ -520,10 +539,10 @@ export function TimeDropdown({
     setCustomValue(parsed.value);
     setCustomUnit(parsed.unit);
 
-    const isCustom = period && !timePeriods.some((p) => p.value === period) && parsed.value !== "";
+    const isCustom = allowCustomValues && period && !availablePeriods.some((p) => p.value === period) && parsed.value !== "";
     setSelectedPeriod(isCustom ? "custom" : (period ?? defaultPeriod));
-    setActiveSection(from || to ? "dateRange" : "duration");
-  }, [period, from, to, defaultPeriod]);
+    setActiveSection(allowCustomValues && (from || to) ? "dateRange" : "duration");
+  }, [period, from, to, defaultPeriod, allowCustomValues, availablePeriods]);
 
   const isCustomDurationValid = (() => {
     const value = parseInt(customValue, 10);
@@ -683,7 +702,7 @@ export function TimeDropdown({
               </Label>
               <div className="grid grid-cols-4 gap-2">
                 {/* Custom duration row */}
-                <div
+                {allowCustomValues && <div
                   className={cn(
                     "col-span-4 flex h-[1.8rem] w-full items-center gap-2 rounded border bg-background-hover py-0.5 pl-0 pr-2 transition-colors",
                     activeSection === "duration" && selectedPeriod === "custom"
@@ -739,8 +758,8 @@ export function TimeDropdown({
                       </button>
                     ))}
                   </div>
-                </div>
-                {timePeriods.map((p) => {
+                </div>}
+                {availablePeriods.map((p) => {
                   const parsed = parsePeriodString(p.value);
                   return (
                     <Button
@@ -777,7 +796,7 @@ export function TimeDropdown({
           </div>
 
           {/* Date range section */}
-          <div
+          {allowCustomValues && <div
             onClick={() => {
               setActiveSection("dateRange");
               setValidationError(null);
@@ -905,7 +924,7 @@ export function TimeDropdown({
                 </Paragraph>
               )}
             </div>
-          </div>
+          </div>}
 
           {/* Action buttons */}
           <div className="flex justify-between gap-1 border-t border-grid-bright px-0 pt-3">
@@ -920,11 +939,11 @@ export function TimeDropdown({
                 setCustomValue(parsed.value);
                 setCustomUnit(parsed.unit);
                 setSelectedPeriod(
-                  period && !timePeriods.some((item) => item.value === period) && parsed.value !== ""
+                  allowCustomValues && period && !availablePeriods.some((item) => item.value === period) && parsed.value !== ""
                     ? "custom"
                     : (period ?? defaultPeriod)
                 );
-                setActiveSection(from || to ? "dateRange" : "duration");
+                setActiveSection(allowCustomValues && (from || to) ? "dateRange" : "duration");
                 setSelectedQuickDate(null);
                 setOpen(false);
               }}

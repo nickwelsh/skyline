@@ -5,6 +5,24 @@ import { nw223InspectorState, nw223States, nw223TraceState } from "./nw223";
 import { triggerRunInspectorResources } from "./reference-run-inspectors";
 import { fixtureCatalog } from "./skyline";
 
+export const referenceDetailLifecyclePolicy = {
+  log: {
+    defaultSelectionStates: ["loading", "found", "stale-refresh", "api-error", "not-found"],
+    pageStates: {
+      loading: "resolved",
+      "stale-refresh": "resolved",
+      "api-error": "resolved",
+      "not-found": "resolved",
+    },
+    resourceStates: {
+      loading: "pending",
+      "stale-refresh": "stale",
+      "api-error": "error",
+      "not-found": "not-found",
+    },
+  },
+} as const;
+
 type ReferenceQueueMetricKey = "gate" | "peak" | "concurrency" | "queueDepth" | "throughput" | "schedulingDelay" | "throttled" | "environmentSaturation" | "environmentBacklog" | "environmentSchedulingDelay" | "environmentThrottled" | "environmentLive" | "live";
 
 export const referenceQueueMetricMatchers: Array<{ key: ReferenceQueueMetricKey; includes: string[]; excludes?: string[] }> = [
@@ -265,6 +283,13 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
       canonicalUrl,
       sourcePathName,
       defaultSearch: (captureId: string) => {
+        const separator = captureId.indexOf("-");
+        const lifecycleSurface = captureId.slice(0, separator) as keyof typeof input.detailLifecyclePolicy;
+        const lifecycleState = captureId.slice(separator + 1);
+        const lifecycle = input.detailLifecyclePolicy[lifecycleSurface];
+        if (lifecycle?.defaultSelectionStates.includes(lifecycleState as never)) {
+          return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
+        }
         if (captureId === "runs-exception-error") return "";
         if (captureId.startsWith("runs-inspectors-") || detailByCapture[captureId] === "run" || captureId === "run-found") return `span=${encodeURIComponent((input.loaders.run as any).run.spanId)}`;
         if (detailByCapture[captureId] === "log" || captureId === "log-found") return `log=${encodeURIComponent((input.loaders.log as any).selectedLog.id)}`;
@@ -275,6 +300,14 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         params: Record<string, string | undefined>,
       ) => {
         if (kind === "log") {
+          const captureId = decodeURIComponent(location.pathname.replace(/^\/oracle\//, "").split("@")[0] ?? "");
+          const captureState = captureId.startsWith("log-") ? captureId.slice("log-".length) : "";
+          const storedState = sessionStorage.getItem(fixtureStateKey);
+          const state = storedState ?? (captureState === "stale-refresh" ? "found" : captureState);
+          const resourceState = input.detailLifecyclePolicy.log.resourceStates[state as keyof typeof input.detailLifecyclePolicy.log.resourceStates];
+          if (resourceState === "pending" || resourceState === "stale") return new Promise(() => {});
+          if (resourceState === "error") return { error: "Unable to load Telemetry event." };
+          if (resourceState === "not-found") return null;
           const selectedLog = (input.loaders.log as any).selectedLog;
           if (params.logParam !== selectedLog?.id) throw new Response("Deterministic telemetry evidence was not found.", { status: 404, statusText: "Not Found" });
           return structuredClone(selectedLog);
@@ -315,15 +348,17 @@ export async function installReferenceFixture(page: Page, fixture: ReferenceFixt
         const routeKey = `${surface}:${route}`;
         const value = input.loaders[`${captureId}:${route}`] ?? input.loaders[routeKey] ?? input.loaders[captureId] ?? input.loaders[surface];
         if (value === undefined) throw new Error(`Missing Trigger reference loader fixture: ${captureId}:${route}`);
-        if (route === "page" && state === "api-error") throw new Error("Deterministic telemetry error.");
-        if (route === "page" && state === "not-found") throw new Response("Deterministic telemetry evidence was not found.", { status: 404, statusText: "Not Found" });
-        if (route === "page" && state === "loading" && phase === "initial") return new Promise(() => {});
-        if (route === "page" && state === "stale-refresh" && phase === "refresh") return new Promise(() => {});
+        const lifecycle = input.detailLifecyclePolicy[surface as keyof typeof input.detailLifecyclePolicy];
+        const pageState = lifecycle?.pageStates[state as keyof typeof lifecycle.pageStates];
+        if (pageState !== "resolved" && route === "page" && state === "api-error") throw new Error("Deterministic telemetry error.");
+        if (pageState !== "resolved" && route === "page" && state === "not-found") throw new Response("Deterministic telemetry evidence was not found.", { status: 404, statusText: "Not Found" });
+        if (pageState !== "resolved" && route === "page" && state === "loading" && phase === "initial") return new Promise(() => {});
+        if (pageState !== "resolved" && route === "page" && state === "stale-refresh" && phase === "refresh") return new Promise(() => {});
         const cloned = structuredClone(value);
         return route === "page" ? requestFixture(stateFixture(cloned, surface, state), surface, request.url) : cloned;
       },
     };
-  }, fixture);
+  }, { ...fixture, detailLifecyclePolicy: referenceDetailLifecyclePolicy });
 }
 
 const triggerJobStatusMap = { queued: "PENDING", running: "EXECUTING", retrying: "RETRYING_AFTER_FAILURE", completed: "COMPLETED_SUCCESSFULLY", failed: "COMPLETED_WITH_ERRORS" } as const;

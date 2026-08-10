@@ -10,7 +10,7 @@ import {
   conditionRunsRouteCapabilities,
   conditionRunsTableCapabilities,
 } from "../reference/capability-adapters";
-import { createReferenceFixture, referenceQueueMetricKey, triggerJobs } from "./reference";
+import { createReferenceFixture, referenceDetailLifecyclePolicy, referenceQueueMetricKey, triggerJobs } from "./reference";
 
 describe("pinned Trigger Errors fixture", () => {
   test("conditions unavailable detail versions and bulk replay without editing pinned source", () => {
@@ -128,6 +128,60 @@ describe("pinned Trigger Runs fixture", () => {
 });
 
 describe("pinned Trigger Logs fixture", () => {
+  test("uses the literal source Logs filters in source order", () => {
+    const referenceRoot = resolve(import.meta.dirname, "../reference/vendor");
+    const productRoot = resolve(import.meta.dirname, "../../../resources/js/trigger");
+    const route = readFileSync(resolve(productRoot, "routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.logs/route.tsx"), "utf8");
+
+    for (const name of ["LogsTaskFilter", "LogsRunIdFilter", "LogsLevelFilter"]) {
+      const source = readFileSync(resolve(referenceRoot, `components/logs/${name}.tsx`), "utf8");
+      const product = readFileSync(resolve(productRoot, `components/logs/${name}.tsx`), "utf8");
+      expect(product).toContain("SelectProvider");
+      expect(product).toContain("AppliedFilter");
+      expect(source).toContain("SelectProvider");
+      expect(source).toContain("AppliedFilter");
+    }
+    expect(readFileSync(resolve(productRoot, "components/logs/LogsTaskFilter.tsx"), "utf8")).toContain("TaskIconSmall");
+    const filters = [
+      "<LogsTaskFilter possibleTasks={data.possibleTasks} />",
+      "<LogsRunIdFilter />",
+      "<TimeFilter",
+      "<LogsLevelFilter availableLevels={data.filterOptions.levels} />",
+    ];
+    expect(filters.map((filter) => route.indexOf(filter))).toEqual([...filters.map((filter) => route.indexOf(filter))].sort((a, b) => a - b));
+    expect(filters.every((filter) => route.includes(filter))).toBe(true);
+    expect(route).not.toContain("function FilterMenu(");
+    expect(route).not.toContain("function RunIdFilter(");
+    expect(route).toContain("periodOptions={data.filterOptions.timeRanges}");
+    expect(route).toContain("allowCustomValues={false}");
+
+    const taskFilter = readFileSync(resolve(productRoot, "components/logs/LogsTaskFilter.tsx"), "utf8");
+    expect(taskFilter).toContain('value("tasks")');
+    expect(taskFilter).not.toContain('values("tasks")');
+
+    const runIdFilter = readFileSync(resolve(productRoot, "components/logs/LogsRunIdFilter.tsx"), "utf8");
+    expect(runIdFilter).not.toContain("makeFriendlyIdValidator");
+    expect(runIdFilter).not.toContain("validateRunId");
+  });
+
+  test("keeps the list resolved while the selected log resource owns detail lifecycle", () => {
+    expect(referenceDetailLifecyclePolicy.log).toEqual({
+      defaultSelectionStates: ["loading", "found", "stale-refresh", "api-error", "not-found"],
+      pageStates: {
+        loading: "resolved",
+        "stale-refresh": "resolved",
+        "api-error": "resolved",
+        "not-found": "resolved",
+      },
+      resourceStates: {
+        loading: "pending",
+        "stale-refresh": "stale",
+        "api-error": "error",
+        "not-found": "not-found",
+      },
+    });
+  });
+
   test("selects log detail through the source query and resource route", () => {
     const fixtureSource = readFileSync(resolve(import.meta.dirname, "reference.ts"), "utf8");
     const hostSource = readFileSync(resolve(import.meta.dirname, "../reference/main.ts"), "utf8");

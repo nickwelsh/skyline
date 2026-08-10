@@ -11,6 +11,7 @@ import { measurePixels, type DifferenceRegion } from "./support/pixels";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
+import { transitionToStaleRefresh } from "./support/stale-refresh";
 
 const frameworkDefinitions = nw226ShellExtensionDefinitions(matrix as unknown as FidelityMatrix);
 const identityDefinition = nw226BrandingIdentityDefinition(matrix as unknown as FidelityMatrix);
@@ -38,6 +39,9 @@ for (const capture of captures) {
         step("goto:trigger", () => trigger.goto(`http://127.0.0.1:4185/oracle/${scenario.id}`)),
       ]);
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
+      if (scenario.state === "stale-refresh") {
+        await step("state:stale-refresh", () => transitionToStaleRefresh(skyline, trigger, fixture, scenario));
+      }
       if (scenario.id === "queues-filtering") {
         await Promise.all([
           exposeQueueFilteringState(skyline, "skyline", step),

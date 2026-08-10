@@ -4,18 +4,17 @@
  * Preserves the source Logs table/detail split, filters, pagination, and selection geometry;
  * tenant context, streaming, and server fetching remain external adapter concerns.
  */
-import { CalendarDaysIcon, FingerPrintIcon, XMarkIcon } from "@heroicons/react/20/solid";
-import { IconListTree } from "@tabler/icons-react";
+import { XMarkIcon } from "@heroicons/react/20/solid";
 import { useEffect, useState } from "react";
 import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
-import { TasksIcon } from "~/assets/icons/TasksIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
+import { LogsLevelFilter } from "~/components/logs/LogsLevelFilter";
+import { LogsRunIdFilter } from "~/components/logs/LogsRunIdFilter";
+import { LogsTaskFilter } from "~/components/logs/LogsTaskFilter";
 import { Button } from "~/components/primitives/Buttons";
 import { Callout } from "~/components/primitives/Callout";
-import { Input } from "~/components/primitives/Input";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/primitives/Popover";
 import {
   RESIZABLE_PANEL_ANIMATION,
   ResizableHandle,
@@ -25,11 +24,15 @@ import {
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
+import { TimeFilter } from "~/components/runs/v3/TimeFilter";
 
 export type LogsRouteData = {
   pagination: { next?: string; previous?: string };
   filters: { search: string | null; levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobType: string | null; runId: string | null; period: string };
   filterOptions: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobTypes: string[]; timeRanges: Array<{ value: string; label: string }> };
+  possibleTasks: Array<{ slug: string; triggerSource: "STANDARD" | "SCHEDULED" | "AGENT"; isInLatestDeployment: boolean }>;
+  defaultPeriod: string;
+  retentionLimitDays: number;
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
@@ -126,22 +129,6 @@ function DetailPreview({ log, onClose }: { log: LogsRouteData["selectedSummary"]
 
 function FiltersBar({ data }: { data: LogsRouteData }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const update = (key: string, value?: string) => {
-    const next = new URLSearchParams(searchParams);
-    value ? next.set(key, value) : next.delete(key);
-    next.delete("cursor");
-    next.delete("direction");
-    setSearchParams(next);
-  };
-  const toggleLevel = (level: string) => {
-    const next = new URLSearchParams(searchParams);
-    const selected = next.getAll("levels");
-    next.delete("levels");
-    (selected.includes(level) ? selected.filter((value) => value !== level) : [...selected, level]).forEach((value) => next.append("levels", value));
-    next.delete("cursor");
-    next.delete("direction");
-    setSearchParams(next);
-  };
   const clear = () => {
     const next = new URLSearchParams();
     const event = searchParams.get("event");
@@ -152,44 +139,21 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
   return <div className="flex items-start justify-between gap-x-2 border-b border-grid-bright p-2">
       <div aria-label="Telemetry-event filters" className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
         <SearchInput />
-        <FilterMenu label={data.filters.jobType ? `Task: ${data.filters.jobType}` : "Tasks"} icon={<TasksIcon className="size-4" />}>
-          {data.filterOptions.jobTypes.map((job) => <FilterOption key={job} checked={data.filters.jobType === job} onClick={() => update("jobType", data.filters.jobType === job ? undefined : job)}>{job}</FilterOption>)}
-        </FilterMenu>
-        <RunIdFilter value={data.filters.runId} onApply={(value) => update("runId", value)} />
-        <FilterMenu label={`Created: ${periodLabel(data.filters.period)}`} icon={<CalendarDaysIcon className="size-4" />}>
-          {data.filterOptions.timeRanges.map((option) => <FilterOption key={option.value} checked={data.filters.period === option.value} onClick={() => update("period", option.value)}>{option.label}</FilterOption>)}
-        </FilterMenu>
-        <FilterMenu label={data.filters.levels.length > 0 ? `Level: ${data.filters.levels.join(", ")}` : "Level"} icon={<IconListTree className="size-4" />}>
-          {data.filterOptions.levels.map((level) => <FilterOption key={level} checked={data.filters.levels.includes(level)} onClick={() => toggleLevel(level)}>{level}</FilterOption>)}
-        </FilterMenu>
+        <LogsTaskFilter possibleTasks={data.possibleTasks} />
+        <LogsRunIdFilter />
+        <TimeFilter
+          defaultPeriod={data.defaultPeriod}
+          maxPeriodDays={data.retentionLimitDays}
+          periodOptions={data.filterOptions.timeRanges}
+          allowCustomValues={false}
+        />
+        <LogsLevelFilter availableLevels={data.filterOptions.levels} />
         {data.hasFilters && <Button variant="minimal/small" LeadingIcon={XMarkIcon} tooltip="Clear all filters" onClick={clear}>Clear filters</Button>}
       </div>
       <ListPagination list={data} />
     {!data.capture.enabled && <div aria-label="Application-log capture disabled" className="absolute mt-8"><Callout variant="warning" className="m-2">Application-log capture is disabled. Recorded operations and previously captured logs remain available.</Callout></div>}
     {data.capture.enabled && <p aria-label="Application-log capture" className="sr-only">Captures {data.capture.supportedLevels.join(", ")} with a limit of {data.capture.perAttemptLimit} logs per Attempt.</p>}
   </div>;
-}
-
-function FilterMenu({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return <Popover><PopoverTrigger asChild><button type="button" className={filterButtonClassName}>{icon}<span className="ml-1 max-w-52 truncate">{label}</span></button></PopoverTrigger><PopoverContent align="start" className="max-h-80 min-w-48 overflow-y-auto p-1">{children}</PopoverContent></Popover>;
-}
-
-function FilterOption({ checked, onClick, children }: { checked: boolean; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" role="menuitemcheckbox" aria-checked={checked} onClick={onClick} className="flex min-h-8 w-full items-center justify-between gap-3 rounded px-2 text-left text-xs text-text-dimmed hover:bg-background-hover hover:text-text-bright"><span>{children}</span><span aria-hidden>{checked ? "✓" : ""}</span></button>;
-}
-
-function RunIdFilter({ value, onApply }: { value: string | null; onApply: (value?: string) => void }) {
-  const [draft, setDraft] = useState(value ?? "");
-  const [open, setOpen] = useState(false);
-  useEffect(() => setDraft(value ?? ""), [value]);
-  const apply = () => { onApply(draft.trim() || undefined); setOpen(false); };
-  return <Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild><button type="button" className={filterButtonClassName}><FingerPrintIcon className="size-4" /><span className="ml-1 max-w-40 truncate">{value ? `Run ID: ${value}` : "Run ID"}</span></button></PopoverTrigger><PopoverContent align="start" className="w-80 p-3"><form onSubmit={(event) => { event.preventDefault(); apply(); }} className="flex flex-col gap-3"><label className="text-sm text-text-bright">Run ID<Input aria-label="Run ID value" placeholder="run_" value={draft} onChange={(event) => setDraft(event.currentTarget.value)} variant="small" className="mt-1 font-mono" /></label><div className="flex justify-end gap-1 border-t border-grid-dimmed pt-3"><Button type="button" variant="minimal/small" onClick={() => setOpen(false)}>Cancel</Button><Button type="submit" variant="secondary/small" disabled={!draft.trim()}>Apply</Button></div></form></PopoverContent></Popover>;
-}
-
-const filterButtonClassName = "group flex h-6 items-center gap-1 rounded border border-border-bright/50 bg-secondary px-2 text-xs text-text-bright shadow-xs transition hover:bg-background-raised focus-custom";
-
-function periodLabel(period: string) {
-  return ({ "1h": "1hr", "24h": "24hrs", "7d": "7 days", "30d": "30 days", all: "All time" } as Record<string, string>)[period] ?? period;
 }
 
 function DetailFailure({ state, message, onClose }: { state: "not-found" | "error"; message: string; onClose: () => void }) {
