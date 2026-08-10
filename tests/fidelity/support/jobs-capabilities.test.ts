@@ -4,7 +4,7 @@ import { describe, expect, test } from "vitest";
 import type { FidelityMatrix } from "../../../scripts/fidelity-oracle.mjs";
 import matrix from "../matrix.json" with { type: "json" };
 import { conditionJobDetailMarkers, conditionJobSegmentedControlMarker } from "../reference/capability-adapters";
-import { jobsCapabilityDefinitions } from "./jobs-capabilities";
+import { jobsCapabilityDefinitions, validateJobsProtectedRowViewportBoundary } from "./jobs-capabilities";
 
 describe("NW-219 Job capability discovery definitions", () => {
   const definitions = jobsCapabilityDefinitions(matrix as unknown as FidelityMatrix);
@@ -20,12 +20,35 @@ describe("NW-219 Job capability discovery definitions", () => {
     expect(new Set(list.selectorPairs.flatMap(({ triggerSelector, skylineSelector }) => [triggerSelector, skylineSelector])).size).toBe(106);
     expect(list.protectedSelectors).toHaveLength(106);
     expect(list.protectedSelectors?.map(({ id }) => id).slice(0, 6)).toEqual(["search", "pagination", "header-1", "header-2", "header-3", "header-4"]);
-    expect(list.protectedSelectors?.filter(({ id }) => id.startsWith("row-")).every(({ allowBelowViewport, id }) => Number(id.split("-")[1]) >= 18 ? allowBelowViewport === true : allowBelowViewport === undefined)).toBe(true);
+    expect(list.protectedSelectors?.filter(({ id }) => id.startsWith("row-")).every(({ allowBelowViewport, id }) => Number(id.split("-")[1]) >= 17 ? allowBelowViewport === true : allowBelowViewport === undefined)).toBe(true);
     expect(list.protectedSelectors?.filter(({ allowRightOfViewport }) => allowRightOfViewport).map(({ id }) => id)).toEqual([
       "pagination", "header-2", "header-3", "header-4",
       ...Array.from({ length: 25 }, (_, index) => index + 1).flatMap((row) => [2, 3, 4].map((column) => `row-${row}-column-${column}`)),
     ]);
     expect(list.selectorPairs.some(({ skylineSelector }) => /Task filters.*first-child/.test(skylineSelector))).toBe(false);
+  });
+
+  test("pins exact protected row viewport boundaries", () => {
+    expect(() => validateJobsProtectedRowViewportBoundary("jobs-populated@1024x768-classic", {
+      "row-16-column-1": { crop: { status: "visible" } },
+      "row-17-column-1": { crop: { status: "below-viewport" } },
+    })).not.toThrow();
+    expect(() => validateJobsProtectedRowViewportBoundary("jobs-populated@1440x960-dark", {
+      "row-20-column-1": { crop: { status: "visible" } },
+      "row-21-column-1": { crop: { status: "below-viewport" } },
+    })).not.toThrow();
+    expect(() => validateJobsProtectedRowViewportBoundary("jobs-populated@390x844-classic", {
+      "row-18-column-1": { crop: { status: "visible" } },
+      "row-19-column-1": { crop: { status: "below-viewport" } },
+    })).not.toThrow();
+    expect(() => validateJobsProtectedRowViewportBoundary("jobs-populated@1024x768-classic", {
+      "row-16-column-1": { crop: { status: "below-viewport" } },
+      "row-17-column-1": { crop: { status: "below-viewport" } },
+    })).toThrow(/row 16 visible.*row 17 below/i);
+    expect(() => validateJobsProtectedRowViewportBoundary("jobs-populated@390x844-classic", {
+      "row-18-column-1": { crop: { status: "visible" } },
+      "row-19-column-1": { crop: { status: "visible" } },
+    })).toThrow(/row 18 visible.*row 19 below/i);
   });
 
   test("groups detail omissions around three source-faithful boundaries", () => {

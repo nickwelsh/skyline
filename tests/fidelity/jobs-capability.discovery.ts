@@ -4,7 +4,7 @@ import matrix from "./matrix.json" with { type: "json" };
 import { applyLiveSystemChange, assertFixedCanvas, prepareCapture, settleCapture } from "./support/capture";
 import { createDiscoveryStep } from "./support/discovery";
 import { discoverCapabilityOmissionObservation } from "./support/difference-regions";
-import { jobsCapabilityDefinitions } from "./support/jobs-capabilities";
+import { jobsCapabilityDefinitions, validateJobsProtectedRowViewportBoundary } from "./support/jobs-capabilities";
 import { createReferenceFixture, installReferenceFixture } from "./support/reference";
 import { installSkylineFixture, parseScenario, scenarioPath } from "./support/skyline";
 import { exposeOwnedState, seedOwnedState } from "./support/states";
@@ -55,6 +55,7 @@ for (const capture of captures) {
           accessibilitySha256,
           crop,
         }]));
+        if (definition.id === "jobs-list-source-definition") validateJobsProtectedRowViewportBoundary(capture, protectedMeasurement);
         process.stdout.write(`\nCAPABILITY_OMISSION_MEASUREMENT=${JSON.stringify({ definition: definition.id, capture, measurement, protectedMeasurement })}\n`);
       }
     } finally {
