@@ -42,6 +42,7 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
   };
   const jobsLoader = async ({ request }: LoaderFunctionArgs) => loadEnvironmentRoute(async () => ({
       ...presentJobs(await adapter.jobs(jobsQuery(request))),
+      environmentLabel: bootstrap.environmentLabel,
       showJobGuidance: preferences?.read().jobs.usefulLinks ?? true,
       onJobGuidanceChange: (show: boolean) => preferences?.update((current) => ({ ...current, jobs: { usefulLinks: show } })),
     }));

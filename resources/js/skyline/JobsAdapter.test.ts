@@ -23,7 +23,10 @@ describe("JobsAdapter", () => {
     expect(detail.job).toMatchObject({ id: "job_invoice", name: "App\\Jobs\\Invoice" });
     expect(detail.runs[0].path).toContain("/runs/run-1?tableState=");
     expect(detail.queueTargets[0].path).toBe("/queues/queue_redis");
-    expect(detail.activity[0].statusCounts.failed).toBe(1);
+    expect(detail.activity).toEqual({
+      data: [{ bucket: 1_785_888_000_000, COMPLETED: 4, FAILED: 5, CANCELED: 0, RUNNING: 6 }],
+      statuses: ["COMPLETED", "FAILED", "CANCELED", "RUNNING"],
+    });
   });
 
   it("extracts canonical routes when the base path is also a route name", () => {
@@ -57,7 +60,7 @@ function jobDetail(): JobDetailDto {
     ...jobsPage(),
     job: jobSummary(),
     queueTargets: [{ id: "queue_redis", connection: "redis", queue: "default", runCount: 2, href: "/skyline/queues/queue_redis" }],
-    activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 2, statusCounts: { queued: 0, running: 0, retrying: 0, completed: 1, failed: 1 } }],
+    activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 15, statusCounts: { queued: 1, running: 2, retrying: 3, completed: 4, failed: 5 } }],
     runs: [{
       id: "run-1", traceId: "trace-1", parentRunId: null, isRoot: true, name: "App\\Jobs\\Invoice", status: "failed", connection: "redis", queue: "default", driverId: null,
       attemptCount: 1, triggeredAt: "2026-08-05T12:00:00Z", queuedAt: "2026-08-05T12:00:00Z", startedAt: "2026-08-05T12:00:00Z",

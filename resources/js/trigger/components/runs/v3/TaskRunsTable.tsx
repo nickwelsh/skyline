@@ -54,15 +54,17 @@ type TaskRunsTableProps = {
   presentation?: "default" | "error";
   showVersions?: boolean;
   showMachines?: boolean;
+  showTopBorder?: boolean;
+  stickyHeader?: boolean;
 };
 
-export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, presentation = "default", showVersions = false, showMachines = false }: TaskRunsTableProps) {
+export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, presentation = "default", showVersions = false, showMachines = false, showTopBorder = true, stickyHeader = false }: TaskRunsTableProps) {
   if (presentation === "error") {
     return <ErrorRunsTable total={total} hasFilters={hasFilters} runs={runs} isLoading={isLoading} showVersions={showVersions} showMachines={showMachines} />;
   }
   const resolvedTotal = total ?? runs.length;
   return (
-    <Table variant="dimmed" className="max-h-full overflow-y-auto">
+    <Table variant="dimmed" className="max-h-full overflow-y-auto" showTopBorder={showTopBorder} stickyHeader={stickyHeader}>
       <TableHeader>
         <TableRow>
           <TableHeaderCell>ID</TableHeaderCell>

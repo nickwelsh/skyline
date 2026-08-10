@@ -47,9 +47,9 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page.getByRole("heading", { name: "App\\Jobs\\GenerateMonthlyInvoices", exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runs by status" })).toBeVisible();
   const detailActivity = page.getByRole("img", { name: "Recorded Runs by status over time" });
-  await expect(detailActivity.locator('[data-status="running"]')).toHaveAttribute("fill", /run-executing/);
-  await expect(detailActivity.locator('[data-status="completed"]')).toHaveAttribute("fill", /run-completed-successfully/);
-  await expect(detailActivity.locator('[data-status="failed"]')).toHaveAttribute("fill", /run-completed-with-errors/);
+  await expect(detailActivity.locator('[fill="var(--color-pending)"]')).toBeVisible();
+  await expect(detailActivity.locator('[fill="var(--color-success)"]')).toBeVisible();
+  await expect(detailActivity.locator('[fill="var(--color-error)"]')).toBeVisible();
   const jobDetails = page.getByLabel("Job details");
   await expect(jobDetails.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
   await expect(jobDetails.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
@@ -103,6 +103,34 @@ test("paired pinned Trigger Jobs contract preserves geometry, interaction, focus
   await expect(favoriteButton).toBeFocused();
   await page.keyboard.press(baseline.contract.interaction.favoriteKey);
   await expect(page.getByRole("button", { name: "Remove GenerateMonthlyInvoices from favorites" })).toHaveAttribute("aria-pressed", "true");
+});
+
+test("Jobs source presenters keep long rows and empty deployment onboarding", async ({ page }) => {
+  let empty = false;
+  await page.route("**/skyline/api/jobs**", async (route) => {
+    const response = jobsPage();
+    response.jobs = empty
+      ? []
+      : Array.from({ length: 25 }, (_, index) => jobSummary({
+          id: `job_${index}`,
+          name: `App\\Jobs\\${"LongObservedJobName".repeat(4)}${index}`,
+        }));
+    response.hasAnyJobs = !empty;
+    return route.fulfill({ json: response });
+  });
+
+  await page.goto("/skyline/jobs");
+  const rows = page.locator("tbody > tr");
+  await expect(rows).toHaveCount(25);
+  expect(await rows.evaluateAll((elements) => elements.map((row) => row.getBoundingClientRect().height)))
+    .toEqual(Array.from({ length: 25 }, () => 42));
+
+  empty = true;
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Deploy your tasks to Production" })).toBeVisible();
+  await expect(page.getByText("Waiting for tasks to deploy", { exact: true })).toBeVisible();
+  await expect(page.locator('a[href*="deploy"], a[href*="github"], a[href*="docs"]')).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /GitHub|Manual|Actions|Deploy/i })).toHaveCount(0);
 });
 
 test("Job detail tolerates long labels and missing optional observations", async ({ page }) => {
@@ -213,10 +241,12 @@ test("Jobs covers empty, filtered-empty, API-error, and not-found states", async
   });
 
   await page.goto("/skyline/jobs");
-  await expect(page.getByRole("heading", { name: "No Jobs yet" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Deploy your tasks to Production" })).toBeVisible();
+  await expect(page.getByText("Waiting for tasks to deploy", { exact: true })).toBeVisible();
   mode = "filtered";
   await page.goto("/skyline/jobs?search=missing");
-  await expect(page.getByRole("heading", { name: "No matching Jobs" })).toBeVisible();
+  await expect(page.getByText("No tasks match your filters", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Deploy your tasks to Production" })).toHaveCount(0);
   mode = "error";
   await page.goto("/skyline/jobs");
   await expect(page.getByRole("alert")).toHaveCount(0);

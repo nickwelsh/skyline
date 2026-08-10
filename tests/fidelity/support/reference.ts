@@ -345,10 +345,18 @@ export function triggerJobs(page: any) {
 
 function triggerJob(detail: any) {
   const list = triggerRunList({ runs: detail.runs, pagination: detail.pagination, hasAnyRuns: detail.hasAnyRuns });
-  const statuses = Object.values(triggerJobStatusMap);
   return {
     task: { slug: detail.job.name, filePath: detail.job.name.replaceAll("\\", "/") + ".php", exportName: detail.job.name, description: null, workerVersion: "20260804.1", machinePreset: "small-1x", maxDurationInSeconds: 300, ttl: null, hasPayloadSchema: false, retry: null, createdAt: detail.job.firstObservedAt, queue: detail.queueTargets[0] ? { friendlyId: detail.queueTargets[0].id, name: detail.queueTargets[0].queue, concurrencyLimit: null, paused: false } : null },
-    activity: { data: detail.activity.map((point: any) => ({ bucket: point.timestamp, total: point.total, ...Object.fromEntries(Object.entries(triggerJobStatusMap).map(([status, triggerStatus]) => [triggerStatus, point.statusCounts[status] ?? 0])) })), statuses },
+    activity: {
+      data: detail.activity.map((point: any) => ({
+        bucket: Date.parse(point.timestamp),
+        COMPLETED: point.statusCounts.completed ?? 0,
+        FAILED: point.statusCounts.failed ?? 0,
+        CANCELED: 0,
+        RUNNING: (point.statusCounts.queued ?? 0) + (point.statusCounts.running ?? 0) + (point.statusCounts.retrying ?? 0),
+      })),
+      statuses: ["COMPLETED", "FAILED", "CANCELED", "RUNNING"],
+    },
     runList: list,
     queueMetrics: null,
   };

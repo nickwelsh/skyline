@@ -278,4 +278,20 @@ describe("Trigger Jobs reference fixture", () => {
       CANCELED: 0,
     })]);
   });
+
+  test("groups Job detail activity through the pinned TaskDetailPresenter contract", async () => {
+    const fixture = await createReferenceFixture();
+    const activity = (fixture.loaders.job as any).activity;
+
+    expect(activity.statuses).toEqual(["COMPLETED", "FAILED", "CANCELED", "RUNNING"]);
+    expect(activity.data[0]).toEqual(expect.objectContaining({
+      bucket: expect.any(Number),
+      COMPLETED: expect.any(Number),
+      FAILED: expect.any(Number),
+      CANCELED: 0,
+      RUNNING: expect.any(Number),
+    }));
+    expect(activity.data[0]).not.toHaveProperty("COMPLETED_SUCCESSFULLY");
+    expect(activity.data[0]).not.toHaveProperty("EXECUTING");
+  });
 });

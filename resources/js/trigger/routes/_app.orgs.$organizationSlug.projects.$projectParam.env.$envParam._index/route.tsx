@@ -8,7 +8,8 @@ import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/
 import type { PanelHandle } from "@window-splitter/react";
 import { useCallback, useRef, useState } from "react";
 import { Bar } from "recharts";
-import { PageBody, PageContainer } from "~/components/layout/AppLayout";
+import { HasNoTasksDeployed } from "~/components/BlankStatePanels";
+import { MainCenteredContainer, PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ActivityBarChart } from "~/components/metrics/ActivityBarChart";
 import { ListPagination } from "~/components/ListPagination";
 import { Button } from "~/components/primitives/Buttons";
@@ -52,6 +53,7 @@ type PresentedJob = {
   latestRun: { id: string; status: RunStatus; triggeredAt: string; path: string };
 };
 type JobsRouteData = {
+  environmentLabel: string;
   jobs: PresentedJob[];
   pagination: { next?: string; previous?: string };
   filters: { search: string | null; period: string };
@@ -73,7 +75,7 @@ export default function JobsRoute() {
   const animatingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const usefulLinksPanelRef = useRef<PanelHandle>(null);
   const isLoading = navigation.state !== "idle";
-  const hasItems = data.jobs.length > 0;
+  const hasItems = data.hasAnyJobs;
   const toggleUsefulLinks = useCallback((show: boolean) => {
     setShowUsefulLinks(show);
     setIsPanelAnimating(true);
@@ -120,7 +122,7 @@ export default function JobsRoute() {
                 </div>
               </div>
               <JobsTable jobs={data.jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
-              </div> : <EmptyState filtered={data.hasAnyJobs && data.hasFilters} />}
+              </div> : <MainCenteredContainer className="max-w-prose"><HasNoTasksDeployed environmentLabel={data.environmentLabel} /></MainCenteredContainer>}
               {isLoading && !hasItems ? <LoadingState /> : null}
             </div>
           </ResizablePanel>
@@ -263,7 +265,7 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
 }
 
 function TaskRow({ job, row, isPanelAnimating }: { job: PresentedJob; row: number; isPanelAnimating: boolean }) {
-  return <TableRow className="group">
+  return <TableRow className="group h-[42px]">
     <TableCell to={job.path} isTabbableCell capabilityBoundary={`jobs-list-type-row-${row}`}><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
     <TableCell to={job.path} capabilityBoundary={`jobs-list-file-row-${row}`}>{job.statusCounts.running ?? 0}</TableCell>
     <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity activity={job.activity} /></div></div></TableCell>
@@ -287,14 +289,6 @@ function StatusActivity({ activity }: { activity: PresentedJob["activity"] }) {
         <Bar key={status} data-status={status} dataKey={status} stackId="status" fill={getRunStatusChartColor(status)} strokeWidth={0} isAnimationActive={false} />
       ))}
     </ActivityBarChart>
-  );
-}
-
-function EmptyState({ filtered }: { filtered: boolean }) {
-  return (
-    <div className="grid h-full min-h-64 place-items-center text-center">
-      <div><h2 className="font-medium text-text-bright">{filtered ? "No matching Jobs" : "No Jobs yet"}</h2><p className="mt-1 text-sm text-text-dimmed">{filtered ? "Change or clear filters to see more Jobs." : "Job types appear after Skyline confirms their first Run."}</p></div>
-    </div>
   );
 }
 

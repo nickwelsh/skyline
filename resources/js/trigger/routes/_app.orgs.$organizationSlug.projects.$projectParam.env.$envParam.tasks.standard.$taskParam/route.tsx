@@ -4,7 +4,7 @@
  * Server, tenant, test, source definition, versions, retries, schedules, deployment, payload, and queue administration are removed.
  */
 import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useMemo } from "react";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { ListPagination } from "~/components/ListPagination";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
@@ -18,16 +18,23 @@ import * as Property from "~/components/primitives/PropertyTable";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "~/components/primitives/Resizable";
 import { Spinner } from "~/components/primitives/Spinner";
 import { ChartCard } from "~/components/primitives/charts/ChartCard";
-import { TaskRunsTable } from "~/components/runs/v3/TaskRunsTable";
-import { allTaskRunStatuses, getRunStatusChartColor } from "~/components/runs/v3/TaskRunStatus";
+import { Chart, type ChartConfig } from "~/components/primitives/charts/ChartCompound";
+import { buildActivityTimeAxis } from "~/components/primitives/charts/activityTimeAxis";
+import { statusColor } from "~/components/primitives/charts/statusColors";
+import { TaskRunsList } from "~/components/runs/v3/TaskRunsList";
+import type { PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 type JobDetailRouteData = {
   job: { id: string; name: string; firstObservedAt: string; lastObservedAt: string; runCount: number };
   queueTargets: Array<{ id: string; connection: string; queue: string; path: string }>;
-  activity: Array<{ timestamp: string; total: number; statusCounts: Record<RunStatus, number> }>;
-  runs: React.ComponentProps<typeof TaskRunsTable>["runs"];
+  activity: {
+    data: Array<{ bucket: number } & Record<string, number>>;
+    statuses: string[];
+  };
+  runs: PresentedRun[];
   pagination: { next?: string; previous?: string };
+  filters: { status: RunStatus[] };
   filterOptions: { statuses: RunStatus[]; timeRanges: Array<{ value: string; label: string }> };
   hasAnyRuns: boolean;
 };
@@ -84,7 +91,10 @@ export default function JobDetailRoute() {
                       <ListPagination list={data} />
                     </div>
                     <div className="relative min-h-0 overflow-hidden">
-                      {data.runs.length > 0 ? <TaskRunsTable runs={data.runs} isLoading={navigation.state !== "idle"} /> : <RunsEmpty filtered={data.hasAnyRuns} />}
+                      <TaskRunsList
+                        list={{ runs: data.runs, hasAnyRuns: data.hasAnyRuns, hasFilters: data.filters.status.length > 0 }}
+                        isLoading={navigation.state !== "idle"}
+                      />
                       {navigation.state !== "idle" && data.runs.length === 0 ? <div aria-label="Loading Job" className="absolute inset-0 grid place-items-center bg-background-dimmed/80"><Spinner /></div> : null}
                     </div>
                   </section>
@@ -103,19 +113,18 @@ export default function JobDetailRoute() {
 }
 
 function ActivityChart({ activity }: { activity: JobDetailRouteData["activity"] }) {
-  if (activity.length === 0) return <div className="grid h-full place-items-center text-sm text-text-dimmed">No activity in this time range.</div>;
-  const rows = activity.map((point) => ({ bucket: point.timestamp, ...point.statusCounts }));
+  const chartConfig: ChartConfig = useMemo(() => Object.fromEntries(activity.statuses.map((status) => [status, {
+    label: status.charAt(0) + status.slice(1).toLowerCase(),
+    color: statusColor(status),
+  }])), [activity.statuses]);
+  const { tickFormatter, tooltipLabelFormatter } = useMemo(() => buildActivityTimeAxis(activity.data), [activity.data]);
+
+  if (activity.data.length === 0) return <div className="grid h-full place-items-center text-sm text-text-dimmed">No activity in this time range.</div>;
   return (
     <div role="img" aria-label="Recorded Runs by status over time" className="h-full min-h-0 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
-          <CartesianGrid vertical={false} stroke="var(--color-grid-dimmed)" />
-          <XAxis dataKey="bucket" tickFormatter={timeTick} tick={{ fill: "var(--color-text-dimmed)", fontSize: 10 }} axisLine={false} tickLine={false} />
-          <YAxis allowDecimals width={36} tick={{ fill: "var(--color-text-dimmed)", fontSize: 10 }} axisLine={false} tickLine={false} />
-          <Tooltip animationDuration={0} cursor={{ fill: "rgba(255,255,255,0.04)" }} labelFormatter={(value) => new Date(String(value)).toLocaleString()} />
-          {allTaskRunStatuses.map((status) => <Bar key={status} data-status={status} dataKey={status} stackId="status" fill={getRunStatusChartColor(status)} radius={0} isAnimationActive={false} />)}
-        </BarChart>
-      </ResponsiveContainer>
+      <Chart.Root config={chartConfig} data={activity.data} dataKey="bucket" series={activity.statuses} fillContainer>
+        <Chart.Bar stackId="status" barRadius={0} xAxisProps={{ tickFormatter }} tooltipLabelFormatter={tooltipLabelFormatter} />
+      </Chart.Root>
     </div>
   );
 }
@@ -137,9 +146,4 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
   );
 }
 
-function RunsEmpty({ filtered }: { filtered: boolean }) {
-  return <div className="grid h-full min-h-32 place-items-center text-center"><div><h3 className="font-medium text-text-bright">{filtered ? "No matching Runs" : "No Runs yet"}</h3><p className="mt-1 text-sm text-text-dimmed">{filtered ? "Change or clear filters to see more Runs." : "Confirmed Runs will appear here."}</p></div></div>;
-}
-
 function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
-function timeTick(value: string) { return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }); }

@@ -39,12 +39,25 @@ export type JobDetailRouteData = {
   generatedAt: string;
   job: PresentedJob;
   queueTargets: Array<{ id: string; connection: string; queue: string; runCount: number; path: string }>;
-  activity: JobDetailDto["activity"];
+  activity: JobActivity;
   runs: ReturnType<typeof presentRun>[];
   pagination: { next?: string; previous?: string };
   filters: JobDetailDto["filters"];
   filterOptions: JobDetailDto["options"];
   hasAnyRuns: boolean;
+};
+
+export const jobActivityStatuses = ["COMPLETED", "FAILED", "CANCELED", "RUNNING"] as const;
+
+export type JobActivity = {
+  data: Array<{
+    bucket: number;
+    COMPLETED: number;
+    FAILED: number;
+    CANCELED: number;
+    RUNNING: number;
+  }>;
+  statuses: [...typeof jobActivityStatuses];
 };
 
 export function jobsQuery(request: Request): JobsQuery {
@@ -83,7 +96,7 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
     generatedAt: page.generatedAt,
     job: presentJob(page.job),
     queueTargets: page.queueTargets.map((target) => ({ ...target, path: canonicalRoutePath(target.href, "queues") })),
-    activity: page.activity,
+    activity: presentJobActivity(page.activity),
     runs: page.runs.map((run) => presentRun(run, page.tableState)),
     pagination: {
       previous: page.pagination.previous ?? undefined,
@@ -92,6 +105,19 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
     filters: page.filters,
     filterOptions: page.options,
     hasAnyRuns: page.hasAnyRuns,
+  };
+}
+
+function presentJobActivity(activity: JobDetailDto["activity"]): JobActivity {
+  return {
+    data: activity.map(({ timestamp, statusCounts }) => ({
+      bucket: Date.parse(timestamp),
+      COMPLETED: statusCounts.completed,
+      FAILED: statusCounts.failed,
+      CANCELED: 0,
+      RUNNING: statusCounts.queued + statusCounts.running + statusCounts.retrying,
+    })),
+    statuses: [...jobActivityStatuses],
   };
 }
 
