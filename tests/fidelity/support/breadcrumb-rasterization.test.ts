@@ -15,8 +15,12 @@ import { comparePixels, type DifferenceRegion } from "./pixels";
 
 const approved = policy as unknown as BreadcrumbRasterizationPolicy;
 const classic = "error-found@1024x768-classic";
+const vendorDark = "errors-application-vendor-frames@1440x960-dark";
 const absent = approved.absentCaptures[0];
 const zeroState = "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945";
+const historicalVendorDarkState = "361d5528a4e4c5a51b8a64c51a9db94b3dd3c9ea550a66d4f3e5e772945615dc";
+const historicalVendorDarkCandidate = "66b6ceeac77d3e922878ebf34acf2aafa8e132c80372e072531882ceb139456b";
+const vendorDarkCandidate = "a441c92601b7e59ec6ac2f2e4295de67154fb8d9ee17c0bc52d4edb4dc75120a";
 
 describe("breadcrumb renderer rasterization policy", () => {
   test("requires exactly one approved manifest region", () => {
@@ -61,6 +65,30 @@ describe("breadcrumb renderer rasterization policy", () => {
     expect(() => validateBreadcrumbRasterizationObservation(approved, classic, {
       ...observation,
       skyline: { ...observation.skyline!, svg: { ...observation.skyline!.svg, cropSha256: "f".repeat(64) } },
+    })).toThrow(/capture evidence/i);
+  });
+
+  test("rejects the replaced historical vendor-dark raster state", () => {
+    const historical = vendorDarkObservation(true);
+    expect(fingerprintBreadcrumbRasterizationCandidate(historicalVendorDarkState, historical.trigger!, historical.skyline!))
+      .toBe(historicalVendorDarkCandidate);
+    expect(() => validateBreadcrumbRasterizationObservation(approved, vendorDark, historical)).toThrow(/capture evidence/i);
+  });
+
+  test("accepts only the observed vendor-dark zero state and exact evidence", () => {
+    const observation = vendorDarkObservation(false);
+    expect(validateBreadcrumbRasterizationObservation(approved, vendorDark, observation)).toMatchObject({
+      status: "visible",
+      stateSha256: zeroState,
+      candidateSha256: vendorDarkCandidate,
+    });
+    expect(approved.captures[vendorDark].candidates).toEqual([{ sha256: vendorDarkCandidate }]);
+    expect(() => validateBreadcrumbRasterizationObservation(approved, vendorDark, {
+      ...observation,
+      trigger: {
+        ...observation.trigger!,
+        svg: { ...observation.trigger!.svg, cropSha256: "6b70e79e11a0c0e539c6f9af4f4b77556478ebc2c632980978f8650bd2aa2666" },
+      },
     })).toThrow(/capture evidence/i);
   });
 
@@ -159,6 +187,37 @@ function classicObservation(): BreadcrumbRasterizationObservation {
     trigger: { svg: { ...svg, matchingRulesSha256: "f67b3269e2bc6d467a5dac73a9b7dde31f73b7b1f0725bd6aed40c9cfe42ffa6" }, line: { ...line, matchingRulesSha256: "b1467680233711311e31e401e829bfd70385bd843468498c7b5ec83bbfd2867b" } },
     skyline: { svg: { ...svg, matchingRulesSha256: "a43da8d69ed70c41654a3fcedca23dd114c46293832a645563ea4cbb470e63a4" }, line: { ...line, matchingRulesSha256: "9aa9b0223811298c2d4600598f6acd62cdb18075a425483777bd435fa2fc0e5b" } },
     pixels: [],
+  };
+}
+
+function vendorDarkObservation(historical: boolean): BreadcrumbRasterizationObservation {
+  const observation = classicObservation();
+  const darkSvg = {
+    computedStyleSha256: "509ecdc16ce9a54f35fb4dc93770117a48721d28e24e42350098c00d82a894fa",
+    backdropSha256: "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f",
+    paint: { currentColor: "color(srgb 0.360502 0.37029 0.393129)", stroke: "none", strokeWidth: "1px", strokeLinecap: "butt" },
+    cropSha256: "98c77bb342473b48101a04025efbc88414c4527990ae5ff5ffb77352afb25bf6",
+  };
+  const darkLine = {
+    computedStyleSha256: "2c501aa721727d8b0fe01bcb0a29e32755c38a7046121ac3d9b416ec777b4f05",
+    backdropSha256: "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f",
+    paint: { currentColor: "color(srgb 0.360502 0.37029 0.393129)", stroke: "color(srgb 0.360502 0.37029 0.393129)", strokeWidth: "1.4px", strokeLinecap: "round" },
+    cropSha256: "131f61d3cf2d0a8d72ac3abbcd60349cf35974491fdf4955edefd8ed38f0dcde",
+  };
+  const trigger = {
+    svg: { ...observation.trigger!.svg, ...darkSvg, ...(historical ? { cropSha256: "6b70e79e11a0c0e539c6f9af4f4b77556478ebc2c632980978f8650bd2aa2666" } : {}) },
+    line: { ...observation.trigger!.line, ...darkLine, ...(historical ? { cropSha256: "5e3f06c6a59dfc8b42d326eaad168e78295fe03d93514a15bd3fb78755bdf73c" } : {}) },
+  };
+  const skyline = {
+    svg: { ...observation.skyline!.svg, ...darkSvg },
+    line: { ...observation.skyline!.line, ...darkLine },
+  };
+  return {
+    runtime: observation.runtime,
+    viewport: { width: 1440, height: 960 },
+    trigger,
+    skyline,
+    pixels: historical ? approved.states.find(({ sha256 }) => sha256 === historicalVendorDarkState)!.pixels : [],
   };
 }
 

@@ -48,7 +48,7 @@ export type BreadcrumbRasterizationRegion = {
   pixels: Pixel[];
 };
 
-const approvedPolicySha256 = "787e2637697c12767ae7afb79d8e03af07a75436a49240c4206ad5eac55c63d1";
+const approvedPolicySha256 = "477b6f07cd22b699988290c021f2d866a44229970364b689d25e94357df48b66";
 
 export function validateBreadcrumbRasterizationPolicy(policy: BreadcrumbRasterizationPolicy) {
   if (digest(policy) !== approvedPolicySha256) throw new Error("Breadcrumb renderer changed approved policy evidence.");

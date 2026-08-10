@@ -304,7 +304,7 @@ function validateBreadcrumbRasterizationRegion(region) {
       "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-cc5fa12d",
     ],
     policyFile: "tests/fidelity/breadcrumb-rasterization-policy.json",
-    policySha256: "787e2637697c12767ae7afb79d8e03af07a75436a49240c4206ad5eac55c63d1",
+    policySha256: "477b6f07cd22b699988290c021f2d866a44229970364b689d25e94357df48b66",
     captures: [],
     measurements: {},
   };
