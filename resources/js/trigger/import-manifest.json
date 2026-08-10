@@ -23,7 +23,7 @@
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam._index/route.tsx": "93324592fcc5a62e9986159513ed10e1de60f574d458dbf5ae8fbd1e02f3ea52",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx": "168eacbdebfb6dd39a252f34be3b3f80ca093fd90e5012595f5fc423b5bdcdf6",
     "resources/js/trigger/components/BlankStatePanels.tsx": "87363eefdc721d1e1d61840838861fca9dd0d2a188e3d56ba3e105547568e1ec",
-    "resources/js/trigger/components/primitives/charts/statusColors.ts": "97cdb2e0704dbc0de1cfb3eb9bf4e6dc173fc264fcc9b0d1678bd47c13792651",
+    "resources/js/trigger/components/primitives/charts/statusColors.ts": "ad442c9ada896f35fa8126ad73b6204395309b3b218babb528401c5dbc5fa4d6",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors._index/route.tsx": "a0ed1e2bc0cb484462cf6bfebff9bab48d140c8d5fc743e8865618190b86d8c0",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx": "9b20063d15a9b73872c30e774980e835fd3e324ac7e592753d86ec03085a1143",
     "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam/route.tsx": "a83305246f6a154812be80db8502d87d1ecccbb1bb4d8cd0c412b17c6f50fb2e",
