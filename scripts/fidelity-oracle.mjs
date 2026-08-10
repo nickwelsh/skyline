@@ -169,7 +169,7 @@ export function validateAllowedDifferences(differences) {
       lockedRegions.push(region);
     } else if (region.category === "presenter-extension") {
       const complete = region.triggerSelector && region.skylineSelector && region.triggerAnchorSelector && region.skylineAnchorSelector
-        && region.skylineAccessibleRole && typeof region.skylineAccessibleName === "string" && region.anchorAccessibleRole && region.anchorAccessibleName
+        && region.skylineAccessibleRole && typeof region.skylineAccessibleName === "string" && region.anchorAccessibleRole && typeof region.anchorAccessibleName === "string"
         && region.decision && Array.isArray(region.acceptance) && region.acceptance.length > 0
         && Array.isArray(region.citations) && region.citations.length > 0
         && Array.isArray(region.captures) && region.captures.length > 0
@@ -322,7 +322,7 @@ function validateRendererRasterizationRegion(region) {
   const spec = rendererRasterizationSpec(region.id);
   if (!spec) fail(`Invalid renderer-rasterization metadata: ${region.id}`);
   if (JSON.stringify(region.captures) !== JSON.stringify(spec.captures)) fail(`Invalid renderer-rasterization capture: ${region.id}`);
-  if (region.triggerSelector !== spec.selector || region.skylineSelector !== spec.selector) fail(`Invalid renderer-rasterization selector: ${region.id}`);
+  if (region.triggerSelector !== spec.triggerSelector || region.skylineSelector !== spec.skylineSelector) fail(`Invalid renderer-rasterization selector: ${region.id}`);
   if (JSON.stringify(region.environment) !== JSON.stringify(spec.environment)) fail(`Invalid renderer-rasterization environment: ${region.id}`);
   if (JSON.stringify(region.presentation) !== JSON.stringify(spec.presentation)) fail(`Invalid renderer-rasterization presentation: ${region.id}`);
   const complete = region.category === "renderer-rasterization"
@@ -353,6 +353,15 @@ function rendererRasterizationSpec(id) {
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6938d6dc",
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-9cebc0a5",
   ];
+  const finalCitations = [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-8170f6fc",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-e977cd30",
+  ];
+  const themeWideCitations = [
+    ...finalCitations,
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-47dfd42d",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b",
+  ];
   const lightCitations = [
     ...extensionCitations,
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6b20c68e",
@@ -361,6 +370,7 @@ function rendererRasterizationSpec(id) {
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-27e039b2",
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-721d1ae5",
+    ...themeWideCitations,
   ];
   const classicCitations = [
     ...extensionCitations,
@@ -368,6 +378,7 @@ function rendererRasterizationSpec(id) {
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-299d4a96",
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e496a7d3",
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
+    ...themeWideCitations,
   ];
   const pixels6 = [
     { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
@@ -403,30 +414,101 @@ function rendererRasterizationSpec(id) {
     { x: 2, y: 2, trigger: [214, 215, 217, 255], skyline: [214, 214, 217, 255] },
     { x: 353, y: 2, trigger: [213, 214, 216, 255], skyline: [212, 214, 216, 255] },
   ];
-  const originalCapture = "error-found@1024x768-classic";
+  const classicRight6 = [pixels12[2], pixels12[3], pixels12[7], pixels12[8], pixels12[9], pixels12[11]];
+  const lightRight6 = [pixels13[2], pixels13[7], pixels13[8], pixels13[9], pixels13[10], pixels13[12]];
+  const lightLeft7 = [pixels13[0], pixels13[1], pixels13[3], pixels13[4], pixels13[5], pixels13[6], pixels13[11]];
+  const darkPixels13 = [
+    { x: 3, y: 0, trigger: [34, 35, 38, 255], skyline: [35, 36, 39, 255] },
+    { x: 4, y: 0, trigger: [54, 56, 59, 255], skyline: [55, 57, 60, 255] },
+    { x: 5, y: 0, trigger: [63, 66, 69, 255], skyline: [64, 67, 70, 255] },
+    { x: 350, y: 0, trigger: [63, 66, 69, 255], skyline: [64, 67, 70, 255] },
+    { x: 351, y: 0, trigger: [54, 57, 59, 255], skyline: [54, 57, 60, 255] },
+    { x: 2, y: 1, trigger: [47, 49, 52, 255], skyline: [48, 49, 52, 255] },
+    { x: 3, y: 1, trigger: [47, 49, 52, 255], skyline: [48, 49, 52, 255] },
+    { x: 4, y: 1, trigger: [32, 32, 35, 255], skyline: [31, 32, 35, 255] },
+    { x: 5, y: 1, trigger: [22, 22, 26, 255], skyline: [22, 22, 25, 255] },
+    { x: 350, y: 1, trigger: [22, 22, 26, 255], skyline: [22, 22, 25, 255] },
+    { x: 351, y: 1, trigger: [32, 33, 36, 255], skyline: [32, 32, 35, 255] },
+    { x: 353, y: 1, trigger: [46, 48, 51, 255], skyline: [47, 48, 51, 255] },
+    { x: 2, y: 2, trigger: [43, 44, 48, 255], skyline: [43, 45, 48, 255] },
+  ];
+  const darkRight5 = [darkPixels13[3], darkPixels13[4], darkPixels13[9], darkPixels13[10], darkPixels13[11]];
+  const darkLeft8 = [darkPixels13[0], darkPixels13[1], darkPixels13[2], darkPixels13[5], darkPixels13[6], darkPixels13[7], darkPixels13[8], darkPixels13[12]];
+  const definition = (captures, acceptance, citations, presentation, pixels, measurement) => ({
+    id, category: "renderer-rasterization", decision: "NW-216", acceptance, citations, captures, triggerSelector: selector, skylineSelector: selector, environment, presentation, pixels,
+    measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])),
+  });
   if (id === "error-codeblock-corner-rasterization") {
-    const shared = rendererRasterizationElement(selector, { x: 656, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83", "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
-    const measurement = rendererRasterizationMeasurement(runtime, shared, "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a");
-    return { selector, environment, citations: originalCitations, captures: [originalCapture], acceptance: ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."], presentation: { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels: pixels6, measurements: { [originalCapture]: measurement } };
+    const captures = ["error-found@1024x768-classic"];
+    const shared = rendererRasterizationElement(selector, { x: 656, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83", "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
+    const approved = definition(captures, ["Only exact Classic full twelve-pixel, left-edge six-pixel, or right-edge six-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], [...originalCitations, ...themeWideCitations], { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels6, rendererRasterizationMeasurement(runtime, shared, "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+    approved.alternatives = [{ captures, pixels: pixels12, triggerCropSha256: "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6" }, { captures, pixels: classicRight6, triggerCropSha256: "02739f305658911a62964055dc2ba83eeda901548260509bab81c98547231431" }];
+    return approved;
   }
   if (id === "error-codeblock-classic-rasterization") {
-    const captures = ["error-found@1440x960-classic", "errors-affected-job-types@1440x960-classic", "errors-application-vendor-frames@1440x960-classic", "errors-long-exception@1440x960-classic", "errors-stack-expansion@1440x960-classic"];
-    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
-    const measurement = rendererRasterizationMeasurement(runtime, shared, "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a");
-    return { selector, environment, citations: classicCitations, captures, acceptance: ["Only the exact pinned Chromium Classic full twelve-pixel or left-edge six-pixel antialias state may differ across the five approved captures; zero activates no exception and every other pixel and semantic must remain exact."], presentation: { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels: pixels12, measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])), alternatives: [{ captures, pixels: pixels6, triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" }] };
+    const captures = ["error-found@1440x960-classic", "errors-affected-job-types@1440x960-classic", "errors-application-vendor-frames@1440x960-classic", "errors-linked-runs@1440x960-classic", "errors-long-exception@1440x960-classic", "errors-many-occurrences@1440x960-classic", "errors-single-occurrence@1440x960-classic", "errors-stack-expansion@1440x960-classic"];
+    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
+    const approved = definition(captures, ["Only exact Classic full twelve-pixel, left-edge six-pixel, or right-edge six-pixel antialias states may differ across these exact captures; zero activates no exception and every other pixel and semantic remains exact."], classicCitations, { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, pixels12, rendererRasterizationMeasurement(runtime, shared, "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+    approved.alternatives = [{
+      captures,
+      pixels: pixels6,
+      triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50",
+    }, {
+      captures,
+      pixels: classicRight6,
+      triggerCropSha256: "02739f305658911a62964055dc2ba83eeda901548260509bab81c98547231431",
+    }];
+    return approved;
+  }
+  if (id === "error-codeblock-classic-right-rasterization") {
+    const captures = ["error-stale-refresh@1440x960-classic"];
+    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
+    const approved = definition(captures, ["Only exact Classic full twelve-pixel, left-edge six-pixel, or right-edge six-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, classicRight6, rendererRasterizationMeasurement(runtime, shared, "02739f305658911a62964055dc2ba83eeda901548260509bab81c98547231431", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+    approved.alternatives = [{ captures, pixels: pixels12, triggerCropSha256: "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6" }, { captures, pixels: pixels6, triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" }];
+    return approved;
   }
   if (id === "error-codeblock-light-rasterization") {
-    const captures = ["error-found@1440x960-light", "error-found@1440x960-system-light", "errors-affected-job-types@1440x960-light"];
-    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939", "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096", "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de");
+    const captures = ["error-found@1440x960-light", "error-found@1440x960-system-light", "errors-affected-job-types@1440x960-light", "errors-application-vendor-frames@1440x960-light", "errors-linked-runs@1440x960-light", "errors-long-exception@1440x960-light", "errors-many-occurrences@1440x960-light", "errors-single-occurrence@1440x960-light", "errors-stack-expansion@1440x960-light"];
+    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939", "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de");
     const measurement = rendererRasterizationMeasurement(runtime, shared, "93768ec0233ea8b02028b19b7743d1d263219666ef23354eb3407f4c68759fa3", "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8");
-    const rightPixels = [pixels13[2], pixels13[7], pixels13[8], pixels13[9], pixels13[10], pixels13[12]];
-    const leftPixels = [pixels13[0], pixels13[1], pixels13[3], pixels13[4], pixels13[5], pixels13[6], pixels13[11]];
-    return { selector, environment, citations: lightCitations, captures, acceptance: ["Only the exact pinned Chromium Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias state may differ across the three approved captures; zero activates no exception and every other pixel and semantic must remain exact."], presentation: { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, pixels: pixels13, measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])), alternatives: [{ captures, pixels: rightPixels, triggerCropSha256: "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864" }, { captures, pixels: leftPixels, triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5" }] };
+    const approved = definition(captures, ["Only exact Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias states may differ across these exact captures; zero activates no exception and every other pixel and semantic remains exact."], lightCitations, { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, pixels13, measurement);
+    approved.alternatives = [{
+      captures,
+      pixels: lightRight6,
+      triggerCropSha256: "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864",
+    }, {
+      captures,
+      pixels: lightLeft7,
+      triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5",
+    }];
+    return approved;
+  }
+  if (id === "error-codeblock-light-right-rasterization") {
+    const captures = ["error-stale-refresh@1440x960-light"];
+    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939", "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de");
+    const approved = definition(captures, ["Only exact Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, lightRight6, rendererRasterizationMeasurement(runtime, shared, "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864", "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8"));
+    approved.alternatives = [{ captures, pixels: pixels13, triggerCropSha256: "93768ec0233ea8b02028b19b7743d1d263219666ef23354eb3407f4c68759fa3" }, { captures, pixels: lightLeft7, triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5" }];
+    return approved;
+  }
+  if (id === "error-codeblock-dark-rasterization") {
+    const captures = ["error-found@1440x960-dark", "error-found@1440x960-system-dark", "errors-affected-job-types@1440x960-dark", "errors-application-vendor-frames@1440x960-dark", "errors-linked-runs@1440x960-dark", "errors-long-exception@1440x960-dark", "errors-many-occurrences@1440x960-dark", "errors-single-occurrence@1440x960-dark", "errors-stack-expansion@1440x960-dark"];
+    const shared = rendererRasterizationElement(selector, { x: 1072, y: 117, width: 356, height: 58 }, "1e958c4fe09cb4648dc66fc7033ad54e0390980460e99a0c6fd29b5a4d222986", "878844aaa73ad5cf97576bef440101116d5c846226f1a6e6a94e2ab114debb34", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f");
+    const approved = definition(captures, ["Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across these exact captures; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "color(srgb 0.271529 0.281647 0.295137)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "color(srgb 0.0698431 0.0725294 0.0832745)", borderRadius: "6px" }, darkPixels13, rendererRasterizationMeasurement(runtime, shared, "cc599cedd33e4bc2c41e5055c216ac59f08433a663dd7813ac5d4bf04d43e6f4", "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984"));
+    approved.alternatives = [{
+      captures,
+      pixels: darkRight5,
+      triggerCropSha256: "306da89ee227424ffb06634852e7116cb4fee904905ef7ed0305a62eb0df8297",
+    }, {
+      captures,
+      pixels: darkLeft8,
+      triggerCropSha256: "e093373e48bc2777d172b84f3f668f3bbbf4bc6c2b8ee2dff89906bc59892a62",
+    }];
+    return approved;
   }
 }
 
-function rendererRasterizationElement(selector, rect, computedStyleSha256, semanticDomSha256, effectiveCssRulesSha256, boxModelSha256, quadsSha256, backdropSha256) {
-  return { selector, rect, computedStyleSha256, accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b", semanticDomSha256, effectiveCssRulesSha256, boxModelSha256, quadsSha256, backdropSha256 };
+function rendererRasterizationElement(selector, rect, computedStyleSha256, semanticDomSha256, boxModelSha256, quadsSha256, backdropSha256) {
+  return { selector, rect, computedStyleSha256, accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b", semanticDomSha256, effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", boxModelSha256, quadsSha256, backdropSha256 };
 }
 
 function rendererRasterizationMeasurement(runtime, shared, triggerCropSha256, skylineCropSha256) {

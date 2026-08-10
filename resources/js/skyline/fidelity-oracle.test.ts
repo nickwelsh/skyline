@@ -70,7 +70,7 @@ describe("source-fidelity oracle", () => {
     })).toThrow(/unclassified/i);
   });
 
-  test("renderer rasterization requires the exact pinned six-pixel decision", () => {
+  test("renderer rasterization requires the exact pinned corner decision", () => {
     const region = rendererRasterizationRegion();
     const manifest = (renderer = region) => ({ decision: "NW-216", categories: ["renderer-rasterization"], regions: [renderer] });
 
@@ -78,7 +78,7 @@ describe("source-fidelity oracle", () => {
     expect(() => validateAllowedDifferences(manifest({ ...region, captures: ["error-found@1440x960-classic"] }))).toThrow(/capture/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, triggerSelector: ".text-text-dimmed > [translate='no'], main" }))).toThrow(/selector/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, environment: { ...region.environment, chromiumVersion: "150.0.0.0" } }))).toThrow(/environment/i);
-    expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.slice(0, 5) }))).toThrow(/six|pixel/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.slice(0, 5) }))).toThrow(/pixel/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.map((pixel, index) => index ? pixel : { ...pixel, x: 5 }) }))).toThrow(/coordinate|duplicate/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { "error-found@1024x768-classic": { ...region.measurements["error-found@1024x768-classic"], skyline: { ...region.measurements["error-found@1024x768-classic"].skyline, domSha256: "f".repeat(64) } } } }))).toThrow(/measurement/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, acceptance: ["Changed"] }))).toThrow(/metadata/i);
@@ -86,29 +86,29 @@ describe("source-fidelity oracle", () => {
     expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { "error-found@1024x768-classic": { ...region.measurements["error-found@1024x768-classic"], trigger: { ...region.measurements["error-found@1024x768-classic"].trigger, cropSha256: "f".repeat(64) } } } }))).toThrow(/measurement/i);
   });
 
-  test("renderer rasterization requires the exact approved Classic5 twelve-pixel decision", () => {
+  test("renderer rasterization requires the exact approved Classic8 decision", () => {
     const region = rendererRasterizationClassicRegion();
     const manifest = (renderer = region) => ({ decision: "NW-216", categories: ["renderer-rasterization"], regions: [renderer] });
 
     expect(() => validateAllowedDifferences(manifest())).not.toThrow();
     expect(() => validateAllowedDifferences(manifest({ ...region, captures: region.captures.slice(1) }))).toThrow(/capture/i);
-    expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures, "errors-linked-runs@1440x960-classic"] }))).toThrow(/capture/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures, "error-stale-refresh@1440x960-classic"] }))).toThrow(/capture/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures].reverse() }))).toThrow(/capture/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.slice(1) }))).toThrow(/pixel/i);
-    expect(region.alternatives).toHaveLength(1);
+    expect(region.alternatives).toHaveLength(2);
     expect(region.alternatives[0].captures).toEqual(region.captures);
     expect(() => validateAllowedDifferences(manifest({ ...region, alternatives: [{ ...region.alternatives[0], captures: region.captures.slice(1) }] }))).toThrow(/alternative|metadata/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, pixels: [...region.pixels].reverse() }))).toThrow(/pixel/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, measurements: { ...region.measurements, [region.captures[0]]: { ...region.measurements[region.captures[0]], trigger: { ...region.measurements[region.captures[0]].trigger, cropSha256: "f".repeat(64) } } } }))).toThrow(/measurement/i);
   });
 
-  test("renderer rasterization requires the exact approved Light3 full or right-edge decision", () => {
+  test("renderer rasterization requires the exact approved Light9 decision", () => {
     const region = rendererRasterizationLightRegion();
     const manifest = (renderer = region) => ({ decision: "NW-216", categories: ["renderer-rasterization"], regions: [renderer] });
 
     expect(() => validateAllowedDifferences(manifest())).not.toThrow();
     expect(() => validateAllowedDifferences(manifest({ ...region, captures: region.captures.slice(1) }))).toThrow(/capture/i);
-    expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures, "errors-stack-expansion@1440x960-light"] }))).toThrow(/capture/i);
+    expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures, "error-stale-refresh@1440x960-light"] }))).toThrow(/capture/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, captures: [...region.captures].reverse() }))).toThrow(/capture/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, pixels: region.pixels.slice(1) }))).toThrow(/pixel/i);
     expect(() => validateAllowedDifferences(manifest({ ...region, pixels: [...region.pixels].reverse() }))).toThrow(/pixel/i);
@@ -440,185 +440,32 @@ describe("source-fidelity oracle", () => {
 });
 
 function rendererRasterizationRegion() {
-  const capture = "error-found@1024x768-classic";
-  const rect = { x: 656, y: 117, width: 356, height: 58 };
-  const shared = {
-    selector: ".text-text-dimmed > [translate='no']",
-    rect,
-    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
-    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
-    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
-    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
-    boxModelSha256: "206a05c0a410e6f813bf12948198abbb381269566b3f0e98b3d822e5cc599f83",
-    quadsSha256: "260e3e345b11618f2b4d6214d5941be3b01ae92dd3596e1efe87db8d707fafd7",
-    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
-  };
-  return {
-    id: "error-codeblock-corner-rasterization",
-    category: "renderer-rasterization",
-    decision: "NW-216",
-    acceptance: ["Only the six exact pinned Chromium antialias samples may differ; every other pixel and semantic must remain exact."],
-    citations: [
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-af981c01",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-5f779354",
-    ],
-    captures: [capture],
-    triggerSelector: ".text-text-dimmed > [translate='no']",
-    skylineSelector: ".text-text-dimmed > [translate='no']",
-    environment: {
-      chromiumRevision: "1208",
-      chromiumVersion: "145.0.7632.6",
-      architecture: "x64",
-      deviceScaleFactor: 1,
-      locale: "en-US",
-      timezone: "UTC",
-    },
-    presentation: {
-      borderColor: "rgb(39, 42, 46)",
-      backgroundColor: "rgba(0, 0, 0, 0)",
-      backdropColor: "rgb(26, 27, 31)",
-      borderRadius: "6px",
-    },
-    pixels: [
-      { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
-      { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
-      { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
-      { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
-      { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
-      { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
-    ],
-    measurements: {
-      [capture]: {
-        runtime: { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" },
-        trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" },
-        skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
-      },
-    },
-  };
+  return exactRendererRegion("error-codeblock-corner-rasterization", "d537de800693f4f278938979c73a9d572d0e0c210dc321cf6b85ca68adce756b");
 }
 
 function rendererRasterizationClassicRegion() {
-  const base = rendererRasterizationRegion();
-  const captures = [
-    "error-found@1440x960-classic",
-    "errors-affected-job-types@1440x960-classic",
-    "errors-application-vendor-frames@1440x960-classic",
-    "errors-long-exception@1440x960-classic",
-    "errors-stack-expansion@1440x960-classic",
-  ];
-  const rect = { x: 1072, y: 117, width: 356, height: 58 };
-  const shared = {
-    selector: base.triggerSelector,
-    rect,
-    computedStyleSha256: "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b",
-    accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
-    semanticDomSha256: "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
-    effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
-    boxModelSha256: "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486",
-    quadsSha256: "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f",
-    backdropSha256: "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9",
-  };
-  const measurement = {
-    runtime: { browserVersion: "145.0.7632.6", platform: "Linux x86_64", deviceScaleFactor: 1, locale: "en-US", timezone: "UTC" },
-    trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6" },
-    skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a" },
-  };
-  const pixels = [
-    { x: 3, y: 0, trigger: [29, 30, 35, 255], skyline: [29, 31, 35, 255] },
-    { x: 5, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
-    { x: 350, y: 0, trigger: [37, 40, 43, 255], skyline: [37, 40, 44, 255] },
-    { x: 352, y: 0, trigger: [29, 30, 34, 255], skyline: [29, 31, 35, 255] },
-    { x: 3, y: 1, trigger: [33, 34, 38, 255], skyline: [33, 35, 39, 255] },
-    { x: 4, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
-    { x: 5, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
-    { x: 350, y: 1, trigger: [26, 27, 32, 255], skyline: [27, 28, 32, 255] },
-    { x: 351, y: 1, trigger: [28, 30, 34, 255], skyline: [29, 31, 35, 255] },
-    { x: 353, y: 1, trigger: [33, 34, 39, 255], skyline: [33, 35, 39, 255] },
-    { x: 2, y: 2, trigger: [31, 33, 37, 255], skyline: [31, 34, 38, 255] },
-    { x: 353, y: 2, trigger: [32, 33, 38, 255], skyline: [32, 34, 38, 255] },
-  ];
-  return {
-    ...base,
-    id: "error-codeblock-classic-rasterization",
-    acceptance: ["Only the exact pinned Chromium Classic full twelve-pixel or left-edge six-pixel antialias state may differ across the five approved captures; zero activates no exception and every other pixel and semantic must remain exact."],
-    citations: [
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6938d6dc",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-9cebc0a5",
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-4d0553c1",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-299d4a96",
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e496a7d3",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
-    ],
-    captures,
-    pixels,
-    measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])),
-    alternatives: [{
-      captures,
-      pixels: [pixels[0], pixels[1], pixels[4], pixels[5], pixels[6], pixels[10]],
-      triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50",
-    }],
-  };
+  return exactRendererRegion("error-codeblock-classic-rasterization", "296a201d3f9fa59b45207c457db5c6aee82a479fe7754c9a639edebfef279ddb");
 }
 
 function rendererRasterizationLightRegion() {
-  const base = rendererRasterizationClassicRegion();
-  const captures = [
-    "error-found@1440x960-light",
-    "error-found@1440x960-system-light",
-    "errors-affected-job-types@1440x960-light",
-  ];
-  const shared = {
-    ...base.measurements[base.captures[0]].trigger,
-    computedStyleSha256: "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939",
-    semanticDomSha256: "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096",
-    backdropSha256: "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de",
-  };
-  const measurement = {
-    runtime: base.measurements[base.captures[0]].runtime,
-    trigger: { ...shared, cropSha256: "93768ec0233ea8b02028b19b7743d1d263219666ef23354eb3407f4c68759fa3" },
-    skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8" },
-  };
-  const pixels = [
-    { x: 3, y: 0, trigger: [227, 227, 229, 255], skyline: [226, 227, 228, 255] },
-    { x: 4, y: 0, trigger: [197, 198, 201, 255], skyline: [196, 198, 201, 255] },
-    { x: 352, y: 0, trigger: [228, 229, 230, 255], skyline: [227, 228, 229, 255] },
-    { x: 2, y: 1, trigger: [208, 209, 211, 255], skyline: [207, 208, 211, 255] },
-    { x: 3, y: 1, trigger: [207, 208, 211, 255], skyline: [207, 208, 210, 255] },
-    { x: 4, y: 1, trigger: [233, 234, 235, 255], skyline: [233, 233, 234, 255] },
-    { x: 5, y: 1, trigger: [248, 248, 248, 255], skyline: [247, 247, 248, 255] },
-    { x: 350, y: 1, trigger: [248, 248, 248, 255], skyline: [247, 247, 248, 255] },
-    { x: 351, y: 1, trigger: [233, 233, 234, 255], skyline: [232, 233, 234, 255] },
-    { x: 352, y: 1, trigger: [206, 207, 210, 255], skyline: [206, 207, 209, 255] },
-    { x: 353, y: 1, trigger: [209, 210, 213, 255], skyline: [209, 210, 212, 255] },
-    { x: 2, y: 2, trigger: [214, 215, 217, 255], skyline: [214, 214, 217, 255] },
-    { x: 353, y: 2, trigger: [213, 214, 216, 255], skyline: [212, 214, 216, 255] },
-  ];
-  return {
-    ...base,
-    id: "error-codeblock-light-rasterization",
-    acceptance: ["Only the exact pinned Chromium Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias state may differ across the three approved captures; zero activates no exception and every other pixel and semantic must remain exact."],
-    citations: [
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6938d6dc",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-9cebc0a5",
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6b20c68e",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-86de4313",
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-e496a7d3",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-2389e910",
-      "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-27e039b2",
-      "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-721d1ae5",
-    ],
-    captures,
-    presentation: { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" },
-    pixels,
-    measurements: Object.fromEntries(captures.map((capture) => [capture, structuredClone(measurement)])),
-    alternatives: [{
-      captures,
-      pixels: [pixels[2], pixels[7], pixels[8], pixels[9], pixels[10], pixels[12]],
-      triggerCropSha256: "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864",
-    }, {
-      captures,
-      pixels: [pixels[0], pixels[1], pixels[3], pixels[4], pixels[5], pixels[6], pixels[11]],
-      triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5",
-    }],
-  };
+  return exactRendererRegion("error-codeblock-light-rasterization", "b28c45c29a6f4274e11cf394bd09704f0393ebd498ee3c9270f451d7ed0c62d6");
 }
+
+function exactRendererRegion(id: string, sha256: string): RendererRasterizationTestRegion {
+  const value = allowedDifferences.regions.find((region) => region.id === id);
+  if (!value) throw new Error(`Missing renderer rasterization region ${id}.`);
+  expect(createHash("sha256").update(JSON.stringify(value)).digest("hex")).toBe(sha256);
+  return structuredClone(value) as unknown as RendererRasterizationTestRegion;
+}
+
+type RendererRasterizationTestRegion = {
+  acceptance: string[];
+  alternatives: Array<{ captures: string[]; pixels: unknown[]; triggerCropSha256: string }>;
+  captures: string[];
+  citations: string[];
+  environment: Record<string, unknown>;
+  measurements: Record<string, { trigger: Record<string, unknown>; skyline: Record<string, unknown> }>;
+  pixels: Array<{ x: number; y: number }>;
+  presentation: Record<string, unknown>;
+  triggerSelector: string;
+};
