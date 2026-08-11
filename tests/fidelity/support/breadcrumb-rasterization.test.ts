@@ -1,8 +1,12 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, test } from "vitest";
 import { PNG } from "pngjs";
 import { validateAllowedDifferences } from "../../../scripts/fidelity-oracle.mjs";
 import allowedDifferences from "../allowed-differences.json" with { type: "json" };
 import policy from "../breadcrumb-rasterization-policy.json" with { type: "json" };
+import replacements from "../breadcrumb-stale3-source-replacements.json" with { type: "json" };
 import {
   breadcrumbRasterizationRegion,
   fingerprintBreadcrumbRasterizationCandidate,
@@ -23,6 +27,60 @@ const historicalVendorDarkCandidate = "66b6ceeac77d3e922878ebf34acf2aafa8e132c80
 const vendorDarkCandidate = "a441c92601b7e59ec6ac2f2e4295de67154fb8d9ee17c0bc52d4edb4dc75120a";
 
 describe("breadcrumb renderer rasterization policy", () => {
+  test("replaces exactly six stale-refresh candidates from pinned current-source evidence", () => {
+    expect(createHash("sha256").update(readFileSync(resolve(import.meta.dirname, "../breadcrumb-stale3-source-replacements.json"))).digest("hex"))
+      .toBe("3237b37b12b38226fe0a87740b47e14cabff6fa993e81f5240b2c3b2fda7a967");
+    expect(replacements.classification).toBe("six exact source-contract replacements; zero additive retention");
+    expect(replacements.replacements).toHaveLength(6);
+    expect(approved.evidence.observations).toBe(1419 + replacements.replacements
+      .reduce((count, replacement) => count + replacement.observations, 0));
+    expect(replacements.provenance.initialAuditLog).toMatchObject({ sha256: "53e65f1d8549a7bf0da484dff3ea2c4ffc1872a55669739032b4c3d150f3d5e0", records: 9, exitCode: 0 });
+    expect(replacements.sourceContractChange).toEqual({
+      "skyline.svg.matchingRulesSha256": { old: "a43da8d69ed70c41654a3fcedca23dd114c46293832a645563ea4cbb470e63a4", current: "cebbf37e712cc1bd4ba72f48557c14bf3bcbf3938d6ccbd605272385d7d5e155" },
+      "skyline.line.matchingRulesSha256": { old: "9aa9b0223811298c2d4600598f6acd62cdb18075a425483777bd435fa2fc0e5b", current: "ab219362a7ffa12ef4ba8c0acc00a8f56f98676266d70d5f708ef0d1d252324b" },
+    });
+
+    const prior = structuredClone(approved);
+    for (const replacement of replacements.replacements) {
+      const candidates = approved.captures[replacement.capture].candidates.map(({ sha256 }) => sha256);
+      expect(candidates).toContain(replacement.addCandidateSha256);
+      expect(candidates).not.toContain(replacement.removeCandidateSha256);
+      prior.captures[replacement.capture].candidates = prior.captures[replacement.capture].candidates
+        .map(({ sha256 }) => ({ sha256: sha256 === replacement.addCandidateSha256 ? replacement.removeCandidateSha256 : sha256 }));
+    }
+    prior.evidence.observations = 1419;
+    delete prior.source.staleRefreshSourceReplacementSha256;
+    expect(Object.values(approved.captures).reduce((count, capture) => count + capture.candidates.length, 0)).toBe(379);
+    expect(createHash("sha256").update(JSON.stringify(prior)).digest("hex")).toBe("b2587008149b70ca2a2296fa376e709d062c8fb262c52962036ef04b3d850431");
+  });
+
+  test("accepts current stale evidence and rejects prior or crossed evidence", () => {
+    const staleDark = "error-stale-refresh@1440x960-dark";
+    for (const historical of [false, true]) {
+      const oldObservation = vendorDarkObservation(historical);
+      const observation = withCurrentSkylineMatchingRules(oldObservation);
+      const replacement = replacements.replacements.find(({ capture, pixelCount }) => capture === staleDark && pixelCount === observation.pixels.length)!;
+      expect(validateBreadcrumbRasterizationObservation(approved, staleDark, observation)).toMatchObject({ candidateSha256: replacement.addCandidateSha256 });
+      expect(() => validateBreadcrumbRasterizationObservation(approved, staleDark, oldObservation)).toThrow(/capture evidence/i);
+    }
+
+    const observation = withCurrentSkylineMatchingRules(vendorDarkObservation(false));
+    expect(() => validateBreadcrumbRasterizationObservation(approved, "error-stale-refresh@1440x960-classic", observation)).toThrow(/capture evidence/i);
+    expect(() => validateBreadcrumbRasterizationObservation(approved, staleDark, { ...observation, pixels: approved.states.find(({ sha256 }) => sha256 === historicalVendorDarkState)!.pixels })).toThrow(/capture evidence/i);
+    for (const mutation of [
+      { semanticDomSha256: "f".repeat(64) },
+      { computedStyleSha256: "f".repeat(64) },
+      { cropSha256: "f".repeat(64) },
+    ]) expect(() => validateBreadcrumbRasterizationObservation(approved, staleDark, {
+      ...observation,
+      skyline: { ...observation.skyline!, svg: { ...observation.skyline!.svg, ...mutation } },
+    })).toThrow(/capture evidence/i);
+    expect(() => validateBreadcrumbRasterizationObservation(approved, staleDark, {
+      ...observation,
+      pixels: [{ x: 0, y: 0, trigger: [0, 0, 0, 255], skyline: [1, 1, 1, 255] }],
+    })).toThrow(/finite state/i);
+  });
+
   test("requires exactly one approved manifest region", () => {
     const breadcrumb = allowedDifferences.regions.find(({ id }) => id === "run-breadcrumb-rasterization")!;
     const minimal = { decision: "NW-216", categories: [], regions: [breadcrumb] };
@@ -225,6 +283,16 @@ function vendorDarkObservation(historical: boolean): BreadcrumbRasterizationObse
     trigger,
     skyline,
     pixels: historical ? approved.states.find(({ sha256 }) => sha256 === historicalVendorDarkState)!.pixels : [],
+  };
+}
+
+function withCurrentSkylineMatchingRules(observation: BreadcrumbRasterizationObservation): BreadcrumbRasterizationObservation {
+  return {
+    ...observation,
+    skyline: {
+      svg: { ...observation.skyline!.svg, matchingRulesSha256: replacements.sourceContractChange["skyline.svg.matchingRulesSha256"].current },
+      line: { ...observation.skyline!.line, matchingRulesSha256: replacements.sourceContractChange["skyline.line.matchingRulesSha256"].current },
+    },
   };
 }
 

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "implementationHead": "22bf2a7c9a9d02eb4f13e3cce638f37fcc1c0d4b",
+  "policyEdited": false,
+  "repoEdited": false,
+  "classification": "six exact source-contract replacements; zero additive retention",
+  "sourceContractChange": {
+    "skyline.svg.matchingRulesSha256": {
+      "old": "a43da8d69ed70c41654a3fcedca23dd114c46293832a645563ea4cbb470e63a4",
+      "current": "cebbf37e712cc1bd4ba72f48557c14bf3bcbf3938d6ccbd605272385d7d5e155"
+    },
+    "skyline.line.matchingRulesSha256": {
+      "old": "9aa9b0223811298c2d4600598f6acd62cdb18075a425483777bd435fa2fc0e5b",
+      "current": "ab219362a7ffa12ef4ba8c0acc00a8f56f98676266d70d5f708ef0d1d252324b"
+    }
+  },
+  "unchangedStrictLocks": [
+    "runtime",
+    "state pixels",
+    "DOM",
+    "semantic DOM",
+    "accessibility",
+    "computed style",
+    "effective CSS",
+    "geometry",
+    "quads",
+    "backdrop",
+    "paint",
+    "outerHTML",
+    "four crop hashes"
+  ],
+  "replacements": [
+    {
+      "capture": "error-stale-refresh@1440x960-classic",
+      "stateSha256": "024f981275362f9797abec974bcb7a7fd4f36bec88acb5b173aa35023dd2ba71",
+      "pixelCount": 24,
+      "removeCandidateSha256": "704d3f8d013d4d67162f2f7e3b5139fce6f258bb4deb1ec639b0227511e4fc16",
+      "addCandidateSha256": "be5d45feb15b77c40e9bb1ec6a5af36670f98970ddb43e0f2e47f0919f0dd9ac",
+      "evidenceSha256": "09adf68c470f9e2fc8cd854fb321b4ec304b7aceccb963f725e95b3ec5898483",
+      "observations": 3
+    },
+    {
+      "capture": "error-stale-refresh@1440x960-classic",
+      "stateSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "pixelCount": 0,
+      "removeCandidateSha256": "64c9263acb0d9783f94350d926e27bb2d824f482e2a184b0f3a2921bbad14cef",
+      "addCandidateSha256": "13a63d15665c06adf8213af5ea4206675ca85fbf098c934df70611f862ab4ed4",
+      "evidenceSha256": "bf33a80bee23e03b9037e379061ed6fda8eadd373b454d551c0410595374cac4",
+      "observations": 5
+    },
+    {
+      "capture": "error-stale-refresh@1440x960-dark",
+      "stateSha256": "361d5528a4e4c5a51b8a64c51a9db94b3dd3c9ea550a66d4f3e5e772945615dc",
+      "pixelCount": 24,
+      "removeCandidateSha256": "66b6ceeac77d3e922878ebf34acf2aafa8e132c80372e072531882ceb139456b",
+      "addCandidateSha256": "61e62bb6904b5edf4e588912ac558aab2c48b0222007f2d9d8324eb5b8d3b6f3",
+      "evidenceSha256": "f16df96aa67e45a2a25e4adbc2483026200802e43f1a5e7e96944db887687da0",
+      "observations": 4
+    },
+    {
+      "capture": "error-stale-refresh@1440x960-dark",
+      "stateSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "pixelCount": 0,
+      "removeCandidateSha256": "a441c92601b7e59ec6ac2f2e4295de67154fb8d9ee17c0bc52d4edb4dc75120a",
+      "addCandidateSha256": "40a489c41a41ee324ab5ca263f06ef0c13882545add3647e142dee2cfca5c1a2",
+      "evidenceSha256": "07e3865d067d57bee0f6b5bbaa548fe90cd171ed62094af25c065850e1cb699d",
+      "observations": 3
+    },
+    {
+      "capture": "error-stale-refresh@1440x960-light",
+      "stateSha256": "ad2360f2a5726f0cb409ff44b9400d72c7e94a7af9e264019360b65643ead92e",
+      "pixelCount": 27,
+      "removeCandidateSha256": "7577d368315d9d65e85bf2221956aec5968e2bf906484d8d5fb3acb350459ad5",
+      "addCandidateSha256": "0d592d59e47728b14bde346484e95a277c5e6d647816e9a962ad9c518a7056a3",
+      "evidenceSha256": "eef9d407045a3d71f6b6f439e6f28b8be92ad91c9f6be9f9563f75e8788e1c68",
+      "observations": 2
+    },
+    {
+      "capture": "error-stale-refresh@1440x960-light",
+      "stateSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "pixelCount": 0,
+      "removeCandidateSha256": "e941d6f36c607b22de0cac991a080886c84782304166a3bae8e7bbfdd0e7bf37",
+      "addCandidateSha256": "80fb43a9e6b1fa6e4572b43664e12ac7195f5c6f5e13e43bb79ed59757996b16",
+      "evidenceSha256": "762eab5f5f3f8242df3c795dcb778df4cc7e42a133c1879006bb0db8f45146b4",
+      "observations": 1
+    }
+  ],
+  "provenance": {
+    "initialAuditLog": {
+      "path": "/private/tmp/nw227-stale3-audit-22bf/logs/stale3-raw.log",
+      "sha256": "53e65f1d8549a7bf0da484dff3ea2c4ffc1872a55669739032b4c3d150f3d5e0",
+      "records": 9,
+      "exitCode": 0
+    },
+    "boundedAlternateLog": {
+      "path": "/private/tmp/nw227-stale3-audit-22bf/logs/stale3-bounded.log",
+      "sha256": "5c76f5d11087f54a1c2775603bbaea7f4f0094a6963dd448a3ef6269a7c75a04",
+      "records": 9,
+      "stoppedAfterClosure": true,
+      "processExitCode": 1,
+      "note": "Playwright repeat workers reset the temp wrapper map; run was intentionally interrupted after both states were observed for both themes."
+    },
+    "priorAuditLogSha256": "002016bef3b8c86dc4c957d2bc9817049af600054035d2a03a2e5e25afd389ef",
+    "priorAuditReportSha256": "c72b3a458de6c95cc8a9573be59e8e4d611f13d118e0f90743c961caf393e7c5",
+    "policySha256": "bf92e7f0b704435f5d9ec6de758b26f6e291fa0b373af4d322b81e61a69ef8c3"
+  }
+}
