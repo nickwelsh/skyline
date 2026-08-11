@@ -75,6 +75,19 @@ it('uses the host viewSkyline gate outside local environments', function (): voi
 
 it('rejects assets absent from the manifest', function (): void {
     $this->get('/skyline/assets/not-real.js')->assertNotFound();
+    $this->get('/skyline/assets/assets/not-real.js')->assertNotFound();
+});
+
+it('serves manifest-listed nested dynamic assets', function (): void {
+    $manifest = json_decode(file_get_contents(__DIR__.'/../../dist/manifest.json'), true, flags: JSON_THROW_ON_ERROR);
+    $asset = collect($manifest)->first(fn (array $entry): bool => ($entry['isDynamicEntry'] ?? false) === true)['file'];
+
+    expect($asset)->toStartWith('assets/');
+
+    $this->get('/skyline/assets/'.$asset)
+        ->assertOk()
+        ->assertHeader('Content-Type', 'text/javascript; charset=UTF-8')
+        ->assertHeader('Cache-Control', 'immutable, max-age=31536000, public');
 });
 
 /** @return array{file: string, css: list<string>} */

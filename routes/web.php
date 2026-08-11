@@ -19,7 +19,7 @@ Route::prefix($path)
     ->middleware($middleware)
     ->group(function (): void {
         Route::get('assets/{asset}', AssetController::class)
-            ->where('asset', '[A-Za-z0-9._-]+')
+            ->where('asset', '.*')
             ->name('skyline.asset');
 
         Route::get('api/runs', [RunsController::class, 'index'])->name('skyline.api.runs.index');

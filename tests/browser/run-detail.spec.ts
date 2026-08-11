@@ -699,6 +699,13 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     if (scenario.key === "sql-captured") {
       const bindings = detailRegion.getByLabel("SQL with bindings", { exact: true });
       await expect(bindings).toContainText("[REDACTED]");
+      const keyword = bindings.locator(".token.keyword").first();
+      await expect(keyword).toBeVisible();
+      const [keywordColor, codeColor] = await Promise.all([
+        keyword.evaluate((element) => getComputedStyle(element).color),
+        bindings.locator("pre").evaluate((element) => getComputedStyle(element).color),
+      ]);
+      expect(keywordColor).not.toBe(codeColor);
       await detailRegion.getByRole("button", { name: "Show Result preview tree" }).click();
       await expect(detailRegion.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
     }
