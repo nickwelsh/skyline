@@ -1,4 +1,12 @@
 {
+  "_prism-typescript-e5b3fb4a.js": {
+    "file": "assets/prism-typescript-e5b3fb4a.js",
+    "name": "prism-typescript",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  },
   "node_modules/.pnpm/non.geist@1.0.2/node_modules/non.geist/fonts/mono/GeistMonoVariableVF.woff2": {
     "file": "skyline-GeistMonoVariableVF.f8f54328.woff2",
     "src": "node_modules/.pnpm/non.geist@1.0.2/node_modules/non.geist/fonts/mono/GeistMonoVariableVF.woff2"
@@ -7,13 +15,33 @@
     "file": "skyline-GeistVariableVF.2eac40ce.woff2",
     "src": "node_modules/.pnpm/non.geist@1.0.2/node_modules/non.geist/fonts/sans/GeistVariableVF.woff2"
   },
+  "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js": {
+    "file": "assets/prism-json-26cdae3b.js",
+    "name": "prism-json",
+    "src": "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js": {
+    "file": "assets/prism-sql-e161fcc2.js",
+    "name": "prism-sql",
+    "src": "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js",
+    "isDynamicEntry": true
+  },
   "resources/js/app.tsx": {
-    "file": "skyline.4d40117d.js",
+    "file": "skyline.e1c36939.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
+    "dynamicImports": [
+      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
+      "_prism-typescript-e5b3fb4a.js",
+      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js",
+      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
+      "_prism-typescript-e5b3fb4a.js",
+      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js"
+    ],
     "css": [
-      "skyline.f10e327f.css"
+      "skyline.d2092f0a.css"
     ],
     "assets": [
       "skyline-GeistVariableVF.2eac40ce.woff2",

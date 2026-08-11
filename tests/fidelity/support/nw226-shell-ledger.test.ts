@@ -47,6 +47,6 @@ describe("NW-226 exact shell ledger", () => {
 
   test("pins the reviewed shell ledger", () => {
     expect(createHash("sha256").update(JSON.stringify(regions)).digest("hex"))
-      .toBe("aeb7e8d949191bc4e721a8016ea07a2384e6c457029dd4db76601226b2089072");
+      .toBe("6a8c16208ce882da468e42c75c25666b0453d2e74afb401bd0a3692de5eaa700");
   });
 });

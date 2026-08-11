@@ -19,7 +19,7 @@ describe("NW-221 exact Queue ledger", () => {
     expect(regions.map(({ id }) => id)).toEqual(expected.map(({ id }) => id));
     for (const definition of expected) {
       const region = regions.find(({ id }) => id === definition.id)!;
-      expect({ ...region, measurements: {} }).toEqual(definition);
+      expect({ ...region, measurements: {}, ...(region.category === "capability-omission" ? { protectedMeasurements: {} } : {}) }).toEqual(definition);
       expect(Object.keys(region.measurements).sort()).toEqual([...definition.captures].sort());
       expect(JSON.stringify(region)).not.toMatch(/\*|information|shell/i);
     }
@@ -36,13 +36,33 @@ describe("NW-221 exact Queue ledger", () => {
       expect(Object.keys(measurement).sort()).toEqual(region.selectorPairs.map(({ id }) => id).sort());
       for (const pair of Object.values(measurement) as CapabilityOmissionMeasurement[]) for (const key of ["triggerComputedStyleSha256", "skylineComputedStyleSha256", "triggerAccessibilitySha256", "skylineAccessibilitySha256"] as const) expect(pair[key]).toMatch(hash);
     }
+    for (const region of regions) if (region.category === "capability-omission") {
+      expect(Object.keys(region.protectedMeasurements ?? {}).sort()).toEqual([...region.captures].sort());
+      for (const measurement of Object.values(region.protectedMeasurements ?? {})) {
+        expect(Object.keys(measurement)).toEqual(region.protectedSelectors?.map(({ id }) => id));
+        for (const evidence of Object.values(measurement)) {
+          expect(Object.keys(evidence).sort()).toEqual(["accessibilitySha256", "computedStyleSha256", "crop", "rect"]);
+          expect(evidence.computedStyleSha256).toMatch(hash);
+          expect(evidence.accessibilitySha256).toMatch(hash);
+          expect(evidence.rect.width).toBeGreaterThan(0);
+          expect(evidence.rect.height).toBeGreaterThan(0);
+          if (evidence.crop.status === "visible") {
+            expect(Object.keys(evidence.crop).sort()).toEqual(["rect", "screenshotSha256", "status"]);
+            expect(evidence.crop.screenshotSha256).toMatch(hash);
+          } else expect(Object.keys(evidence.crop)).toEqual(["status"]);
+        }
+      }
+    }
     const connection = regions.find(({ id }) => id === "queue-connection-filter") as FrameworkExtensionDefinition;
     expect(connection.measurements["queues-filtering@1440x960-classic"]!.accessibilitySha256)
       .not.toBe(connection.measurements["queues-populated@1440x960-classic"]!.accessibilitySha256);
   });
 
-  test("pins the reviewed 76-observation ledger", () => {
+  test("pins 76 capture records, 456 omissions, and 304 protected observations", () => {
+    expect(regions.reduce((total, region) => total + Object.keys(region.measurements).length, 0)).toBe(76);
+    expect(regions.reduce((total, region) => total + (region.category === "capability-omission" ? Object.values(region.measurements).reduce((count, measurement) => count + Object.keys(measurement).length, 0) : 0), 0)).toBe(456);
+    expect(regions.reduce((total, region) => total + (region.category === "capability-omission" ? Object.values(region.protectedMeasurements ?? {}).reduce((count, measurement) => count + Object.keys(measurement).length, 0) : 0), 0)).toBe(304);
     expect(createHash("sha256").update(JSON.stringify(regions)).digest("hex"))
-      .toBe("c9fbe635eae2c04955c99ad6c28142163226b8c79bcc17f179bc8007ec3321ca");
+      .toBe("80026331c1b1560d9cb530eebc331a3bb70c2af1f725870ec18de24fd9b00cf8");
   });
 });

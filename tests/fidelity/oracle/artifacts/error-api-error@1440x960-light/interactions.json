@@ -1,0 +1,30 @@
+{
+  "trigger": {
+    "step": "captured",
+    "url": "/skyline/runs",
+    "activeElement": {
+      "tag": "BODY",
+      "role": null,
+      "name": "FiFixture LaravelProjectFixture LaravelProductionTasksRunsHelp & FeedbackErrorDeterministic telemetry error.Go to homepageEnter"
+    },
+    "visible": [],
+    "storage": {
+      "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"light\",\"contrast\":70}"
+    },
+    "clipboard": null
+  },
+  "skyline": {
+    "step": "captured",
+    "url": "/skyline/runs",
+    "activeElement": {
+      "tag": "BODY",
+      "role": null,
+      "name": "FiFixture LaravelApplicationProductionTasksRunsObservabilityLogsErrorsQueuesAppearanceHelp & FeedbackErrorDeterministic telemetry error.Go to homepageEnter{\"schemaVersion\":1,\"basePath\":\"/skyline\",\"applicationName\":\"Fixture Laravel\",\"environmentLabel\":\"Production\",\"capabilities\":{\"navigation\":{\"jobs\":true,\"runs\":true,\"errors\":true,\"logs\":true,\"queues\":true,\"query\":false,\"dashboards\":false},\"runs\":{\"view\":true,\"cancel\":false,\"replay\":false,\"bulkCancel\":false,\"bulkReplay\":false},\"jobs\":{\"view\":true,\"testJob\":false,\"configure\":false,\"schedule\":false},\"errors\":{\"view\":true,\"assign\":false,\"ignore\":false,\"resolve\":false,\"alerts\":false,\"replay\":false,\"cancel\":false,\"versions\":false,\"bulkActions\":false},\"shell\":{\"appearance\":true,\"sidebarCustomization\":true,\"favorites\":true,\"panelPersistence\":true,\"shortcuts\":true,\"account\":false,\"notifications\":false,\"jobGuidance\":false,\"organizationSwitching\":false,\"projectSwitching\":false,\"environmentSwitching\":false,\"accountOpening\":false},\"help\":{\"menu\":true,\"shortcuts\":true,\"askAi\":false,\"documentation\":false,\"status\":false,\"suggestFeature\":false,\"contact\":false,\"changelog\":false}}}"
+    },
+    "visible": [],
+    "storage": {
+      "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"light\",\"contrast\":70}"
+    },
+    "clipboard": null
+  }
+}

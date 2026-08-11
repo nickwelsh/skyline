@@ -1,0 +1,146 @@
+{
+  "trigger": [
+    {
+      "step": "initial",
+      "url": "/skyline/runs",
+      "activeElement": {
+        "tag": "BODY",
+        "role": null,
+        "name": "FiFixture LaravelProjectFixture LaravelProductionTasksRunsHelp & FeedbackRunsStatusTasksCreated:7 daysRoot onlyMore filtersIDTaskVersionStatusStartedDurationMachineQueueRegionTestCreated atDelayed untilTTLTagsGo to page1H2Z7M9CApp\\Jobs\\GenerateMonthlyInvoicesRoot20260804.1CompletedAug 4, 2026, 8:01:21 PM0ms0ms15.3sSmall 1xbillingus-east-1–Aug 4, 2026, 8:01:21 PM––H6F6JQ3MApp\\Jobs\\SendInvoiceMail20260804.1CompletedAug 4, 2026, 8:01:26 PM0ms0ms4.6sSmall 1xmailus-east-1–Aug 4, 2026, 8:01:26 PM––Q9P59BJWApp\\Jobs\\RefreshRevenueReportRoot20260804.1ExecutingAug 4, 2026, 8:00:58 PM0ms15h, 59m22.8sSmall 1xreportsus-east-1–Aug 4, 2026, 8:00:58 PM––RPXQ0VC2App\\Jobs\\ImportLegacyOrdersRoot20260804.1FailedAug 4, 2026, 7:59:42 PM0ms0ms41.2sSmall 1ximportsus-east-1–Aug 4, 2026, 7:59:42 PM––53CXF7F4App\\Jobs\\ReconcilePayoutsRoot20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:58:11 PM––xture_06App\\Jobs\\BackgroundJob06Root20260804.1ExecutingAug 4, 2026, 7:52:00 PM0ms16h, 8m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:52:00 PM––xture_07App\\Jobs\\BackgroundJob07Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:51:00 PM––xture_08App\\Jobs\\BackgroundJob08Root20260804.1ExecutingAug 4, 2026, 7:50:00 PM0ms16h, 10m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:50:00 PM––xture_09App\\Jobs\\BackgroundJob09Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:49:00 PM––xture_10App\\Jobs\\BackgroundJob10Root20260804.1ExecutingAug 4, 2026, 7:48:00 PM0ms16h, 12m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:48:00 PM––xture_11App\\Jobs\\BackgroundJob11Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:47:00 PM––xture_12App\\Jobs\\BackgroundJob12Root20260804.1ExecutingAug 4, 2026, 7:46:00 PM0ms16h, 14m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:46:00 PM––xture_13App\\Jobs\\BackgroundJob13Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:45:00 PM––xture_14App\\Jobs\\BackgroundJob14Root20260804.1ExecutingAug 4, 2026, 7:44:00 PM0ms16h, 16m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:44:00 PM––xture_15App\\Jobs\\BackgroundJob15Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:43:00 PM––xture_16App\\Jobs\\BackgroundJob16Root20260804.1ExecutingAug 4, 2026, 7:42:00 PM0ms16h, 18m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:42:00 PM––xture_17App\\Jobs\\BackgroundJob17Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:41:00 PM––xture_18App\\Jobs\\BackgroundJob18Root20260804.1ExecutingAug 4, 2026, 7:40:00 PM0ms16h, 20m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:40:00 PM––xture_19App\\Jobs\\BackgroundJob19Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:39:00 PM––xture_20App\\Jobs\\BackgroundJob20Root20260804.1ExecutingAug 4, 2026, 7:38:00 PM0ms16h, 22m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:38:00 PM––xture_21App\\Jobs\\BackgroundJob21Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:37:00 PM––xture_22App\\Jobs\\BackgroundJob22Root20260804.1ExecutingAug 4, 2026, 7:36:00 PM0ms16h, 24m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:36:00 PM––xture_23App\\Jobs\\BackgroundJob23Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:35:00 PM––xture_24App\\Jobs\\BackgroundJob24Root20260804.1ExecutingAug 4, 2026, 7:34:00 PM0ms16h, 26m3.4sSmall 1xdefaultus-east-1–Aug 4, 2026, 7:34:00 PM––xture_25App\\Jobs\\BackgroundJob25Root20260804.1Queued––––Small 1xdefaultus-east-1–Aug 4, 2026, 7:33:00 PM––\n  \n\nFilter by statussFilter by tasktFilter by time perioddToggle root onlyoMore filtersf"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "1:click",
+      "url": "/skyline/jobs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Tasks"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "2:click",
+      "url": "/skyline/runs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "3:history",
+      "url": "/skyline/jobs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "4:history",
+      "url": "/skyline/runs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    }
+  ],
+  "skyline": [
+    {
+      "step": "initial",
+      "url": "/runs",
+      "activeElement": {
+        "tag": "BODY",
+        "role": null,
+        "name": "FiFixture LaravelApplicationProductionTasksRunsObservabilityLogsErrorsQueuesAppearanceHelp & FeedbackRunsSearch RunsStatusqueuedrunningretryingcompletedfailedJobsApp\\Jobs\\BackgroundJob06App\\Jobs\\BackgroundJob07App\\Jobs\\BackgroundJob08App\\Jobs\\BackgroundJob09App\\Jobs\\BackgroundJob10App\\Jobs\\BackgroundJob11App\\Jobs\\BackgroundJob12App\\Jobs\\BackgroundJob13App\\Jobs\\BackgroundJob14App\\Jobs\\BackgroundJob15App\\Jobs\\BackgroundJob16App\\Jobs\\BackgroundJob17App\\Jobs\\BackgroundJob18App\\Jobs\\BackgroundJob19App\\Jobs\\BackgroundJob20App\\Jobs\\BackgroundJob21App\\Jobs\\BackgroundJob22App\\Jobs\\BackgroundJob23App\\Jobs\\BackgroundJob24App\\Jobs\\BackgroundJob25App\\Jobs\\BackgroundJob26App\\Jobs\\BackgroundJob27App\\Jobs\\BackgroundJob28App\\Jobs\\BackgroundJob29App\\Jobs\\BackgroundJob30App\\Jobs\\GenerateMonthlyInvoicesApp\\Jobs\\ImportLegacyOrdersApp\\Jobs\\ReconcilePayoutsApp\\Jobs\\RefreshRevenueReportApp\\Jobs\\SendInvoiceMail Created: 7 daysRoot only More filtersIDJobStatusStartedDurationAttemptsQueue targetTrace1H2Z7M9CGenerateMonthlyInvoicesRootCompleted8:01:21.000 PM312ms15.3s—2redis / billingfixture-run_01J8R4NQX6K3PV4W0A1H2Z7M9CH6F6JQ3MSendInvoiceMailCompleted8:01:26.000 PM488ms4.60s—1redis / mailfixture-run_01J8R4H9S9J12V04CNH6F6JQ3MQ9P59BJWRefreshRevenueReportRootExecuting8:00:58.000 PM1.20s22.8s22.8s1database / reportsfixture-run_01J8R47YYNA4GFVDMTQ9P59BJWRPXQ0VC2ImportLegacyOrdersRootFailed7:59:42.000 PM85ms41.2s—3sqs / importsfixture-run_01J8R3XK1YV76N3Q51RPXQ0VC253CXF7F4ReconcilePayoutsRootQueued–———0redis / defaultfixture-run_01J8R3RXZ6A7J19G4Y53CXF7F4xture_06BackgroundJob06RootExecuting7:52:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_06xture_07BackgroundJob07RootQueued–———0redis / defaultfixture-run_fixture_07xture_08BackgroundJob08RootExecuting7:50:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_08xture_09BackgroundJob09RootQueued–———0redis / defaultfixture-run_fixture_09xture_10BackgroundJob10RootExecuting7:48:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_10xture_11BackgroundJob11RootQueued–———0redis / defaultfixture-run_fixture_11xture_12BackgroundJob12RootExecuting7:46:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_12xture_13BackgroundJob13RootQueued–———0redis / defaultfixture-run_fixture_13xture_14BackgroundJob14RootExecuting7:44:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_14xture_15BackgroundJob15RootQueued–———0redis / defaultfixture-run_fixture_15xture_16BackgroundJob16RootExecuting7:42:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_16xture_17BackgroundJob17RootQueued–———0redis / defaultfixture-run_fixture_17xture_18BackgroundJob18RootExecuting7:40:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_18xture_19BackgroundJob19RootQueued–———0redis / defaultfixture-run_fixture_19xture_20BackgroundJob20RootExecuting7:38:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_20xture_21BackgroundJob21RootQueued–———0redis / defaultfixture-run_fixture_21xture_22BackgroundJob22RootExecuting7:36:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_22xture_23BackgroundJob23RootQueued–———0redis / defaultfixture-run_fixture_23xture_24BackgroundJob24RootExecuting7:34:00.000 PM120ms3.40s3.40s1redis / defaultfixture-run_fixture_24xture_25BackgroundJob25RootQueued–———0redis / defaultfixture-run_fixture_25{\"schemaVersion\":1,\"basePath\":\"/skyline\",\"applicationName\":\"Fixture Laravel\",\"environmentLabel\":\"Production\",\"capabilities\":{\"navigation\":{\"jobs\":true,\"runs\":true,\"errors\":true,\"logs\":true,\"queues\":true,\"query\":false,\"dashboards\":false},\"runs\":{\"view\":true,\"cancel\":false,\"replay\":false,\"bulkCancel\":false,\"bulkReplay\":false},\"jobs\":{\"view\":true,\"testJob\":false,\"configure\":false,\"schedule\":false},\"errors\":{\"view\":true,\"assign\":false,\"ignore\":false,\"resolve\":false,\"alerts\":false,\"replay\":false,\"cancel\":false,\"versions\":false,\"bulkActions\":false},\"shell\":{\"appearance\":true,\"sidebarCustomization\":true,\"favorites\":true,\"panelPersistence\":true,\"shortcuts\":true,\"account\":false,\"notifications\":false,\"jobGuidance\":false,\"organizationSwitching\":false,\"projectSwitching\":false,\"environmentSwitching\":false,\"accountOpening\":false},\"help\":{\"menu\":true,\"shortcuts\":true,\"askAi\":false,\"documentation\":false,\"status\":false,\"suggestFeature\":false,\"contact\":false,\"changelog\":false}}}"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "1:click",
+      "url": "/jobs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Tasks"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "2:click",
+      "url": "/runs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "3:history",
+      "url": "/jobs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "4:history",
+      "url": "/runs",
+      "activeElement": {
+        "tag": "A",
+        "role": null,
+        "name": "Runs"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    }
+  ]
+}

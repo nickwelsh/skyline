@@ -40,7 +40,8 @@ The contributor lockfile pins exact versions. The build copies the applicable li
 | `non.geist` | 1.0.2 | MIT |
 | `parse-duration` | 2.1.4 | MIT |
 | Geist font software | bundled by non.geist 1.0.2 | OFL-1.1 |
-| `prism-react-renderer` | 2.4.1 | MIT |
+| `prism-react-renderer` | 2.3.1 | MIT |
+| `prismjs` | 1.30.0 | MIT |
 | `react` | 18.3.1 | MIT |
 | `react-dom` | 18.3.1 | MIT |
 | `react-day-picker` | 9.13.0 | MIT |

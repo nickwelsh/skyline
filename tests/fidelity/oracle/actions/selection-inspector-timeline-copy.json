@@ -1,0 +1,196 @@
+{
+  "trigger": [
+    {
+      "step": "initial",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=span_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "DIV",
+        "role": "tree",
+        "name": "GenerateMonthlyInvoices RootAttempt 1 select * from `customers` where `invoiced_at` is null limit 100 Attempt 2 select * from `customers` where `invoiced_at` is null limit 100 insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?) SendInvoiceMail Attempt 1 select * from `invoices` where `id` = ? limit 1"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": ""
+    },
+    {
+      "step": "1:click",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=span_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "selection:run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "2:press",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=span_run_01J8R4NQX6K3PV4W0A1H2Z7M9C&tab=detail",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "tab:detail"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "3:click",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "switch",
+        "name": "queue-time"
+      },
+      "visible": [
+        "checked:switch:Queue time=true"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "4:click",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=span_4f24adb545b26d31",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "selection:span_4f24adb545b26d31",
+        "visible:button:Copy"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "5:click",
+      "url": "/skyline/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?span=span_4f24adb545b26d31",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "button",
+        "name": "copy-message"
+      },
+      "visible": [
+        "clipboard:exact"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/reference": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)"
+    }
+  ],
+  "skyline": [
+    {
+      "step": "initial",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "DIV",
+        "role": "tree",
+        "name": "Run trace"
+      },
+      "visible": [],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": ""
+    },
+    {
+      "step": "1:click",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "selection:run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "2:press",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C&tab=detail",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "tab:detail"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "3:click",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "switch",
+        "name": "queue-time"
+      },
+      "visible": [
+        "checked:switch:Queue time=true"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "4:click",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=span_4f24adb545b26d31",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "tree",
+        "name": "run-trace"
+      },
+      "visible": [
+        "selection:span_4f24adb545b26d31",
+        "visible:button:Copy"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": null
+    },
+    {
+      "step": "5:click",
+      "url": "/runs/run_01J8R4NQX6K3PV4W0A1H2Z7M9C?node=span_4f24adb545b26d31",
+      "activeElement": {
+        "tag": "SEMANTIC",
+        "role": "button",
+        "name": "copy-message"
+      },
+      "visible": [
+        "clipboard:exact"
+      ],
+      "storage": {
+        "skyline.ui-preferences.v1:/skyline": "{\"version\":1,\"theme\":\"classic\",\"contrast\":70}"
+      },
+      "clipboard": "insert into `invoices` (`customer_id`, `total`, `created_at`) values (?, ?, ?)"
+    }
+  ]
+}

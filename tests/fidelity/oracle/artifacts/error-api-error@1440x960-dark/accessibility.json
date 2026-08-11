@@ -1,0 +1,89 @@
+{
+  "trigger": {
+    "role": "RootWebArea",
+    "name": "Skyline",
+    "states": {
+      "focused": true
+    }
+  },
+  "skyline": {
+    "role": "RootWebArea",
+    "name": "Skyline",
+    "states": {
+      "focused": true
+    }
+  },
+  "axe": {
+    "trigger": [
+      {
+        "id": "region",
+        "impact": "moderate",
+        "tags": [
+          "RGAA-9.2.1",
+          "RGAAv4",
+          "best-practice",
+          "cat.keyboard"
+        ],
+        "nodes": [
+          {
+            "target": [
+              ".group\\/resize"
+            ],
+            "html": "<div role=\"separator\" aria-orientation=\"vertical\" aria-label=\"Resize side menu\" class=\"group/resize absolute inset-y-0 -right-1 z-30 w-2 cursor-col-resize touch-none\" data-state=\"closed\" style=\"animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              ".group\\/side-header"
+            ],
+            "html": "<div class=\"group/side-header flex h-4 items-center justify-between overflow-hidden pl-1.5\" style=\"opacity: 1; animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              ".min-h-5"
+            ],
+            "html": "<span class=\"justify-center min-w...\" style=\"animation: auto ease...\">",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              ".mx-auto"
+            ],
+            "html": "<span class=\"mx-auto grow self-center truncate text-white transition group-disabled/button:text-white/60\" style=\"animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">Go to homepage</span>",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              "a[data-action=\"runs\"] > .flex-1.min-w-0.overflow-hidden"
+            ],
+            "html": "<div class=\"min-w-0 flex-1 overflow-hidden\" style=\"width: auto; animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              "a[data-action=\"tasks\"] > .flex-1.min-w-0.overflow-hidden"
+            ],
+            "html": "<div class=\"min-w-0 flex-1 overflow-hidden\" style=\"width: auto; animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              "h1"
+            ],
+            "html": "<h1 class=\"font-sans text-2xl leading-5 md:leading-6 lg:leading-7 font-semibold tracking-tight text-text-bright light:text-charcoal-200\" style=\"animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">Error</h1>",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          },
+          {
+            "target": [
+              "p"
+            ],
+            "html": "<p class=\"font-sans text-base font-medium text-text-dimmed light:text-charcoal-400\" style=\"animation: auto ease 0s 1 normal none running none !important; transition: none !important;\">Deterministic telemetry error.</p>",
+            "failureSummary": "Fix any of the following: Some page content is not contained by landmarks"
+          }
+        ]
+      }
+    ],
+    "skyline": []
+  }
+}
