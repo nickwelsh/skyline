@@ -38,13 +38,18 @@ export type TelemetryEventDetailRouteData = {
 export function telemetryEventsQuery(request: Request): TelemetryEventsQuery {
   const params = new URL(request.url).searchParams;
   const levels = params.getAll("levels").filter(isLevel);
+  const from = instant(params.get("from"));
+  const to = instant(params.get("to"));
+  const hasTimeBounds = from !== undefined || to !== undefined;
 
   return compactQuery({
     search: queryValue(params, "search"),
     levels: levels.length > 0 ? levels : undefined,
     jobType: queryValue(params, "tasks") ?? queryValue(params, "jobType"),
     runId: queryValue(params, "runId"),
-    period: period(params.get("period")),
+    period: hasTimeBounds ? undefined : period(params.get("period")),
+    from,
+    to,
     cursor: queryValue(params, "cursor"),
   });
 }
@@ -55,7 +60,7 @@ export function presentTelemetryEvents(page: TelemetryEventsPageDto): TelemetryE
     telemetryEvents: page.telemetryEvents.map(presentSummary),
     pagination: pagination(page.pagination),
     filterOptions: page.options,
-    hasFilters: page.filters.search !== null || page.filters.levels.length > 0 || page.filters.jobType !== null || page.filters.runId !== null || page.filters.period !== "1h",
+    hasFilters: page.filters.search !== null || page.filters.levels.length > 0 || page.filters.jobType !== null || page.filters.runId !== null || page.filters.period !== "1h" || page.filters.from !== null || page.filters.to !== null,
   };
 }
 
@@ -116,5 +121,9 @@ function isLevel(value: string): value is NonNullable<TelemetryEventsQuery["leve
 }
 
 function period(value: string | null): TelemetryEventsQuery["period"] {
-  return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as TelemetryEventsQuery["period"] : undefined;
+  return value === "all" || /^[1-9][0-9]{0,5}[mhd]$/.test(value ?? "") ? value ?? undefined : undefined;
+}
+
+function instant(value: string | null): string | undefined {
+  return value && /^[1-9][0-9]{0,15}$/.test(value) ? value : undefined;
 }

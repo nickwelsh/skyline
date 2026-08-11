@@ -207,6 +207,26 @@ it('defaults the Logs window to the source one-hour period', function (): void {
         ->assertJsonCount(2, 'telemetryEvents');
 });
 
+it('filters Logs with custom durations and exact ranges', function (): void {
+    $now = Nanoseconds::now();
+    seedTelemetryOperation(72, 'App\\Jobs\\Recent', 'OK', $now - 3_600_000_000_000);
+    seedTelemetryOperation(73, 'App\\Jobs\\Old', 'OK', $now - 3 * 3_600_000_000_000);
+
+    $this->getJson('/skyline/api/logs?period=2h')->assertOk()
+        ->assertJsonPath('filters.period', '2h')
+        ->assertJsonCount(1, 'telemetryEvents')
+        ->assertJsonPath('telemetryEvents.0.jobType', 'App\\Jobs\\Recent');
+
+    $from = (string) intdiv($now - 2 * 3_600_000_000_000, 1_000_000);
+    $to = (string) intdiv($now + 1_000_000_000, 1_000_000);
+    $this->getJson('/skyline/api/logs?'.http_build_query(['from' => $from, 'to' => $to]))->assertOk()
+        ->assertJsonPath('filters.period', null)
+        ->assertJsonPath('filters.from', $from)
+        ->assertJsonPath('filters.to', $to)
+        ->assertJsonCount(1, 'telemetryEvents')
+        ->assertJsonPath('telemetryEvents.0.jobType', 'App\\Jobs\\Recent');
+});
+
 it('searches the Telemetry-event stream through the real API', function (): void {
     seedTelemetryEventRun();
 

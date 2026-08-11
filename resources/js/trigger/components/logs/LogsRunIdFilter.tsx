@@ -31,6 +31,7 @@ export function LogsRunIdFilter() {
         <RunIdDropdown
           trigger={
             <SelectTrigger
+              aria-label="Run ID"
               icon={<FingerPrintIcon className="size-4" />}
               variant="secondary/small"
               shortcut={shortcut}
@@ -136,7 +137,7 @@ function AppliedRunIdFilter() {
       {(search, setSearch) => (
         <RunIdDropdown
           trigger={
-            <Ariakit.Select render={<div className="group cursor-pointer focus-custom" />}>
+            <Ariakit.Select aria-label="Run ID" render={<div className="group cursor-pointer focus-custom" />}>
               <AppliedFilter
                 label="Run ID"
                 icon={<FingerPrintIcon className="size-4" />}

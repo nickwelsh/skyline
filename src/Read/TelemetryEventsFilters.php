@@ -9,28 +9,22 @@ final readonly class TelemetryEventsFilters
 {
     private const LEVELS = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
 
-    /** @var array<string, int|null> */
-    private const PERIODS = [
-        '1h' => 3_600_000_000_000,
-        '24h' => 86_400_000_000_000,
-        '7d' => 604_800_000_000_000,
-        '30d' => 2_592_000_000_000_000,
-        'all' => null,
-    ];
-
     /** @param list<string> $levels */
     private function __construct(
         public ?string $search,
         public array $levels,
         public ?string $jobType,
         public ?string $runId,
-        public string $period,
+        public ?string $period,
         public ?int $from,
+        public ?int $to,
+        public ?string $fromValue,
+        public ?string $toValue,
     ) {}
 
     public static function fromRequest(Request $request, int $observedAt): self
     {
-        $search = self::string($request, 'search', 'Search');
+        $time = JobsFilters::fromRequest($request, $observedAt, '1h');
         $levels = $request->query('levels', []);
         if (! is_array($levels) || count($levels) > count(self::LEVELS)) {
             throw new InvalidQuery('The level filter is invalid.');
@@ -42,13 +36,18 @@ final readonly class TelemetryEventsFilters
 
         $jobType = self::string($request, 'jobType', 'Job type');
         $runId = self::string($request, 'runId', 'Run identity');
-        $period = $request->query('period', '1h');
-        if (! is_string($period) || ! array_key_exists($period, self::PERIODS)) {
-            throw new InvalidQuery('The time range filter is invalid.');
-        }
-        $duration = self::PERIODS[$period];
 
-        return new self($search, $levels, $jobType, $runId, $period, $duration === null ? null : $observedAt - $duration);
+        return new self(
+            $time->search,
+            $levels,
+            $jobType,
+            $runId,
+            $time->period,
+            $time->from,
+            $time->to,
+            $time->fromValue,
+            $time->toValue,
+        );
     }
 
     public function applyQuery(Builder $events): Builder
@@ -66,13 +65,22 @@ final readonly class TelemetryEventsFilters
             ->when($this->levels !== [], fn (Builder $events): Builder => $events->whereIn('skyline_telemetry_events.level', $this->levels))
             ->when($this->jobType !== null, fn (Builder $events): Builder => $events->where('skyline_runs.job_name', $this->jobType))
             ->when($this->runId !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.run_id', $this->runId))
-            ->when($this->from !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.occurred_at', '>=', $this->from));
+            ->when($this->from !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.occurred_at', '>=', $this->from))
+            ->when($this->to !== null, fn (Builder $events): Builder => $events->where('skyline_telemetry_events.occurred_at', '<=', $this->to));
     }
 
-    /** @return array{search: ?string, levels: list<string>, jobType: ?string, runId: ?string, period: string} */
+    /** @return array{search: ?string, levels: list<string>, jobType: ?string, runId: ?string, period: ?string, from: ?string, to: ?string} */
     public function toArray(): array
     {
-        return ['search' => $this->search, 'levels' => $this->levels, 'jobType' => $this->jobType, 'runId' => $this->runId, 'period' => $this->period];
+        return [
+            'search' => $this->search,
+            'levels' => $this->levels,
+            'jobType' => $this->jobType,
+            'runId' => $this->runId,
+            'period' => $this->period,
+            'from' => $this->fromValue,
+            'to' => $this->toValue,
+        ];
     }
 
     /** @return list<string> */

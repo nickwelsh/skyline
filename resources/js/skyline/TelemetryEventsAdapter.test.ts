@@ -15,6 +15,11 @@ describe("TelemetryEventsAdapter", () => {
       period: "7d",
       cursor: "opaque",
     });
+    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs?period=2h"))).toEqual({ period: "2h" });
+    expect(telemetryEventsQuery(new Request("https://example.test/skyline/logs?from=1785888000000&to=1785891600000"))).toEqual({
+      from: "1785888000000",
+      to: "1785891600000",
+    });
 
     const presented = presentTelemetryEvents(pageFixture());
     expect(presented.telemetryEvents[0]).toMatchObject({
@@ -104,7 +109,7 @@ function pageFixture(): TelemetryEventsPageDto {
       operationHref: "/skyline/runs/run_1?node=span_span_1",
     }],
     pagination: { previous: null, next: "next" },
-    filters: { search: null, levels: ["ERROR"], jobType: "App\\Jobs\\Invoice", runId: null, period: "7d" },
+    filters: { search: null, levels: ["ERROR"], jobType: "App\\Jobs\\Invoice", runId: null, period: "7d", from: null, to: null },
     options: {
       levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"],
       jobTypes: ["App\\Jobs\\Invoice"],

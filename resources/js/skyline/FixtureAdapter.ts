@@ -67,7 +67,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       capabilities,
       telemetryEvents: filtered,
       pagination: { previous: null, next: null },
-      filters: { search: query.search ?? null, levels: query.levels ?? [], jobType: query.jobType ?? null, runId: query.runId ?? null, period: query.period ?? "1h" },
+      filters: { search: query.search ?? null, levels: query.levels ?? [], jobType: query.jobType ?? null, runId: query.runId ?? null, period: query.from || query.to ? null : query.period ?? "1h", from: query.from ?? null, to: query.to ?? null },
       options: { levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"], jobTypes: [...new Set(fixtureTelemetryEvents.map((event) => event.jobType))].sort(), timeRanges: fixtureTimeRanges },
       capture: fixtureTelemetryCapture,
       hasAnyTelemetryEvents: fixtureTelemetryEvents.length > 0,

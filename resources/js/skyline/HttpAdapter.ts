@@ -139,6 +139,8 @@ export class HttpAdapter implements SkylineDtoAdapter {
     if (query.jobType) params.set("jobType", query.jobType);
     if (query.runId) params.set("runId", query.runId);
     if (query.period) params.set("period", query.period);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
     if (query.cursor) params.set("cursor", query.cursor);
     return params;
   }

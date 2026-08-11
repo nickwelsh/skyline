@@ -331,6 +331,8 @@ export type TelemetryEventsQuery = {
   jobType?: string;
   runId?: string;
   period?: JobsQuery["period"];
+  from?: string;
+  to?: string;
   cursor?: string;
 };
 type TelemetryEventShared = {
@@ -371,7 +373,7 @@ export type TelemetryEventsPageDto = {
   capabilities: SkylineCapabilities;
   telemetryEvents: TelemetryEventSummary[];
   pagination: { next: string | null; previous: string | null };
-  filters: { search: string | null; levels: TelemetryEventLevel[]; jobType: string | null; runId: string | null; period: NonNullable<JobsQuery["period"]> };
+  filters: { search: string | null; levels: TelemetryEventLevel[]; jobType: string | null; runId: string | null; period: string | null; from: string | null; to: string | null };
   options: { levels: TelemetryEventLevel[]; jobTypes: string[]; timeRanges: TimeRangeOption[] };
   capture: TelemetryCapture;
   hasAnyTelemetryEvents: boolean;

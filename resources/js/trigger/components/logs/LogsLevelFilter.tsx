@@ -68,6 +68,7 @@ export function LogsLevelFilter({ availableLevels }: { availableLevels?: readonl
       availableLevels={availableLevels}
       trigger={
         <SelectTrigger
+          aria-label="Level"
           icon={<IconListTree className="size-4" />}
           variant="secondary/small"
           shortcut={shortcut}
@@ -130,7 +131,7 @@ function AppliedLevelFilter({ availableLevels }: { availableLevels?: readonly Lo
     <LevelDropdown
       availableLevels={availableLevels}
       trigger={
-        <Ariakit.Select render={<div className="group cursor-pointer focus-custom" />}>
+        <Ariakit.Select aria-label="Level" render={<div className="group cursor-pointer focus-custom" />}>
           <AppliedFilter
             label="Level"
             icon={<IconListTree className="size-4" />}

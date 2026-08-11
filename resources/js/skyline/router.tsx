@@ -77,7 +77,6 @@ export function createSkylineRouter(bootstrap: SkylineBootstrap, adapter: Skylin
       ...list,
       possibleTasks: list.filterOptions.jobTypes.map((slug) => ({ slug, triggerSource: "STANDARD" as const, isInLatestDeployment: true })),
       defaultPeriod: "1h",
-      retentionLimitDays: 30,
       selectedSummary: selectedEvent ? {
         ...selectedEvent,
         render: selectedEvent.variant === "log"

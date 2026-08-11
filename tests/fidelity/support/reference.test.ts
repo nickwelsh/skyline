@@ -201,8 +201,9 @@ describe("pinned Trigger Logs fixture", () => {
     expect(filters.every((filter) => route.includes(filter))).toBe(true);
     expect(route).not.toContain("function FilterMenu(");
     expect(route).not.toContain("function RunIdFilter(");
-    expect(route).toContain("periodOptions={data.filterOptions.timeRanges}");
-    expect(route).toContain("allowCustomValues={false}");
+    expect(route).not.toContain("periodOptions={data.filterOptions.timeRanges}");
+    expect(route).not.toContain("allowCustomValues={false}");
+    expect(route).toContain("onValueChange={applyTime}");
 
     const taskFilter = readFileSync(resolve(productRoot, "components/logs/LogsTaskFilter.tsx"), "utf8");
     expect(taskFilter).toContain('value("tasks")');

@@ -48,6 +48,7 @@ export function LogsTaskFilter({ possibleTasks }: LogsTaskFilterProps) {
           <TasksDropdown
             trigger={
               <SelectTrigger
+                aria-label="Tasks"
                 icon={<TasksIcon className="size-4" />}
                 variant="secondary/small"
                 shortcut={shortcut}
@@ -71,7 +72,7 @@ export function LogsTaskFilter({ possibleTasks }: LogsTaskFilterProps) {
       {(search, setSearch) => (
         <TasksDropdown
           trigger={
-            <Ariakit.Select render={<div className="group cursor-pointer focus-custom" />}>
+            <Ariakit.Select aria-label="Tasks" render={<div className="group cursor-pointer focus-custom" />}>
               <AppliedFilter
                 label="Task"
                 icon={<TasksIcon className="size-4" />}

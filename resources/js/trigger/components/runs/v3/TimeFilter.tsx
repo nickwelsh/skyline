@@ -428,6 +428,7 @@ export function TimeFilter({
                 render={
                   <Ariakit.Select
                     ref={triggerRef}
+                    aria-label={`${labelName} time filter`}
                     render={<div className="group cursor-pointer focus-custom" />}
                   />
                 }
@@ -717,6 +718,7 @@ export function TimeDropdown({
                 >
                   <input
                     type="number"
+                    aria-label="Custom duration"
                     min="1"
                     step="1"
                     placeholder="Custom"
@@ -740,6 +742,7 @@ export function TimeDropdown({
                       <button
                         key={unit.value}
                         type="button"
+                        aria-label={`Use ${unit.label}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setCustomUnit(unit.value);
@@ -764,6 +767,7 @@ export function TimeDropdown({
                   return (
                     <Button
                       key={p.value}
+                      aria-label={p.label}
                       variant="secondary/small"
                       className={
                         activeSection === "duration" && p.value === selectedPeriod

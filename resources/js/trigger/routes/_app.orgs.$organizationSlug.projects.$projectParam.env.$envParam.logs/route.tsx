@@ -24,15 +24,14 @@ import {
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Spinner } from "~/components/primitives/Spinner";
-import { TimeFilter } from "~/components/runs/v3/TimeFilter";
+import { TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
 
 export type LogsRouteData = {
   pagination: { next?: string; previous?: string };
-  filters: { search: string | null; levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobType: string | null; runId: string | null; period: string };
+  filters: { search: string | null; levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobType: string | null; runId: string | null; period: string | null; from: string | null; to: string | null };
   filterOptions: { levels: Array<"TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR">; jobTypes: string[]; timeRanges: Array<{ value: string; label: string }> };
   possibleTasks: Array<{ slug: string; triggerSource: "STANDARD" | "SCHEDULED" | "AGENT"; isInLatestDeployment: boolean }>;
   defaultPeriod: string;
-  retentionLimitDays: number;
   capture: { enabled: boolean; supportedLevels: string[]; perAttemptLimit: number };
   hasAnyTelemetryEvents: boolean;
   hasFilters: boolean;
@@ -135,6 +134,14 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
     if (event) next.set("event", event);
     setSearchParams(next);
   };
+  const applyTime = (value: TimeFilterApplyValues) => {
+    const next = new URLSearchParams(searchParams);
+    for (const key of ["period", "from", "to", "cursor", "direction"]) next.delete(key);
+    if (value.period) next.set("period", value.period);
+    if (value.from) next.set("from", value.from);
+    if (value.to) next.set("to", value.to);
+    setSearchParams(next);
+  };
 
   return <div className="flex items-start justify-between gap-x-2 border-b border-grid-bright p-2">
       <div aria-label="Telemetry-event filters" className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
@@ -143,9 +150,11 @@ function FiltersBar({ data }: { data: LogsRouteData }) {
         <LogsRunIdFilter />
         <TimeFilter
           defaultPeriod={data.defaultPeriod}
-          maxPeriodDays={data.retentionLimitDays}
-          periodOptions={data.filterOptions.timeRanges}
-          allowCustomValues={false}
+          period={data.filters.period ?? undefined}
+          from={data.filters.from ?? undefined}
+          to={data.filters.to ?? undefined}
+          onValueChange={applyTime}
+          valueClassName="text-text-bright"
         />
         <LogsLevelFilter availableLevels={data.filterOptions.levels} />
         {data.hasFilters && <Button variant="minimal/small" LeadingIcon={XMarkIcon} tooltip="Clear all filters" onClick={clear}>Clear filters</Button>}

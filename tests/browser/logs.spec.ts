@@ -170,17 +170,19 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(/runId=run_invoice/);
   await filterCombobox(page, /Created:/).click();
-  await expect(page.getByPlaceholder("Custom")).toHaveCount(0);
-  await expect(page.getByText("Or specify exact time range")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "1 min" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Last 7 days" }).click();
+  await expect(page.getByPlaceholder("Custom")).toBeVisible();
+  await expect(page.getByText("Or specify exact time range")).toBeVisible();
+  await expect(page.getByRole("button", { name: "1 min" })).toBeVisible();
+  await page.getByPlaceholder("Custom").fill("2");
+  await page.getByRole("button", { name: "hours" }).click();
+  await page.keyboard.press("Control+Enter");
+  await expect(page).toHaveURL(/period=2h/);
+  await filterCombobox(page, /Created:/).click();
+  await page.getByRole("button", { name: "7 days" }).click();
   await expect(page).toHaveURL(/tasks=App%5CJobs%5CGenerateMonthlyInvoices/);
   await expect(page).toHaveURL(/runId=run_invoice/);
   await expect(page).toHaveURL(/period=7d/);
   await expect(page.getByLabel("Loading Telemetry events")).toHaveCount(0);
-  await filterCombobox(page, /Created:/).click();
-  await page.getByRole("button", { name: "All time" }).click();
-  await expect(page).toHaveURL(/period=all/);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(/\/skyline\/logs$/);
   await page.locator('a[href*="cursor=opaque-next"]').click();
@@ -190,17 +192,17 @@ test("Logs filters and opaque cursor stay URL/server-backed", async ({ page }) =
   await expect(page).toHaveURL(/cursor=opaque-previous&direction=backward/);
 });
 
-test("Logs unsupported direct URL filters fail closed", async ({ page }) => {
+test("Logs exact URL filters override rolling periods and invalid levels fail closed", async ({ page }) => {
   await routeLogs(page);
   const requestPromise = page.waitForRequest((request) => new URL(request.url()).pathname.endsWith("/skyline/api/logs"));
   await page.goto("/skyline/logs?period=5m&from=1785888000000&to=1785891600000&levels=FATAL");
   const request = new URL((await requestPromise).url());
 
   expect(request.searchParams.has("period")).toBe(false);
-  expect(request.searchParams.has("from")).toBe(false);
-  expect(request.searchParams.has("to")).toBe(false);
+  expect(request.searchParams.get("from")).toBe("1785888000000");
+  expect(request.searchParams.get("to")).toBe("1785891600000");
   expect(request.searchParams.has("levels[]")).toBe(false);
-  await expect(filterCombobox(page, /Created:/)).toContainText("1 hr");
+  await expect(filterCombobox(page, /Created:/)).toContainText("–");
   await expect(filterCombobox(page, /Level/)).not.toContainText("FATAL");
 });
 
@@ -298,7 +300,7 @@ function listResponse(url = new URL("https://example.test")): TelemetryEventsPag
   return {
     schemaVersion: 1, packageVersion: "fixture", generatedAt: "2026-08-05T12:00:02Z", capabilities: capabilities(),
     telemetryEvents: [operation(), log()], pagination: { previous: null, next: null },
-    filters: { search: url.searchParams.get("search"), levels: url.searchParams.getAll("levels[]") as TelemetryEventsPageDto["filters"]["levels"], jobType: url.searchParams.get("jobType"), runId: url.searchParams.get("runId"), period: url.searchParams.get("period") as TelemetryEventsPageDto["filters"]["period"] ?? "1h" },
+    filters: { search: url.searchParams.get("search"), levels: url.searchParams.getAll("levels[]") as TelemetryEventsPageDto["filters"]["levels"], jobType: url.searchParams.get("jobType"), runId: url.searchParams.get("runId"), period: url.searchParams.has("from") || url.searchParams.has("to") ? null : url.searchParams.get("period") ?? "1h", from: url.searchParams.get("from"), to: url.searchParams.get("to") },
     options: { levels: ["TRACE", "DEBUG", "INFO", "WARN", "ERROR"], jobTypes: ["App\\Jobs\\GenerateMonthlyInvoices"], timeRanges },
     capture: { enabled: true, supportedLevels: ["warning", "error"], perAttemptLimit: 100 }, hasAnyTelemetryEvents: true,
   };
