@@ -19,6 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CodeBlock } from "./CodeBlock";
 import { Callout } from "./components/primitives/Callout";
 import { Header3 } from "./components/primitives/Headers";
+import { SimpleTooltip } from "./components/primitives/Tooltip";
 
 export type ExceptionPreviewFrame = {
   file: string;
@@ -168,21 +169,30 @@ function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntr
   const { frame, index } = entry;
   const [expanded, setExpanded] = useState(main && frame.snippet !== null);
   const panelId = `exception-frame-${index}`;
+  const call = formatCall(frame);
 
   return (
     <article className="shrink-0 overflow-hidden rounded border border-grid-bright bg-background-deep">
       <div className="flex min-w-0 items-stretch">
-        <button
-          type="button"
-          disabled={!frame.snippet}
-          aria-expanded={frame.snippet ? expanded : undefined}
-          aria-controls={frame.snippet ? panelId : undefined}
-          onClick={() => frame.snippet && setExpanded((value) => !value)}
-          className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-left hover:bg-background-hover disabled:cursor-default disabled:hover:bg-transparent focus-custom"
-        >
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-bright">{formatCall(frame)}</span>
-          {frame.snippet && (expanded ? <IconChevronUp className="size-4 shrink-0" /> : <IconChevronDown className="size-4 shrink-0" />)}
-        </button>
+        <SimpleTooltip
+          asChild
+          tabbable
+          content={call}
+          className="max-w-md break-all"
+          button={(
+            <button
+              type="button"
+              disabled={!frame.snippet}
+              aria-expanded={frame.snippet ? expanded : undefined}
+              aria-controls={frame.snippet ? panelId : undefined}
+              onClick={() => frame.snippet && setExpanded((value) => !value)}
+              className="flex min-h-9 min-w-0 flex-1 items-center gap-2 px-3 text-left hover:bg-background-hover disabled:cursor-default disabled:hover:bg-transparent focus-custom"
+            >
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-text-bright">{call}</span>
+              {frame.snippet && (expanded ? <IconChevronUp className="size-4 shrink-0" /> : <IconChevronDown className="size-4 shrink-0" />)}
+            </button>
+          )}
+        />
         <div className="flex min-w-0 max-w-1/2 items-center border-l border-grid-bright px-3 text-xs text-text-faint">
           <SourceLink file={frame.file} line={frame.line} href={frame.href} compact />
         </div>
@@ -191,6 +201,7 @@ function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntr
         <div id={panelId} className="border-t border-grid-bright bg-background-dimmed">
           <CodeBlock
             code={frame.snippet.code}
+            className="rounded-none border-0"
             language="php"
             highlightedRanges={[[frame.snippet.highlightedLine - frame.snippet.startingLine + 1, frame.snippet.highlightedLine - frame.snippet.startingLine + 1]]}
             label={`application frame ${index + 1}`}
@@ -239,10 +250,11 @@ function VendorFrames({ entries }: { entries: FrameEntry[] }) {
 function SourceLink({ file, line, href, compact = false }: { file: string; line: number | null; href: string | null; compact?: boolean }) {
   const location = `${file}:${line ?? "?"}`;
   const content = <><span className={compact ? "truncate" : "min-w-0 truncate"}>{location}</span>{href && <IconExternalLink className="size-4 shrink-0" />}</>;
-
-  return href
-    ? <a href={href} target="_blank" rel="noreferrer" title={`Open ${location} in editor`} className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
+  const source = href
+    ? <a href={href} target="_blank" rel="noreferrer" className="flex min-w-0 items-center gap-1 hover:text-text-bright hover:underline" onClick={(event) => event.stopPropagation()}>{content}</a>
     : <span className="flex min-w-0 items-center gap-1">{content}</span>;
+
+  return <SimpleTooltip asChild tabbable={Boolean(href)} button={source} content={location} className="max-w-md break-all" />;
 }
 
 function formatCall(frame: ExceptionPreviewFrame) {

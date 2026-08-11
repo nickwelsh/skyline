@@ -76,7 +76,36 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   const exceptionEvidence = page.getByRole("region", { name: "Exception" });
   await expect(exceptionEvidence).toContainText(primaryError.errorMessage);
   await exceptionEvidence.getByRole("button", { name: "Show 3 frames" }).click();
-  await expect(exceptionEvidence.getByRole("button", { name: `${jobType}->handle` })).toBeVisible();
+  const frameToggle = exceptionEvidence.getByRole("button", { name: `${jobType}->handle` });
+  await expect(frameToggle).toBeVisible();
+  await frameToggle.hover();
+  await expect(page.getByRole("tooltip")).toHaveText(`${jobType}->handle`);
+  const applicationFrame = frameToggle.locator("xpath=ancestor::article");
+  const sourceLink = applicationFrame.getByRole("link", { name: /GenerateMonthlyInvoices\.php:42/ });
+  await expect(sourceLink).toHaveAttribute("href", "vscode://file//srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
+  await sourceLink.hover();
+  await expect(page.getByRole("tooltip")).toHaveText("/srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
+  const snippet = applicationFrame.locator('[translate="no"][aria-label="application frame 1"]');
+  await expect(snippet.locator(".token.keyword").first()).toHaveText("public");
+  const snippetVisuals = await snippet.evaluate((viewer) => {
+    const viewport = viewer.querySelector<HTMLElement>('div[dir="ltr"]')!;
+    const lines = viewer.querySelectorAll<HTMLElement>("pre > div");
+    const highlighted = getComputedStyle(lines[2]);
+    return {
+      borderWidth: getComputedStyle(viewer).borderWidth,
+      paddingTop: getComputedStyle(viewport).paddingTop,
+      highlightedBackground: highlighted.backgroundColor,
+      highlightedShadow: highlighted.boxShadow,
+      surroundingOpacity: getComputedStyle(lines[0]).opacity,
+    };
+  });
+  expect(snippetVisuals).toMatchObject({
+    borderWidth: "0px",
+    paddingTop: "40px",
+    surroundingOpacity: "1",
+  });
+  expect(snippetVisuals.highlightedBackground).not.toBe("rgba(0, 0, 0, 0)");
+  expect(snippetVisuals.highlightedShadow).toContain("inset");
   const vendorFrames = exceptionEvidence.getByRole("button", { name: "2 vendor frames" });
   await vendorFrames.click();
   await expect(exceptionEvidence).toContainText("Illuminate\\Container\\BoundMethod::call");
@@ -401,7 +430,11 @@ function occurrence(runId: string): ErrorGroupDetailDto["failedAttempts"][number
 }
 
 function exception(): ExceptionDetails {
-  return structuredClone(errorsScenario.representative) as ExceptionDetails;
+  const value = structuredClone(errorsScenario.representative) as ExceptionDetails;
+  const href = "vscode://file//srv/application/app/Jobs/GenerateMonthlyInvoices.php:42";
+  if (value.location) value.location.href = href;
+  value.frames[0].href = href;
+  return value;
 }
 
 const timeRanges = [

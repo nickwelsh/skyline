@@ -18,7 +18,7 @@ describe("ExceptionPreview", () => {
     expect(container.textContent).toContain("Payment failed.");
     expect(container.textContent).toContain("app/Jobs/ChargeCard.php:42");
     expect(container.textContent).not.toContain("Illuminate\\Queue\\Worker->process");
-    expect(container.querySelector("[title='Open app/Jobs/ChargeCard.php:42 in editor']")?.parentElement?.className).toContain("text-text-bright");
+    expect(container.querySelector<HTMLAnchorElement>('a[href="vscode://file//workspace/app/Jobs/ChargeCard.php:42"]')).not.toBeNull();
 
     const showFrames = container.querySelector<HTMLButtonElement>('button[aria-controls="exception-trace"]')!;
     flushSync(() => showFrames.click());
@@ -28,6 +28,9 @@ describe("ExceptionPreview", () => {
     const application = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("App\\Jobs\\ChargeCard->handle"))!;
     expect(application.getAttribute("aria-controls")).toBe("exception-frame-0");
     expect(container.querySelector("#exception-frame-0")).not.toBeNull();
+    const applicationFrame = application.closest("article")!;
+    expect(applicationFrame.querySelector<HTMLAnchorElement>('a[href="vscode://file//workspace/app/Jobs/ChargeCard.php:42"]')).not.toBeNull();
+    expect(applicationFrame.querySelector<HTMLElement>('[aria-label="application frame 1"]')?.className).toContain("border-0");
 
     const vendor = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("1 vendor frame"))!;
     expect(vendor.getAttribute("aria-controls")).toBe("exception-vendor-1");

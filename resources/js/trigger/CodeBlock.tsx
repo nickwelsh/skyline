@@ -22,6 +22,10 @@ async function setup() {
   await import("prismjs/components/prism-typescript");
   // @ts-expect-error Prism language modules do not publish declarations.
   await import("prismjs/components/prism-sql.js");
+  // @ts-expect-error Prism language modules do not publish declarations.
+  await import("prismjs/components/prism-markup-templating");
+  // @ts-expect-error Prism language modules do not publish declarations.
+  await import("prismjs/components/prism-php");
 }
 setup();
 
@@ -49,7 +53,6 @@ type CodeBlockProps = {
   jsonValue?: unknown;
 };
 
-const dimAmount = 0.5;
 const extraLinesWhenClipping = 0.35;
 
 const defaultTheme: PrismTheme = {
@@ -111,6 +114,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   const [jsonMode, setJsonMode] = useState<"code" | "tree">("code");
   const code = rawCode?.trim() ?? "";
   const canRenderTree = language === "json" && typeof jsonValue === "object" && jsonValue !== null;
+  const hasInlineControls = canRenderTree || showTextWrapping || showCopyButton || showOpenInModal;
 
   const copy = useCallback((modal: boolean) => {
     void navigator.clipboard.writeText(code);
@@ -207,7 +211,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               showLineNumbers={showLineNumbers}
               highlightLines={highlightLines}
               maxLineWidth={maxLineWidth}
-              className="px-2 py-3"
+              className={cn("px-2 py-3", hasInlineControls && "pt-10")}
               preClassName={preClassName ?? "text-xs"}
               isWrapped={isWrapped}
             />
@@ -304,14 +308,7 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      // @ts-expect-error Prism language modules do not publish declarations.
-      import("prismjs/components/prism-json"),
-      // @ts-expect-error Prism language modules do not publish declarations.
-      import("prismjs/components/prism-typescript"),
-      // @ts-expect-error Prism language modules do not publish declarations.
-      import("prismjs/components/prism-sql.js"),
-    ]).then(() => setIsLoaded(true));
+    void setup().then(() => setIsLoaded(true));
   }, []);
 
   const containerClasses = cn(
@@ -338,10 +335,10 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
               if (index === tokens.length - 1 && line.length === 1 && line[0].content === "\n") return null;
               const lineNumber = index + 1;
               const lineProps = getLineProps({ line });
-              const shouldDim = Boolean(highlightLines?.length) && !highlightLines?.includes(lineNumber);
+              const highlighted = highlightLines?.includes(lineNumber);
               return (
-                <div key={lineNumber} {...lineProps} className={cn("flex w-full justify-start transition-opacity duration-500", lineProps.className, isWrapped && "flex-wrap")} style={{ opacity: shouldDim ? dimAmount : undefined, ...lineProps.style }}>
-                  {showLineNumbers && <div className={cn("mr-2 flex-none select-none text-right text-text-faint transition-opacity duration-500", isWrapped && "sticky left-0")} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{lineNumber}</div>}
+                <div key={lineNumber} {...lineProps} className={cn("flex w-full justify-start", lineProps.className, highlighted && "bg-rose-500/10 shadow-[inset_2px_0_0_var(--color-rose-500)]", isWrapped && "flex-wrap")} style={lineProps.style}>
+                  {showLineNumbers && <div className={cn("mr-2 flex-none select-none text-right text-text-faint", isWrapped && "sticky left-0")} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{lineNumber}</div>}
                   <div className="flex-1">{line.map((token, key) => <span key={key} {...getTokenProps({ token })} />)}</div>
                   <div className="w-4 flex-none" />
                 </div>

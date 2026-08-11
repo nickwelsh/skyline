@@ -80,6 +80,53 @@ describe("CodeBlock", () => {
     flushSync(() => root.unmount());
   });
 
+  it("syntax-highlights PHP exception snippets", async () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(
+      <CodeBlock
+        code={"public function handle(): void\n{\n    throw new RuntimeException('Payment failed.');\n}"}
+        language="php"
+        showOpenInModal={false}
+      />,
+    ));
+
+    await vi.waitFor(() => {
+      expect(container.querySelector(".token.keyword")?.textContent).toBe("public");
+      expect(container.querySelector(".token.string")?.textContent).toBe("'Payment failed.'");
+    });
+
+    flushSync(() => root.unmount());
+  });
+
+  it("highlights the throwing line without dimming surrounding code or covering the first line", async () => {
+    document.body.innerHTML = '<div id="root"></div>';
+    const container = document.querySelector<HTMLDivElement>("#root")!;
+    const root = createRoot(container);
+
+    flushSync(() => root.render(
+      <CodeBlock
+        code={"public function handle(): void\n{\n    throw new RuntimeException('Payment failed.');\n}"}
+        language="php"
+        highlightedRanges={[[3, 3]]}
+        label="application frame 1"
+        showTextWrapping
+      />,
+    ));
+
+    await vi.waitFor(() => expect(container.querySelector(".token.keyword")).not.toBeNull());
+    const viewer = container.querySelector<HTMLElement>('[aria-label="application frame 1"]')!;
+    const lines = viewer.querySelectorAll<HTMLElement>("pre > div");
+
+    expect(lines[2].className).toContain("bg-rose-500/10");
+    expect([...lines].every((line) => line.style.opacity === "")).toBe(true);
+    expect(viewer.querySelector<HTMLElement>('div[dir="ltr"]')?.className).toContain("pt-10");
+
+    flushSync(() => root.unmount());
+  });
+
   it("keeps source default Code blocks unnamed", () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;

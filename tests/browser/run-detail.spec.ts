@@ -226,7 +226,8 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
   await page.getByRole("button", { name: "Expand exception stack trace" }).click();
   const source = page.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:58" });
   await expect(source).toHaveAttribute("href", "https://example.test/source/app/Jobs/GenerateMonthlyInvoices.php#L58");
-  await expect(source).toHaveAttribute("title", "Open app/Jobs/GenerateMonthlyInvoices.php:58 in editor");
+  await source.hover();
+  await expect(page.getByRole("tooltip")).toHaveText("app/Jobs/GenerateMonthlyInvoices.php:58");
   await source.focus();
   await expect(source).toBeFocused();
 

@@ -1,6 +1,14 @@
 {
-  "_prism-typescript-c8cbd0c3.js": {
-    "file": "assets/prism-typescript-c8cbd0c3.js",
+  "_prism-php-4f397278.js": {
+    "file": "assets/prism-php-4f397278.js",
+    "name": "prism-php",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.tsx"
+    ]
+  },
+  "_prism-typescript-1890ed5c.js": {
+    "file": "assets/prism-typescript-1890ed5c.js",
     "name": "prism-typescript",
     "isDynamicEntry": true,
     "imports": [
@@ -21,6 +29,12 @@
     "src": "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
     "isDynamicEntry": true
   },
+  "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-markup-templating.js": {
+    "file": "assets/prism-markup-templating-393a7557.js",
+    "name": "prism-markup-templating",
+    "src": "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-markup-templating.js",
+    "isDynamicEntry": true
+  },
   "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js": {
     "file": "assets/prism-sql-e161fcc2.js",
     "name": "prism-sql",
@@ -28,20 +42,19 @@
     "isDynamicEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "skyline.447395c8.js",
+    "file": "skyline.df0da1bd.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
-      "_prism-typescript-c8cbd0c3.js",
+      "_prism-typescript-1890ed5c.js",
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js",
-      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
-      "_prism-typescript-c8cbd0c3.js",
-      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js"
+      "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-markup-templating.js",
+      "_prism-php-4f397278.js"
     ],
     "css": [
-      "skyline.9ecb1bb7.css"
+      "skyline.15781021.css"
     ],
     "assets": [
       "skyline-GeistVariableVF.2eac40ce.woff2",
