@@ -21,6 +21,8 @@ const sharedFilters = resolve(root, "tests/fidelity/reference/vendor/components/
 const pathNameHook = resolve(root, "tests/fidelity/reference/vendor/hooks/usePathName.ts");
 const referenceErrorDetail = resolve(root, "tests/fidelity/reference/vendor/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
 const skylineErrorDetail = resolve(root, "resources/js/trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.errors.$fingerprint/route.tsx");
+const referencePageHeader = resolve(root, "tests/fidelity/reference/vendor/components/primitives/PageHeader.tsx");
+const skylinePageHeader = resolve(root, "resources/js/trigger/components/primitives/PageHeader.tsx");
 
 describe("pinned shell capability adapters", () => {
   test("locks the reviewed policy digest", () => {
@@ -103,6 +105,18 @@ describe("pinned shell capability adapters", () => {
       expect(route).not.toContain('bg-background-dimmed/80');
     }
     expect(skyline).toContain("isLoading={false}");
+  });
+
+  test("keeps the pinned PageHeader navigation loading divider", () => {
+    const reference = readFileSync(referencePageHeader, "utf8");
+    const skyline = readFileSync(skylinePageHeader, "utf8");
+
+    for (const header of [reference, skyline]) {
+      expect(header).toContain("const navigation = useNavigation();");
+      expect(header).toContain('navigation.state === "loading" || navigation.state === "submitting"');
+      expect(header).toContain("<LoadingBarDivider isLoading={isLoading} />");
+    }
+    expect(skyline).not.toContain('<div className="relative h-px w-full overflow-hidden bg-grid-bright" />');
   });
 
   test("routes pinned Queue metric queries through observed fixture resources", () => {
