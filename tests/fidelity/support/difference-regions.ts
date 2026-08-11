@@ -1039,6 +1039,10 @@ function rendererRasterizationDefinitionSpec(id: string): RendererRasterizationD
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-47dfd42d",
     "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b",
   ];
+  const staleRefreshCitations = [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-ed21cf47",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-63aff661",
+  ];
   const lightCitations = [
     ...extensionCitations,
     "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-6b20c68e",
@@ -1140,7 +1144,7 @@ function rendererRasterizationDefinitionSpec(id: string): RendererRasterizationD
   if (id === "error-codeblock-classic-right-rasterization") {
     const captures = ["error-stale-refresh@1440x960-classic"];
     const shared = rendererRasterizationElementSpec(selector, { x: 1072, y: 117, width: 356, height: 58 }, "730f822e40fdbd278386e4f32781ff7de75f68a942605e6ab86655fd63d4050b", "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "c238b73d2cd040fce99d83ae5de65e74a4510609ba7ea7d8bea8e9cece2a95d9");
-    const approved = definition(captures, ["Only exact Classic full twelve-pixel, left-edge six-pixel, or right-edge six-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, classicRight6, rendererRasterizationMeasurementSpec(runtime, shared, "02739f305658911a62964055dc2ba83eeda901548260509bab81c98547231431", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a"));
+    const approved = definition(captures, ["Only exact Classic full twelve-pixel, left-edge six-pixel, or right-edge six-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], [...themeWideCitations, ...staleRefreshCitations], { borderColor: "rgb(39, 42, 46)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(26, 27, 31)", borderRadius: "6px" }, classicRight6, rendererRasterizationMeasurementSpec(runtime, shared, "02739f305658911a62964055dc2ba83eeda901548260509bab81c98547231431", "a929eccd0a739f0cf38a51b5c81d03da94667f3a0adc8d933d7ec6988accdf2a", "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98"));
     approved.alternatives = [{ captures, pixels: pixels12, triggerCropSha256: "21a8f267584a20c1ab9bb8a549d6526589071322912c39fdccd21825ae95e1b6" }, { captures, pixels: pixels6, triggerCropSha256: "f1c943106aa2c310e8fe77343528038df140599313ee0cbb6a9c3dbed723ab50" }];
     return approved;
   }
@@ -1163,20 +1167,23 @@ function rendererRasterizationDefinitionSpec(id: string): RendererRasterizationD
   if (id === "error-codeblock-light-right-rasterization") {
     const captures = ["error-stale-refresh@1440x960-light"];
     const shared = rendererRasterizationElementSpec(selector, { x: 1072, y: 117, width: 356, height: 58 }, "6a8b83d2e8057045b6e96b0dac9fb7e569da5335379ed5a76f0f0ab01c569939", "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "ca33753c04b4519449c72aa01b71b3f6b8b2050a5c57ead95a3f5920d45460de");
-    const approved = definition(captures, ["Only exact Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, lightRight6, rendererRasterizationMeasurementSpec(runtime, shared, "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864", "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8"));
+    const approved = definition(captures, ["Only exact Light full thirteen-pixel, right-edge six-pixel, or left-edge seven-pixel antialias states may differ for this exact capture; zero activates no exception and every other pixel and semantic remains exact."], [...themeWideCitations, ...staleRefreshCitations], { borderColor: "color(srgb 0.687749 0.693835 0.709051)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "rgb(255, 255, 255)", borderRadius: "6px" }, lightRight6, rendererRasterizationMeasurementSpec(runtime, shared, "be64f3b53c93b4cc7145fb081f717e2b75becf66632a727985b68a57f3537864", "a73802a7d3ac38e35d1bcd5119025c1818cae3d5dc9fdeafa69253aaa43332a8", "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98"));
     approved.alternatives = [{ captures, pixels: pixels13, triggerCropSha256: "93768ec0233ea8b02028b19b7743d1d263219666ef23354eb3407f4c68759fa3" }, { captures, pixels: lightLeft7, triggerCropSha256: "f5bba6c913b6a01d71f7926ac77447c974b40961a3ac51fb9f27bc979d95f1b5" }];
     return approved;
   }
   if (id === "error-codeblock-dark-rasterization") {
-    const captures = ["error-found@1440x960-dark", "error-found@1440x960-system-dark", "errors-affected-job-types@1440x960-dark", "errors-application-vendor-frames@1440x960-dark", "errors-linked-runs@1440x960-dark", "errors-long-exception@1440x960-dark", "errors-many-occurrences@1440x960-dark", "errors-single-occurrence@1440x960-dark", "errors-stack-expansion@1440x960-dark"];
+    const staleCapture = "error-stale-refresh@1440x960-dark";
+    const priorCaptures = ["error-found@1440x960-dark", "error-found@1440x960-system-dark", "errors-affected-job-types@1440x960-dark", "errors-application-vendor-frames@1440x960-dark", "errors-linked-runs@1440x960-dark", "errors-long-exception@1440x960-dark", "errors-many-occurrences@1440x960-dark", "errors-single-occurrence@1440x960-dark", "errors-stack-expansion@1440x960-dark"];
+    const captures = [...priorCaptures, staleCapture];
     const shared = rendererRasterizationElementSpec(selector, { x: 1072, y: 117, width: 356, height: 58 }, "1e958c4fe09cb4648dc66fc7033ad54e0390980460e99a0c6fd29b5a4d222986", "878844aaa73ad5cf97576bef440101116d5c846226f1a6e6a94e2ab114debb34", "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486", "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f", "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f");
-    const approved = definition(captures, ["Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across these exact captures; zero activates no exception and every other pixel and semantic remains exact."], themeWideCitations, { borderColor: "color(srgb 0.271529 0.281647 0.295137)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "color(srgb 0.0698431 0.0725294 0.0832745)", borderRadius: "6px" }, darkPixels13, rendererRasterizationMeasurementSpec(runtime, shared, "cc599cedd33e4bc2c41e5055c216ac59f08433a663dd7813ac5d4bf04d43e6f4", "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984"));
+    const approved = definition(captures, ["Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across the prior captures; for stale-refresh only full thirteen-pixel or right-edge five-pixel states may differ; zero activates no exception and every other pixel and semantic remains exact."], [...themeWideCitations, ...staleRefreshCitations], { borderColor: "color(srgb 0.271529 0.281647 0.295137)", backgroundColor: "rgba(0, 0, 0, 0)", backdropColor: "color(srgb 0.0698431 0.0725294 0.0832745)", borderRadius: "6px" }, darkPixels13, rendererRasterizationMeasurementSpec(runtime, shared, "cc599cedd33e4bc2c41e5055c216ac59f08433a663dd7813ac5d4bf04d43e6f4", "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984"));
+    approved.measurements[staleCapture] = rendererRasterizationMeasurementSpec(runtime, shared, "cc599cedd33e4bc2c41e5055c216ac59f08433a663dd7813ac5d4bf04d43e6f4", "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984", "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98");
     approved.alternatives = [{
       captures,
       pixels: darkRight5,
       triggerCropSha256: "306da89ee227424ffb06634852e7116cb4fee904905ef7ed0305a62eb0df8297",
     }, {
-      captures,
+      captures: priorCaptures,
       pixels: darkLeft8,
       triggerCropSha256: "e093373e48bc2777d172b84f3f668f3bbbf4bc6c2b8ee2dff89906bc59892a62",
     }];
@@ -1188,11 +1195,11 @@ function rendererRasterizationElementSpec(selector: string, rect: Rect, computed
   return { selector, rect, computedStyleSha256, accessibilitySha256: "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b", semanticDomSha256, effectiveCssRulesSha256: "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901", boxModelSha256, quadsSha256, backdropSha256 };
 }
 
-function rendererRasterizationMeasurementSpec(runtime: RendererRuntime, shared: ReturnType<typeof rendererRasterizationElementSpec>, triggerCropSha256: string, skylineCropSha256: string) {
+function rendererRasterizationMeasurementSpec(runtime: RendererRuntime, shared: ReturnType<typeof rendererRasterizationElementSpec>, triggerCropSha256: string, skylineCropSha256: string, skylineCssRulesSha256 = "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4") {
   return {
     runtime,
     trigger: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba", cropSha256: triggerCropSha256 },
-    skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4", cropSha256: skylineCropSha256 },
+    skyline: { ...shared, domSha256: "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a", cssRulesSha256: skylineCssRulesSha256, cropSha256: skylineCropSha256 },
   };
 }
 

@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 import { PNG } from "pngjs";
 import { describe, expect, test, vi } from "vitest";
 import allowedDifferences from "../allowed-differences.json" with { type: "json" };
+import sourceReport from "../codeblock-stale-source-report.json" with { type: "json" };
 import {
   applicableCapabilityOmissions,
   applicableFrameworkExtensions,
@@ -123,7 +124,7 @@ describe("framework-extension fidelity regions", () => {
     expect(accessibilityOmissionSelectors([{ kind: "renderer-rasterization", id: definition.id, observation, expected: observation, pixels: definition.pixels }], "trigger")).toEqual([]);
   });
 
-  test("locks the exact 29-capture Classic, Light, and Dark renderer states", () => {
+  test("locks the exact 30-capture Classic, Light, and Dark renderer states", () => {
     const renderers = allowedDifferences.regions.filter((region) => region.category === "renderer-rasterization" && !("rendererKind" in region)) as unknown as RendererRasterizationDefinition[];
     const byId = (id: string) => renderers.find((definition) => definition.id === id)!;
     const classic = byId("error-codeblock-classic-rasterization");
@@ -146,13 +147,17 @@ describe("framework-extension fidelity regions", () => {
       "error-codeblock-dark-rasterization",
     ]);
     expect(() => validateFrameworkExtensionDefinitions({ regions: renderers })).not.toThrow();
-    expect(renderers.flatMap(({ captures }) => captures)).toHaveLength(29);
-    expect(new Set(renderers.flatMap(({ captures }) => captures))).toHaveProperty("size", 29);
+    expect(renderers.flatMap(({ captures }) => captures)).toHaveLength(30);
+    expect(new Set(renderers.flatMap(({ captures }) => captures))).toHaveProperty("size", 30);
     for (const definition of renderers) {
-      for (const alternative of definition.alternatives ?? []) expect(alternative.captures).toEqual(definition.captures);
+      for (const alternative of definition.alternatives ?? []) expect(definition.captures).toEqual(expect.arrayContaining(alternative.captures));
       for (const capture of definition.captures) {
         expect(() => validateRendererRasterizationObservation(definition, observation(definition, capture), capture)).not.toThrow();
-        for (const alternative of definition.alternatives ?? []) expect(() => validateRendererRasterizationObservation(definition, observation(definition, capture, alternative.triggerCropSha256), capture)).not.toThrow();
+        for (const alternative of definition.alternatives ?? []) {
+          const validation = () => validateRendererRasterizationObservation(definition, observation(definition, capture, alternative.triggerCropSha256), capture);
+          if (alternative.captures.includes(capture)) expect(validation).not.toThrow();
+          else expect(validation).toThrow(/crop/i);
+        }
         expect(() => validateRendererRasterizationObservation(definition, observation(definition, capture, definition.measurements[capture].skyline.cropSha256), capture)).not.toThrow();
       }
     }
@@ -176,7 +181,36 @@ describe("framework-extension fidelity regions", () => {
     expect(() => validateRendererRasterizationObservation(classic, observation(classic, classic.captures[0]), "errors-30th-capture@1440x960-classic")).toThrow(/does not permit capture/i);
     expect(() => validateRendererRasterizationObservation(classic, observation(classic, classic.captures[0], light.alternatives![0].triggerCropSha256), classic.captures[0])).toThrow(/crop/i);
     expect(() => validateFrameworkExtensionDefinitions({ regions: renderers.map((definition) => definition === dark ? { ...definition, pixels: [...definition.pixels, { x: 99, y: 99, trigger: [0, 0, 0, 255], skyline: [1, 1, 1, 255] }] } : definition) })).toThrow(/pixel/i);
-    expect(renderers.some(({ captures }) => captures.includes("error-stale-refresh@1440x960-dark"))).toBe(false);
+    const staleDark = "error-stale-refresh@1440x960-dark";
+    expect(classicRight.measurements[classicRight.captures[0]].skyline.cssRulesSha256).toBe("1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98");
+    expect(lightRight.measurements[lightRight.captures[0]].skyline.cssRulesSha256).toBe("1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98");
+    expect(dark.captures.filter((capture) => capture === staleDark)).toEqual([staleDark]);
+    expect(dark.acceptance).toEqual(["Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across the prior captures; for stale-refresh only full thirteen-pixel or right-edge five-pixel states may differ; zero activates no exception and every other pixel and semantic remains exact."]);
+    expect(dark.measurements[staleDark].skyline.cssRulesSha256).toBe("1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98");
+    expect(dark.measurements[staleDark].trigger.cssRulesSha256).toBe("8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba");
+    expect(dark.alternatives?.map(({ captures }) => captures.includes(staleDark))).toEqual([true, false]);
+    expect(dark.citations).toEqual(expect.arrayContaining(sourceReport.citations));
+    expect(sourceReport).toMatchObject({
+      ledgerInput: false,
+      auditReportSha256: "95cf9e122efe7809fbc4be6cc9bcd7205c7e333400f17cf7a839f7249d7dd780",
+      auditMarkdownSha256: "904eea6ece031e82eac1936ae387dd55256dfbadff1044e6ebeb1edaf4b7ffd9",
+      auditLogSha256: "94461d39febcd93caf47aaab0885cfded4b16f01a478a4825683ee08835193b6",
+      overlay: {
+        wholeManifestByteIdentical: false,
+        caveat: expect.stringMatching(/assembler overlay; not ledger input/),
+      },
+    });
+    const priorDarkCapture = dark.captures.find((capture) => capture !== staleDark)!;
+    expect(() => validateRendererRasterizationObservation(dark, observation(dark, priorDarkCapture), staleDark)).toThrow(/CSS rules/i);
+    const staleObservation = observation(dark, staleDark);
+    expect(() => validateRendererRasterizationObservation(dark, observation(dark, staleDark, dark.alternatives![1].triggerCropSha256), staleDark)).toThrow(/crop/i);
+    expect(() => validateRendererRasterizationObservation(dark, { ...staleObservation, skyline: { ...staleObservation.skyline, semanticDomSha256: "f".repeat(64) } }, staleDark)).toThrow(/semantic DOM/i);
+    expect(() => validateRendererRasterizationObservation(dark, { ...staleObservation, skyline: { ...staleObservation.skyline, computedStyleSha256: "f".repeat(64) } }, staleDark)).toThrow(/style/i);
+    expect(() => validateRendererRasterizationObservation(dark, { ...staleObservation, skyline: { ...staleObservation.skyline, effectiveCssRulesSha256: "f".repeat(64) } }, staleDark)).toThrow(/effective CSS rules/i);
+    expect(() => validateRendererRasterizationObservation(dark, { ...staleObservation, skyline: { ...staleObservation.skyline, rect: { ...staleObservation.skyline.rect, x: staleObservation.skyline.rect.x + 1 } } }, staleDark)).toThrow(/geometry/i);
+    expect(() => validateRendererRasterizationObservation(dark, { ...staleObservation, skyline: { ...staleObservation.skyline, cropSha256: "f".repeat(64) } }, staleDark)).toThrow(/crop/i);
+    expect(() => validateRendererRasterizationObservation(dark, staleObservation, "error-stale-refresh@1440x960-system-dark")).toThrow(/does not permit capture/i);
+    expect(() => validateRendererRasterizationObservation(lightRight, observation(lightRight, lightRight.captures[0]), staleDark)).toThrow(/does not permit capture/i);
   });
 
   test("fails on duplicate selectors or paired anchor drift", () => {

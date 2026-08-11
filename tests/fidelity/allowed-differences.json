@@ -16584,7 +16584,9 @@
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-8170f6fc",
           "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-e977cd30",
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-47dfd42d",
-          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b"
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b",
+          "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-ed21cf47",
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-63aff661"
         ],
         "captures": [
           "error-stale-refresh@1440x960-classic"
@@ -16743,7 +16745,7 @@
               "accessibilitySha256": "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
               "domSha256": "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a",
               "semanticDomSha256": "3b8a59ed68b9f3faf39427a09b191a6df3175480c1e7b16c8c28d1055282e7b2",
-              "cssRulesSha256": "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4",
+              "cssRulesSha256": "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98",
               "effectiveCssRulesSha256": "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
               "boxModelSha256": "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486",
               "quadsSha256": "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f",
@@ -17996,7 +17998,9 @@
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-8170f6fc",
           "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-e977cd30",
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-47dfd42d",
-          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b"
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b",
+          "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-ed21cf47",
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-63aff661"
         ],
         "captures": [
           "error-stale-refresh@1440x960-light"
@@ -18155,7 +18159,7 @@
               "accessibilitySha256": "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
               "domSha256": "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a",
               "semanticDomSha256": "ddeafe10e6831ec6dc1e62eab62f16fe3dfe68937cddcbb42c2fa96562d13096",
-              "cssRulesSha256": "751946618b4985c6a59b86417e539771259f74e794c7e5ad67377c495f9202a4",
+              "cssRulesSha256": "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98",
               "effectiveCssRulesSha256": "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
               "boxModelSha256": "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486",
               "quadsSha256": "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f",
@@ -18508,13 +18512,15 @@
         "category": "renderer-rasterization",
         "decision": "NW-216",
         "acceptance": [
-          "Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across these exact captures; zero activates no exception and every other pixel and semantic remains exact."
+          "Only exact Dark full thirteen-pixel, left-edge eight-pixel, or right-edge five-pixel antialias states may differ across the prior captures; for stale-refresh only full thirteen-pixel or right-edge five-pixel states may differ; zero activates no exception and every other pixel and semantic remains exact."
         ],
         "citations": [
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-8170f6fc",
           "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-e977cd30",
           "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-47dfd42d",
-          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b"
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-6ad5551b",
+          "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-ed21cf47",
+          "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-63aff661"
         ],
         "captures": [
           "error-found@1440x960-dark",
@@ -18525,7 +18531,8 @@
           "errors-long-exception@1440x960-dark",
           "errors-many-occurrences@1440x960-dark",
           "errors-single-occurrence@1440x960-dark",
-          "errors-stack-expansion@1440x960-dark"
+          "errors-stack-expansion@1440x960-dark",
+          "error-stale-refresh@1440x960-dark"
         ],
         "triggerSelector": ".text-text-dimmed > [translate='no']",
         "skylineSelector": ".text-text-dimmed > [translate='no']",
@@ -19130,6 +19137,53 @@
               "cropSha256": "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984"
             }
           },
+          "error-stale-refresh@1440x960-dark": {
+            "runtime": {
+              "browserVersion": "145.0.7632.6",
+              "platform": "Linux x86_64",
+              "deviceScaleFactor": 1,
+              "locale": "en-US",
+              "timezone": "UTC"
+            },
+            "trigger": {
+              "selector": ".text-text-dimmed > [translate='no']",
+              "rect": {
+                "x": 1072,
+                "y": 117,
+                "width": 356,
+                "height": 58
+              },
+              "computedStyleSha256": "1e958c4fe09cb4648dc66fc7033ad54e0390980460e99a0c6fd29b5a4d222986",
+              "accessibilitySha256": "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
+              "domSha256": "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a",
+              "semanticDomSha256": "878844aaa73ad5cf97576bef440101116d5c846226f1a6e6a94e2ab114debb34",
+              "cssRulesSha256": "8d795f3af25b11056ed60507ccd2c8614e8cc4d469515688018b5b0f9dab47ba",
+              "effectiveCssRulesSha256": "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
+              "boxModelSha256": "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486",
+              "quadsSha256": "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f",
+              "backdropSha256": "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f",
+              "cropSha256": "cc599cedd33e4bc2c41e5055c216ac59f08433a663dd7813ac5d4bf04d43e6f4"
+            },
+            "skyline": {
+              "selector": ".text-text-dimmed > [translate='no']",
+              "rect": {
+                "x": 1072,
+                "y": 117,
+                "width": 356,
+                "height": 58
+              },
+              "computedStyleSha256": "1e958c4fe09cb4648dc66fc7033ad54e0390980460e99a0c6fd29b5a4d222986",
+              "accessibilitySha256": "b6167fd697fd410afc0259efd4e09027849b730af8f4af8af77591758aac8d6b",
+              "domSha256": "ca266b76974d08d425effde2f349e65a1b746b43397ee1498696dd53763d640a",
+              "semanticDomSha256": "878844aaa73ad5cf97576bef440101116d5c846226f1a6e6a94e2ab114debb34",
+              "cssRulesSha256": "1e29b23f4fe5f7ed571dbeeb59a49105f0269d641ebf667853ac306d57495d98",
+              "effectiveCssRulesSha256": "eeedce158bc50c514818266694318ab8eae3d60904294b427103c5bbff3eb901",
+              "boxModelSha256": "a17259fef0d18eff5482408204db132d6835237090d5b066b82a122f7a5d7486",
+              "quadsSha256": "2fc4ed279e404c1b3772ab0601244b73a96b98c99f1533461ffffe223540224f",
+              "backdropSha256": "df218850753b506666ad2bcaa018b0bd1cf137690bab6b79070a93b80c59b10f",
+              "cropSha256": "fad6b57ad8b49208f509ecddb3d2a06b014a0be0c8853de81fc3248349b31984"
+            }
+          },
           "errors-stack-expansion@1440x960-dark": {
             "runtime": {
               "browserVersion": "145.0.7632.6",
@@ -19189,7 +19243,8 @@
               "errors-long-exception@1440x960-dark",
               "errors-many-occurrences@1440x960-dark",
               "errors-single-occurrence@1440x960-dark",
-              "errors-stack-expansion@1440x960-dark"
+              "errors-stack-expansion@1440x960-dark",
+              "error-stale-refresh@1440x960-dark"
             ],
             "pixels": [
               {

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "ledgerInput": false,
+  "head": "c3555ac459e8f319f82d0967cb9b620f63f2afc6",
+  "auditReportSha256": "95cf9e122efe7809fbc4be6cc9bcd7205c7e333400f17cf7a839f7249d7dd780",
+  "auditMarkdownSha256": "904eea6ece031e82eac1936ae387dd55256dfbadff1044e6ebeb1edaf4b7ffd9",
+  "auditLogSha256": "94461d39febcd93caf47aaab0885cfded4b16f01a478a4825683ee08835193b6",
+  "overlay": {
+    "headAllowedDifferencesSha256": "87fa23069ed8c01e555c4afae92a56a524fba87cdcd4e15857a4bd88a2ebdcd0",
+    "auditOverlayAllowedDifferencesSha256": "8f94ae4cf4777f68b21ffa06fe18dd3329d0927a3dc8b6283291aadc60a3126e",
+    "wholeManifestByteIdentical": false,
+    "caveat": "assembler overlay; not ledger input. Consumed classic/light regions canonical-equal HEAD; dark strict-absence assertion passed.",
+    "consumedRegionCanonicalSha256": {
+      "error-codeblock-classic-right-rasterization": "73090c8ded245bdd1c89d463ec567b73f439b5e340a858949786a0e9c652ecbf",
+      "error-codeblock-light-right-rasterization": "0f561c40fcbed5715d3b111f1b17abb27758abf5aff04f1dbed9b3a56f3f570f",
+      "error-codeblock-dark-rasterization": "a388faa44ca27661a798b25d28d6e3329fdb80d9fed21f9162ea7f610edc65a7"
+    }
+  },
+  "citations": [
+    "https://linear.app/nickwelsh/issue/NW-216/replace-skyline-frontend-with-source-faithful-triggerdev-interface#comment-ed21cf47",
+    "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-63aff661"
+  ],
+  "classification": {
+    "classic": "Skyline cssRulesSha256 measurement replacement only; retain all finite states.",
+    "light": "Skyline cssRulesSha256 measurement replacement only; retain all finite states.",
+    "dark": "Capture-keyed extension to the existing region using existing global states; no new global state."
+  }
+}
