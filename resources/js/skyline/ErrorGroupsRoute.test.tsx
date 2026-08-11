@@ -46,12 +46,8 @@ describe("Error-groups source route state", () => {
     expect(container.querySelector(`a[href="${group.path}?period=7d"]`)).not.toBeNull();
     expect(container.querySelector(`a[href="${group.jobPath}?period=7d"]`)).toBeNull();
 
-    const period = container.querySelector<HTMLSelectElement>('select[aria-label="Time range"]')!;
-    await act(async () => {
-      period.value = "all";
-      period.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    expect(router.state.location.search).toBe("?period=all");
+    expect(container.querySelector('[aria-label="Occurred time filter"]')?.getAttribute("role")).toBe("combobox");
+    expect(container.querySelector('[aria-label="Tasks"]')?.getAttribute("role")).toBe("combobox");
 
     await act(async () => root.unmount());
   });

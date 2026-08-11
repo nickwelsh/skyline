@@ -7,11 +7,12 @@
  */
 import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
 import { XMarkIcon } from "@heroicons/react/20/solid";
-import { useMemo } from "react";
-import { Bar, BarChart, ReferenceLine, ResponsiveContainer, Tooltip, YAxis } from "recharts";
+import { Bar } from "recharts";
 import { BugIcon } from "~/assets/icons/BugIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
+import { LogsTaskFilter } from "~/components/logs/LogsTaskFilter";
+import { ActivityBarChart } from "~/components/metrics/ActivityBarChart";
 import { Button } from "~/components/primitives/Buttons";
 import { Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
@@ -26,7 +27,7 @@ import {
   TableHeaderCell,
   TableRow,
 } from "~/components/primitives/Table";
-import { SimpleTooltip } from "~/components/primitives/Tooltip";
+import { TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
 
 type ErrorGroup = {
   id: string;
@@ -45,7 +46,7 @@ type ErrorGroup = {
 type ErrorsListData = {
   errorGroups: ErrorGroup[];
   pagination: { next?: string; previous?: string };
-  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: string };
+  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: string | null; from: string | null; to: string | null };
   filterOptions: {
     jobTypes: string[];
     exceptionClasses: string[];
@@ -90,11 +91,12 @@ export default function Page() {
 
 function FiltersBar({ list }: { list: ErrorsListData }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const update = (key: string, value: string) => {
+  const applyTime = (value: TimeFilterApplyValues) => {
     const next = new URLSearchParams(searchParams);
-    value && (key === "period" || value !== "all") ? next.set(key, value) : next.delete(key);
-    next.delete("cursor");
-    next.delete("direction");
+    for (const key of ["period", "from", "to", "cursor", "direction"]) next.delete(key);
+    if (value.period) next.set("period", value.period);
+    if (value.from) next.set("from", value.from);
+    if (value.to) next.set("to", value.to);
     setSearchParams(next);
   };
 
@@ -105,25 +107,21 @@ function FiltersBar({ list }: { list: ErrorsListData }) {
     >
       <div className="flex min-w-0 flex-row flex-wrap items-center gap-1.5">
         <SearchInput placeholder="Search errors…" paramName="search" />
-        <Filter
-          label="Task"
-          value={list.filters.jobType ?? ""}
-          options={list.filterOptions.jobTypes.map((value) => ({ value, label: value }))}
-          allLabel="Tasks"
-          onChange={(value) => update("jobType", value)}
+        <LogsTaskFilter
+          possibleTasks={list.filterOptions.jobTypes.map((slug) => ({
+            slug,
+            triggerSource: "STANDARD" as const,
+            isInLatestDeployment: true,
+          }))}
         />
-        <Filter
-          label="Exception class"
-          value={list.filters.exceptionClass ?? ""}
-          options={list.filterOptions.exceptionClasses.map((value) => ({ value, label: value }))}
-          allLabel="All exception classes"
-          onChange={(value) => update("exceptionClass", value)}
-        />
-        <Filter
-          label="Time range"
-          value={list.filters.period}
-          options={list.filterOptions.timeRanges}
-          onChange={(value) => update("period", value)}
+        <TimeFilter
+          defaultPeriod="24h"
+          labelName="Occurred"
+          period={list.filters.period ?? undefined}
+          from={list.filters.from ?? undefined}
+          to={list.filters.to ?? undefined}
+          onValueChange={applyTime}
+          valueClassName="text-text-bright"
         />
         {list.hasFilters && (
           <Button
@@ -140,34 +138,6 @@ function FiltersBar({ list }: { list: ErrorsListData }) {
       </div>
       <ListPagination list={list} />
     </div>
-  );
-}
-
-function Filter({
-  label,
-  value,
-  options,
-  allLabel,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  allLabel?: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <select
-      aria-label={label}
-      className="h-6 max-w-56 rounded border border-border-bright/50 bg-input-bg px-2 text-xs text-text-bright focus-custom"
-      value={value}
-      onChange={(event) => onChange(event.currentTarget.value)}
-    >
-      {allLabel && <option value="">{allLabel}</option>}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>{option.label}</option>
-      ))}
-    </select>
   );
 }
 
@@ -208,7 +178,7 @@ function ErrorsList({
         <TableHeaderCell>Task</TableHeaderCell>
           <TableHeaderCell>Error</TableHeaderCell>
           <TableHeaderCell>Occurrences</TableHeaderCell>
-          <TableHeaderCell>Activity</TableHeaderCell>
+          <TableHeaderCell>Activity (24h)</TableHeaderCell>
           <TableHeaderCell>First seen</TableHeaderCell>
           <TableHeaderCell>Last seen</TableHeaderCell>
         </TableRow>
@@ -224,17 +194,19 @@ function ErrorsList({
 
 function ErrorGroupRow({ errorGroup }: { errorGroup: ErrorGroup }) {
   const [searchParams] = useSearchParams();
-  const period = searchParams.get("period");
-  const errorPath = period
-    ? `${errorGroup.path}?${new URLSearchParams({ period })}`
-    : errorGroup.path;
+  const timeParams = new URLSearchParams();
+  for (const key of ["period", "from", "to"]) {
+    const value = searchParams.get(key);
+    if (value) timeParams.set(key, value);
+  }
+  const errorPath = timeParams.size > 0 ? `${errorGroup.path}?${timeParams}` : errorGroup.path;
 
   return (
     <TableRow>
       <TableCell to={errorPath} isTabbableCell className="font-mono">
         {errorGroup.fingerprint.slice(-8)}
       </TableCell>
-      <TableCell to={errorGroup.jobPath}>{errorGroup.jobType}</TableCell>
+      <TableCell to={errorPath}>{errorGroup.jobType}</TableCell>
       <TableCell to={errorPath} className="max-w-96 font-mono">
         <span title={errorGroup.representativeMessage}>
           {errorGroup.representativeMessage.length > 128
@@ -259,27 +231,19 @@ function ErrorGroupRow({ errorGroup }: { errorGroup: ErrorGroup }) {
 }
 
 function ErrorActivityGraph({ activity }: { activity: ErrorGroup["activity"] }) {
-  const data = useMemo(() => activity.map((point) => ({ date: point.timestamp, count: point.occurrences })), [activity]);
-  const peak = Math.max(...data.map((point) => point.count));
+  const peak = Math.max(0, ...activity.map((point) => point.occurrences));
 
   return (
-    <div role="img" aria-label="Error occurrence activity" className="flex items-start gap-1.5">
-      <div className="h-6 w-28 rounded-sm">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-            <YAxis domain={[0, peak || 1]} hide />
-            <Tooltip animationDuration={0} content={() => null} />
-            <Bar dataKey="count" fill="#6366F1" strokeWidth={0} isAnimationActive={false} minPointSize={1} />
-            <ReferenceLine y={0} stroke="var(--color-border-bright)" strokeWidth={1} />
-            {peak > 0 && <ReferenceLine y={peak} stroke="var(--color-border-brighter)" strokeDasharray="4 4" strokeWidth={1} />}
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <SimpleTooltip
-        asChild
-        button={<span className="-mt-1 text-xxs tabular-nums text-text-dimmed">{formatNumberCompact(peak)}</span>}
-        content="Peak occurrences in a single time bucket"
-      />
+    <div role="img" aria-label="Error occurrences over the past 24 hours">
+      <ActivityBarChart
+        data={activity}
+        max={peak}
+        tooltip={<span />}
+        peak={formatNumberCompact(peak)}
+        peakTooltip="Peak occurrences in a single hour"
+      >
+        <Bar dataKey="occurrences" fill="#6366F1" strokeWidth={0} isAnimationActive={false} />
+      </ActivityBarChart>
     </div>
   );
 }

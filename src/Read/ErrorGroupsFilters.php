@@ -11,8 +11,11 @@ final readonly class ErrorGroupsFilters
         public ?string $search,
         public ?string $jobType,
         public ?string $exceptionClass,
-        public string $period,
+        public ?string $period,
         public ?int $from,
+        public ?int $to,
+        public ?string $fromValue,
+        public ?string $toValue,
     ) {}
 
     public static function fromRequest(Request $request, int $observedAt, string $defaultPeriod): self
@@ -22,7 +25,16 @@ final readonly class ErrorGroupsFilters
         $exceptionClass = self::string($request, 'exceptionClass', 'exception class');
         $time = JobsFilters::fromRequest($request, $observedAt, $defaultPeriod);
 
-        return new self($search, $jobType, $exceptionClass, $time->period, $time->from);
+        return new self(
+            $search,
+            $jobType,
+            $exceptionClass,
+            $time->period,
+            $time->from,
+            $time->to,
+            $time->fromValue,
+            $time->toValue,
+        );
     }
 
     public function apply(Builder $query): Builder
@@ -42,13 +54,24 @@ final readonly class ErrorGroupsFilters
             ->when($this->from !== null, fn (Builder $query) => $query->whereRaw(
                 'COALESCE(skyline_attempts.finished_at, skyline_attempts.started_at) >= ?',
                 [$this->from],
+            ))
+            ->when($this->to !== null, fn (Builder $query) => $query->whereRaw(
+                'COALESCE(skyline_attempts.finished_at, skyline_attempts.started_at) <= ?',
+                [$this->to],
             ));
     }
 
-    /** @return array{search: ?string, jobType: ?string, exceptionClass: ?string, period: string} */
+    /** @return array{search: ?string, jobType: ?string, exceptionClass: ?string, period: ?string, from: ?string, to: ?string} */
     public function toArray(): array
     {
-        return ['search' => $this->search, 'jobType' => $this->jobType, 'exceptionClass' => $this->exceptionClass, 'period' => $this->period];
+        return [
+            'search' => $this->search,
+            'jobType' => $this->jobType,
+            'exceptionClass' => $this->exceptionClass,
+            'period' => $this->period,
+            'from' => $this->fromValue,
+            'to' => $this->toValue,
+        ];
     }
 
     private static function string(Request $request, string $key, string $label): ?string

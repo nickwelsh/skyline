@@ -76,7 +76,7 @@ export function LogsTaskFilter({ possibleTasks }: LogsTaskFilterProps) {
               <AppliedFilter
                 label="Task"
                 icon={<TasksIcon className="size-4" />}
-                value={appliedSummary([possibleTasks.find((task) => task.slug === selectedTask)?.slug ?? selectedTask])}
+                value={<span className="block max-w-72 truncate">{appliedSummary([possibleTasks.find((task) => task.slug === selectedTask)?.slug ?? selectedTask])}</span>}
                 onRemove={() => del(["tasks", "cursor", "direction"])}
                 variant="secondary/small"
               />

@@ -12,6 +12,10 @@ final readonly class ErrorGroupsQuery
 {
     private const PAGE_SIZE = 25;
 
+    private const HOUR = 3_600_000_000_000;
+
+    private const DAY = 86_400_000_000_000;
+
     public function __construct(
         private SkylineConnection $database,
         private ExceptionPresenter $exceptions,
@@ -30,10 +34,20 @@ final readonly class ErrorGroupsQuery
             ->sort($this->compareGroups(...))
             ->values();
         $page = $this->groupPage($request, $groups, $filters);
+        $activityGroups = $this->groups($this->observedFirst(
+            $this->baseQuery()->whereRaw(
+                'COALESCE(skyline_attempts.finished_at, skyline_attempts.started_at) >= ?',
+                [$observedAt - self::DAY],
+            ),
+        )->get());
 
         return [
             ...$this->metadata->at($observedAt),
-            'errorGroups' => $page['groups']->map($this->summary(...))->values()->all(),
+            'errorGroups' => $page['groups']->map(fn (Collection $group): array => $this->summary(
+                $group,
+                $activityGroups->get($group->first()['fingerprint'], collect()),
+                self::HOUR,
+            ))->values()->all(),
             'pagination' => $page['pagination'],
             'filters' => $filters->toArray(),
             'options' => $this->options(),
@@ -54,18 +68,30 @@ final readonly class ErrorGroupsQuery
             throw new RecordNotFound('The Error group was not found.');
         }
 
-        $filtered = $group->filter(fn (array $occurrence): bool => $filters->from === null
-            || $this->observedAt($occurrence['row']) >= $filters->from)->values();
+        $filtered = $group->filter(function (array $occurrence) use ($filters): bool {
+            $observedAt = $this->observedAt($occurrence['row']);
+
+            return ($filters->from === null || $observedAt >= $filters->from)
+                && ($filters->to === null || $observedAt <= $filters->to);
+        })->values();
         $page = $this->occurrencePage($request, $filtered, $filters);
 
         return [
             ...$this->metadata->at($observedAt),
             'errorGroup' => $this->summary($group),
             'representative' => $group->first()['exception'],
-            'activity' => $this->activity($filtered),
+            'activity' => $this->activity($filtered, $this->activityBucket($filters)),
+            'activityRange' => [
+                'from' => Nanoseconds::toRfc3339($filters->from ?? (int) $group->min(fn (array $occurrence): int => $this->observedAt($occurrence['row']))),
+                'to' => Nanoseconds::toRfc3339($filters->to ?? $observedAt),
+            ],
             'failedAttempts' => $page['occurrences']->map($this->attempt(...))->all(),
             'pagination' => $page['pagination'],
-            'filters' => ['period' => $filters->period],
+            'filters' => [
+                'period' => $filters->period,
+                'from' => $filters->fromValue,
+                'to' => $filters->toValue,
+            ],
             'options' => ['timeRanges' => JobsFilters::options()],
             'hasAnyOccurrences' => $group->isNotEmpty(),
         ];
@@ -110,7 +136,7 @@ final readonly class ErrorGroupsQuery
     }
 
     /** @param Collection<int, array<string, mixed>> $occurrences @return array<string, mixed> */
-    private function summary(Collection $occurrences): array
+    private function summary(Collection $occurrences, ?Collection $activity = null, int $activityBucket = self::DAY): array
     {
         $latest = $occurrences->first();
         $row = $latest['row'];
@@ -130,7 +156,7 @@ final readonly class ErrorGroupsQuery
             'firstObservedAt' => Nanoseconds::toRfc3339((int) $occurrences->min(fn (array $occurrence): int => $this->observedAt($occurrence['row']))),
             'lastObservedAt' => Nanoseconds::toRfc3339((int) $occurrences->max(fn (array $occurrence): int => $this->observedAt($occurrence['row']))),
             'occurrenceCount' => $occurrences->count(),
-            'activity' => $this->activity($occurrences),
+            'activity' => $this->activity($activity ?? $occurrences, $activityBucket),
             'latest' => [
                 'runId' => $row->run_id,
                 'attemptNumber' => (int) $row->attempt_number,
@@ -244,11 +270,30 @@ final readonly class ErrorGroupsQuery
     }
 
     /** @param Collection<int, array<string, mixed>> $occurrences @return list<array{timestamp: string, occurrences: int}> */
-    private function activity(Collection $occurrences): array
+    private function activity(Collection $occurrences, int $bucketNanoseconds = self::DAY): array
     {
-        return $occurrences->groupBy(fn (array $occurrence): string => gmdate('Y-m-d\T00:00:00\Z', intdiv($this->observedAt($occurrence['row']), 1_000_000_000)))
+        $bucketSeconds = intdiv($bucketNanoseconds, 1_000_000_000);
+
+        return $occurrences->groupBy(function (array $occurrence) use ($bucketSeconds): string {
+            $observedAt = intdiv($this->observedAt($occurrence['row']), 1_000_000_000);
+
+            return gmdate('Y-m-d\TH:i:s\Z', intdiv($observedAt, $bucketSeconds) * $bucketSeconds);
+        })
             ->map(fn (Collection $bucket, string $timestamp): array => ['timestamp' => $timestamp, 'occurrences' => $bucket->count()])
             ->sortKeys()->values()->all();
+    }
+
+    private function activityBucket(ErrorGroupsFilters $filters): int
+    {
+        $duration = ($filters->to ?? Nanoseconds::now()) - ($filters->from ?? 0);
+
+        return match (true) {
+            $duration <= 15 * 60_000_000_000 => 10_000_000_000,
+            $duration <= 2 * self::HOUR => 60_000_000_000,
+            $duration <= 2 * self::DAY => self::HOUR,
+            $duration <= 90 * self::DAY => self::DAY,
+            default => 7 * self::DAY,
+        };
     }
 
     /** @param array<string, mixed> $occurrence @return array<string, mixed> */

@@ -33,7 +33,7 @@ export type ErrorGroupDetailRouteData = {
   generatedAt: string;
   errorGroup: PresentedErrorGroup;
   representative: ErrorGroupDetailDto["representative"];
-  activity: ErrorGroupDetailDto["activity"];
+  activity: ErrorActivity;
   failedAttempts: Array<Omit<ErrorGroupDetailDto["failedAttempts"][number], "runHref" | "attemptHref"> & { runPath: string; attemptPath: string }>;
   failedRuns: PresentedRun[];
   pagination: { next?: string; previous?: string };
@@ -47,31 +47,45 @@ export type ErrorGroupDetailRouteData = {
   viewAllRunsPath: string;
 };
 
+export type ErrorActivity = {
+  data: Array<{ bucket: number; occurrences: number }>;
+  range: { from: number; to: number };
+};
+
 export function errorGroupsQuery(request: Request): ErrorGroupsQuery {
   const params = new URL(request.url).searchParams;
+  const from = queryValue(params, "from");
+  const to = queryValue(params, "to");
   const requestedPeriod = params.get("period");
   return compactQuery({
     search: queryValue(params, "search"),
-    jobType: queryValue(params, "jobType"),
+    jobType: queryValue(params, "tasks") ?? queryValue(params, "jobType"),
     exceptionClass: queryValue(params, "exceptionClass"),
-    period: requestedPeriod === null ? "24h" : period(requestedPeriod),
+    period: from || to ? undefined : requestedPeriod === null ? "24h" : period(requestedPeriod),
+    from,
+    to,
     cursor: queryValue(params, "cursor"),
   });
 }
 
 export function errorOccurrencesQuery(request: Request): ErrorOccurrencesQuery {
   const params = new URL(request.url).searchParams;
+  const from = queryValue(params, "from");
+  const to = queryValue(params, "to");
   const requestedPeriod = params.get("period");
   return compactQuery({
-    period: requestedPeriod === null ? "7d" : period(requestedPeriod),
+    period: from || to ? undefined : requestedPeriod === null ? "7d" : period(requestedPeriod),
+    from,
+    to,
     cursor: queryValue(params, "cursor"),
   });
 }
 
 export function presentErrorGroups(page: ErrorGroupsPageDto, request?: Request): ErrorGroupsRouteData {
+  const params = new URL(request?.url ?? "https://skyline.invalid/errors").searchParams;
   return {
     generatedAt: page.generatedAt,
-    errorGroups: page.errorGroups.map(presentErrorGroup),
+    errorGroups: page.errorGroups.map((group) => presentErrorGroup(group, page.generatedAt)),
     pagination: pagination(page.pagination),
     filters: page.filters,
     filterOptions: page.options,
@@ -79,7 +93,9 @@ export function presentErrorGroups(page: ErrorGroupsPageDto, request?: Request):
     hasFilters: page.filters.search !== null
       || page.filters.jobType !== null
       || page.filters.exceptionClass !== null
-      || new URL(request?.url ?? "https://skyline.invalid/errors").searchParams.has("period"),
+      || page.filters.from !== null
+      || page.filters.to !== null
+      || params.has("period"),
   };
 }
 
@@ -88,7 +104,7 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
     generatedAt: page.generatedAt,
     errorGroup: presentErrorGroup(page.errorGroup),
     representative: page.representative,
-    activity: page.activity,
+    activity: presentErrorActivity(page.activity, page.activityRange),
     failedAttempts: page.failedAttempts.map(({ runHref, attemptHref, ...attempt }) => ({
       ...attempt,
       runPath: canonicalRoutePath(runHref, "runs"),
@@ -105,6 +121,25 @@ export function presentErrorGroupDetail(page: ErrorGroupDetailDto): ErrorGroupDe
     affectedVersions: [],
     viewAllRunsPath: "/runs",
   };
+}
+
+function presentErrorActivity(activity: ErrorGroupDetailDto["activity"], range: ErrorGroupDetailDto["activityRange"]): ErrorActivity {
+  const from = Date.parse(range.from);
+  const to = Date.parse(range.to);
+  if (activity.length === 0) return { data: [], range: { from, to } };
+
+  const slots = 48;
+  const data = Array.from({ length: slots + 1 }, (_, index) => ({
+    bucket: from + ((to - from) * index) / slots,
+    occurrences: 0,
+  }));
+  for (const point of activity) {
+    const ratio = (Date.parse(point.timestamp) - from) / (to - from);
+    const index = Math.max(0, Math.min(slots, Math.floor(ratio * slots)));
+    data[index].occurrences += point.occurrences;
+  }
+
+  return { data, range: { from, to } };
 }
 
 function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]): PresentedRun {
@@ -129,10 +164,11 @@ function presentFailedRun(attempt: ErrorGroupDetailDto["failedAttempts"][number]
   };
 }
 
-function presentErrorGroup({ href, jobHref, latest, ...group }: ErrorGroupsPageDto["errorGroups"][number]): PresentedErrorGroup {
+function presentErrorGroup({ href, jobHref, latest, ...group }: ErrorGroupsPageDto["errorGroups"][number], activityEnd?: string): PresentedErrorGroup {
   const { runHref, attemptHref, ...latestData } = latest;
   return {
     ...group,
+    activity: activityEnd ? hourlyActivity(group.activity, activityEnd) : group.activity,
     friendlyId: `error_${group.fingerprint}`,
     path: canonicalRoutePath(href, "errors"),
     jobPath: canonicalRoutePath(jobHref, "jobs"),
@@ -144,10 +180,21 @@ function presentErrorGroup({ href, jobHref, latest, ...group }: ErrorGroupsPageD
   };
 }
 
+function hourlyActivity(activity: PresentedErrorGroup["activity"], end: string): PresentedErrorGroup["activity"] {
+  const hour = 3_600_000;
+  const endAt = Math.floor(Date.parse(end) / hour) * hour;
+  const observed = new Map(activity.map((point) => [Date.parse(point.timestamp), point]));
+
+  return Array.from({ length: 24 }, (_, index) => {
+    const timestamp = endAt - (23 - index) * hour;
+    return observed.get(timestamp) ?? { timestamp: new Date(timestamp).toISOString(), occurrences: 0 };
+  });
+}
+
 function pagination(value: { next: string | null; previous: string | null }) {
   return { previous: value.previous ?? undefined, next: value.next ?? undefined };
 }
 
 function period(value: string | null): ErrorGroupsQuery["period"] {
-  return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as ErrorGroupsQuery["period"] : undefined;
+  return value && /^(?:[1-9][0-9]{0,5}[mhd]|all)$/.test(value) ? value : undefined;
 }

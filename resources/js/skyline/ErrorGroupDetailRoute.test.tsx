@@ -50,7 +50,7 @@ describe("Error-group detail source chrome", () => {
     expect(container.textContent).toContain(data.errorGroup.friendlyId);
     expect(Array.from(container.querySelectorAll("a")).find((link) => link.textContent?.includes("Errors"))?.getAttribute("href"))
       .toBe("/errors?period=7d");
-    expect(container.querySelector<HTMLButtonElement>('[aria-label="Occurred range"]')?.textContent)
+    expect(container.querySelector<HTMLButtonElement>('[aria-label="Occurred time filter"]')?.textContent)
       .toContain("Occurred:7 days");
     expect(container.textContent).not.toContain("Versions");
     expect(Array.from(container.querySelectorAll("th"), (header) => header.textContent?.trim()))
@@ -77,14 +77,6 @@ describe("Error-group detail source chrome", () => {
     expect(sidebar.querySelector('[aria-label="Code"]')).toBeNull();
     expect(sidebar.querySelector('[translate="no"]')).not.toBeNull();
     expect(sidebar.querySelector('[aria-label="Error"]')).toBeNull();
-
-    const occurred = container.querySelector<HTMLButtonElement>('[aria-label="Occurred range"]')!;
-    await act(async () => occurred.click());
-    const allTime = Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
-      .find((button) => button.textContent?.trim() === "All time")!;
-    expect(allTime).toBeDefined();
-    await act(async () => allTime.click());
-    expect(router.state.location.search).toBe("?period=all");
 
     await act(async () => root.unmount());
   });

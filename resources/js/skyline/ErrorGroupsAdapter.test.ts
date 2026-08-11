@@ -26,7 +26,7 @@ const summary = {
 
 describe("ErrorGroupsAdapter", () => {
   it("maps URL filters and stable API links into external Errors route data", () => {
-    const query = errorGroupsQuery(new Request("https://example.test/skyline/errors?search=invoice&jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next"));
+    const query = errorGroupsQuery(new Request("https://example.test/skyline/errors?search=invoice&tasks=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next"));
     const presented = presentErrorGroups({
       schemaVersion: 1,
       packageVersion: "fixture",
@@ -34,7 +34,7 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: "next", previous: null },
-      filters: { search: "invoice", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d" },
+      filters: { search: "invoice", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", from: null, to: null },
       options: { jobTypes: ["App\\Jobs\\Invoice"], exceptionClasses: ["RuntimeException"], timeRanges: [{ value: "7d", label: "Last 7 days" }] },
       hasAnyErrorGroups: true,
     });
@@ -45,6 +45,8 @@ describe("ErrorGroupsAdapter", () => {
       jobPath: "/jobs/job_invoice",
       latest: { runPath: "/runs/run_latest", attemptPath: "/runs/run_latest?node=attempt_run_latest_2" },
     });
+    expect(presented.errorGroups[0].activity).toHaveLength(24);
+    expect(presented.errorGroups[0].activity.reduce((total, point) => total + point.occurrences, 0)).toBe(2);
     expect(presented.hasFilters).toBe(true);
   });
 
@@ -61,7 +63,7 @@ describe("ErrorGroupsAdapter", () => {
         latest: { ...summary.latest, runHref: "/runs/runs/run_latest", attemptHref: "/runs/runs/run_latest?node=attempt_run_latest_2" },
       }],
       pagination: { next: null, previous: null },
-      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h", from: null, to: null },
       options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
       hasAnyErrorGroups: true,
     });
@@ -74,7 +76,7 @@ describe("ErrorGroupsAdapter", () => {
   });
 
   it("preserves occurrence evidence and links for Error-group detail", () => {
-    const query = errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc?period=24h&cursor=older"));
+    const query = errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc?period=1d&cursor=older"));
     const exception = {
       class: "RuntimeException",
       message: "Invoice 42 failed",
@@ -94,6 +96,7 @@ describe("ErrorGroupsAdapter", () => {
       errorGroup: summary,
       representative: exception,
       activity: [{ timestamp: "2026-08-04T00:00:00Z", occurrences: 2 }],
+      activityRange: { from: "2026-08-03T12:00:00Z", to: "2026-08-04T12:00:00Z" },
       failedAttempts: [{
         id: "attempt_run_latest_2",
         runId: "run_latest",
@@ -124,12 +127,14 @@ describe("ErrorGroupsAdapter", () => {
         exception,
       }],
       pagination: { next: null, previous: null },
-      filters: { period: "24h" },
+      filters: { period: "24h", from: null, to: null },
       options: { timeRanges: [{ value: "24h", label: "Last 24 hours" }] },
       hasAnyOccurrences: true,
     });
 
-    expect(query).toEqual({ period: "24h", cursor: "older" });
+    expect(query).toEqual({ period: "1d", cursor: "older" });
+    expect(presented.activity.data).toHaveLength(49);
+    expect(presented.activity.data.reduce((total, point) => total + point.occurrences, 0)).toBe(2);
     expect(presented.failedAttempts[0]).toMatchObject({
       runPath: "/runs/run_latest",
       attemptPath: "/runs/run_latest?node=attempt_run_latest_2",
@@ -166,6 +171,11 @@ describe("ErrorGroupsAdapter", () => {
       .toEqual({ period: "7d" });
   });
 
+  it("lets exact Error ranges override rolling periods", () => {
+    expect(errorOccurrencesQuery(new Request("https://example.test/skyline/errors/error_abc?period=7d&from=1785888000000&to=1785891600000&cursor=older")))
+      .toEqual({ from: "1785888000000", to: "1785891600000", cursor: "older" });
+  });
+
   it("defaults Error groups to the source one-day period", () => {
     expect(errorGroupsQuery(new Request("https://example.test/skyline/errors")))
       .toEqual({ period: "24h" });
@@ -177,7 +187,7 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: null, previous: null },
-      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h", from: null, to: null },
       options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
       hasAnyErrorGroups: true,
     });
@@ -194,7 +204,7 @@ describe("ErrorGroupsAdapter", () => {
       capabilities: {} as ErrorGroupsPageDto["capabilities"],
       errorGroups: [summary],
       pagination: { next: null, previous: null },
-      filters: { search: null, jobType: null, exceptionClass: null, period: "24h" },
+      filters: { search: null, jobType: null, exceptionClass: null, period: "24h", from: null, to: null },
       options: { jobTypes: [], exceptionClasses: [], timeRanges: [] },
       hasAnyErrorGroups: true,
     }, request);

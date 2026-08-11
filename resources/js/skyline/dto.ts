@@ -259,9 +259,11 @@ export type ErrorGroupsQuery = {
   jobType?: string;
   exceptionClass?: string;
   period?: JobsQuery["period"];
+  from?: string;
+  to?: string;
   cursor?: string;
 };
-export type ErrorOccurrencesQuery = Pick<ErrorGroupsQuery, "period" | "cursor">;
+export type ErrorOccurrencesQuery = Pick<ErrorGroupsQuery, "period" | "from" | "to" | "cursor">;
 export type ErrorGroupSummary = {
   id: string;
   fingerprint: string;
@@ -290,7 +292,7 @@ export type ErrorGroupsPageDto = {
   capabilities: SkylineCapabilities;
   errorGroups: ErrorGroupSummary[];
   pagination: { next: string | null; previous: string | null };
-  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: NonNullable<JobsQuery["period"]> };
+  filters: { search: string | null; jobType: string | null; exceptionClass: string | null; period: JobsQuery["period"] | null; from: string | null; to: string | null };
   options: { jobTypes: string[]; exceptionClasses: string[]; timeRanges: TimeRangeOption[] };
   hasAnyErrorGroups: boolean;
 };
@@ -317,9 +319,10 @@ export type ErrorGroupDetailDto = {
   errorGroup: ErrorGroupSummary;
   representative: ExceptionDetails;
   activity: Array<{ timestamp: string; occurrences: number }>;
+  activityRange: { from: string; to: string };
   failedAttempts: ErrorGroupOccurrence[];
   pagination: { next: string | null; previous: string | null };
-  filters: { period: NonNullable<JobsQuery["period"]> };
+  filters: { period: JobsQuery["period"] | null; from: string | null; to: string | null };
   options: { timeRanges: TimeRangeOption[] };
   hasAnyOccurrences: boolean;
 };

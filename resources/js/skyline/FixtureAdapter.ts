@@ -111,7 +111,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const filtered = source.filter((occurrence) => (!query.jobType || occurrence.jobType === query.jobType)
       && (!query.exceptionClass || occurrence.exception.class === query.exceptionClass)
       && (!search || fixtureErrorMatchesSearch(occurrence, search))
-      && withinErrorPeriod(occurrence, query.period));
+      && withinErrorRange(occurrence, query));
     const groups = [...Map.groupBy(filtered, (occurrence) => fixtureErrorId(occurrence)).values()]
       .map(fixtureErrorSummary)
       .sort((left, right) => right.lastObservedAt.localeCompare(left.lastObservedAt));
@@ -127,7 +127,14 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         next: offset + pageSize < groups.length ? String(offset + pageSize) : null,
         previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
       },
-      filters: { search: query.search ?? null, jobType: query.jobType ?? null, exceptionClass: query.exceptionClass ?? null, period: query.period ?? "all" },
+      filters: {
+        search: query.search ?? null,
+        jobType: query.jobType ?? null,
+        exceptionClass: query.exceptionClass ?? null,
+        period: query.from || query.to ? null : query.period ?? "24h",
+        from: query.from ?? null,
+        to: query.to ?? null,
+      },
       options: {
         jobTypes: [...new Set(source.map((occurrence) => occurrence.jobType))].sort(),
         exceptionClasses: [...new Set(source.map((occurrence) => occurrence.exception.class))].sort(),
@@ -142,7 +149,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
     const group = [...Map.groupBy(source, (occurrence) => fixtureErrorId(occurrence)).values()]
       .find((occurrences) => fixtureErrorId(occurrences[0]) === errorId);
     if (!group) throw new Error(`Unknown fixture Error group: ${errorId}`);
-    const filtered = group.filter((occurrence) => withinErrorPeriod(occurrence, query.period));
+    const filtered = group.filter((occurrence) => withinErrorRange(occurrence, query));
     const offset = fixtureOffset(query.cursor);
     const failedAttempts = filtered.slice(offset, offset + pageSize);
 
@@ -155,12 +162,17 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       representative: group[0].exception,
       activity: [...Map.groupBy(filtered, (occurrence) => occurrence.observedAt.slice(0, 10)).entries()]
         .map(([date, occurrences]) => ({ timestamp: `${date}T00:00:00Z`, occurrences: occurrences.length })),
+      activityRange: fixtureActivityRange(query),
       failedAttempts,
       pagination: {
         next: offset + pageSize < filtered.length ? String(offset + pageSize) : null,
         previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
       },
-      filters: { period: query.period ?? "all" },
+      filters: {
+        period: query.from || query.to ? null : query.period ?? "7d",
+        from: query.from ?? null,
+        to: query.to ?? null,
+      },
       options: { timeRanges: fixtureTimeRanges },
       hasAnyOccurrences: group.length > 0,
     };
@@ -762,12 +774,14 @@ function fixtureErrorMatchesSearch(occurrence: ErrorGroupOccurrence, search: str
     .some((value) => value.toLowerCase().includes(search));
 }
 
-function withinErrorPeriod(occurrence: ErrorGroupOccurrence, period: ErrorGroupsQuery["period"]): boolean {
-  if (!period) return true;
-  const durationMs = fixturePeriodMilliseconds(period);
-  if (durationMs === undefined) return true;
-  if (durationMs === null) return true;
-  return new Date(occurrence.observedAt).getTime() >= new Date(fixtureGeneratedAt).getTime() - durationMs;
+function withinErrorRange(occurrence: ErrorGroupOccurrence, query: ErrorGroupsQuery | ErrorOccurrencesQuery): boolean {
+  const observedAt = Date.parse(occurrence.observedAt);
+  if (query.from && observedAt < Number(query.from)) return false;
+  if (query.to && observedAt > Number(query.to)) return false;
+  if (!query.period) return true;
+  const durationMs = fixturePeriodMilliseconds(query.period);
+  if (durationMs === undefined || durationMs === null) return true;
+  return observedAt >= Date.parse(fixtureGeneratedAt) - durationMs;
 }
 
 function normalizeNodes(source: Scenario["nodes"], selectedRunId: string): TraceNode[] {
@@ -862,7 +876,7 @@ function fixturePeriodMilliseconds(period: string): number | null | undefined {
   return Number(match[1]) * unit;
 }
 
-function fixtureActivityRange(query: JobRunsQuery) {
+function fixtureActivityRange(query: JobRunsQuery | ErrorOccurrencesQuery) {
   const end = query.to ? Number(query.to) : Date.parse(fixtureGeneratedAt);
   const duration = query.period ? fixturePeriodMilliseconds(query.period) : 7 * 86_400_000;
   const start = query.from ? Number(query.from) : end - (duration ?? 7 * 86_400_000);

@@ -37,23 +37,24 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await expect(page.getByRole("navigation", { name: "Application" }).getByRole("link", { name: "Errors" })).toHaveAttribute("href", "/skyline/errors");
   await expect(page.getByRole("heading", { name: "Errors" })).toBeVisible();
   await expect(page.getByRole("table")).toBeVisible();
-  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Task", "Error", "Occurrences", "Activity", "First seen", "Last seen"]);
+  await expect(page.getByRole("columnheader").allTextContents()).resolves.toEqual(["ID", "Task", "Error", "Occurrences", "Activity (24h)", "First seen", "Last seen"]);
   await expect(page.locator("thead th[scope=col]")).toHaveCount(7);
   await expect(page.locator("tbody tr")).toHaveCount(2);
   await expect(page.locator(`[title=${JSON.stringify(primaryError.errorMessage)}]`)).toBeVisible();
   await expect(page.locator("tbody").getByText("321", { exact: true })).toBeVisible();
   await expect(page.locator("tbody").getByText("1", { exact: true })).toBeVisible();
   await expect(page.locator("tbody tr").first().getByRole("link", { name: jobType }))
-    .toHaveAttribute("href", "/skyline/jobs/job_invoice");
+    .toHaveAttribute("href", `/skyline/errors/${errorId}`);
+  await expect(page.locator('tbody tr').first().locator('a[href="/skyline/jobs/job_invoice"]')).toHaveCount(0);
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorListVisuals(page)).toEqual(triggerListVisuals);
 
-  await page.getByLabel("Task").selectOption(jobType);
-  await expect(page).toHaveURL(/jobType=App%5CJobs%5CGenerateMonthlyInvoices/);
-  await page.getByLabel("Exception class").selectOption("RuntimeException");
-  await expect(page).toHaveURL(/exceptionClass=RuntimeException/);
-  await page.getByLabel("Time range").selectOption("24h");
-  await expect(page).toHaveURL(/period=24h/);
+  await page.getByRole("combobox", { name: "Tasks" }).click();
+  await page.getByRole("option", { name: jobType }).click();
+  await expect(page).toHaveURL(/tasks=App%5CJobs%5CGenerateMonthlyInvoices/);
+  await page.getByRole("combobox", { name: "Occurred time filter" }).click();
+  await page.getByRole("button", { name: "7 days", exact: true }).click();
+  await expect(page).toHaveURL(/period=7d/);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page).toHaveURL(/\/skyline\/errors$/);
 
@@ -65,6 +66,13 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
   await expect(page.getByRole("heading", { name: "Occurrence activity" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Runs" })).toBeVisible();
   await expect(page.locator(".recharts-responsive-container")).toBeVisible();
+  const activity = page.getByRole("img", { name: "Error occurrences over time" });
+  const initialTicks = await activity.locator(".recharts-xAxis .recharts-cartesian-axis-tick-value").allTextContents();
+  await page.getByRole("combobox", { name: "Occurred time filter" }).click();
+  await page.getByRole("button", { name: "1 day", exact: true }).click();
+  await expect(page).toHaveURL(/period=1d/);
+  await expect.poll(() => activity.locator(".recharts-xAxis .recharts-cartesian-axis-tick-value").allTextContents())
+    .not.toEqual(initialTicks);
   const exceptionEvidence = page.getByRole("region", { name: "Exception" });
   await expect(exceptionEvidence).toContainText(primaryError.errorMessage);
   await exceptionEvidence.getByRole("button", { name: "Show 3 frames" }).click();
@@ -108,7 +116,7 @@ test("Errors URL-cursor paginate groups and failed Attempts", async ({ page }) =
     const url = new URL(route.request().url());
     const cursor = url.searchParams.get("cursor");
     if (url.pathname.endsWith(errorId)) {
-      const response = detailResponse();
+      const response = detailResponse(url);
       response.failedAttempts = [occurrence(cursor === "next-attempts" ? "run_next" : "run_invoice")];
       response.pagination = cursor === "next-attempts" ? { previous: "previous-attempts", next: null } : { previous: null, next: "next-attempts" };
       return route.fulfill({ json: response });
@@ -148,7 +156,7 @@ test("paired pinned Error-detail pagination preserves cursor URLs and keyboard s
 
   await page.route("**/skyline/api/errors/**", async (route) => {
     const cursor = new URL(route.request().url()).searchParams.get("cursor");
-    const response = detailResponse();
+    const response = detailResponse(new URL(route.request().url()));
     response.pagination = cursor === "next-attempts"
       ? { previous: "previous-attempts", next: null }
       : { previous: null, next: "next-attempts" };
@@ -166,20 +174,21 @@ test("paired pinned Error-detail pagination preserves cursor URLs and keyboard s
   await referencePage.close();
 });
 
-test("Errors preserve All time and return matching evidence search results", async ({ page }) => {
+test("Errors preserve the shared time filter and return matching evidence search results", async ({ page }) => {
   await routeErrors(page);
   await page.goto("/skyline/errors?period=24h");
 
-  await page.getByLabel("Time range").selectOption("all");
-  await expect(page).toHaveURL(/period=all/);
+  await page.getByRole("combobox", { name: "Occurred time filter" }).click();
+  await page.getByRole("button", { name: "30 days", exact: true }).click();
+  await expect(page).toHaveURL(/period=30d/);
   await page.reload();
-  await expect(page.getByLabel("Time range")).toHaveValue("all");
+  await expect(page.getByRole("combobox", { name: "Occurred time filter" })).toContainText("30 days");
 
   const search = page.getByPlaceholder("Search errors…");
   await search.fill("Receipt destination");
   await search.press("Enter");
 
-  await expect(page).toHaveURL(/period=all/);
+  await expect(page).toHaveURL(/period=30d/);
   await expect(page).toHaveURL(/search=Receipt(?:\+|%20)destination/);
   await expect(page.locator("tbody tr")).toHaveCount(1);
   await expect(page.locator(`[title=${JSON.stringify(secondaryError.errorMessage)}]`)).toBeVisible();
@@ -198,7 +207,7 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
     if (mode === "error") return route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Error evidence unavailable." } } });
     if (url.pathname.endsWith(errorId)) {
       if (detailMode === "error") return route.fulfill({ status: 500, json: { error: { code: "read_failed", message: "Error detail unavailable." } } });
-      const response = detailResponse();
+      const response = detailResponse(url);
       if (detailMode === "filtered-empty") {
         response.failedAttempts = [];
         response.activity = [];
@@ -218,7 +227,8 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
 
   await page.goto("/skyline/errors");
   delay = true;
-  await page.getByLabel("Time range").selectOption("7d");
+  await page.getByRole("combobox", { name: "Occurred time filter" }).click();
+  await page.getByRole("button", { name: "7 days", exact: true }).click();
   await expect(page.getByLabel("Loading Errors")).toBeVisible();
   delay = false;
   mode = "initial-empty";
@@ -240,9 +250,10 @@ test("Errors cover loading, long evidence, empty, filtered-empty, API-error, and
 
   await page.goto(`/skyline/errors/${errorId}`);
   delayDetail = true;
-  await page.getByRole("button", { name: "Occurred range" }).click();
+  await page.getByRole("combobox", { name: "Occurred time filter" }).click();
   await page.getByRole("button", { name: "1 day", exact: true }).click();
-  await expect(page.getByLabel("Loading Error group")).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Error group details" })).toBeVisible();
+  await expect(page.getByLabel("Loading Error group")).toHaveCount(0);
   delayDetail = false;
 
   detailMode = "filtered-empty";
@@ -264,7 +275,7 @@ async function routeErrors(page: Page) {
   await page.route("**/skyline/api/errors**", async (route) => {
     const url = new URL(route.request().url());
     await new Promise((resolve) => setTimeout(resolve, 100));
-    await route.fulfill({ json: url.pathname.endsWith(errorId) ? detailResponse() : listResponse(url) });
+    await route.fulfill({ json: url.pathname.endsWith(errorId) ? detailResponse(url) : listResponse(url) });
   });
 }
 
@@ -321,13 +332,22 @@ function listResponse(url?: URL): ErrorGroupsPageDto {
   const response: ErrorGroupsPageDto = {
     schemaVersion: 1, packageVersion: "fixture", generatedAt: "2026-08-05T12:00:00.000000000Z", capabilities: capabilities(),
     errorGroups: [summary(errorId, "RuntimeException", primaryError), summary(secondaryError.id, "LogicException", secondaryError)], pagination: { previous: null, next: null },
-    filters: { search: url?.searchParams.get("search") ?? null, jobType: null, exceptionClass: null, period: "all" },
+    filters: {
+      search: url?.searchParams.get("search") ?? null,
+      jobType: null,
+      exceptionClass: null,
+      period: url?.searchParams.has("from") || url?.searchParams.has("to") ? null : "24h",
+      from: url?.searchParams.get("from") ?? null,
+      to: url?.searchParams.get("to") ?? null,
+    },
     options: { jobTypes: [jobType], exceptionClasses: ["RuntimeException", "LogicException"], timeRanges }, hasAnyErrorGroups: true,
   };
   if (url) {
     response.filters.jobType = url.searchParams.get("jobType");
     response.filters.exceptionClass = url.searchParams.get("exceptionClass");
-    response.filters.period = (url.searchParams.get("period") as ErrorGroupsPageDto["filters"]["period"]) ?? "all";
+    response.filters.period = url.searchParams.has("from") || url.searchParams.has("to")
+      ? null
+      : (url.searchParams.get("period") as ErrorGroupsPageDto["filters"]["period"]) ?? "24h";
     const search = url.searchParams.get("search")?.toLowerCase();
     if (search) {
       response.errorGroups = response.errorGroups.filter((group) => [
@@ -340,14 +360,27 @@ function listResponse(url?: URL): ErrorGroupsPageDto {
   return response;
 }
 
-function detailResponse(): ErrorGroupDetailDto {
+function detailResponse(url?: URL): ErrorGroupDetailDto {
+  const period = url?.searchParams.has("from") || url?.searchParams.has("to")
+    ? null
+    : (url?.searchParams.get("period") as ErrorGroupDetailDto["filters"]["period"]) ?? "7d";
+  const to = Number(url?.searchParams.get("to") ?? Date.parse("2026-08-05T12:00:00Z"));
+  const from = Number(url?.searchParams.get("from") ?? to - periodMilliseconds(period ?? "7d"));
   return {
     schemaVersion: 1, packageVersion: "fixture", generatedAt: "2026-08-05T12:00:00.000000000Z", capabilities: capabilities(),
     errorGroup: summary(errorId, "RuntimeException"), representative: exception(),
     activity: [{ timestamp: "2026-08-05T10:00:00Z", occurrences: 2 }, { timestamp: "2026-08-05T11:00:00Z", occurrences: 1 }],
+    activityRange: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
     failedAttempts: [occurrence("run_invoice")], pagination: { previous: null, next: null },
-    filters: { period: "all" }, options: { timeRanges }, hasAnyOccurrences: true,
+    filters: { period, from: url?.searchParams.get("from") ?? null, to: url?.searchParams.get("to") ?? null }, options: { timeRanges }, hasAnyOccurrences: true,
   };
+}
+
+function periodMilliseconds(period: string): number {
+  if (period === "all") return 30 * 86_400_000;
+  const match = period.match(/^(\d+)([mhd])$/);
+  if (!match) return 7 * 86_400_000;
+  return Number(match[1]) * (match[2] === "m" ? 60_000 : match[2] === "h" ? 3_600_000 : 86_400_000);
 }
 
 function summary(id: string, exceptionClass: string, fixture = primaryError): ErrorGroupsPageDto["errorGroups"][number] {

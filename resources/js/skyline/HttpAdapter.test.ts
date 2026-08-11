@@ -16,14 +16,17 @@ describe("HttpAdapter", () => {
   it("encodes Error-group list and occurrence URL state", async () => {
     const fetch = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(jsonResponse({ errorGroups: [] }))
+      .mockResolvedValueOnce(jsonResponse({ errorGroup: {}, failedAttempts: [] }))
       .mockResolvedValueOnce(jsonResponse({ errorGroup: {}, failedAttempts: [] }));
     const adapter = new HttpAdapter("/monitoring");
 
     await adapter.errorGroups({ search: "declined payment", jobType: "App\\Jobs\\Invoice", exceptionClass: "RuntimeException", period: "7d", cursor: "next" });
     await adapter.errorGroup("error/opaque", { period: "24h", cursor: "older" });
+    await adapter.errorGroup("error/opaque", { from: "1785859200000", to: "1785945600000" });
 
     expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/errors?search=declined+payment&jobType=App%5CJobs%5CInvoice&exceptionClass=RuntimeException&period=7d&cursor=next");
     expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/errors/error%2Fopaque?period=24h&cursor=older");
+    expect(String(fetch.mock.calls[2][0])).toBe("/monitoring/api/errors/error%2Fopaque?from=1785859200000&to=1785945600000");
   });
 
   it("encodes Queue-target list and detail URL state", async () => {

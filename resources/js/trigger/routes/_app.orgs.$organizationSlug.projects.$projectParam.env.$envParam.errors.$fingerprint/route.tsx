@@ -6,29 +6,28 @@
  * Server, tenant, status, assignment, ignore, resolve, alerts, versions,
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
-import { CalendarIcon } from "@heroicons/react/20/solid";
 import { useLoaderData, useSearchParams } from "@remix-run/react";
-import { useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useMemo } from "react";
 import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
-import { AppliedFilter } from "~/components/primitives/AppliedFilter";
 import { LinkButton } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTime, RelativeDateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import * as Property from "~/components/primitives/PropertyTable";
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/primitives/Popover";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "~/components/primitives/Resizable";
 import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
+import { TimeFilter, type TimeFilterApplyValues } from "~/components/runs/v3/TimeFilter";
+import { Chart, type ChartConfig } from "~/components/primitives/charts/ChartCompound";
+import { buildActivityTimeAxis } from "~/components/primitives/charts/activityTimeAxis";
 
 type ErrorGroupSummary = {
   id: string;
@@ -46,10 +45,10 @@ type ErrorGroupSummary = {
 type ErrorGroupDetailData = {
   errorGroup: ErrorGroupSummary;
   representative: ExceptionPreviewData;
-  activity: Array<{ timestamp: string; occurrences: number }>;
+  activity: { data: Array<{ bucket: number; occurrences: number }>; range: { from: number; to: number } };
   failedRuns: PresentedRun[];
   pagination: { next?: string; previous?: string };
-  filters: { period: string };
+  filters: { period: string | null; from: string | null; to: string | null };
   filterOptions: { timeRanges: Array<{ value: string; label: string }> };
   hasAnyOccurrences: boolean;
   canViewVersions: false;
@@ -62,8 +61,12 @@ type ErrorGroupDetailData = {
 export default function Page() {
   const data = useLoaderData() as ErrorGroupDetailData;
   const [searchParams] = useSearchParams();
-  const period = searchParams.get("period");
-  const errorsPath = period ? `/errors?${new URLSearchParams({ period })}` : "/errors";
+  const timeParams = new URLSearchParams();
+  for (const key of ["period", "from", "to"]) {
+    const value = searchParams.get(key);
+    if (value) timeParams.set(key, value);
+  }
+  const errorsPath = timeParams.size > 0 ? `/errors?${timeParams}` : "/errors";
 
   return (
     <PageContainer>
@@ -83,11 +86,12 @@ export default function Page() {
 
 function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const updatePeriod = (period: string) => {
+  const updateTime = (value: TimeFilterApplyValues) => {
     const next = new URLSearchParams(searchParams);
-    next.set("period", period);
-    next.delete("cursor");
-    next.delete("direction");
+    for (const key of ["period", "from", "to", "cursor", "direction"]) next.delete(key);
+    if (value.period) next.set("period", value.period);
+    if (value.from) next.set("from", value.from);
+    if (value.to) next.set("to", value.to);
     setSearchParams(next);
   };
 
@@ -97,12 +101,15 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
         <div className="grid h-full grid-rows-[12rem_1fr] overflow-hidden">
           <div className="flex flex-col gap-3 overflow-hidden border-b border-grid-bright bg-background-bright py-2 pl-2 pr-4">
             <div className="flex items-center gap-2">
-              <ErrorTimeFilter
-                period={data.filters.period}
-                options={data.filterOptions.timeRanges}
-                onChange={updatePeriod}
+              <TimeFilter
+                defaultPeriod="7d"
+                labelName="Occurred"
+                period={data.filters.period ?? undefined}
+                from={data.filters.from ?? undefined}
+                to={data.filters.to ?? undefined}
+                onValueChange={updateTime}
+                valueClassName="text-text-bright"
               />
-              {data.canViewVersions ? <AppliedFilter label="Versions" value={data.affectedVersions.join(", ")} removable={false} /> : null}
             </div>
             <ActivityChart activity={data.activity} />
           </div>
@@ -118,7 +125,7 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
             <div className="relative min-h-0 flex-1 overflow-hidden">
               <TaskRunsTable
                 total={data.failedRuns.length}
-                hasFilters={data.filters.period !== "all"}
+                hasFilters={data.filters.period !== "all" || data.filters.from !== null || data.filters.to !== null}
                 runs={data.failedRuns}
                 isLoading={false}
                 presentation="error"
@@ -139,100 +146,28 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
 }
 
 function ActivityChart({ activity }: { activity: ErrorGroupDetailData["activity"] }) {
-  const data = useMemo(() => activity.map((point) => ({
-    ...point,
-    __timestamp: new Date(point.timestamp).getTime(),
-  })), [activity]);
-  const ticks = useMemo(() => data
-    .filter((point) => {
-      const date = new Date(point.__timestamp);
-      return date.getHours() === 0 && date.getMinutes() === 0;
-    })
-    .map((point) => point.__timestamp), [data]);
+  const chartConfig: ChartConfig = useMemo(() => ({
+    occurrences: { label: "Occurrences", color: "#6c5ce7" },
+  }), []);
+  const { tickFormatter, tooltipLabelFormatter } = useMemo(() => buildActivityTimeAxis(activity.data), [activity.data]);
+  const ticks = useMemo(() => Array.from({ length: 5 }, (_, index) => activity.range.from + ((activity.range.to - activity.range.from) * index) / 4), [activity.range]);
 
-  if (activity.length === 0) {
+  if (activity.data.length === 0) {
     return <ActivityChartBlankState />;
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-        <CartesianGrid vertical={false} stroke="var(--color-grid-bright)" strokeDasharray="3 3" />
-        <XAxis
-          dataKey="__timestamp"
-          tickFormatter={(value: number) => new Date(value).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}
-          ticks={ticks}
-          height={24}
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 11, fill: "var(--color-text-dimmed)" }}
+    <div role="img" aria-label="Error occurrences over time" className="h-full min-h-0 w-full">
+      <Chart.Root config={chartConfig} data={activity.data} dataKey="bucket" series={["occurrences"]} fillContainer>
+        <Chart.Bar
+          barRadius={0}
+          xAxisProps={{ ticks, tickFormatter }}
+          yAxisProps={{ allowDecimals: false, domain: [0, (dataMax: number) => Math.max(1, Math.ceil(dataMax))] }}
+          tooltipLabelFormatter={tooltipLabelFormatter}
         />
-        <YAxis
-          width={30}
-          tickMargin={4}
-          axisLine={false}
-          tickLine={false}
-          tick={{ fontSize: 11, fill: "var(--color-text-dimmed)" }}
-          domain={["auto", (maximum: number) => maximum * 1.15]}
-        />
-        <Tooltip
-          cursor={{ fill: "rgba(255, 255, 255, 0.06)" }}
-          content={() => null}
-          allowEscapeViewBox={{ x: true, y: true }}
-          wrapperStyle={{ zIndex: 1000 }}
-          animationDuration={0}
-        />
-        <Bar dataKey="occurrences" stackId="versions" fill="#6c5ce7" strokeWidth={0} isAnimationActive={false} />
-      </BarChart>
-    </ResponsiveContainer>
+      </Chart.Root>
+    </div>
   );
-}
-
-function ErrorTimeFilter({ period, options, onChange }: {
-  period: string;
-  options: Array<{ value: string; label: string }>;
-  onChange: (period: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" aria-label="Occurred range" className="group cursor-pointer focus-custom">
-          <AppliedFilter
-            icon={<CalendarIcon className="size-4" />}
-            label="Occurred"
-            value={periodLabel(period)}
-            removable={false}
-          />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="min-w-40 p-1">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className="flex h-8 w-full items-center rounded px-2 text-left text-sm text-text-bright hover:bg-background-hover focus-custom"
-            onClick={() => {
-              onChange(option.value);
-              setOpen(false);
-            }}
-          >
-            {periodLabel(option.value)}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function periodLabel(period: string) {
-  return ({ "1h": "1 hr", "24h": "1 day", "7d": "7 days", "30d": "30 days", all: "All time" } as Record<string, string>)[period] ?? period;
 }
 
 function ActivityChartBlankState() {

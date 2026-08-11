@@ -4,10 +4,11 @@ use Illuminate\Support\Facades\DB;
 use NickWelsh\Skyline\Read\Nanoseconds;
 
 it('groups failed Attempts by stable message-free relative exception fingerprints', function (): void {
-    seedErrorOccurrence(1, 'App\\Jobs\\Invoice', 'RuntimeException', 'Invoice 123 failed', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->handle');
-    seedErrorOccurrence(2, 'App\\Jobs\\Invoice', 'RuntimeException', 'Invoice 999 failed', '/Users/example/two/app/Jobs/Invoice.php', 99, 'App\\Jobs\\Invoice->handle');
-    seedErrorOccurrence(3, 'App\\Jobs\\Invoice', 'RuntimeException', 'Other callable', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->retry');
-    seedErrorOccurrence(4, 'App\\Jobs\\Digest', 'RuntimeException', 'Other Job type', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->handle');
+    $now = Nanoseconds::now();
+    seedErrorOccurrence(1, 'App\\Jobs\\Invoice', 'RuntimeException', 'Invoice 123 failed', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->handle', $now - 4_000_000_000);
+    seedErrorOccurrence(2, 'App\\Jobs\\Invoice', 'RuntimeException', 'Invoice 999 failed', '/Users/example/two/app/Jobs/Invoice.php', 99, 'App\\Jobs\\Invoice->handle', $now - 3_000_000_000);
+    seedErrorOccurrence(3, 'App\\Jobs\\Invoice', 'RuntimeException', 'Other callable', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->retry', $now - 2_000_000_000);
+    seedErrorOccurrence(4, 'App\\Jobs\\Digest', 'RuntimeException', 'Other Job type', '/srv/one/app/Jobs/Invoice.php', 14, 'App\\Jobs\\Invoice->handle', $now - 1_000_000_000);
 
     $response = $this->getJson('/skyline/api/errors?period=all')->assertOk()
         ->assertJsonPath('schemaVersion', 1)
@@ -99,6 +100,12 @@ it('defaults Error-group and occurrence evidence to the source time ranges', fun
         ->assertJsonCount(1, 'errorGroups')
         ->assertJsonPath('errorGroups.0.occurrenceCount', 1);
 
+    $all = $this->getJson('/skyline/api/errors?period=all')->assertOk()
+        ->assertJsonPath('errorGroups.0.occurrenceCount', 3);
+
+    expect(collect($all->json('errorGroups.0.activity'))->sum('occurrences'))->toBe(1)
+        ->and($all->json('errorGroups.0.activity.0.timestamp'))->toMatch('/T\d{2}:00:00Z$/');
+
     $this->getJson('/skyline/api/errors/'.$page->json('errorGroups.0.id'))
         ->assertOk()
         ->assertJsonPath('filters.period', '7d')
@@ -127,6 +134,39 @@ it('filters and orders Error occurrences by their observed completion time', fun
         ->assertJsonPath('representative.message', 'Latest observed failure')
         ->assertJsonPath('failedAttempts.0.runId', 'error-run-80')
         ->assertJsonPath('failedAttempts.1.runId', 'error-run-81');
+});
+
+it('filters Error groups and detail activity with custom durations and exact ranges', function (): void {
+    $now = Nanoseconds::now();
+    seedErrorOccurrence(83, 'App\\Jobs\\Invoice', 'RuntimeException', 'Recent failure', '/srv/app/Jobs/Invoice.php', 10, 'App\\Jobs\\Invoice->handle', $now - 5 * 60_000_000_000);
+    seedErrorOccurrence(84, 'App\\Jobs\\Invoice', 'RuntimeException', 'Older failure', '/srv/app/Jobs/Invoice.php', 20, 'App\\Jobs\\Invoice->handle', $now - 2 * 3_600_000_000_000);
+    $group = $this->getJson('/skyline/api/errors?period=all')->assertOk()->json('errorGroups.0');
+
+    $this->getJson('/skyline/api/errors/'.$group['id'].'?period=90m')
+        ->assertOk()
+        ->assertJsonPath('filters.period', '90m')
+        ->assertJsonPath('filters.from', null)
+        ->assertJsonPath('filters.to', null)
+        ->assertJsonCount(1, 'failedAttempts')
+        ->assertJsonStructure(['activityRange' => ['from', 'to']]);
+
+    $from = intdiv($now - 3 * 3_600_000_000_000, 1_000_000);
+    $to = intdiv($now - 90 * 60_000_000_000, 1_000_000);
+    $query = http_build_query(['from' => $from, 'to' => $to]);
+    $this->getJson('/skyline/api/errors?'.$query)
+        ->assertOk()
+        ->assertJsonPath('filters.period', null)
+        ->assertJsonPath('filters.from', (string) $from)
+        ->assertJsonPath('filters.to', (string) $to)
+        ->assertJsonCount(1, 'errorGroups');
+
+    $this->getJson('/skyline/api/errors/'.$group['id'].'?'.$query)
+        ->assertOk()
+        ->assertJsonPath('filters.period', null)
+        ->assertJsonPath('filters.from', (string) $from)
+        ->assertJsonPath('filters.to', (string) $to)
+        ->assertJsonCount(1, 'failedAttempts')
+        ->assertJsonPath('failedAttempts.0.exception.message', 'Older failure');
 });
 
 it('shows representative frames activity and cursor-paginated original occurrences', function (): void {

@@ -128,6 +128,8 @@ export class HttpAdapter implements SkylineDtoAdapter {
     if (query.jobType) params.set("jobType", query.jobType);
     if (query.exceptionClass) params.set("exceptionClass", query.exceptionClass);
     if (query.period) params.set("period", query.period);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
     if (query.cursor) params.set("cursor", query.cursor);
     return params;
   }
@@ -148,6 +150,8 @@ export class HttpAdapter implements SkylineDtoAdapter {
   private errorOccurrencesQuery(query: ErrorOccurrencesQuery): URLSearchParams {
     const params = new URLSearchParams();
     if (query.period) params.set("period", query.period);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
     if (query.cursor) params.set("cursor", query.cursor);
     return params;
   }
