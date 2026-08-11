@@ -154,7 +154,7 @@ return [
 
     'logging' => [
         'enabled' => env('SKYLINE_LOGGING_ENABLED', $captureAll),
-        'levels' => ['warning', 'error', 'critical', 'alert', 'emergency'],
+        'levels' => ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'],
         'channel' => env('SKYLINE_LOGGING_CHANNEL'),
         'context_allowlist' => ['code', 'status'],
         'max_breadcrumbs' => env('SKYLINE_LOGGING_MAX_BREADCRUMBS', 100),

@@ -10,9 +10,11 @@ it('projects a versioned time-ordered Telemetry-event union with stable causal i
     $response = $this->getJson('/skyline/api/logs?period=all')->assertOk()
         ->assertJsonPath('schemaVersion', 1)
         ->assertJsonPath('capabilities.navigation.logs', true)
+        ->assertJsonPath('filters.levels', [])
         ->assertJsonCount(3, 'telemetryEvents');
 
     expect($response->json('telemetryEvents.*.variant'))->toBe(['log', 'operation', 'log'])
+        ->and($response->json('telemetryEvents.*.level'))->toBe(['ERROR', 'TRACE', 'WARN'])
         ->and($response->json('telemetryEvents.0'))->toMatchArray([
             'runId' => 'telemetry-run-1',
             'attemptNumber' => 1,

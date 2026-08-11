@@ -434,7 +434,7 @@ it('closes unfinished child telemetry at the Attempt boundary', function (): voi
         ->and($consumer->getAttributes()->get('skyline.summary.other.count'))->toBe(1);
 });
 
-it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summaries', function (): void {
+it('captures every log level by default when breadcrumbs are enabled', function (): void {
     config()->set('skyline.logging.enabled', true);
     config()->set('skyline.logging.channel', 'queue-workers');
 
@@ -450,12 +450,12 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
         ->values();
     $attributes = $consumer->getAttributes();
 
-    expect($breadcrumbs)->toHaveCount(2)
-        ->and($breadcrumbs->map(fn ($event) => $event->getAttributes()->get('log.level'))->all())->toBe(['warning', 'error'])
+    expect($breadcrumbs)->toHaveCount(3)
+        ->and($breadcrumbs->map(fn ($event) => $event->getAttributes()->get('log.level'))->all())->toBe(['info', 'warning', 'error'])
         ->and($breadcrumbs->every(fn ($event) => $event->getAttributes()->get('log.channel') === 'queue-workers'))->toBeTrue()
         ->and($breadcrumbs[0]->getEpochNanos())->toBeLessThanOrEqual($breadcrumbs[1]->getEpochNanos())
-        ->and($breadcrumbs[0]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
-        ->and($breadcrumbs[0]->getAttributes()->get('log.context'))->toContain('"code":429')
+        ->and($breadcrumbs[1]->getAttributes()->get('log.message'))->toContain('token=[REDACTED]')
+        ->and($breadcrumbs[1]->getAttributes()->get('log.context'))->toContain('"code":429')
         ->and($attributes->get('skyline.summary.sql.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.cache.count'))->toBe(1)
         ->and($attributes->get('skyline.summary.custom.count'))->toBe(1)
@@ -467,7 +467,7 @@ it('captures ordered opt-in breadcrumbs and reconcilable Attempt resource summar
         ...$attributes->toArray(),
     ]))->not->toContain('private-token')
         ->not->toContain('private-password')
-        ->not->toContain('ignored info');
+        ->toContain('ignored info');
 });
 
 it('records original byte evidence when capture truncates a log', function (): void {

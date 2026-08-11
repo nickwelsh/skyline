@@ -582,19 +582,20 @@ it('presents log breadcrumbs as chronological selectable nodes with details', fu
         ->assertOk()
         ->json('trace.nodes'));
     $breadcrumbs = $nodes->where('kind', 'breadcrumb')->values();
-    $warningIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[0]['id']);
+    $warningIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[1]['id']);
     $queryIndex = $nodes->search(fn (array $node): bool => $node['kind'] === 'query');
-    $errorIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[1]['id']);
+    $errorIndex = $nodes->search(fn (array $node): bool => $node['id'] === $breadcrumbs[2]['id']);
 
-    expect($breadcrumbs)->toHaveCount(2)
-        ->and($breadcrumbs->pluck('logLevel')->all())->toBe(['warning', 'error'])
-        ->and($breadcrumbs[0]['label'])->toBe('WARNING · Import token=[REDACTED] delayed')
-        ->and($breadcrumbs[1]['label'])->toBe('ERROR · Import failed password=[REDACTED]')
+    expect($breadcrumbs)->toHaveCount(3)
+        ->and($breadcrumbs->pluck('logLevel')->all())->toBe(['info', 'warning', 'error'])
+        ->and($breadcrumbs[0]['label'])->toBe('INFO · ignored info')
+        ->and($breadcrumbs[1]['label'])->toBe('WARNING · Import token=[REDACTED] delayed')
+        ->and($breadcrumbs[2]['label'])->toBe('ERROR · Import failed password=[REDACTED]')
         ->and($warningIndex)->toBeLessThan($queryIndex)
         ->and($errorIndex)->toBeGreaterThan($queryIndex)
         ->and(collect($nodes->firstWhere('kind', 'attempt')['timelineEvents'])->where('kind', 'breadcrumb'))->toBeEmpty();
 
-    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/'.$breadcrumbs[0]['id'])
+    $this->getJson('/skyline/api/runs/'.$run->run_id.'/nodes/'.$breadcrumbs[1]['id'])
         ->assertOk()
         ->assertJsonPath('node.kind', 'breadcrumb')
         ->assertJsonPath('node.presentation.type', 'breadcrumb')
