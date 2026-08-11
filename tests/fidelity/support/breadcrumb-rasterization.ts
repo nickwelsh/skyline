@@ -48,7 +48,7 @@ export type BreadcrumbRasterizationRegion = {
   pixels: Pixel[];
 };
 
-const approvedPolicySha256 = "477b6f07cd22b699988290c021f2d866a44229970364b689d25e94357df48b66";
+const approvedPolicySha256 = "b2587008149b70ca2a2296fa376e709d062c8fb262c52962036ef04b3d850431";
 
 export function validateBreadcrumbRasterizationPolicy(policy: BreadcrumbRasterizationPolicy) {
   if (digest(policy) !== approvedPolicySha256) throw new Error("Breadcrumb renderer changed approved policy evidence.");
@@ -58,12 +58,12 @@ export function validateBreadcrumbRasterizationPolicy(policy: BreadcrumbRasteriz
     && policy.evidence.canonicalCaptures === 439
     && policy.evidence.visibleCaptures === 196
     && policy.evidence.absentCaptures === 243
-    && policy.evidence.observations === 831
-    && policy.evidence.finiteStates === 9
+    && policy.evidence.observations === 1419
+    && policy.evidence.finiteStates === 10
     && visible.length === 196
     && policy.absentCaptures.length === 243
     && canonical.size === 439
-    && policy.states.length === 9;
+    && policy.states.length === 10;
   if (!exactCardinality) throw new Error("Breadcrumb renderer changed approved policy cardinality.");
   for (const state of policy.states) if (digest(state.pixels) !== state.sha256) throw new Error("Breadcrumb renderer changed finite state evidence.");
   return policy;

@@ -304,7 +304,7 @@ function validateBreadcrumbRasterizationRegion(region) {
       "https://linear.app/nickwelsh/issue/NW-227/complete-the-source-fidelity-oracle#comment-cc5fa12d",
     ],
     policyFile: "tests/fidelity/breadcrumb-rasterization-policy.json",
-    policySha256: "477b6f07cd22b699988290c021f2d866a44229970364b689d25e94357df48b66",
+    policySha256: "b2587008149b70ca2a2296fa376e709d062c8fb262c52962036ef04b3d850431",
     captures: [],
     measurements: {},
   };
@@ -314,7 +314,7 @@ function validateBreadcrumbRasterizationRegion(region) {
   const captures = Object.keys(policy.captures ?? {});
   const absent = policy.absentCaptures ?? [];
   const states = policy.states ?? [];
-  if (captures.length !== 196 || absent.length !== 243 || states.length !== 9 || new Set([...captures, ...absent]).size !== 439) fail("Invalid breadcrumb renderer policy cardinality.");
+  if (captures.length !== 196 || absent.length !== 243 || states.length !== 10 || new Set([...captures, ...absent]).size !== 439) fail("Invalid breadcrumb renderer policy cardinality.");
   if (states.some((state) => digest(JSON.stringify(state.pixels)) !== state.sha256)) fail("Invalid breadcrumb renderer finite state.");
 }
 

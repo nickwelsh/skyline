@@ -35,7 +35,7 @@ describe("breadcrumb renderer rasterization policy", () => {
     expect(validateBreadcrumbRasterizationPolicy(approved)).toBe(approved);
     expect(Object.keys(approved.captures)).toHaveLength(196);
     expect(approved.absentCaptures).toHaveLength(243);
-    expect(approved.states).toHaveLength(9);
+    expect(approved.states).toHaveLength(10);
     expect(new Set([...Object.keys(approved.captures), ...approved.absentCaptures])).toHaveProperty("size", 439);
 
     expect(() => validateBreadcrumbRasterizationPolicy({
@@ -68,21 +68,28 @@ describe("breadcrumb renderer rasterization policy", () => {
     })).toThrow(/capture evidence/i);
   });
 
-  test("rejects the replaced historical vendor-dark raster state", () => {
+  test("accepts the restored historical vendor-dark raster state", () => {
     const historical = vendorDarkObservation(true);
     expect(fingerprintBreadcrumbRasterizationCandidate(historicalVendorDarkState, historical.trigger!, historical.skyline!))
       .toBe(historicalVendorDarkCandidate);
-    expect(() => validateBreadcrumbRasterizationObservation(approved, vendorDark, historical)).toThrow(/capture evidence/i);
+    expect(validateBreadcrumbRasterizationObservation(approved, vendorDark, historical)).toMatchObject({
+      status: "visible",
+      stateSha256: historicalVendorDarkState,
+      candidateSha256: historicalVendorDarkCandidate,
+    });
   });
 
-  test("accepts only the observed vendor-dark zero state and exact evidence", () => {
+  test("accepts the vendor-dark zero state and exact evidence", () => {
     const observation = vendorDarkObservation(false);
     expect(validateBreadcrumbRasterizationObservation(approved, vendorDark, observation)).toMatchObject({
       status: "visible",
       stateSha256: zeroState,
       candidateSha256: vendorDarkCandidate,
     });
-    expect(approved.captures[vendorDark].candidates).toEqual([{ sha256: vendorDarkCandidate }]);
+    expect(approved.captures[vendorDark].candidates).toEqual([
+      { sha256: vendorDarkCandidate },
+      { sha256: historicalVendorDarkCandidate },
+    ]);
     expect(() => validateBreadcrumbRasterizationObservation(approved, vendorDark, {
       ...observation,
       trigger: {

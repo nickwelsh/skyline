@@ -62,7 +62,7 @@ describe("fidelity manifest validator", () => {
     const policy = JSON.parse(readFileSync(resolve(import.meta.dirname, "../breadcrumb-rasterization-policy.json"), "utf8"));
     const digest = createHash("sha256").update(JSON.stringify(policy)).digest("hex");
 
-    expect(breadcrumb.policySha256).toBe("477b6f07cd22b699988290c021f2d866a44229970364b689d25e94357df48b66");
+    expect(breadcrumb.policySha256).toBe("b2587008149b70ca2a2296fa376e709d062c8fb262c52962036ef04b3d850431");
     expect(digest).toBe(breadcrumb.policySha256);
   });
 });
