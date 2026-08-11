@@ -510,9 +510,11 @@ test("Run timeline controls stay client-side and restore source interactions", a
   await expect(page.locator("[data-timeline-playhead]")).toBeVisible();
   await expect(page.locator("[data-timeline-playhead]")).toContainText("–");
 
+  const rootTimelineRow = page.locator(`[data-timeline-row-kind="run"]`).first();
+  await expect(rootTimelineRow.locator('[data-timeline-event="Dequeued"]')).toBeVisible();
   await page.getByRole("switch", { name: "Queue time" }).click();
-  for (const event of ["Triggered", "Dequeued", "Started"]) {
-    await expect(page.locator(`[data-timeline-event="${event}"]`).first()).toBeVisible();
+  for (const event of ["Triggered", "Dequeued"]) {
+    await expect(rootTimelineRow.locator(`[data-timeline-event="${event}"]`)).toBeVisible();
   }
   await expect(page.locator(`[data-timeline-lifecycle-line="${rootNodeId}"]`)).toBeVisible();
 
@@ -525,6 +527,7 @@ test("Run timeline controls stay client-side and restore source interactions", a
   await expect(detailIndicator).toBeVisible();
   expect((await detailIndicator.boundingBox())!.x).toBeGreaterThan(beforeX);
   await expect(page.getByRole("tabpanel", { name: "Detail" })).toContainText("Status");
+  await expect(page.getByRole("tabpanel", { name: "Detail" }).locator(".gap-y-4")).toBeVisible();
   await expect(page.getByRole("tabpanel", { name: "Detail" }).getByRole("link", { name: "App\\Jobs\\GenerateMonthlyInvoices", exact: true })).toHaveAttribute("href", /\/skyline\/jobs\/job_/);
 
   await page.getByRole("tab", { name: "Metadata" }).click();

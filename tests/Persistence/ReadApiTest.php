@@ -194,6 +194,12 @@ it('exposes the versioned Runs contract and filters by Trace and root identity',
     $this->getJson('/skyline/api/runs?rootOnly=maybe')
         ->assertStatus(422)
         ->assertJsonPath('error.code', 'invalid_query');
+
+    $this->getJson('/skyline/api/runs/run-01')
+        ->assertOk()
+        ->assertJsonPath('trace.nodes.0.timelineEvents.0.name', 'Triggered')
+        ->assertJsonPath('trace.nodes.0.timelineEvents.1.name', 'Dequeued')
+        ->assertJsonPath('trace.nodes.0.timelineEvents.1.offsetUs', 2);
 });
 
 it('polls changed active rows and counts filtered new Runs', function (): void {
@@ -279,7 +285,7 @@ it('serves revision-safe Trace and parameterized SQL inspector DTOs with ETags',
         ->assertJsonPath('trace.nodes.0.inspectorHref', '/skyline/api/runs/'.$run->run_id.'/nodes/run_'.$run->run_id)
         ->assertJsonPath('trace.nodes.0.kind', 'run')
         ->assertJsonPath('trace.nodes.0.timelineEvents.0.name', 'Triggered')
-        ->assertJsonPath('trace.nodes.0.timelineEvents.1.name', 'Started')
+        ->assertJsonCount(1, 'trace.nodes.0.timelineEvents')
         ->assertJsonPath('trace.nodes.1.kind', 'attempt')
         ->assertJsonPath('trace.nodes.2.kind', 'query')
         ->assertJsonPath('trace.nodes.2.telemetryEventHref', '/skyline/api/runs/'.$run->run_id.'/nodes/span_'.$span->span_id);

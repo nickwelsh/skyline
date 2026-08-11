@@ -376,10 +376,8 @@ final class TraceViewBuilder
     {
         $events = [['name' => 'Triggered', 'offsetUs' => intdiv((int) $run->triggered_at - $origin, 1000), 'kind' => 'event']];
 
-        foreach ([['Dequeued', $run->queued_at], ['Started', $run->started_at], ['Finished', $run->finished_at]] as [$name, $at]) {
-            if ($at !== null) {
-                $events[] = ['name' => $name, 'offsetUs' => intdiv((int) $at - $origin, 1000), 'kind' => 'event'];
-            }
+        if ($run->connection !== 'sync' && $run->started_at !== null) {
+            $events[] = ['name' => 'Dequeued', 'offsetUs' => intdiv((int) $run->started_at - $origin, 1000), 'kind' => 'event'];
         }
 
         return $events;

@@ -94,8 +94,6 @@ const retryNodes: FixtureNode[] = [
     timelineEvents: [
       { name: "Triggered", offsetMs: 0 },
       { name: "Dequeued", offsetMs: 312 },
-      { name: "Started", offsetMs: 312 },
-      { name: "Finished", offsetMs: 15_300 },
     ],
     metadata: { traceId: "fda8d9cf9d53e8845fd0738b8407731d", connection: "redis", queue: "billing" },
   },

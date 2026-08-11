@@ -620,7 +620,7 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   }
 
   return (
-    <section className="grid h-full grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)] overflow-hidden bg-background-bright" aria-label="Run inspector">
+    <section className="grid h-full grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)] overflow-hidden bg-background-bright" aria-label="Run inspector">
       <InspectorHeader node={node} onClose={onClose} />
       <div className="h-fit overflow-x-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <TabContainer>
@@ -753,7 +753,7 @@ function InspectorOverview({ data, node, inspector, failure }: {
 }
 
 function timelineRun(run: RouteData["run"]): TimelineSpanRun {
-  const dequeuedAt = run.queuedAt ?? run.startedAt;
+  const dequeuedAt = run.startedAt ?? run.queuedAt;
   return {
     createdAt: new Date(run.triggeredAt),
     startedAt: dequeuedAt ? new Date(dequeuedAt) : null,
@@ -770,7 +770,7 @@ function InspectorDetails({ data, node, inspector, renderDetails: RenderDetails 
   const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
   return (
     <div className="flex flex-col gap-4 py-3">
-      <PropertyTable.Table>
+      <PropertyTable.Table className="gap-y-4">
         <PropertyTable.Item>
           <PropertyTable.Label>Status</PropertyTable.Label>
           <PropertyTable.Value><TaskRunStatusCombo status={nodeStatus(inspector)} /></PropertyTable.Value>

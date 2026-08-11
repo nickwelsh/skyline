@@ -55,7 +55,7 @@ describe("Run detail source primitives", () => {
     await vi.waitFor(() => expect(loadInspector).toHaveBeenCalledWith(`run_${runId}`, expect.any(AbortSignal)));
     expect(container.querySelector('[data-group-id="panel-run-tree"]')).toBe(treeGroup);
     const pendingFrame = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
-    expect(pendingFrame.className).toContain("grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)]");
+    expect(pendingFrame.className).toContain("grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)]");
     expect(pendingFrame.lastElementChild?.className).toContain("border-t");
 
     await act(async () => resolveInspector(inspector));
@@ -131,7 +131,7 @@ describe("Run detail source primitives", () => {
     const inspector = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
     const timeline = inspector.querySelector<HTMLElement>('[data-run-timeline]')!;
 
-    expect(inspector.className).toContain("grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)]");
+    expect(inspector.className).toContain("grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)]");
     expect(timeline.className).toBe("min-w-fit max-w-80");
     expect(timeline.textContent).toContain("Triggered");
     expect(timeline.textContent).toContain("Dequeued");
@@ -144,6 +144,7 @@ describe("Run detail source primitives", () => {
     expect(container.textContent).toContain("Queue time");
     expect(container.querySelector('[data-timeline-node-id]')?.className).toContain("items-center");
     expect(container.querySelector('[data-timeline-node-id] > span.sticky')?.className).toContain("items-center");
+    expect(inspector.className).toContain("grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)]");
     expect(inspector.lastElementChild?.className).toContain("border-t");
     expect(container.querySelector('[data-skyline-extension="run-relationships"]')).not.toBeNull();
     expect(container.querySelector('[role="tab"][aria-label="Context"]')).not.toBeNull();
