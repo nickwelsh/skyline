@@ -95,16 +95,14 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await expect(page.locator(`[data-node-id="${failedAttemptId}"]`)).toHaveCount(0);
   await page.locator('[data-node-id="span_4f24adb545b26d31"]').click();
   const sourceInspector = page.getByLabel("Run inspector");
-  await expect(sourceInspector.getByRole("tablist")).toHaveCount(0);
+  await expect(sourceInspector.getByRole("tablist")).toBeVisible();
   await expect(sourceInspector).toContainText("insert into `invoices`");
-  await expect(sourceInspector.getByRole("link", { name: "Telemetry event" })).toHaveCount(0);
-  await expect(sourceInspector.getByRole("region", { name: "Span evidence" })).toHaveCount(0);
-  await sourceInspector.getByRole("button", { name: "Expand Properties" }).click();
-  const sourcePropertiesDialog = page.getByRole("dialog");
-  const sourceSpanEvidence = sourcePropertiesDialog.getByRole("region", { name: "Span evidence" });
+  const sourceSpanEvidence = sourceInspector.getByRole("region", { name: "Span evidence" });
   await expect(sourceSpanEvidence).toBeVisible();
   await expect(sourceSpanEvidence.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
-  await sourcePropertiesDialog.getByRole("button", { name: "Close" }).click();
+  await sourceInspector.getByRole("tab", { name: "Detail" }).click();
+  await expect(sourceInspector.getByRole("region", { name: "Recorded operation detail" })).toBeVisible();
+  await expect(sourceInspector.getByRole("button", { name: "Copy SQL" })).toBeVisible();
   await page.getByRole("button", { name: "Esc", exact: true }).click();
   await expect(page).not.toHaveURL(/node=/);
 });
@@ -607,6 +605,10 @@ test("paired external and custom inspectors preserve visible, interaction, focus
     const detailRegion = page.getByRole("region", { name: `${scenario.heading} detail` });
     await expect(detailRegion).toBeVisible();
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
+    if (scenario.key === "http") {
+      await expect(detailRegion).toContainText("Query parameters");
+      await expect(detailRegion).toContainText("profile");
+    }
 
     const contextExpectation = { http: runId, delivery: "billing", breadcrumb: "429" }[scenario.key];
     const contextTab = page.getByRole("tab", { name: "Context", exact: true });
@@ -687,28 +689,19 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     const inspector = page.getByLabel("Run inspector");
     await expect(inspector.getByText("Completed", { exact: true })).toBeVisible();
     await expect(inspector).toContainText("Message");
-    await expect(inspector).toContainText("Properties");
-    await expect(inspector.getByRole("tablist")).toHaveCount(0);
-    await expect(inspector.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:42" })).toHaveCount(0);
-    await expect(inspector.getByRole("link", { name: "Telemetry event" })).toHaveCount(0);
-    await expect(inspector.getByRole("region", { name: "Span evidence" })).toHaveCount(0);
-    await expect(inspector.getByRole("heading", { name: "query.completed", level: 3 })).toBeVisible();
-    await expect(inspector.getByRole("region", { name: "Database and state operation inspector" })).toContainText('"db.namespace": "testing"');
-    await inspector.getByRole("button", { name: "Expand Properties" }).click();
-    const propertiesDialog = page.getByRole("dialog");
-    const spanEvidence = propertiesDialog.getByRole("region", { name: "Span evidence" });
+    await expect(inspector.getByRole("tablist")).toBeVisible();
+    const spanEvidence = inspector.getByRole("region", { name: "Span evidence" });
     await expect(spanEvidence).toBeVisible();
     await expect(spanEvidence.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php:42" })).toHaveAttribute("href", "vscode://file//workspace/app/Jobs/GenerateMonthlyInvoices.php:42");
     await expect(spanEvidence.getByRole("link", { name: "Telemetry event" })).toHaveAttribute("href", /\/skyline\/api\/runs\//);
-    const detailRegion = propertiesDialog.getByRole("region", { name: `${scenario.heading} detail` });
+    await expect(inspector.getByRole("heading", { name: "query.completed", level: 3 })).toBeVisible();
+    await inspector.getByRole("tab", { name: "Detail" }).click();
+    const detailRegion = inspector.getByRole("region", { name: `${scenario.heading} detail` });
     await expect(detailRegion).toBeVisible();
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
     for (const value of scenario.absent) await expect(detailRegion).not.toContainText(value);
 
-    if (!scenario.preview) {
-      await propertiesDialog.getByRole("button", { name: "Close" }).click();
-      continue;
-    }
+    if (!scenario.preview) continue;
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
     await wrap.click();
@@ -722,7 +715,7 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(propertiesDialog).toBeVisible();
+    await expect(inspector).toBeVisible();
 
     if (scenario.key === "sql-captured") {
       await expectCaptureTabKeyboard(page, detailRegion);
@@ -731,7 +724,6 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
       await page.getByRole("tab", { name: "Tree" }).click();
       await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
     }
-    await propertiesDialog.getByRole("button", { name: "Close" }).click();
   }
 });
 
@@ -785,7 +777,7 @@ function inspectorPresentation(key: string): NonNullable<InspectorDto["presentat
 
   switch (key) {
     case "http":
-      return { type: "http", timing, failure: null, http: { method: "POST", url: "https://api.example.test/people", statusCode: 201, request: { headers: { items: { Accept: ["application/json"] }, truncated: false }, body: { value: '{"name":"Laravel"}', contentType: "application/json", originalBytes: 18, truncated: false, isJson: true, json: { name: "Laravel" } } }, response: { headers: null, body: null } } };
+      return { type: "http", timing, failure: null, http: { method: "POST", url: "https://api.example.test/people?include=profile", statusCode: 201, request: { headers: { items: { Accept: ["application/json"] }, truncated: false }, body: { value: '{"name":"Laravel"}', contentType: "application/json", originalBytes: 18, truncated: false, isJson: true, json: { name: "Laravel" } } }, response: { headers: null, body: null } } };
     case "delivery":
       return { type: "delivery", timing, failure: null, delivery: { kind: "notification", messageType: "InvoiceReady", transportOrChannel: "slack", recipientCount: 1, outcome: "sent", recipients: null, recipientIdentity: null, subject: null, text: null, html: null, messageData: null, operationData: captured({ route: "billing" }) } };
     case "storage":

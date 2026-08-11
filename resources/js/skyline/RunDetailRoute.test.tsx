@@ -184,28 +184,30 @@ describe("Run detail source primitives", () => {
     await act(async () => root.unmount());
   });
 
-  it("uses the pinned header-only Span body for a selected query", async () => {
+  it("uses the shared tabbed inspector for a selected query", async () => {
     const queryId = "span_4f24adb545b26d31";
     const loadInspector = createSqlInspectorLoader();
-    const { container, root } = await renderRoute({ initialEntry: `/runs/${runId}?node=${queryId}&tab=detail`, loadInspector });
+    const { container, root } = await renderRoute({ initialEntry: `/runs/${runId}?node=${queryId}`, loadInspector });
 
-    await vi.waitFor(() => expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Span evidence"]')).not.toBeNull());
     const inspector = container.querySelector<HTMLElement>('[aria-label="Run inspector"]')!;
 
-    expect(inspector.className).toContain("grid-rows-[2.5rem_1fr]");
-    expect(inspector.querySelector('[role="tablist"]')).toBeNull();
+    expect(inspector.className).toContain("grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)]");
+    expect(inspector.querySelector('[role="tablist"]')).not.toBeNull();
     expect(inspector.textContent).toContain("Completed");
     expect(inspector.textContent).toContain("Message");
-    expect(inspector.textContent).toContain("Properties");
-    expect(inspector.querySelector('[aria-label="Span evidence"]')).toBeNull();
-
-    const expand = inspector.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!;
-    await act(async () => expand.click());
-    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
-    const evidence = document.querySelector('[role="dialog"] [aria-label="Span evidence"]');
+    expect(inspector.textContent).toContain("Started");
+    expect(inspector.textContent).toContain("Finished");
+    const evidence = inspector.querySelector('[aria-label="Span evidence"]');
     expect(evidence?.textContent).toContain("app/Jobs/GenerateMonthlyInvoices.php:42");
     expect(evidence?.textContent).toContain("Telemetry event");
     expect(evidence?.textContent).toContain("query.completed");
+
+    await act(async () => inspector.querySelector<HTMLButtonElement>('button[aria-label="Detail"]')?.click());
+    await vi.waitFor(() => expect(inspector.querySelector('[aria-label="SQL query detail"]')).not.toBeNull());
+    expect(inspector.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull();
+    expect(inspector.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
+    expect(inspector.textContent).toContain("Result not captured");
 
     await act(async () => root.unmount());
   });
@@ -237,7 +239,7 @@ describe("Run detail source primitives", () => {
     });
 
     await vi.waitFor(() => expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).not.toBeNull());
-    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!;
+    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Parameterized SQL"]')!;
     await act(async () => expand.click());
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
     const tab = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"]')!;
@@ -245,9 +247,13 @@ describe("Run detail source primitives", () => {
 
     await act(async () => tab.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
-    expect(router.state.location.search).toBe("?tab=detail");
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
+    expect(router.state.location.search).toBe(`?node=${queryId}&tab=detail`);
+    expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull();
+
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).toBeNull());
+    expect(router.state.location.search).toBe("?tab=detail");
     expect(expand.isConnected).toBe(false);
     expect(document.activeElement).toBe(document.body);
     await act(async () => root.unmount());

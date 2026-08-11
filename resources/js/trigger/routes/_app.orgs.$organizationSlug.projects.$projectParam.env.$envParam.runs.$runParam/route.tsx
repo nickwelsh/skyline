@@ -79,7 +79,7 @@ type Inspector = TraceNode & {
   metadata: { value: Record<string, unknown>; isTruncated: boolean };
   detailSections: Array<{ label: string; value: unknown }>;
 };
-type InspectorDetailsRenderer = ComponentType<{ inspector: Inspector }>;
+type InspectorDetailsRenderer = ComponentType<{ inspector: Inspector; section?: "overview" | "detail" }>;
 type RouteData = {
   generatedAt: string;
   run: {
@@ -606,19 +606,6 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   const failure = data.attempts.find((attempt) => attempt.id === frozenId)?.failure;
   const sourceSpan = node && !["run", "attempt"].includes(node.kind);
 
-  if (sourceSpan) {
-    return (
-      <section className="grid h-full max-h-full grid-rows-[2.5rem_1fr] overflow-hidden bg-background-bright" aria-label="Run inspector">
-        <InspectorHeader node={node} onClose={onClose} bordered />
-        <div className="scrollbar-gutter-stable overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
-          {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
-          {error && <div role="alert" className="p-3 text-error">{error.message}</div>}
-          {inspector && <data.renderInspectorDetails inspector={inspector} />}
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="grid h-full grid-rows-[2.5rem_2.5rem_1fr_minmax(3.25rem,auto)] overflow-hidden bg-background-bright" aria-label="Run inspector">
       <InspectorHeader node={node} onClose={onClose} />
@@ -632,8 +619,12 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
       <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
         {error && <div role="alert" className="text-error">{error.message}</div>}
-        {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />}
-        {inspector && tab === "detail" && <InspectorDetails data={data} node={node} inspector={inspector} renderDetails={data.renderInspectorDetails} />}
+        {inspector && tab === "overview" && (sourceSpan
+          ? <data.renderInspectorDetails inspector={inspector} section="overview" />
+          : <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />)}
+        {inspector && tab === "detail" && (sourceSpan
+          ? <data.renderInspectorDetails inspector={inspector} section="detail" />
+          : <InspectorDetails data={data} node={node} inspector={inspector} renderDetails={data.renderInspectorDetails} />)}
         {inspector && tab === "context" && (
           <div className="py-3">
             {inspector.context?.isTruncated && <p role="status" className="mb-2 text-xs text-warning">Context was truncated when captured.</p>}
@@ -666,9 +657,9 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   );
 }
 
-function InspectorHeader({ node, onClose, bordered = false }: { node?: TraceNode; onClose: () => void; bordered?: boolean }) {
+function InspectorHeader({ node, onClose }: { node?: TraceNode; onClose: () => void }) {
   return (
-    <div className={cn("flex items-center justify-between gap-2 overflow-x-hidden px-3 pr-2", bordered && "border-b border-grid-bright")}>
+    <div className="flex items-center justify-between gap-2 overflow-x-hidden px-3 pr-2">
       <div className="flex min-w-0 items-center gap-1">
         <RunIcon kind={node?.kind ?? "run"} className="size-5 min-h-5 min-w-5" />
         <Header3 className="truncate text-blue-500">{node?.label ?? "Inspector"}</Header3>

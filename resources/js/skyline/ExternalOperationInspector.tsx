@@ -2,8 +2,8 @@
  * Adapted from Trigger.dev SpanEntity in
  * apps/webapp/app/routes/resources.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam.spans.$spanParam/route.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Retains the source Span body and Properties CodeBlock slot; recorded external
- * variants are available inside that viewer's expand slot.
+ * Retains the source Span body while exposing Skyline's recorded operation
+ * evidence through the shared Run inspector tabs.
  */
 import { ClipboardCheckIcon, ClipboardIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -35,11 +35,15 @@ export type ExternalInspector = InspectorDto & {
 
 type PresentationOf<Type extends InspectorPresentation["type"]> = Extract<InspectorPresentation, { type: Type }>;
 
-export function ExternalOperationInspector({ inspector }: { inspector: ExternalInspector }) {
+export type ExternalInspectorSection = "overview" | "detail";
+
+export function ExternalOperationInspector({ inspector, section = "detail" }: { inspector: ExternalInspector; section?: ExternalInspectorSection }) {
   const presentation = inspector.presentation;
 
   if (inspector.kind && !["run", "attempt"].includes(inspector.kind)) {
-    return <SourceSpanInspector inspector={inspector}>{presentation ? presentationDetails(presentation, inspector) : <GenericInspector inspector={inspector} />}</SourceSpanInspector>;
+    return section === "overview"
+      ? <SourceSpanOverview inspector={inspector} />
+      : <SourceSpanDetail inspector={inspector}>{presentation ? presentationDetails(presentation, inspector) : <GenericInspector inspector={inspector} />}</SourceSpanDetail>;
   }
 
   if (!presentation) return <GenericInspector inspector={inspector} />;
@@ -89,12 +93,11 @@ function presentationDetails(presentation: InspectorPresentation, inspector: Ext
   }
 }
 
-function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspector; children: ReactNode }) {
-  const presentation = inspector.presentation;
-  const extension = presentation && ["sql", "transaction", "cache", "redis"].includes(presentation.type);
+function SourceSpanOverview({ inspector }: { inspector: ExternalInspector }) {
+  const properties = Object.entries(inspector.overview).filter(([, value]) => value !== null && value !== undefined && value !== "");
 
   return (
-    <div className="flex flex-col gap-4 p-3">
+    <div className="flex flex-col gap-4 py-3">
       <div className="border-b border-grid-bright pb-3">
         <TaskRunStatusCombo status={sourceStatus(inspector)} className="text-sm" />
       </div>
@@ -107,30 +110,39 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
           </Property.Label>
           <Property.Value className="whitespace-pre-wrap wrap-break-word">{inspector.label}</Property.Value>
         </Property.Item>
+        {properties.map(([key, value]) => <Item key={key} label={overviewLabel(key)} value={value} breakWords />)}
       </Property.Table>
       {(inspector.timelineEvents?.length ?? 0) > 0 && <SourceSpanEvents inspector={inspector} />}
-      <CodeBlock
-        rowTitle="Properties"
-        code={JSON.stringify(inspector.metadata.value, null, 2)}
-        language="json"
-        jsonValue={inspector.metadata.value}
-        label="Properties"
-        maxLines={20}
-        showLineNumbers={false}
-        showCopyButton
-        showTextWrapping
-        showOpenInModal
-        extensionId={extension ? "database-state-operation-inspector" : undefined}
-        regionLabel={extension ? "Database and state operation inspector" : undefined}
-        modalContent={
-          <div className="flex flex-col gap-4 border-t border-grid-bright p-4">
-            <SourceSpanEvidence inspector={inspector} />
-            {children}
-          </div>
-        }
-      />
+      <SourceSpanEvidence inspector={inspector} />
     </div>
   );
+}
+
+function SourceSpanDetail({ inspector, children }: { inspector: ExternalInspector; children: ReactNode }) {
+  const presentation = inspector.presentation;
+  const extension = presentation && ["sql", "transaction", "cache", "redis"].includes(presentation.type);
+
+  return (
+    <div
+      className="py-3"
+      data-skyline-extension={extension ? "database-state-operation-inspector" : undefined}
+      role={extension ? "region" : undefined}
+      aria-label={extension ? "Database and state operation inspector" : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
+function overviewLabel(key: string): string {
+  const labels: Record<string, string> = {
+    runId: "Run ID",
+    attemptNumber: "Attempt",
+    traceId: "Trace ID",
+    spanId: "Span ID",
+    parentSpanId: "Parent span ID",
+  };
+  return labels[key] ?? key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
 }
 
 function SourceSpanEvidence({ inspector }: { inspector: ExternalInspector }) {
@@ -299,6 +311,7 @@ function RedisInspector({ presentation }: { presentation: PresentationOf<"redis"
 
 function HttpInspector({ presentation, overview }: { presentation: PresentationOf<"http">; overview: ExternalInspector["overview"] }) {
   const { http } = presentation;
+  const query = httpQueryParameters(http.url);
 
   return (
     <InspectorLayout title="HTTP request" timing={presentation.timing} failure={presentation.failure}>
@@ -307,11 +320,26 @@ function HttpInspector({ presentation, overview }: { presentation: PresentationO
         <Item label="URL" value={http.url} breakWords />
         <Item label="Status" value={http.statusCode} />
       </Property.Table>
+      {query && <JsonCapturePreview label="Query parameters" value={query} />}
       <MessageCapture title="Request" capture={http.request} />
       <MessageCapture title="Response" capture={http.response} />
       <JsonCapturePreview label="Context" value={overview} />
     </InspectorLayout>
   );
+}
+
+function httpQueryParameters(url: string): Record<string, string | string[]> | null {
+  try {
+    const parsed = new URL(url, "http://skyline.invalid");
+    const query: Record<string, string | string[]> = {};
+    for (const [key, value] of parsed.searchParams) {
+      const current = query[key];
+      query[key] = current === undefined ? value : Array.isArray(current) ? [...current, value] : [current, value];
+    }
+    return Object.keys(query).length > 0 ? query : null;
+  } catch {
+    return null;
+  }
 }
 
 function DeliveryInspector({ presentation }: { presentation: PresentationOf<"delivery"> }) {

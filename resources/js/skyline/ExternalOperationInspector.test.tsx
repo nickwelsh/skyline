@@ -21,7 +21,7 @@ describe("ExternalOperationInspector", () => {
         failure: null,
         http: {
           method: "POST",
-          url: "https://api.example.test/people",
+          url: "https://api.example.test/people?include=profile&tag=one&tag=two",
           statusCode: 201,
           request: {
             headers: { items: { Accept: ["application/json"] }, truncated: false },
@@ -38,6 +38,8 @@ describe("ExternalOperationInspector", () => {
 
     expect(container.textContent).toContain("POST");
     expect(container.textContent).toContain("201");
+    expect(container.textContent).toContain("Query parameters");
+    expect(container.textContent).toContain("profile");
     expect(container.textContent).toContain("125 ms");
     expect(container.textContent).toContain("Response headers not captured");
     expect(container.textContent).toContain("Response body not captured");
@@ -79,7 +81,7 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
-  it("keeps SQL in the pinned Properties CodeBlock slot and opens variant detail inside it", () => {
+  it("shows SQL evidence directly in the Detail section", () => {
     const { container, root } = renderInspector({
       type: "sql",
       timing: timing(),
@@ -90,21 +92,19 @@ describe("ExternalOperationInspector", () => {
         result: null,
       },
     }, { "db.namespace": "testing" }, "query");
-    const properties = container.querySelector<HTMLElement>('[data-skyline-extension="database-state-operation-inspector"]');
+    const detail = container.querySelector<HTMLElement>('[data-skyline-extension="database-state-operation-inspector"]');
 
-    expect(properties?.getAttribute("translate")).toBe("no");
-    expect(properties?.getAttribute("role")).toBe("region");
-    expect(properties?.textContent).toContain("Properties");
-    expect(properties?.textContent).toContain('"db.namespace": "testing"');
-    expect(properties?.querySelector('[aria-label="SQL query detail"]')).toBeNull();
-
-    flushSync(() => properties?.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')?.click());
-    expect(document.querySelector('[role="dialog"] [aria-label="SQL query detail"]')).not.toBeNull();
+    expect(detail?.getAttribute("role")).toBe("region");
+    expect(detail?.getAttribute("aria-label")).toBe("Database and state operation inspector");
+    expect(detail?.querySelector('[aria-label="SQL query detail"]')).not.toBeNull();
+    expect(detail?.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
+    expect(detail?.textContent).not.toContain("Properties");
+    expect(detail?.textContent).not.toContain('"db.namespace": "testing"');
 
     flushSync(() => root.unmount());
   });
 
-  it("keeps supported source, telemetry, and metadata discriminators inside expanded operation detail", () => {
+  it("shows source, telemetry, and metadata event evidence in Overview", () => {
     const { container, root } = renderInspector({
       type: "sql",
       timing: timing(),
@@ -117,12 +117,9 @@ describe("ExternalOperationInspector", () => {
     }, { "db.namespace": "testing", events: [{ name: "query.completed" }] }, "query", {
       source: { file: "app/Jobs/Example.php", line: 42, href: "vscode://file//workspace/app/Jobs/Example.php:42" },
       telemetryEventHref: "/skyline/api/runs/run-1/nodes/span-1",
-    });
+    }, "overview");
 
-    expect(container.querySelector('[aria-label="Span evidence"]')).toBeNull();
-
-    flushSync(() => container.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')?.click());
-    const evidence = document.querySelector('[role="dialog"] [aria-label="Span evidence"]');
+    const evidence = container.querySelector('[aria-label="Span evidence"]');
     expect(evidence?.tagName).toBe("SECTION");
     expect(evidence?.getAttribute("role")).toBe("region");
     expect(evidence?.textContent).toContain("app/Jobs/Example.php:42");
@@ -130,8 +127,10 @@ describe("ExternalOperationInspector", () => {
     expect(evidence?.textContent).toContain("query.completed");
     expect(evidence?.querySelector('a[href="vscode://file//workspace/app/Jobs/Example.php:42"]')).not.toBeNull();
     expect(evidence?.querySelector('a[href="/skyline/api/runs/run-1/nodes/span-1"]')).not.toBeNull();
-    expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')?.textContent).toContain('"db.namespace": "testing"');
-    expect(document.querySelector('[role="dialog"] [aria-label="SQL query detail"]')).not.toBeNull();
+    expect(container.textContent).toContain("Run IDrun-1");
+    expect(container.textContent).toContain("Started");
+    expect(container.textContent).toContain("Finished");
+    expect(container.textContent).not.toContain('"db.namespace": "testing"');
 
     flushSync(() => root.unmount());
   });
@@ -408,7 +407,7 @@ describe("ExternalOperationInspector", () => {
   });
 });
 
-function renderInspector(presentation: RunDetailInspector["presentation"], metadata: Record<string, unknown> = {}, kind: RunDetailInspector["kind"] = "run", overrides: Partial<RunDetailInspector> = {}) {
+function renderInspector(presentation: RunDetailInspector["presentation"], metadata: Record<string, unknown> = {}, kind: RunDetailInspector["kind"] = "run", overrides: Partial<RunDetailInspector> = {}, section: "overview" | "detail" = "detail") {
   document.body.innerHTML = '<div id="root"></div>';
   const container = document.querySelector<HTMLDivElement>("#root")!;
   const root = createRoot(container);
@@ -436,7 +435,7 @@ function renderInspector(presentation: RunDetailInspector["presentation"], metad
     metadata: { value: metadata, isTruncated: false, truncated: [] },
     ...overrides,
   } as unknown as RunDetailInspector;
-  flushSync(() => root.render(<ExternalOperationInspector inspector={inspector} />));
+  flushSync(() => root.render(<ExternalOperationInspector inspector={inspector} section={section} />));
   return { container, root };
 }
 
