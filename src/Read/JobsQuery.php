@@ -20,6 +20,7 @@ final readonly class JobsQuery
         private ApiMetadata $metadata,
         private CursorCodec $cursors,
         private ConsistentRead $consistentRead,
+        private JobDefinition $definitions,
     ) {}
 
     /** @return array<string, mixed> */
@@ -126,7 +127,8 @@ final readonly class JobsQuery
     {
         $observedAt = Nanoseconds::now();
         $jobName = $this->jobName($jobId);
-        $filters = JobsFilters::fromRequest($request, $observedAt);
+        $filterObservedAt = (intdiv($observedAt, 1_000_000_000) + 1) * 1_000_000_000 - 1;
+        $filters = JobsFilters::fromRequest($request, $filterObservedAt, '7d');
         $runRequest = $this->runRequest($request, $jobName, $filters);
         $page = $this->runs->page($runRequest);
         $jobQuery = $this->baseQuery()->where('skyline_runs.job_name', $jobName);
@@ -145,13 +147,20 @@ final readonly class JobsQuery
             ...$this->metadata->at($observedAt),
             'job' => $job,
             'queueTargets' => $this->queueTargets(clone $jobQuery),
-            'activity' => $this->activity($activityRows, 86_400_000_000_000)->values()->all(),
+            'definition' => $this->definitions->for($jobName),
+            'activity' => $this->activity($activityRows, $this->activityBucket($filters))->values()->all(),
+            'activityRange' => [
+                'from' => Nanoseconds::toRfc3339($filters->from ?? (int) $jobQuery->min('skyline_runs.triggered_at')),
+                'to' => Nanoseconds::toRfc3339($filters->to ?? $observedAt),
+            ],
             'runs' => $page['runs'],
             'pagination' => $page['pagination'],
             'tableState' => $page['tableState'],
             'filters' => [
                 'status' => $page['filters']['status'],
                 'period' => $filters->period,
+                'from' => $filters->fromValue,
+                'to' => $filters->toValue,
             ],
             'options' => [
                 'statuses' => self::STATUSES,
@@ -180,10 +189,13 @@ final readonly class JobsQuery
     private function runRequest(Request $request, string $jobName, JobsFilters $filters): Request
     {
         $query = $request->query();
-        unset($query['search'], $query['period']);
+        unset($query['search'], $query['period'], $query['from'], $query['to']);
         $query['job'] = $jobName;
         if ($filters->from !== null) {
             $query['triggeredFrom'] = Nanoseconds::toRfc3339($filters->from);
+        }
+        if ($filters->to !== null) {
+            $query['triggeredTo'] = Nanoseconds::toRfc3339($filters->to);
         }
 
         return Request::create('/', 'GET', $query);
@@ -307,10 +319,7 @@ final readonly class JobsQuery
 
         return $query->get()->map(fn (object $row): array => [
             ...$includeJob ? ['jobName' => $row->job_name] : [],
-            'timestamp' => gmdate(
-                $bucketNanoseconds === 3_600_000_000_000 ? 'Y-m-d\\TH:00:00\\Z' : 'Y-m-d\\T00:00:00\\Z',
-                (int) $row->activity_bucket * intdiv($bucketNanoseconds, 1_000_000_000),
-            ),
+            'timestamp' => gmdate('Y-m-d\\TH:i:s\\Z', (int) $row->activity_bucket * intdiv($bucketNanoseconds, 1_000_000_000)),
             'total' => (int) $row->run_count,
             'statusCounts' => $this->statusCounts($row),
         ]);
@@ -321,6 +330,19 @@ final readonly class JobsQuery
         foreach (self::STATUSES as $status) {
             $query->selectRaw("SUM(CASE WHEN skyline_runs.status = ? THEN 1 ELSE 0 END) AS {$status}_count", [$status]);
         }
+    }
+
+    private function activityBucket(JobsFilters $filters): int
+    {
+        $duration = ($filters->to ?? Nanoseconds::now()) - ($filters->from ?? 0);
+
+        return match (true) {
+            $duration <= 15 * 60_000_000_000 => 10_000_000_000,
+            $duration <= 2 * 3_600_000_000_000 => 60_000_000_000,
+            $duration <= 2 * 86_400_000_000_000 => 3_600_000_000_000,
+            $duration <= 90 * 86_400_000_000_000 => 86_400_000_000_000,
+            default => 7 * 86_400_000_000_000,
+        };
     }
 
     /** @return array<string, int> */

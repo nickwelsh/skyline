@@ -42,6 +42,7 @@ export type JobDetailRouteData = {
   job: PresentedJob;
   queueTargets: Array<{ id: string; connection: string; queue: string; runCount: number; path: string }>;
   activity: JobActivity;
+  definition: JobDetailDto["definition"];
   runs: ReturnType<typeof presentRun>[];
   pagination: { next?: string; previous?: string };
   filters: JobDetailDto["filters"];
@@ -60,6 +61,7 @@ export type JobActivity = {
     RUNNING: number;
   }>;
   statuses: [...typeof jobActivityStatuses];
+  range: { from: number; to: number };
 };
 
 export function jobsQuery(request: Request): JobsQuery {
@@ -69,10 +71,14 @@ export function jobsQuery(request: Request): JobsQuery {
 
 export function jobRunsQuery(request: Request): JobRunsQuery {
   const params = new URL(request.url).searchParams;
+  const from = queryValue(params, "from");
+  const to = queryValue(params, "to");
   return compactQuery({
     cursor: queryValue(params, "cursor"),
     status: queryStatuses(params),
-    period: period(params.get("period")) ?? "7d",
+    period: from || to ? undefined : period(params.get("period")) ?? "7d",
+    from,
+    to,
   });
 }
 
@@ -98,8 +104,9 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
     generatedAt: page.generatedAt,
     job: presentJob(page.job),
     queueTargets: page.queueTargets.map((target) => ({ ...target, path: canonicalRoutePath(target.href, "queues") })),
-    activity: presentJobActivity(page.activity),
-    runs: page.runs.map((run) => presentRun(run, page.tableState)),
+    activity: presentJobActivity(page.activity, page.activityRange),
+    definition: page.definition,
+    runs: page.runs.map((run) => ({ ...presentRun(run, page.tableState), taskIdentifier: shortName(run.name) })),
     pagination: {
       previous: page.pagination.previous ?? undefined,
       next: page.pagination.next ?? undefined,
@@ -110,16 +117,32 @@ export function presentJobDetail(page: JobDetailDto): JobDetailRouteData {
   };
 }
 
-function presentJobActivity(activity: JobDetailDto["activity"]): JobActivity {
+function presentJobActivity(activity: JobDetailDto["activity"], range: JobDetailDto["activityRange"]): JobActivity {
+  const from = Date.parse(range.from);
+  const to = Date.parse(range.to);
+  if (activity.length === 0) {
+    return { data: [], statuses: [...jobActivityStatuses], range: { from, to } };
+  }
+  const slots = 48;
+  const data = Array.from({ length: slots + 1 }, (_, index) => ({
+    bucket: from + ((to - from) * index) / slots,
+    COMPLETED: 0,
+    FAILED: 0,
+    CANCELED: 0,
+    RUNNING: 0,
+  }));
+  for (const { timestamp, statusCounts } of activity) {
+    const ratio = (Date.parse(timestamp) - from) / (to - from);
+    const index = Math.max(0, Math.min(slots, Math.floor(ratio * slots)));
+    data[index].COMPLETED += statusCounts.completed;
+    data[index].FAILED += statusCounts.failed;
+    data[index].RUNNING += statusCounts.queued + statusCounts.running + statusCounts.retrying;
+  }
+
   return {
-    data: activity.map(({ timestamp, statusCounts }) => ({
-      bucket: Date.parse(timestamp),
-      COMPLETED: statusCounts.completed,
-      FAILED: statusCounts.failed,
-      CANCELED: 0,
-      RUNNING: statusCounts.queued + statusCounts.running + statusCounts.retrying,
-    })),
+    data,
     statuses: [...jobActivityStatuses],
+    range: { from, to },
   };
 }
 
@@ -149,6 +172,8 @@ function hourlyActivity(activity: PresentedJob["activity"], end: string): Presen
   });
 }
 
-function period(value: string | null): JobsQuery["period"] {
-  return ["1h", "24h", "7d", "30d", "all"].includes(value ?? "") ? value as JobsQuery["period"] : undefined;
+function period(value: string | null): string | undefined {
+  return value && /^(?:[1-9][0-9]{0,5}[mhd]|all)$/.test(value) ? value : undefined;
 }
+
+function shortName(name: string) { return name.split("\\").at(-1) ?? name; }

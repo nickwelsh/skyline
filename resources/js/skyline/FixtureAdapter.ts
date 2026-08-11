@@ -299,13 +299,19 @@ export class FixtureAdapter implements SkylineDtoAdapter {
         total: filtered.length,
         statusCounts: statusCounts(filtered),
       }] : [],
+      activityRange: fixtureActivityRange(query),
+      definition: {
+        file: { path: "app/Jobs/GenerateMonthlyInvoices.php", href: "vscode://file/app/Jobs/GenerateMonthlyInvoices.php:12" },
+        defaultQueue: { connection: "redis", queue: "billing" },
+        retry: { maxAttempts: 5, backoffSeconds: [1, 5, 10], retryUntil: "2026-08-05T12:00:00Z" },
+      },
       runs: runs.map((run) => this.summary(run, scenarios[0].runs.indexOf(run))),
       pagination: {
         next: offset + pageSize < filtered.length ? String(offset + pageSize) : null,
         previous: offset > 0 ? String(Math.max(0, offset - pageSize)) : null,
       },
       tableState: query.cursor ?? "fixture-job",
-      filters: { status: query.status ?? [], period: query.period ?? "all" },
+      filters: { status: query.status ?? [], period: query.from || query.to ? null : (query.period ?? "7d"), from: query.from ?? null, to: query.to ?? null },
       options: {
         statuses: ["queued", "running", "retrying", "completed", "failed"],
         timeRanges: fixtureTimeRanges,
@@ -757,7 +763,8 @@ function fixtureErrorMatchesSearch(occurrence: ErrorGroupOccurrence, search: str
 
 function withinErrorPeriod(occurrence: ErrorGroupOccurrence, period: ErrorGroupsQuery["period"]): boolean {
   if (!period) return true;
-  const durationMs = fixtureJobPeriods[period].durationMs;
+  const durationMs = fixturePeriodMilliseconds(period);
+  if (durationMs === undefined) return true;
   if (durationMs === null) return true;
   return new Date(occurrence.observedAt).getTime() >= new Date(fixtureGeneratedAt).getTime() - durationMs;
 }
@@ -813,7 +820,8 @@ function fixtureTimestamp(run: Scenario["runs"][number]): string {
 
 function withinPeriod(run: Scenario["runs"][number], period: JobsQuery["period"]): boolean {
   if (!period) return true;
-  const durationMs = fixtureJobPeriods[period].durationMs;
+  const durationMs = fixturePeriodMilliseconds(period);
+  if (durationMs === undefined) return true;
   if (durationMs === null) return true;
   return new Date(fixtureTimestamp(run)).getTime() >= new Date(fixtureGeneratedAt).getTime() - durationMs;
 }
@@ -830,7 +838,7 @@ function parseDuration(value: string): number {
   return value.endsWith("s") ? amount * 1_000 : amount;
 }
 
-type FixtureJobPeriod = NonNullable<JobsQuery["period"]>;
+type FixtureJobPeriod = "1h" | "24h" | "7d" | "30d" | "all";
 
 const fixtureJobPeriods = {
   "1h": { label: "Last hour", durationMs: 3_600_000 },
@@ -844,6 +852,21 @@ const fixtureTimeRanges = Object.entries(fixtureJobPeriods).map(([value, definit
   value: value as FixtureJobPeriod,
   label: definition.label,
 }));
+
+function fixturePeriodMilliseconds(period: string): number | null | undefined {
+  if (period === "all") return null;
+  const match = period.match(/^([1-9][0-9]{0,5})([mhd])$/);
+  if (!match) return undefined;
+  const unit = match[2] === "m" ? 60_000 : match[2] === "h" ? 3_600_000 : 86_400_000;
+  return Number(match[1]) * unit;
+}
+
+function fixtureActivityRange(query: JobRunsQuery) {
+  const end = query.to ? Number(query.to) : Date.parse(fixtureGeneratedAt);
+  const duration = query.period ? fixturePeriodMilliseconds(query.period) : 7 * 86_400_000;
+  const start = query.from ? Number(query.from) : end - (duration ?? 7 * 86_400_000);
+  return { from: new Date(start).toISOString(), to: new Date(end).toISOString() };
+}
 
 const fixtureQueueTimeRanges = [
   { value: "all" as const, label: "All time", durationSeconds: null },

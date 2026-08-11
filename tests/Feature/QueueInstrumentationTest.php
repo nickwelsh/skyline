@@ -49,6 +49,7 @@ use Tests\Fixtures\Jobs\FailingSqlJob;
 use Tests\Fixtures\Jobs\FailingStorageJob;
 use Tests\Fixtures\Jobs\FailingSummaryJob;
 use Tests\Fixtures\Jobs\HttpJob;
+use Tests\Fixtures\Jobs\InspectableJob;
 use Tests\Fixtures\Jobs\LifecycleCleanupJob;
 use Tests\Fixtures\Jobs\LongLogJob;
 use Tests\Fixtures\Jobs\MailNotificationJob;
@@ -70,6 +71,27 @@ use Tests\Fixtures\Mail\QueuedTestMailable;
 use Tests\Fixtures\Mail\TestMailable;
 use Tests\Fixtures\Notifications\MailTestNotification;
 use Tests\Fixtures\RecordingTelemetrySink;
+
+it('captures Laravel Job definition metadata without payload values', function (): void {
+    config()->set('queue.connections.redis', ['driver' => 'sync']);
+    InspectableJob::dispatch();
+
+    /** @var RecordingTelemetrySink $sink */
+    $sink = app(TelemetrySink::class);
+    $producer = collect($sink->spans)->first(
+        fn ($span) => $span->getAttributes()->get('skyline.role') === 'producer',
+    );
+
+    expect($producer->getAttributes()->toArray())->toMatchArray([
+        'laravel.job.file' => realpath(__DIR__.'/../Fixtures/Jobs/InspectableJob.php'),
+        'laravel.job.file_line' => 12,
+        'laravel.job.default_connection' => 'redis',
+        'laravel.job.default_queue' => 'billing',
+        'laravel.job.max_tries' => 5,
+        'laravel.job.backoff' => '1,5,10',
+        'laravel.job.retry_until' => 1_893_553_445,
+    ]);
+});
 
 it('captures nested custom spans and events while preserving application behavior', function (): void {
     CustomTelemetryJob::dispatchSync();

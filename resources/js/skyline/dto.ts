@@ -114,14 +114,16 @@ export type RunsQuery = {
 
 export type JobsQuery = {
   search?: string;
-  period?: "1h" | "24h" | "7d" | "30d" | "all";
+  period?: string;
   cursor?: string;
 };
 
 export type JobRunsQuery = {
   status?: RunStatus[];
   cursor?: string;
-  period?: JobsQuery["period"];
+  period?: string;
+  from?: string;
+  to?: string;
 };
 
 export type JobStatusCounts = Record<RunStatus, number>;
@@ -161,10 +163,16 @@ export type JobDetailDto = {
   job: JobSummary;
   queueTargets: Array<{ id: string; connection: string; queue: string; runCount: number; href: string }>;
   activity: Array<{ timestamp: string; total: number; statusCounts: JobStatusCounts }>;
+  activityRange: { from: string; to: string };
+  definition: {
+    file: { path: string; href: string | null } | null;
+    defaultQueue: { connection: string; queue: string };
+    retry: { maxAttempts: number | null; backoffSeconds: number[] | null; retryUntil: string | null };
+  };
   runs: RunSummary[];
   pagination: { next: string | null; previous: string | null };
   tableState: string;
-  filters: { status: RunStatus[]; period: NonNullable<JobsQuery["period"]> };
+  filters: { status: RunStatus[]; period: string | null; from: string | null; to: string | null };
   options: { statuses: RunStatus[]; timeRanges: TimeRangeOption[] };
   hasAnyRuns: boolean;
 };

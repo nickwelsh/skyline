@@ -5,6 +5,7 @@
  */
 import { ClockIcon, CpuChipIcon, RectangleStackIcon } from "@heroicons/react/20/solid";
 import { TasksIcon } from "~/assets/icons/TasksIcon";
+import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { formatDurationMilliseconds } from "~/utils/durations";
 import { Badge } from "~/components/primitives/Badge";
 import { CopyableText } from "~/components/primitives/CopyableText";
@@ -123,6 +124,7 @@ export function TaskRunsTable({ total, hasFilters, runs, isLoading = false, pres
               </TableCell>
               <TableCell to={run.path}>
                 <span className="flex items-center gap-x-1">
+                  <TaskIcon className="size-3.5 flex-none text-tasks" />
                   <span>{run.taskIdentifier ?? run.jobType}</span>
                   {run.rootTaskRunId === null || run.isRoot ? <Badge variant="extra-small">Root</Badge> : null}
                 </span>

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\DB;
 use NickWelsh\Skyline\Read\Nanoseconds;
+use Tests\Fixtures\Jobs\InspectableJob;
 
 it('lists observed Job types with opaque identities and truthful summaries', function (): void {
     seedJobRun(1, 'App\\Jobs\\Invoice', 'completed', true, 'redis', 'billing');
@@ -138,7 +139,7 @@ it('projects high-cardinality Job summaries with a fixed query count in one snap
         ->assertJsonPath('job.runCount', 125)
         ->assertJsonCount(25, 'runs');
 
-    expect($queries)->toHaveCount(14)
+    expect($queries)->toHaveCount(15)
         ->and(collect($queries)->pluck('transactionLevel')->every(fn (int $level): bool => $level > 0))->toBeTrue();
 });
 
@@ -179,6 +180,61 @@ it('shows Job activity Queue targets and cursor-paginated filtered Runs', functi
         ->assertOk()
         ->assertJsonCount(3, 'runs')
         ->assertJsonPath('pagination.next', null);
+});
+
+it('filters Job detail with Trigger duration and exact range values', function (): void {
+    $now = Nanoseconds::now();
+    seedJobRun(1, 'App\\Jobs\\Invoice', 'completed', triggeredAt: $now - 5 * 60_000_000_000);
+    seedJobRun(2, 'App\\Jobs\\Invoice', 'failed', triggeredAt: $now - 2 * 3_600_000_000_000);
+    $job = $this->getJson('/skyline/api/jobs')->assertOk()->json('jobs.0');
+
+    $this->getJson('/skyline/api/jobs/'.$job['id'].'?period=90m')
+        ->assertOk()
+        ->assertJsonPath('filters.period', '90m')
+        ->assertJsonPath('filters.from', null)
+        ->assertJsonPath('filters.to', null)
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonCount(1, 'activity')
+        ->assertJsonStructure(['activityRange' => ['from', 'to']]);
+
+    $from = intdiv($now - 3 * 3_600_000_000_000, 1_000_000);
+    $to = intdiv($now - 90 * 60_000_000_000, 1_000_000);
+    $this->getJson('/skyline/api/jobs/'.$job['id'].'?'.http_build_query(['from' => $from, 'to' => $to]))
+        ->assertOk()
+        ->assertJsonPath('filters.period', null)
+        ->assertJsonPath('filters.from', (string) $from)
+        ->assertJsonPath('filters.to', (string) $to)
+        ->assertJsonCount(1, 'runs')
+        ->assertJsonPath('runs.0.status', 'failed')
+        ->assertJsonCount(1, 'activity');
+
+    $this->getJson('/skyline/api/jobs/'.$job['id'].'?period=999999d')->assertStatus(422);
+    $this->getJson('/skyline/api/jobs/'.$job['id'].'?from=9999999999999999')->assertStatus(422);
+});
+
+it('returns the latest captured Laravel Job definition', function (): void {
+    config()->set('app.editor', ['name' => 'vscode', 'base_path' => '/workspace/app']);
+    seedJobRun(1, InspectableJob::class, 'completed', connection: 'redis', queue: 'billing');
+    seedJobDefinition('job-run-01', [
+        'laravel.job.file' => realpath(__DIR__.'/../Fixtures/Jobs/InspectableJob.php'),
+        'laravel.job.file_line' => 12,
+        'laravel.job.default_connection' => 'redis',
+        'laravel.job.default_queue' => 'billing',
+        'laravel.job.max_tries' => 5,
+        'laravel.job.backoff' => '1,5,10',
+        'laravel.job.retry_until' => 1_893_553_445,
+    ]);
+    $job = $this->getJson('/skyline/api/jobs')->assertOk()->json('jobs.0');
+
+    $this->getJson('/skyline/api/jobs/'.$job['id'])
+        ->assertOk()
+        ->assertJsonPath('definition.file.path', realpath(__DIR__.'/../Fixtures/Jobs/InspectableJob.php'))
+        ->assertJsonPath('definition.file.href', 'vscode://file/'.realpath(__DIR__.'/../Fixtures/Jobs/InspectableJob.php').':12')
+        ->assertJsonPath('definition.defaultQueue.connection', 'redis')
+        ->assertJsonPath('definition.defaultQueue.queue', 'billing')
+        ->assertJsonPath('definition.retry.maxAttempts', 5)
+        ->assertJsonPath('definition.retry.backoffSeconds', [1, 5, 10])
+        ->assertJsonPath('definition.retry.retryUntil', '2030-01-02T03:04:05Z');
 });
 
 it('returns not found for unknown Job identity and safe read errors', function (): void {
@@ -225,6 +281,33 @@ function seedJobRun(
         'started_at' => $status === 'queued' ? null : $triggeredAt + 2_000,
         'finished_at' => in_array($status, ['completed', 'failed'], true) ? $triggeredAt + 3_000 : null,
         'confirmed_at' => $confirmed ? $confirmedAt : null,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+}
+
+/** @param array<string, int|string> $attributes */
+function seedJobDefinition(string $runId, array $attributes): void
+{
+    DB::table('skyline_spans')->insert([
+        'trace_id' => DB::table('skyline_runs')->where('run_id', $runId)->value('trace_id'),
+        'run_id' => $runId,
+        'attempt_number' => null,
+        'span_id' => 'abcdef0123456789',
+        'parent_span_id' => null,
+        'name' => 'Job dispatch',
+        'role' => 'producer',
+        'kind' => 3,
+        'status_code' => 'Ok',
+        'status_description' => null,
+        'started_at' => Nanoseconds::now(),
+        'ended_at' => Nanoseconds::now(),
+        'attributes' => json_encode($attributes, JSON_THROW_ON_ERROR),
+        'events' => '[]',
+        'links' => '[]',
+        'resource_attributes' => '{}',
+        'scope_name' => 'nickwelsh/skyline',
+        'scope_version' => null,
         'created_at' => now(),
         'updated_at' => now(),
     ]);

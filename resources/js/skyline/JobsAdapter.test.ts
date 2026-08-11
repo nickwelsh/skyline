@@ -9,8 +9,10 @@ describe("JobsAdapter", () => {
       .toEqual({ search: "invoice", cursor: "opaque" });
     expect(jobsQuery(new Request("https://example.test/jobs?period=invalid"))).toEqual({});
     expect(jobRunsQuery(new Request("https://example.test/jobs/id"))).toEqual({ period: "7d" });
-    expect(jobRunsQuery(new Request("https://example.test/jobs/id?status=failed&status=unknown&cursor=opaque&period=7d")))
-      .toEqual({ status: ["failed"], cursor: "opaque", period: "7d" });
+    expect(jobRunsQuery(new Request("https://example.test/jobs/id?status=failed&status=unknown&cursor=opaque&period=90m")))
+      .toEqual({ status: ["failed"], cursor: "opaque", period: "90m" });
+    expect(jobRunsQuery(new Request("https://example.test/jobs/id?from=1785859200000&to=1785945600000&period=7d")))
+      .toEqual({ from: "1785859200000", to: "1785945600000" });
   });
 
   it("maps Job API data into stable source presenters", () => {
@@ -23,10 +25,12 @@ describe("JobsAdapter", () => {
     expect(detail.job).toMatchObject({ id: "job_invoice", name: "App\\Jobs\\Invoice" });
     expect(detail.runs[0].path).toContain("/runs/run-1?tableState=");
     expect(detail.queueTargets[0].path).toBe("/queues/queue_redis");
-    expect(detail.activity).toEqual({
-      data: [{ bucket: 1_785_888_000_000, COMPLETED: 4, FAILED: 5, CANCELED: 0, RUNNING: 6 }],
-      statuses: ["COMPLETED", "FAILED", "CANCELED", "RUNNING"],
-    });
+    expect(detail.activity.data).toHaveLength(49);
+    expect(detail.activity.data[0].bucket).toBe(1_785_844_800_000);
+    expect(detail.activity.data[24]).toEqual({ bucket: 1_785_888_000_000, COMPLETED: 4, FAILED: 5, CANCELED: 0, RUNNING: 6 });
+    expect(detail.activity.data[48].bucket).toBe(1_785_931_200_000);
+    expect(detail.activity).toMatchObject({ statuses: ["COMPLETED", "FAILED", "CANCELED", "RUNNING"], range: { from: 1_785_844_800_000, to: 1_785_931_200_000 } });
+    expect(detail.runs[0]).toMatchObject({ taskIdentifier: "Invoice", jobType: "App\\Jobs\\Invoice" });
   });
 
   it("presents every Job activity graph as the same 24 hourly slots", () => {
@@ -83,6 +87,12 @@ function jobDetail(): JobDetailDto {
     job: jobSummary(),
     queueTargets: [{ id: "queue_redis", connection: "redis", queue: "default", runCount: 2, href: "/skyline/queues/queue_redis" }],
     activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 15, statusCounts: { queued: 1, running: 2, retrying: 3, completed: 4, failed: 5 } }],
+    activityRange: { from: "2026-08-04T12:00:00Z", to: "2026-08-05T12:00:00Z" },
+    definition: {
+      file: { path: "app/Jobs/Invoice.php", href: "vscode://file/app/Jobs/Invoice.php:9" },
+      defaultQueue: { connection: "redis", queue: "default" },
+      retry: { maxAttempts: 5, backoffSeconds: [1, 5, 10], retryUntil: "2026-08-05T13:00:00Z" },
+    },
     runs: [{
       id: "run-1", traceId: "trace-1", parentRunId: null, isRoot: true, name: "App\\Jobs\\Invoice", status: "failed", connection: "redis", queue: "default", driverId: null,
       attemptCount: 1, triggeredAt: "2026-08-05T12:00:00Z", queuedAt: "2026-08-05T12:00:00Z", startedAt: "2026-08-05T12:00:00Z",
@@ -90,7 +100,7 @@ function jobDetail(): JobDetailDto {
     }],
     pagination: { previous: null, next: null },
     tableState: "state",
-    filters: { status: ["failed"], period: "7d" },
+    filters: { status: ["failed"], period: "7d", from: null, to: null },
     options: { statuses: ["queued", "running", "retrying", "completed", "failed"], timeRanges },
     hasAnyRuns: true,
   };

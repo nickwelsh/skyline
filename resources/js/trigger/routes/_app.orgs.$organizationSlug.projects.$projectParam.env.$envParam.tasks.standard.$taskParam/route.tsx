@@ -1,9 +1,9 @@
 /*!
  * Derived from Trigger.dev apps/webapp/app/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.tasks.standard.$taskParam/route.tsx
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
- * Server, tenant, test, source definition, versions, retries, schedules, deployment, payload, and queue administration are removed.
+ * Server, tenant, test, versions, schedules, deployment, payload, and queue administration are removed.
  */
-import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigation } from "@remix-run/react";
 import { useMemo } from "react";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { ListPagination } from "~/components/ListPagination";
@@ -23,18 +23,25 @@ import { buildActivityTimeAxis } from "~/components/primitives/charts/activityTi
 import { statusColor } from "~/components/primitives/charts/statusColors";
 import { TaskRunsList } from "~/components/runs/v3/TaskRunsList";
 import type { PresentedRun } from "~/components/runs/v3/TaskRunsTable";
+import { TimeFilter } from "~/components/runs/v3/TimeFilter";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
 type JobDetailRouteData = {
-  job: { id: string; name: string; firstObservedAt: string; lastObservedAt: string; runCount: number };
+  job: { id: string; name: string; displayName: string; firstObservedAt: string; lastObservedAt: string; runCount: number };
   queueTargets: Array<{ id: string; connection: string; queue: string; path: string }>;
   activity: {
     data: Array<{ bucket: number } & Record<string, number>>;
     statuses: string[];
+    range: { from: number; to: number };
+  };
+  definition: {
+    file: { path: string; href: string | null } | null;
+    defaultQueue: { connection: string; queue: string };
+    retry: { maxAttempts: number | null; backoffSeconds: number[] | null; retryUntil: string | null };
   };
   runs: PresentedRun[];
   pagination: { next?: string; previous?: string };
-  filters: { status: RunStatus[] };
+  filters: { status: RunStatus[]; period: string | null; from: string | null; to: string | null };
   filterOptions: { statuses: RunStatus[]; timeRanges: Array<{ value: string; label: string }> };
   hasAnyRuns: boolean;
 };
@@ -42,14 +49,6 @@ type JobDetailRouteData = {
 export default function JobDetailRoute() {
   const data = useLoaderData() as JobDetailRouteData;
   const navigation = useNavigation();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const updatePeriod = (period: string) => {
-    const next = new URLSearchParams(searchParams);
-    next.set("period", period);
-    next.delete("cursor");
-    next.delete("direction");
-    setSearchParams(next);
-  };
 
   return (
     <PageContainer>
@@ -57,7 +56,7 @@ export default function JobDetailRoute() {
         <div className="flex items-center gap-1">
           <PageTitle
             backButton={{ to: "/jobs", text: "Jobs" }}
-            title={<span className="flex min-w-0 items-center gap-1"><TaskIcon className="size-4.5 shrink-0 text-tasks" /><span className="max-w-[50vw] truncate">{data.job.name}</span></span>}
+            title={<span className="flex min-w-0 items-center gap-1"><TaskIcon className="size-4.5 shrink-0 text-tasks" /><span className="max-w-[50vw] truncate">{data.job.displayName}</span></span>}
           />
           <JobFavoriteButton id={data.job.id} label={shortName(data.job.name)} path={`/jobs/${data.job.id}`} />
         </div>
@@ -67,14 +66,7 @@ export default function JobDetailRoute() {
           <ResizablePanel id="task-main" min="300px">
             <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
               <div className="flex h-10 items-center border-b border-grid-dimmed bg-background-bright px-2">
-                <select
-                  aria-label="Time range"
-                  className="h-6 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright focus-custom"
-                  value={searchParams.get("period") ?? "7d"}
-                  onChange={(event) => updatePeriod(event.currentTarget.value)}
-                >
-                  {data.filterOptions.timeRanges.filter((option) => option.value !== "all").map((option) => <option key={option.value} value={option.value}>{`Runs: ${option.label.replace(/^Last /, "")}`}</option>)}
-                </select>
+                <TimeFilter defaultPeriod="7d" labelName="Runs" />
               </div>
 
               <ResizablePanelGroup orientation="vertical" className="max-h-full">
@@ -87,7 +79,7 @@ export default function JobDetailRoute() {
                 <ResizablePanel id="task-content" min="160px">
                   <section className="grid h-full grid-rows-[auto_1fr] overflow-hidden" aria-labelledby="task-runs-heading">
                     <div className="-mt-px flex h-10 items-center justify-between border-b border-grid-dimmed bg-background-bright px-3">
-                      <h2 id="task-runs-heading" className="font-medium text-text-bright">Runs</h2>
+                      <h2 id="task-runs-heading" className="font-sans text-base leading-6 font-semibold tracking-tight text-text-bright">Runs</h2>
                       <ListPagination list={data} />
                     </div>
                     <div className="relative min-h-0 overflow-hidden">
@@ -118,12 +110,19 @@ function ActivityChart({ activity }: { activity: JobDetailRouteData["activity"] 
     color: statusColor(status),
   }])), [activity.statuses]);
   const { tickFormatter, tooltipLabelFormatter } = useMemo(() => buildActivityTimeAxis(activity.data), [activity.data]);
+  const ticks = useMemo(() => Array.from({ length: 5 }, (_, index) => activity.range.from + ((activity.range.to - activity.range.from) * index) / 4), [activity.range]);
 
   if (activity.data.length === 0) return <div className="grid h-full place-items-center text-sm text-text-dimmed">No activity in this time range.</div>;
   return (
     <div role="img" aria-label="Recorded Runs by status over time" className="h-full min-h-0 w-full">
       <Chart.Root config={chartConfig} data={activity.data} dataKey="bucket" series={activity.statuses} fillContainer>
-        <Chart.Bar stackId="status" barRadius={0} xAxisProps={{ tickFormatter }} tooltipLabelFormatter={tooltipLabelFormatter} />
+        <Chart.Bar
+          stackId="status"
+          barRadius={0}
+          xAxisProps={{ ticks, tickFormatter }}
+          yAxisProps={{ allowDecimals: false, domain: [0, (dataMax: number) => Math.max(1, Math.ceil(dataMax))] }}
+          tooltipLabelFormatter={tooltipLabelFormatter}
+        />
       </Chart.Root>
     </div>
   );
@@ -133,13 +132,16 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
   return (
     <aside className="grid h-full grid-rows-[auto_1fr] overflow-hidden bg-background-bright" aria-label="Job details">
       <div className="flex min-w-0 items-center gap-2 border-b border-grid-dimmed py-2 pl-3 pr-2">
-        <Header2 className="flex min-w-0 flex-1 items-center gap-1.5"><TaskIcon className="size-4.5 shrink-0 text-tasks" /><span className="truncate">{data.job.name}</span></Header2>
+        <Header2 className="flex min-w-0 flex-1 items-center gap-1.5"><TaskIcon className="size-4.5 shrink-0 text-tasks" /><span className="truncate">{data.job.displayName}</span></Header2>
       </div>
       <div className="overflow-y-auto px-3 py-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         <Property.Table>
-          <div data-skyline-protected="job-detail-identifier" className="relative"><Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item><span aria-hidden="true" data-skyline-capability-boundary="job-detail-source-definition" className="pointer-events-none absolute inset-0" /></div>
-          {data.queueTargets.length > 0 ? <Property.Item className="relative"><Property.Label>Queue</Property.Label><Property.Value><div data-skyline-protected="job-detail-queue-links" className="flex flex-col gap-0.5">{data.queueTargets.map((queue) => <Link key={queue.id} to={queue.path} className="text-text-link hover:underline focus-custom">{data.queueTargets.length === 1 ? queue.queue : `${queue.connection} / ${queue.queue}`}</Link>)}</div></Property.Value><span aria-hidden="true" data-skyline-capability-boundary="job-detail-queue-administration" className="pointer-events-none absolute inset-0" /></Property.Item> : null}
-          <div data-skyline-protected="job-detail-created" className="relative"><Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item><span aria-hidden="true" data-skyline-capability-boundary="job-detail-runtime-policy" className="pointer-events-none absolute inset-0" /></div>
+          <Property.Item><Property.Label>Identifier</Property.Label><Property.Value><CopyableText value={data.job.name} /></Property.Value></Property.Item>
+          {data.definition.file ? <Property.Item><Property.Label>File</Property.Label><Property.Value>{data.definition.file.href ? <a href={data.definition.file.href} className="text-text-link hover:underline focus-custom">{data.definition.file.path}</a> : <CopyableText value={data.definition.file.path} />}</Property.Value></Property.Item> : null}
+          <Property.Item><Property.Label>Default queue</Property.Label><Property.Value><Paragraph variant="small">{`${data.definition.defaultQueue.connection} / ${data.definition.defaultQueue.queue}`}</Paragraph></Property.Value></Property.Item>
+          {data.queueTargets.length > 0 ? <Property.Item><Property.Label>Previous queues</Property.Label><Property.Value><div data-skyline-protected="job-detail-queue-links" className="flex flex-col gap-0.5">{data.queueTargets.map((queue) => <Link key={queue.id} to={queue.path} className="text-text-link hover:underline focus-custom">{`${queue.connection} / ${queue.queue}`}</Link>)}</div></Property.Value></Property.Item> : null}
+          <Property.Item><Property.Label>Retry</Property.Label><Property.Value><RetryDefinition retry={data.definition.retry} /></Property.Value></Property.Item>
+          <Property.Item><Property.Label>Created</Property.Label><Property.Value><DateTime date={data.job.firstObservedAt} /></Property.Value></Property.Item>
         </Property.Table>
       </div>
     </aside>
@@ -147,3 +149,19 @@ function TaskDetailSidebar({ data }: { data: JobDetailRouteData }) {
 }
 
 function shortName(name: string) { return name.split("\\").at(-1) ?? name; }
+
+function RetryDefinition({ retry }: { retry: JobDetailRouteData["definition"]["retry"] }) {
+  const attempts = retry.maxAttempts === null
+    ? "Worker default"
+    : retry.maxAttempts === 1
+      ? "1 attempt (no retries)"
+      : `${retry.maxAttempts} attempts`;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <Paragraph variant="small">{attempts}</Paragraph>
+      {retry.backoffSeconds?.length ? <Paragraph variant="extra-small" className="text-text-dimmed">Backoff: {retry.backoffSeconds.map((seconds) => `${seconds}s`).join(" → ")}</Paragraph> : null}
+      {retry.retryUntil ? <Paragraph variant="extra-small" className="text-text-dimmed">Until: <DateTime date={retry.retryUntil} includeTime /></Paragraph> : null}
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 {
-  "_prism-typescript-2f490704.js": {
-    "file": "assets/prism-typescript-2f490704.js",
+  "_prism-typescript-6e8bf994.js": {
+    "file": "assets/prism-typescript-6e8bf994.js",
     "name": "prism-typescript",
     "isDynamicEntry": true,
     "imports": [
@@ -28,16 +28,16 @@
     "isDynamicEntry": true
   },
   "resources/js/app.tsx": {
-    "file": "skyline.3f1db6e5.js",
+    "file": "skyline.443e8c83.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
     "dynamicImports": [
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
-      "_prism-typescript-2f490704.js",
+      "_prism-typescript-6e8bf994.js",
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js",
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-json.js",
-      "_prism-typescript-2f490704.js",
+      "_prism-typescript-6e8bf994.js",
       "node_modules/.pnpm/prismjs@1.30.0/node_modules/prismjs/components/prism-sql.js"
     ],
     "css": [

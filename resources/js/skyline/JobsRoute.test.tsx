@@ -22,7 +22,7 @@ beforeAll(() => {
 afterEach(() => document.body.replaceChildren());
 
 describe("Job detail source chrome", () => {
-  it("omits unobserved task-definition claims", async () => {
+  it("shows Laravel Job definition and source-faithful run chrome", async () => {
     const adapter = new FixtureAdapter();
     const page = await adapter.jobs();
     const data = presentJobDetail(await adapter.job(page.jobs[0].id));
@@ -44,29 +44,27 @@ describe("Job detail source chrome", () => {
     ));
 
     const detail = container.querySelector<HTMLElement>('aside[aria-label="Job details"]')!;
+    expect(detail.querySelector("h2")?.textContent).toBe(data.job.displayName);
     expect(detail.textContent).toContain("Identifier");
-    expect(detail.textContent).toContain("Queue");
+    expect(detail.textContent).toContain("File");
+    expect(detail.textContent).toContain("Default queue");
+    expect(detail.textContent).toContain("Previous queues");
+    expect(detail.textContent).toContain("Retry");
     expect(detail.textContent).toContain("Created");
+    expect(detail.querySelector('a[href="vscode://file/app/Jobs/GenerateMonthlyInvoices.php:12"]')?.textContent).toBe("app/Jobs/GenerateMonthlyInvoices.php");
+    expect(detail.textContent).toContain("redis / billing");
+    expect(detail.textContent).toContain("5 attempts");
+    expect(detail.textContent).toContain("Backoff: 1s → 5s → 10s");
     expect(detail.querySelector('a[href="/queues/queue_redis"]')?.textContent).toBe("redis / default");
     expect(detail.querySelector('a[href="/queues/queue_database"]')?.textContent).toBe("database / default");
-    const boundaries = Array.from(detail.querySelectorAll<HTMLElement>("[data-skyline-capability-boundary]"));
-    expect(boundaries.map((boundary) => boundary.dataset.skylineCapabilityBoundary)).toEqual([
-      "job-detail-source-definition",
-      "job-detail-queue-administration",
-      "job-detail-runtime-policy",
-    ]);
-    expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none") && boundary.childElementCount === 0)).toBe(true);
-    expect(boundaries.every((boundary) => !boundary.querySelector("a"))).toBe(true);
     expect(detail.querySelector('[data-skyline-protected="job-detail-queue-links"]')?.querySelectorAll("a")).toHaveLength(2);
-    expect(detail.textContent).not.toContain("File path");
-    expect(detail.textContent).not.toContain("Type");
-    expect(detail.textContent).not.toContain("Version");
-    expect(detail.textContent).not.toContain("Concurrency");
-    expect(detail.textContent).not.toContain("Machine");
-    expect(detail.textContent).not.toContain("Max duration");
-    expect(detail.textContent).not.toContain("TTL");
-    expect(detail.textContent).not.toContain("Retry");
-    expect(detail.textContent).not.toContain("Payload schema");
+    expect(container.querySelector('select[aria-label="Time range"]')).toBeNull();
+    expect(container.textContent).toContain("Runs:7 days");
+    const runsHeading = container.querySelector<HTMLElement>("#task-runs-heading")!;
+    expect(runsHeading.className).toBe("font-sans text-base leading-6 font-semibold tracking-tight text-text-bright");
+    const jobCell = container.querySelector<HTMLElement>("tbody tr td:nth-child(2)")!;
+    expect(jobCell.textContent).toContain(data.job.displayName);
+    expect(jobCell.querySelector("svg")).not.toBeNull();
 
     await act(async () => root.unmount());
   });

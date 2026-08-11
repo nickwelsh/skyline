@@ -42,14 +42,17 @@ describe("HttpAdapter", () => {
   it("encodes Job list and detail URL state", async () => {
     const fetch = vi.spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(jsonResponse({ jobs: [] }))
+      .mockResolvedValueOnce(jsonResponse({ job: {}, runs: [] }))
       .mockResolvedValueOnce(jsonResponse({ job: {}, runs: [] }));
     const adapter = new HttpAdapter("/monitoring");
 
     await adapter.jobs({ search: "Invoice / Digest", period: "24h", cursor: "next" });
     await adapter.job("job/opaque", { status: ["running", "failed"], cursor: "next", period: "7d" });
+    await adapter.job("job/opaque", { from: "1785859200000", to: "1785945600000" });
 
     expect(String(fetch.mock.calls[0][0])).toBe("/monitoring/api/jobs?search=Invoice+%2F+Digest&period=24h&cursor=next");
     expect(String(fetch.mock.calls[1][0])).toBe("/monitoring/api/jobs/job%2Fopaque?cursor=next&status%5B%5D=running&status%5B%5D=failed&period=7d");
+    expect(String(fetch.mock.calls[2][0])).toBe("/monitoring/api/jobs/job%2Fopaque?from=1785859200000&to=1785945600000");
   });
 
   it("encodes Runs filters and active polling selections", async () => {

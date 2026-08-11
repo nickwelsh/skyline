@@ -24,6 +24,7 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Context\Context;
 use Psr\Log\LoggerInterface;
+use ReflectionClass;
 use Throwable;
 
 final class QueueInstrumentation
@@ -120,6 +121,7 @@ final class QueueInstrumentation
                 'messaging.message.id' => $runId,
                 'laravel.queue.connection' => $connection,
                 'laravel.job.name' => $job,
+                ...$this->jobDefinitionAttributes($payload, $connection, $queue),
             ]);
 
         if ($parent === null) {
@@ -449,6 +451,41 @@ final class QueueInstrumentation
         $name = $payload['displayName'] ?? $payload['job'] ?? 'unknown';
 
         return is_string($name) && $name !== '' ? $name : 'unknown';
+    }
+
+    /** @param array<string, mixed> $payload @return array<string, int|string> */
+    private function jobDefinitionAttributes(array $payload, string $connection, ?string $queue): array
+    {
+        $object = $payload['data']['commandName'] ?? null;
+        $defaultConnection = is_object($object) && is_string($object->connection ?? null) && $object->connection !== ''
+            ? $object->connection
+            : (string) config('queue.default', $connection);
+        $configuredQueue = config("queue.connections.{$defaultConnection}.queue", 'default');
+        $defaultQueue = is_object($object) && is_string($object->queue ?? null) && $object->queue !== ''
+            ? $object->queue
+            : (is_string($configuredQueue) && $configuredQueue !== '' ? $configuredQueue : ($queue ?? 'default'));
+        $attributes = [
+            'laravel.job.default_connection' => $defaultConnection,
+            'laravel.job.default_queue' => $defaultQueue,
+        ];
+
+        if (is_object($object)) {
+            $reflection = new ReflectionClass($object);
+            $file = $reflection->getFileName();
+            if (is_string($file)) {
+                $attributes['laravel.job.file'] = $file;
+                $attributes['laravel.job.file_line'] = $reflection->getStartLine();
+            }
+        }
+
+        foreach (['maxTries' => 'laravel.job.max_tries', 'backoff' => 'laravel.job.backoff', 'retryUntil' => 'laravel.job.retry_until'] as $key => $attribute) {
+            $value = $payload[$key] ?? null;
+            if (is_int($value) || is_string($value)) {
+                $attributes[$attribute] = $value;
+            }
+        }
+
+        return $attributes;
     }
 
     private function active(Job $job): ?ActiveAttempt

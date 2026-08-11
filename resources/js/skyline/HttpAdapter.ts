@@ -171,6 +171,8 @@ export class HttpAdapter implements SkylineDtoAdapter {
     if (query.cursor) params.set("cursor", query.cursor);
     query.status?.forEach((status) => params.append("status[]", status));
     if (query.period) params.set("period", query.period);
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
     return params;
   }
 

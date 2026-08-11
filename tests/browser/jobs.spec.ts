@@ -50,19 +50,37 @@ test("Jobs list and detail keep observed activity in basename URLs", async ({ pa
   await expect(page).not.toHaveURL(/search=/);
   await page.getByRole("link", { name: "GenerateMonthlyInvoices", exact: true }).first().click();
   await expect(page).toHaveURL(/\/skyline\/jobs\/job_invoice$/);
-  await expect(page.getByRole("heading", { name: "App\\Jobs\\GenerateMonthlyInvoices", exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "GenerateMonthlyInvoices", exact: true }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Runs by status" })).toBeVisible();
   const detailActivity = page.getByRole("img", { name: "Recorded Runs by status over time" });
   await expect(detailActivity.locator('[fill="var(--color-pending)"]')).toBeVisible();
   await expect(detailActivity.locator('[fill="var(--color-success)"]')).toBeVisible();
   await expect(detailActivity.locator('[fill="var(--color-error)"]')).toBeVisible();
+  const xTicks = await detailActivity.locator(".recharts-xAxis .recharts-cartesian-axis-tick-value").allTextContents();
+  expect(xTicks.at(0)).toContain("Jul 29");
+  expect(xTicks.at(-1)).toContain("Aug 5");
   const jobDetails = page.getByLabel("Job details");
+  await expect(jobDetails.getByRole("link", { name: "app/Jobs/GenerateMonthlyInvoices.php", exact: true })).toHaveAttribute("href", "vscode://file/app/Jobs/GenerateMonthlyInvoices.php:12");
+  await expect(jobDetails.getByText("redis / billing", { exact: true }).first()).toBeVisible();
+  await expect(jobDetails.getByText("5 attempts", { exact: true })).toBeVisible();
+  await expect(jobDetails.getByText("Backoff: 1s → 5s → 10s", { exact: true })).toBeVisible();
   await expect(jobDetails.getByRole("link", { name: "redis / billing", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_billing");
   await expect(jobDetails.getByRole("link", { name: "database / default", exact: true })).toHaveAttribute("href", "/skyline/queues/queue_default");
   await expect(page.getByLabel("Run status")).toHaveCount(0);
-  await expect(page.getByLabel("Time range")).toHaveValue("7d");
-  await page.getByLabel("Time range").selectOption("7d");
-  await expect(page).toHaveURL(/period=7d/);
+  const timeFilter = page.getByRole("combobox").filter({ hasText: "Runs:" });
+  await expect(timeFilter).toContainText("7 days");
+  await timeFilter.click();
+  await expect(page.getByPlaceholder("Custom")).toBeVisible();
+  await expect(page.getByText("Or specify exact time range")).toBeVisible();
+  await page.getByRole("button", { name: "14 days", exact: true }).click();
+  await page.getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(page).toHaveURL(/period=14d/);
+  const yTicks = await detailActivity.locator(".recharts-yAxis .recharts-cartesian-axis-tick-value").allTextContents();
+  expect(yTicks.map(Number).every(Number.isInteger)).toBe(true);
+  const jobCell = page.locator("tbody tr").first().locator("td").nth(1);
+  await expect(jobCell).toContainText("GenerateMonthlyInvoices");
+  await expect(jobCell).not.toContainText("App\\Jobs\\GenerateMonthlyInvoices");
+  await expect(jobCell.locator("svg")).toBeVisible();
   await page.locator('a[href^="/skyline/runs/run-1"]').first().click();
   await expect(page).toHaveURL(/\/skyline\/runs\/run-1\?tableState=/);
 });
@@ -146,14 +164,16 @@ test("Job detail tolerates long labels and missing optional observations", async
     response.job.name = longName;
     response.queueTargets = [];
     response.activity = [];
+    response.definition.file = null;
+    response.definition.retry = { maxAttempts: null, backoffSeconds: null, retryUntil: null };
     return route.fulfill({ json: response });
   });
 
   await page.goto("/skyline/jobs/job_long");
-  await expect(page.getByRole("heading", { name: longName }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: longName.split("\\").at(-1)! }).first()).toBeVisible();
   await expect(page.getByText("No activity in this time range.")).toBeVisible();
   const detail = page.getByLabel("Job details");
-  for (const label of ["File path", "Type", "Version", "Concurrency", "Machine", "Max duration", "TTL", "Retry", "Payload schema"]) {
+  for (const label of ["File", "Type", "Version", "Concurrency", "Machine", "Max duration", "TTL", "Payload schema"]) {
     await expect(detail.getByText(label, { exact: true })).toHaveCount(0);
   }
 });
@@ -320,6 +340,12 @@ function jobDetail(): JobDetailDto {
       { id: "queue_default", connection: "database", queue: "default", runCount: 1, href: "/skyline/queues/queue_default" },
     ],
     activity: [{ timestamp: "2026-08-05T00:00:00Z", total: 3, statusCounts: counts() }],
+    activityRange: { from: "2026-07-29T12:00:00Z", to: "2026-08-05T12:00:00Z" },
+    definition: {
+      file: { path: "app/Jobs/GenerateMonthlyInvoices.php", href: "vscode://file/app/Jobs/GenerateMonthlyInvoices.php:12" },
+      defaultQueue: { connection: "redis", queue: "billing" },
+      retry: { maxAttempts: 5, backoffSeconds: [1, 5, 10], retryUntil: "2026-08-05T13:00:00Z" },
+    },
     runs: [{
       id: "run-1", traceId: "trace-1", parentRunId: null, isRoot: true, name: "App\\Jobs\\GenerateMonthlyInvoices", status: "failed", connection: "redis", queue: "billing", driverId: null,
       attemptCount: 2, triggeredAt: "2026-08-05T11:59:00.000000000Z", queuedAt: "2026-08-05T11:59:00.000000000Z",
@@ -328,7 +354,7 @@ function jobDetail(): JobDetailDto {
     }],
     pagination: { previous: null, next: "next" },
     tableState: "job-table-state",
-    filters: { status: [], period: "all" },
+    filters: { status: [], period: "7d", from: null, to: null },
     options: { statuses: ["queued", "running", "retrying", "completed", "failed"], timeRanges },
     hasAnyRuns: true,
   };
