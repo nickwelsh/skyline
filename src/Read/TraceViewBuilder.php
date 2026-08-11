@@ -101,6 +101,7 @@ final class TraceViewBuilder
         return [
             'run' => [
                 'id' => $selected->run_id,
+                'jobId' => ObservedIds::job($selected->job_name),
                 'name' => $selected->job_name,
                 'status' => $selected->status,
                 'connection' => $selected->connection,
@@ -197,7 +198,7 @@ final class TraceViewBuilder
                 'run',
                 $this->jobLabel($run->job_name),
                 $run->status,
-                (int) $run->triggered_at,
+                (int) ($run->started_at ?? $run->triggered_at),
                 $terminal && $run->finished_at !== null ? (int) $run->finished_at : null,
                 (int) $selected->triggered_at,
                 $run->status === 'failed',
@@ -375,7 +376,7 @@ final class TraceViewBuilder
     {
         $events = [['name' => 'Triggered', 'offsetUs' => intdiv((int) $run->triggered_at - $origin, 1000), 'kind' => 'event']];
 
-        foreach ([['Queued', $run->queued_at], ['Started', $run->started_at], ['Finished', $run->finished_at]] as [$name, $at]) {
+        foreach ([['Dequeued', $run->queued_at], ['Started', $run->started_at], ['Finished', $run->finished_at]] as [$name, $at]) {
             if ($at !== null) {
                 $events[] = ['name' => $name, 'offsetUs' => intdiv((int) $at - $origin, 1000), 'kind' => 'event'];
             }

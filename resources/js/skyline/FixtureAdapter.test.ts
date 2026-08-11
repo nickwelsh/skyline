@@ -107,7 +107,7 @@ describe("FixtureAdapter", () => {
     expect(page.runs).toEqual([]);
     expect(page.activity).toMatchObject([{ total: 1 }]);
     expect(page.pagination).toEqual({ next: null, previous: "0" });
-    expect(page.filters).toEqual({ status: [], period: "1h" });
+    expect(page.filters).toEqual({ status: [], period: "1h", from: null, to: null });
   });
 
   it("adapts retry, child Run, SQL, and exception fixtures at trace and inspector seams", async () => {

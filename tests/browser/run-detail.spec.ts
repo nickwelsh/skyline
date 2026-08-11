@@ -28,7 +28,7 @@ test("paired Run detail scenario preserves navigation, URL state, focus, semanti
   await page.goto(`${oracle.path}?tableState=cursor%3Dopaque`);
 
   await expect(page.getByRole("heading", { name: oracle.expected.heading })).toBeVisible();
-  await expect(page.getByRole("button", { name: runId })).toBeVisible();
+  await expect(page.getByRole("button", { name: runId, exact: true })).toBeVisible();
   await expect(page.getByLabel("Previous Run")).toBeVisible();
   await expect(page.getByLabel("Next Run")).toBeVisible();
   await expect(page.getByRole("button", { name: "Refresh" })).toHaveCount(0);
@@ -477,6 +477,64 @@ test("queue time outside represented coordinates cannot distort timeline", async
   expect(attemptBox!.width / timelineBox!.width).toBeCloseTo(2_050 / 14_988, 4);
 });
 
+test("Run timeline controls stay client-side and restore source interactions", async ({ page }) => {
+  const adapter = new FixtureAdapter();
+  const detail = await adapter.trace(runId);
+  let traceRequests = 0;
+  await routeDetail(page, detail, (nodeId) => adapter.inspector(nodeId, runId), () => {
+    traceRequests += 1;
+    return detail;
+  });
+  await page.goto(`/skyline/runs/${runId}?tableState=cursor%3Dopaque&node=${rootNodeId}`);
+
+  await expect(page.getByRole("button", { name: `Add ${runId} to favorites` })).toBeVisible();
+  await expect(page.getByLabel("Previous Run").locator("svg")).toHaveClass(/size-3/);
+  await expect(page.getByLabel("Next Run").locator("svg")).toHaveClass(/size-3/);
+  for (const label of ["Navigate", "Next/previous run", "Expand all", "Collapse all", "Toggle level"]) {
+    await expect(page.getByText(label, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("paragraph").filter({ hasText: /^Queue time$/ })).toBeVisible();
+
+  const timeline = page.locator("[data-timeline-root]");
+  const slider = page.getByRole("slider", { name: "Timeline zoom" });
+  const widthBefore = (await timeline.boundingBox())!.width;
+  const requestsBefore = traceRequests;
+  await slider.focus();
+  await slider.press("End");
+  await expect.poll(async () => (await timeline.boundingBox())!.width).toBeGreaterThan(widthBefore * 2);
+  expect(traceRequests).toBe(requestsBefore);
+  await expect(page).not.toHaveURL(/scale=/);
+
+  const timelineBox = (await timeline.boundingBox())!;
+  await page.mouse.move(timelineBox.x + Math.min(150, timelineBox.width * 0.35), timelineBox.y + 20);
+  await expect(page.locator("[data-timeline-playhead]")).toBeVisible();
+  await expect(page.locator("[data-timeline-playhead]")).toContainText("–");
+
+  await page.getByRole("switch", { name: "Queue time" }).click();
+  for (const event of ["Triggered", "Dequeued", "Started"]) {
+    await expect(page.locator(`[data-timeline-event="${event}"]`).first()).toBeVisible();
+  }
+  await expect(page.locator(`[data-timeline-lifecycle-line="${rootNodeId}"]`)).toBeVisible();
+
+  const overview = page.getByRole("tab", { name: "Overview" });
+  const detailTab = page.getByRole("tab", { name: "Detail" });
+  const overviewIndicator = overview.locator(".bg-indigo-500");
+  const beforeX = (await overviewIndicator.boundingBox())!.x;
+  await detailTab.click();
+  const detailIndicator = detailTab.locator(".bg-indigo-500");
+  await expect(detailIndicator).toBeVisible();
+  expect((await detailIndicator.boundingBox())!.x).toBeGreaterThan(beforeX);
+  await expect(page.getByRole("tabpanel", { name: "Detail" })).toContainText("Status");
+  await expect(page.getByRole("tabpanel", { name: "Detail" }).getByRole("link", { name: "App\\Jobs\\GenerateMonthlyInvoices", exact: true })).toHaveAttribute("href", /\/skyline\/jobs\/job_/);
+
+  await page.getByRole("tab", { name: "Metadata" }).click();
+  await expect(page.getByRole("button", { name: "Wrap Metadata" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy Metadata" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Expand Metadata" })).toBeVisible();
+  await page.getByRole("button", { name: "Show Metadata tree" }).click();
+  await expect(page.getByRole("tree", { name: "Metadata JSON tree" })).toBeVisible();
+});
+
 test("adjacent Run shortcut replaces an equal-sized trace without stale tree state", async ({ page }) => {
   const adapter = new FixtureAdapter();
   const first = await adapter.trace(runId);
@@ -518,6 +576,7 @@ test("long inspector metadata remains readable in the constrained panel", async 
   await expect(page.getByText(/^Showing \d+ of \d+ nodes$/)).toBeVisible();
   const metadata = page.getByRole("tabpanel", { name: "Metadata" }).locator("pre");
   await expect(metadata).toContainText("long-payload-long-payload");
+  await page.getByRole("button", { name: "Wrap Metadata" }).click();
   expect(await metadata.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 });
 
@@ -548,15 +607,15 @@ test("paired external and custom inspectors preserve visible, interaction, focus
 
     const contextExpectation = { http: runId, delivery: "billing", breadcrumb: "429" }[scenario.key];
     const contextTab = page.getByRole("tab", { name: "Context", exact: true });
+    await expect(contextTab).toBeVisible();
+    await contextTab.click();
     if (contextExpectation) {
-      await expect(contextTab).toBeVisible();
-      await contextTab.click();
       await expect(page.getByRole("tabpanel", { name: "Context" })).toContainText(contextExpectation);
-      await detailTab.click();
-      await expect(detailRegion).toBeVisible();
     } else {
-      await expect(contextTab).toHaveCount(0);
+      await expect(page.getByRole("tabpanel", { name: "Context" }).locator("pre")).toHaveText("{}");
     }
+    await detailTab.click();
+    await expect(detailRegion).toBeVisible();
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
     await wrap.focus();
@@ -570,18 +629,19 @@ test("paired external and custom inspectors preserve visible, interaction, focus
 
     const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
     await copy.click();
-    await expect(copy).toHaveAttribute("title", "Copied");
+    await expect(copy).toHaveClass(/text-success/);
 
     const expand = page.getByRole("button", { name: `Expand ${scenario.preview}` });
     await expand.focus();
     await expand.click();
-    const dialog = page.getByRole("dialog", { name: `Expanded ${scenario.preview}` });
+    const dialog = page.getByRole("dialog", { name: scenario.key === "generic" ? scenario.preview : `Expanded ${scenario.preview}` });
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Tab");
     await expect(dialog.locator(":focus")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(expand).not.toBeFocused();
+    if (scenario.key === "generic") await expect(page.getByLabel("Run inspector")).toHaveCount(0);
+    else await expect(expand).not.toBeFocused();
   }
 });
 

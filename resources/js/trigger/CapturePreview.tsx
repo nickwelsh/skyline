@@ -364,7 +364,7 @@ export function HighlightedCode({ code, language, startingLine, highlightedLine,
   );
 }
 
-function JsonTree({ value, label, expanded = false }: { value: unknown; label: string; expanded?: boolean }) {
+export function JsonTree({ value, label, expanded = false }: { value: unknown; label: string; expanded?: boolean }) {
   return (
     <div role="tree" aria-label={`${label} JSON tree`} tabIndex={0} className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto py-2 font-mono text-base @sm:text-xs`}>
       <JsonTreeNode value={value} depth={0} siblingCount={1} path="$" />

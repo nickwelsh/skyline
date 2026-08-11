@@ -112,6 +112,8 @@ function SourceSpanInspector({ inspector, children }: { inspector: ExternalInspe
       <CodeBlock
         rowTitle="Properties"
         code={JSON.stringify(inspector.metadata.value, null, 2)}
+        language="json"
+        jsonValue={inspector.metadata.value}
         label="Properties"
         maxLines={20}
         showLineNumbers={false}
@@ -431,7 +433,16 @@ function GenericInspector({ inspector, presentation }: { inspector: ExternalInsp
     <InspectorLayout title="Recorded operation" timing={presentation?.timing} failure={presentation?.failure}>
       {inspector.detailSections.length > 0
         ? inspector.detailSections.map((section) => <JsonCapturePreview key={section.label} label={section.label} value={section.value} />)
-        : <JsonCapturePreview label="Recorded properties" value={inspector.metadata.value} truncated={inspector.metadata.isTruncated} />}
+        : <CodeBlock
+            rowTitle="Recorded properties"
+            label="Recorded properties"
+            code={JSON.stringify(inspector.metadata.value, null, 2)}
+            language="json"
+            jsonValue={inspector.metadata.value}
+            showLineNumbers={false}
+            showTextWrapping
+            maxLines={20}
+          />}
     </InspectorLayout>
   );
 }

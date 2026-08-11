@@ -7,6 +7,7 @@ export type RunDetailRouteData = {
   generatedAt: string;
   run: {
     id: string;
+    jobId: string;
     traceId: string;
     rootRunId: string | null;
     parentRunId: string | null;
@@ -54,6 +55,7 @@ export function presentRunDetail(
     generatedAt: page.generatedAt,
     run: {
       id: page.run.id,
+      jobId: page.run.jobId,
       traceId: page.run.traceId,
       rootRunId: page.run.rootRunId,
       parentRunId: page.run.parentRunId,

@@ -456,6 +456,7 @@ export type TracePageDto = {
   generatedAt: string;
   capabilities: SkylineCapabilities;
   run: Omit<RunSummary, "activeDurationUs" | "revision"> & {
+    jobId: string;
     traceId: string;
     rootRunId: string | null;
     parentRunId: string | null;

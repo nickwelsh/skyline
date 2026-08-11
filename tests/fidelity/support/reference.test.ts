@@ -110,7 +110,7 @@ describe("pinned Trigger Runs fixture", () => {
       parentId: undefined,
       level: 0,
       hasChildren: true,
-      data: { style: { icon: "task" }, offset: 0 },
+      data: { style: { icon: "task" }, offset: 312_000_000 },
     });
     expect(events.find((event: any) => event.data.attemptNumber === 1)).toMatchObject({
       level: 1,

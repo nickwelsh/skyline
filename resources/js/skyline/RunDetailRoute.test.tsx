@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { OperatingSystemContextProvider } from "../trigger/components/primitives/OperatingSystemProvider";
 import { ShortcutsProvider } from "../trigger/components/primitives/ShortcutsProvider";
+import { FavoritesProvider } from "../trigger/components/navigation/JobFavorites";
 import RunDetailRoute from "../trigger/routes/_app.orgs.$organizationSlug.projects.$projectParam.env.$envParam.runs.$runParam/route";
 import { FixtureAdapter } from "./FixtureAdapter";
 import { presentRunDetail } from "./RunDetailAdapter";
@@ -134,23 +135,33 @@ describe("Run detail source primitives", () => {
     expect(timeline.className).toBe("min-w-fit max-w-80");
     expect(timeline.textContent).toContain("Triggered");
     expect(timeline.textContent).toContain("Dequeued");
-    expect(timeline.textContent).not.toContain("Started");
+    expect(timeline.textContent).toContain("Started");
     expect(timeline.textContent).toContain("Finished");
+    expect(container.textContent).toContain("Next/previous run");
+    expect(container.textContent).toContain("Expand all");
+    expect(container.textContent).toContain("Collapse all");
+    expect(container.textContent).toContain("Toggle level");
+    expect(container.textContent).toContain("Queue time");
+    expect(container.querySelector('[data-timeline-node-id]')?.className).toContain("items-center");
+    expect(container.querySelector('[data-timeline-node-id] > span.sticky')?.className).toContain("items-center");
     expect(inspector.lastElementChild?.className).toContain("border-t");
     expect(container.querySelector('[data-skyline-extension="run-relationships"]')).not.toBeNull();
-    for (const label of ["Replay run", "Cancel run", "Export trace", "Context"]) {
+    expect(container.querySelector('[role="tab"][aria-label="Context"]')).not.toBeNull();
+    expect(container.querySelector(`button[aria-label="Add ${runId} to favorites"]`)).not.toBeNull();
+    for (const label of ["Replay run", "Cancel run", "Export trace"]) {
       expect(Array.from(container.querySelectorAll("button")).some((button) => button.textContent?.includes(label))).toBe(false);
     }
 
     await act(async () => root.unmount());
   });
 
-  it("fails closed a direct unsupported Context tab", async () => {
+  it("keeps the Context tab available without captured values", async () => {
     const { container, root, router } = await renderRoute({ initialEntry: `/runs/${runId}?node=run_${runId}&tab=context` });
 
-    await vi.waitFor(() => expect(router.state.location.search).toBe(`?node=run_${runId}`));
-    expect(container.querySelector('[role="tab"][aria-label="Context"]')).toBeNull();
-    expect(container.querySelector('[role="tabpanel"]')?.getAttribute("aria-label")).toBe("Overview");
+    await vi.waitFor(() => expect(router.state.location.search).toBe(`?node=run_${runId}&tab=context`));
+    expect(container.querySelector('[role="tab"][aria-label="Context"]')?.getAttribute("aria-selected")).toBe("true");
+    expect(container.querySelector('[role="tabpanel"]')?.getAttribute("aria-label")).toBe("Context");
+    expect(container.querySelector('button[aria-label="Show Context tree"]')).not.toBeNull();
 
     await act(async () => root.unmount());
   });
@@ -278,7 +289,9 @@ async function renderRoute(options: { initialEntry?: string; loadInspector?: Par
   await act(async () => {
     root.render(
       <OperatingSystemContextProvider platform="mac">
-        <ShortcutsProvider><RouterProvider router={router} /></ShortcutsProvider>
+        <FavoritesProvider favorites={[]} onChange={() => {}}>
+          <ShortcutsProvider><RouterProvider router={router} /></ShortcutsProvider>
+        </FavoritesProvider>
       </OperatingSystemContextProvider>,
     );
   });

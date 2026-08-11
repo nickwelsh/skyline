@@ -6,22 +6,27 @@
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  ChevronUpIcon,
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
 } from "@heroicons/react/20/solid";
 import { Link, useLoaderData, useNavigate, useRevalidator, useSearchParams } from "@remix-run/react";
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
+import { cloneElement, useCallback, useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { ExitIcon } from "~/assets/icons/ExitIcon";
+import { ChevronExtraSmallDown } from "~/assets/icons/ChevronExtraSmallDown";
+import { ChevronExtraSmallUp } from "~/assets/icons/ChevronExtraSmallUp";
+import { QueuesIcon } from "~/assets/icons/QueuesIcon";
+import { RunsIcon } from "~/assets/icons/RunsIcon";
+import { TaskIcon } from "~/assets/icons/TaskIcon";
+import { CodeBlock } from "~/CodeBlock";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { Badge } from "~/components/primitives/Badge";
 import { Button } from "~/components/primitives/Buttons";
 import { CopyableText } from "~/components/primitives/CopyableText";
 import { Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
-import { Popover, PopoverArrowTrigger, PopoverContent } from "~/components/primitives/Popover";
 import { Paragraph } from "~/components/primitives/Paragraph";
+import * as PropertyTable from "~/components/primitives/PropertyTable";
 import {
   RESIZABLE_PANEL_ANIMATION,
   ResizableHandle,
@@ -32,6 +37,7 @@ import {
 } from "~/components/primitives/Resizable";
 import { SearchInput } from "~/components/primitives/SearchInput";
 import { Slider } from "~/components/primitives/Slider";
+import { ShortcutKey, variants as shortcutVariants } from "~/components/primitives/ShortcutKey";
 import { Spinner } from "~/components/primitives/Spinner";
 import { Switch } from "~/components/primitives/Switch";
 import * as Timeline from "~/components/primitives/Timeline";
@@ -40,6 +46,7 @@ import { RunIcon, type NodeKind } from "~/components/runs/v3/RunIcon";
 import { SpanTitle, type SpanLevel } from "~/components/runs/v3/SpanTitle";
 import { TaskRunStatusCombo, TaskRunStatusIcon, type RunStatus } from "~/components/runs/v3/TaskRunStatus";
 import { TreeView, type FlatTree, useTree } from "~/primitives/TreeView/TreeView";
+import { TabButton, TabContainer } from "~/Tabs";
 import { cn } from "~/utils/cn";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 
@@ -77,6 +84,7 @@ type RouteData = {
   generatedAt: string;
   run: {
     id: string;
+    jobId: string;
     traceId: string;
     rootRunId: string | null;
     parentRunId: string | null;
@@ -170,14 +178,14 @@ export default function RunDetailRoute() {
       const rootPath = data.run.rootRunId && data.run.rootRunId !== data.run.id
         ? `/runs/${encodeURIComponent(data.run.rootRunId)}${tableState ? `?tableState=${encodeURIComponent(tableState)}` : ""}`
         : null;
-      const path = event.key.toLowerCase() === "j" ? data.navigation.previousPath
-        : event.key.toLowerCase() === "k" ? data.navigation.nextPath
+      const path = ["j", "["].includes(event.key.toLowerCase()) ? data.navigation.previousPath
+        : ["k", "]"].includes(event.key.toLowerCase()) ? data.navigation.nextPath
           : event.key.toLowerCase() === "p" ? data.relationships.parent?.path
             : event.key.toLowerCase() === "t" ? rootPath
             : null;
       if (!path) return;
       event.preventDefault();
-      navigate(path, { replace: ["j", "k"].includes(event.key.toLowerCase()) });
+      navigate(path, { replace: ["j", "k", "[", "]"].includes(event.key.toLowerCase()) });
     };
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
@@ -194,6 +202,7 @@ export default function RunDetailRoute() {
       <NavBar>
         <PageTitle
           backButton={{ to: data.navigation.runsPath, text: "Runs" }}
+          favoriteLabel={data.run.id}
           title={
             <div className="flex items-center gap-x-0">
               <CopyableText
@@ -203,8 +212,8 @@ export default function RunDetailRoute() {
               />
               {params.get("tableState") && (
                 <div className="flex">
-                  <AdjacentLink label="Previous Run" path={data.navigation.previousPath} icon={<ChevronUpIcon />} />
-                  <AdjacentLink label="Next Run" path={data.navigation.nextPath} icon={<ChevronDownIcon />} />
+                  <AdjacentLink label="Previous Run" path={data.navigation.previousPath} icon={<ChevronExtraSmallUp />} />
+                  <AdjacentLink label="Next Run" path={data.navigation.nextPath} icon={<ChevronExtraSmallDown />} />
                 </div>
               )}
             </div>
@@ -251,7 +260,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
   const search = params.get("traceSearch") ?? "";
   const errorsOnly = params.get("errors") === "true";
   const showQueue = params.get("queue") === "true";
-  const scale = Number(params.get("scale") ?? 0);
+  const [scale, setScale] = useState(0);
   const parentRef = useRef<HTMLDivElement>(null);
   const treeScrollRef = useRef<HTMLDivElement>(null);
   const timelineScrollRef = useRef<HTMLDivElement>(null);
@@ -372,19 +381,15 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
           />
         </ResizablePanel>
       </ResizablePanelGroup>
-      <div className="flex items-center justify-between border-t border-grid-dimmed px-4 text-xs text-text-dimmed">
-        <Popover>
-          <PopoverArrowTrigger>Shortcuts</PopoverArrowTrigger>
-          <PopoverContent className="min-w-80 p-2" align="start">
-            <Header3 spacing>Keyboard shortcuts</Header3>
-            <div className="flex flex-col gap-2 text-xs text-text-dimmed">
-              <span>↑ ↓ ← → Navigate</span>
-              <span>E / W Expand or collapse</span>
-              <span>0–9 Toggle depth</span>
-              <span>Esc Close · J / K Runs</span>
-            </div>
-          </PopoverContent>
-        </Popover>
+      <div className="flex items-center justify-between gap-2 border-t border-grid-dimmed px-4 text-xs text-text-dimmed">
+        <div className="flex min-w-0 items-center gap-4 overflow-x-auto scrollbar-hide">
+          <ArrowKeyShortcuts />
+          <AdjacentRunsShortcuts />
+          <ShortcutLabel shortcut="e" title="Expand all" />
+          <ShortcutLabel shortcut="w" title="Collapse all" />
+          <NumberShortcuts />
+          <ShortcutLabel shortcut="Q" title="Queue time" />
+        </div>
         <Slider
           aria-label="Timeline zoom"
           variant="tertiary"
@@ -392,7 +397,7 @@ function TraceView({ data, selectedId, onSelect }: { data: RouteData; selectedId
           LeadingIcon={MagnifyingGlassMinusIcon}
           TrailingIcon={MagnifyingGlassPlusIcon}
           value={[scale]}
-          onValueChange={([value]) => update("scale", value)}
+          onValueChange={([value]) => setScale(value)}
           min={0}
           max={1}
           step={0.05}
@@ -475,6 +480,11 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
   return (
     <div ref={containerRef} className="h-full overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
       <Timeline.Root durationMs={coordinateUs / 1_000} scale={scale} minWidth={width} maxWidth={width * 10} className="h-full" >
+        <CurrentTimeIndicator
+          durationUs={coordinateUs}
+          rootStartedAt={data.trace.rootStartedAt}
+          shiftUs={shiftUs}
+        />
         <Timeline.EquallyDistribute count={5}>
           {(milliseconds, index) => (
             <Timeline.Point ms={milliseconds} className="top-0 h-8">
@@ -506,6 +516,10 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
               const startUs = Math.max(0, node.data.offsetUs - shiftUs);
               const durationUs = Math.max(0, Math.min(node.data.durationUs ?? visibleUs - startUs, visibleUs - startUs));
               const point = durationUs / coordinateUs < 0.01;
+              const visibleEvents = node.data.timelineEvents
+                .map((event) => ({ ...event, visibleOffsetUs: event.offsetUs - shiftUs }))
+                .filter((event) => event.visibleOffsetUs >= 0 && event.visibleOffsetUs <= visibleUs);
+              const firstEvent = visibleEvents[0];
               return (
                 <Timeline.Row
                   data-timeline-row-kind={node.data.kind}
@@ -524,21 +538,26 @@ function TraceTimeline({ data, tree, state, showQueue, scale, treeScrollRef, tim
                       <motion.div
                         data-timeline-node-id={node.id}
                         title={`${node.data.label} · Started ${formatDuration(startUs)} · Duration ${formatDuration(durationUs)}`}
-                        className={cn("relative h-4 min-w-0.5 overflow-hidden rounded-sm", nodeColor(node.data))}
+                        className={cn("relative flex h-4 min-w-0.5 items-center overflow-hidden rounded-sm", nodeColor(node.data))}
                         style={node.data.kind === "run" ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 2px, rgb(255 255 255 / 0.16) 2px 4px)" } : undefined}
                         layoutId={data.trace.rootStatus === "executing" ? node.id : undefined}
                       >
                         {node.data.isPartial && <span className="absolute inset-0 animate-pulse bg-white/10" />}
-                        <span className="relative z-10 px-1 text-xxs text-text-bright">{formatDuration(durationUs)}</span>
+                        <span className="sticky left-0 z-10 flex h-full items-center whitespace-nowrap px-1 text-xxs text-text-bright text-shadow-custom">{formatDuration(durationUs)}</span>
                       </motion.div>
                     </Timeline.Span>
                   )}
-                  {node.data.timelineEvents.map((event, index) => {
-                    const eventUs = event.offsetUs - shiftUs;
-                    if (eventUs < 0 || eventUs > visibleUs) return null;
+                  {firstEvent && firstEvent.visibleOffsetUs < startUs ? (
+                    <Timeline.Span startMs={firstEvent.visibleOffsetUs / 1_000} durationMs={(startUs - firstEvent.visibleOffsetUs) / 1_000} className="top-1/2">
+                      <motion.span data-timeline-lifecycle-line={node.id} className={cn("block h-px w-full", nodeColor(node.data))} layoutId={data.trace.rootStatus === "executing" ? `mark-${node.id}` : undefined} />
+                    </Timeline.Span>
+                  ) : null}
+                  {visibleEvents.map((event, index) => {
                     return (
-                      <Timeline.Point key={`${event.name}-${index}`} ms={eventUs / 1_000}>
-                        {() => <span data-timeline-event={event.name} title={`${event.name} · ${formatDuration(eventUs)}`} className="block h-4 w-px bg-text-dimmed" />}
+                      <Timeline.Point key={`${event.name}-${index}`} ms={event.visibleOffsetUs / 1_000} className={index === 0 ? undefined : "z-10"}>
+                        {() => index === 0
+                          ? <motion.span data-timeline-event={event.name} title={`${event.name} · ${formatDuration(event.visibleOffsetUs)}`} className={cn("ml-[-0.5px] block h-2.25 w-px", nodeColor(node.data))} />
+                          : <motion.span data-timeline-event={event.name} title={`${event.name} · ${formatDuration(event.visibleOffsetUs)}`} className={cn("ml-[-0.1562rem] block size-1.25 rounded-full border bg-background-bright", nodeBorderColor(node.data))} />}
                       </Timeline.Point>
                     );
                   })}
@@ -577,13 +596,6 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
     return () => { active = false; controller.abort(); };
   }, [data.generatedAt, data.trace.revision, selectedId]);
 
-  useEffect(() => {
-    if (tab !== "context" || !inspector || inspector.context) return;
-    const next = new URLSearchParams(params);
-    next.delete("tab");
-    setParams(next, { replace: true });
-  }, [inspector, params, setParams, tab]);
-
   if (!selectedId || !frozenId) return null;
 
   const setTab = (nextTab: string) => {
@@ -610,24 +622,43 @@ function InspectorPanel({ data, selectedId, onClose }: { data: RouteData; select
   return (
     <section className="grid h-full grid-rows-[2.5rem_2rem_1fr_minmax(3.25rem,auto)] overflow-hidden bg-background-bright" aria-label="Run inspector">
       <InspectorHeader node={node} onClose={onClose} />
-      <div role="tablist" className="flex gap-6 border-b border-grid-bright px-3">
-        {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, ...(inspector?.context ? [{ id: "context", label: "Context", key: "x" }] : []), { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
-          <InspectorTab key={item.id} active={tab === item.id} enabled={Boolean(selectedId)} shortcut={item.key} onClick={() => setTab(item.id)}>{item.label}</InspectorTab>
-        ))}
+      <div className="h-fit overflow-x-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+        <TabContainer>
+          {[{ id: "overview", label: "Overview", key: "o" }, { id: "detail", label: "Detail", key: "d" }, { id: "context", label: "Context", key: "x" }, { id: "metadata", label: "Metadata", key: "m" }].map((item) => (
+            <TabButton key={item.id} active={tab === item.id} layoutId="span-run" shortcut={item.key} disabled={!selectedId} aria-label={item.label} onClick={() => setTab(item.id)}>{item.label}</TabButton>
+          ))}
+        </TabContainer>
       </div>
       <div role="tabpanel" aria-label={tab[0].toUpperCase() + tab.slice(1)} className="overflow-y-auto px-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
         {!inspector && !error && <div className="grid h-full place-items-center" aria-label="Loading inspector"><Spinner /></div>}
         {error && <div role="alert" className="text-error">{error.message}</div>}
         {inspector && tab === "overview" && <InspectorOverview data={data} node={node} inspector={inspector} failure={failure} />}
-        {inspector && tab === "detail" && <InspectorDetails inspector={inspector} renderDetails={data.renderInspectorDetails} />}
-        {inspector?.context && tab === "context" && (
+        {inspector && tab === "detail" && <InspectorDetails data={data} node={node} inspector={inspector} renderDetails={data.renderInspectorDetails} />}
+        {inspector && tab === "context" && (
           <div className="py-3">
-            {inspector.context.isTruncated && <p role="status" className="mb-2 text-xs text-warning">Context was truncated when captured.</p>}
-            <pre className="overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.context.value, null, 2)}</pre>
+            {inspector.context?.isTruncated && <p role="status" className="mb-2 text-xs text-warning">Context was truncated when captured.</p>}
+            <CodeBlock
+              label="Context"
+              code={JSON.stringify(inspector.context?.value ?? {}, null, 2)}
+              language="json"
+              jsonValue={inspector.context?.value ?? {}}
+              showLineNumbers={false}
+              showTextWrapping
+            />
           </div>
         )}
         {inspector && tab === "metadata" && (
-          <pre className="my-3 overflow-auto whitespace-pre-wrap rounded border border-grid-bright bg-background-dimmed p-3 font-mono text-xs text-text-dimmed">{JSON.stringify(inspector.metadata.value, null, 2)}</pre>
+          <div className="py-3">
+            {inspector.metadata.isTruncated && <p role="status" className="mb-2 text-xs text-warning">Metadata was truncated when captured.</p>}
+            <CodeBlock
+              label="Metadata"
+              code={JSON.stringify(inspector.metadata.value, null, 2)}
+              language="json"
+              jsonValue={inspector.metadata.value}
+              showLineNumbers={false}
+              showTextWrapping
+            />
+          </div>
         )}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-grid-dimmed px-2 py-2" />
@@ -722,9 +753,11 @@ function InspectorOverview({ data, node, inspector, failure }: {
 }
 
 function timelineRun(run: RouteData["run"]): TimelineSpanRun {
+  const dequeuedAt = run.queuedAt ?? run.startedAt;
   return {
     createdAt: new Date(run.triggeredAt),
-    startedAt: run.startedAt ? new Date(run.startedAt) : null,
+    startedAt: dequeuedAt ? new Date(dequeuedAt) : null,
+    executedAt: run.startedAt ? new Date(run.startedAt) : null,
     updatedAt: new Date(run.finishedAt ?? run.startedAt ?? run.triggeredAt),
     completedAt: run.finishedAt ? new Date(run.finishedAt) : null,
     isFinished: run.finishedAt !== null,
@@ -732,47 +765,52 @@ function timelineRun(run: RouteData["run"]): TimelineSpanRun {
   };
 }
 
-function InspectorDetails({ inspector, renderDetails: RenderDetails }: { inspector: Inspector; renderDetails: InspectorDetailsRenderer }) {
+function InspectorDetails({ data, node, inspector, renderDetails: RenderDetails }: { data: RouteData; node?: TraceNode; inspector: Inspector; renderDetails: InspectorDetailsRenderer }) {
+  const isRouteRun = inspector.runId === data.run.id;
+  const attempt = node?.kind === "attempt" ? data.attempts.find((candidate) => candidate.id === node.id) : undefined;
   return (
-    <div className="space-y-5">
-      <div>
-        <Header3>Node detail</Header3>
-        <dl className="mt-3 grid grid-cols-[8rem_1fr] gap-2 text-sm">
-          {Object.entries(inspector.overview).map(([key, value]) => <Property key={key} name={key} value={value} />)}
-        </dl>
-      </div>
-      <div className="flex flex-wrap gap-3 text-sm">
+    <div className="flex flex-col gap-4 py-3">
+      <PropertyTable.Table>
+        <PropertyTable.Item>
+          <PropertyTable.Label>Status</PropertyTable.Label>
+          <PropertyTable.Value><TaskRunStatusCombo status={nodeStatus(inspector)} /></PropertyTable.Value>
+        </PropertyTable.Item>
+        <PropertyTable.Item>
+          <PropertyTable.Label>Job</PropertyTable.Label>
+          <PropertyTable.Value>
+            {isRouteRun ? <Link to={`/jobs/${encodeURIComponent(data.run.jobId)}`} className="flex w-fit items-center gap-1.5 text-text-link transition-colors hover:text-text-bright focus-custom"><TaskIcon className="size-4 text-tasks" /><span>{data.run.jobType}</span></Link> : "—"}
+          </PropertyTable.Value>
+        </PropertyTable.Item>
+        <PropertyTable.Item>
+          <PropertyTable.Label>Run ID</PropertyTable.Label>
+          <PropertyTable.Value><span className="flex items-center gap-1.5"><RunsIcon className="size-4 shrink-0 text-runs" /><CopyableText value={inspector.runId} copyValue={inspector.runId} asChild /></span></PropertyTable.Value>
+        </PropertyTable.Item>
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Trace ID</PropertyTable.Label><PropertyTable.Value><CopyableText value={data.run.traceId} copyValue={data.run.traceId} asChild /></PropertyTable.Value></PropertyTable.Item>}
+        {data.relationships.parent && isRouteRun && <PropertyTable.Item><PropertyTable.Label>Parent run</PropertyTable.Label><PropertyTable.Value><Link to={data.relationships.parent.path} className="text-text-link hover:text-text-bright focus-custom">{data.relationships.parent.id}</Link></PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Queue</PropertyTable.Label><PropertyTable.Value><span className="flex items-center gap-1.5"><QueuesIcon className="size-4 shrink-0 text-queues" />{data.run.queueTarget}</span></PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Driver</PropertyTable.Label><PropertyTable.Value>{data.run.driverId ?? "—"}</PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Attempts</PropertyTable.Label><PropertyTable.Value>{data.run.attemptCount}</PropertyTable.Value></PropertyTable.Item>}
+        {attempt && <PropertyTable.Item><PropertyTable.Label>Attempt</PropertyTable.Label><PropertyTable.Value>{attempt.number}</PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Triggered</PropertyTable.Label><PropertyTable.Value><time dateTime={data.run.triggeredAt}>{formatTimestamp(new Date(data.run.triggeredAt), true)}</time></PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && data.run.queuedAt && <PropertyTable.Item><PropertyTable.Label>Dequeued</PropertyTable.Label><PropertyTable.Value><time dateTime={data.run.queuedAt}>{formatTimestamp(new Date(data.run.queuedAt), true)}</time></PropertyTable.Value></PropertyTable.Item>}
+        {(attempt?.startedAt ?? (isRouteRun ? data.run.startedAt : null)) && <PropertyTable.Item><PropertyTable.Label>Started</PropertyTable.Label><PropertyTable.Value><time dateTime={attempt?.startedAt ?? data.run.startedAt ?? undefined}>{formatTimestamp(new Date(attempt?.startedAt ?? data.run.startedAt ?? ""), true)}</time></PropertyTable.Value></PropertyTable.Item>}
+        {(attempt?.finishedAt ?? (isRouteRun ? data.run.finishedAt : null)) && <PropertyTable.Item><PropertyTable.Label>Finished</PropertyTable.Label><PropertyTable.Value><time dateTime={attempt?.finishedAt ?? data.run.finishedAt ?? undefined}>{formatTimestamp(new Date(attempt?.finishedAt ?? data.run.finishedAt ?? ""), true)}</time></PropertyTable.Value></PropertyTable.Item>}
+        {isRouteRun && <PropertyTable.Item><PropertyTable.Label>Queue duration</PropertyTable.Label><PropertyTable.Value>{formatDuration(attempt?.queueDurationUs ?? data.run.queueDurationUs)}</PropertyTable.Value></PropertyTable.Item>}
+        <PropertyTable.Item><PropertyTable.Label>Duration</PropertyTable.Label><PropertyTable.Value>{formatDuration(node?.durationUs ?? data.run.durationUs)}</PropertyTable.Value></PropertyTable.Item>
+      </PropertyTable.Table>
+      <div className="flex flex-wrap gap-3 border-t border-grid-bright pt-3 text-sm">
         {inspector.source && (inspector.source.href
           ? <a href={inspector.source.href} className="text-text-link">{inspector.source.file}:{inspector.source.line}</a>
           : <span className="font-mono text-text-dimmed">{inspector.source.file}:{inspector.source.line}</span>)}
         {inspector.telemetryEventHref && <a href={inspector.telemetryEventHref} className="text-text-link">Telemetry event</a>}
       </div>
-      <RenderDetails inspector={inspector} />
+      <div className="border-t border-grid-bright pt-3"><RenderDetails inspector={inspector} /></div>
     </div>
   );
 }
 
 function Property({ name, value }: { name: string; value: unknown }) {
   return <><dt className="text-text-faint">{name}</dt><dd className="min-w-0 break-words font-mono text-text-bright">{value === null || value === undefined ? "—" : String(value)}</dd></>;
-}
-
-function InspectorTab({ active, enabled, shortcut, onClick, children }: { active: boolean; enabled: boolean; shortcut: string; onClick: () => void; children: React.ReactNode }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    const listener = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isEditable(event.target)) return;
-      if (event.key.toLowerCase() === shortcut) { event.preventDefault(); ref.current?.click(); }
-    };
-    window.addEventListener("keydown", listener);
-    return () => window.removeEventListener("keydown", listener);
-  }, [enabled, shortcut]);
-  return (
-    <button ref={ref} type="button" role="tab" aria-label={String(children)} aria-selected={active} onClick={onClick} className="group flex h-10 flex-col items-center focus-custom">
-      <span className={cn("flex flex-1 items-center gap-1 text-sm", active ? "text-text-bright" : "text-text-dimmed group-hover:text-text-bright")}>{children}<kbd className="rounded-sm border border-border-bright px-1 font-mono text-xxs text-text-faint">{shortcut.toUpperCase()}</kbd></span>
-      <span className={cn("h-0.5 w-full", active ? "bg-indigo-500" : "bg-transparent group-hover:bg-surface-control-active")} />
-    </button>
-  );
 }
 
 function RelationshipLinks({ data }: { data: RouteData }) {
@@ -784,10 +822,75 @@ function RelationshipLinks({ data }: { data: RouteData }) {
   );
 }
 
+function CurrentTimeIndicator({ durationUs, rootStartedAt, shiftUs }: { durationUs: number; rootStartedAt: string; shiftUs: number }) {
+  return (
+    <Timeline.FollowCursor>
+      {(milliseconds) => {
+        const ratio = milliseconds / (durationUs / 1_000);
+        const edge = 0.17;
+        const offset = ratio < edge ? ratio / edge / 2 : ratio > 1 - edge ? 0.5 + ((ratio - (1 - edge)) / edge) / 2 : 0.5;
+        const preciseTime = new Date(new Date(rootStartedAt).getTime() + ((shiftUs / 1_000) + milliseconds));
+        return (
+          <div data-timeline-playhead className="relative z-50 flex h-full flex-col">
+            <div className="relative flex h-6 items-end">
+              <div
+                className="absolute w-fit whitespace-nowrap rounded-sm border border-border-bright bg-background-hover px-1 py-0.5 text-xxs tabular-nums text-text-bright"
+                style={{ left: `${offset * 100}%`, transform: `translateX(-${offset * 100}%)` }}
+              >
+                {formatDuration(milliseconds * 1_000)}<span className="mx-1 text-text-dimmed">–</span>{formatTimestamp(preciseTime, false)}
+              </div>
+            </div>
+            <div className="w-px grow border-r border-border-bright" />
+          </div>
+        );
+      }}
+    </Timeline.FollowCursor>
+  );
+}
+
+function ArrowKeyShortcuts() {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      {(["arrowup", "arrowdown", "arrowleft", "arrowright"] as const).map((key) => <ShortcutKey key={key} shortcut={{ key }} variant="medium" className="ml-0 mr-0" />)}
+      <Paragraph variant="extra-small" className="ml-1.5 whitespace-nowrap">Navigate</Paragraph>
+    </div>
+  );
+}
+
+function AdjacentRunsShortcuts() {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <ShortcutKey shortcut={{ key: "[" }} variant="medium" className="ml-0 mr-0 px-1" />
+      <ShortcutKey shortcut={{ key: "]" }} variant="medium" className="ml-0 mr-0 px-1" />
+      <Paragraph variant="extra-small" className="ml-1.5 whitespace-nowrap">Next/previous run</Paragraph>
+    </div>
+  );
+}
+
+function ShortcutLabel({ shortcut, title }: { shortcut: string; title: string }) {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <ShortcutKey shortcut={{ key: shortcut }} variant="medium" className="ml-0 mr-0" />
+      <Paragraph variant="extra-small" className="ml-1.5 whitespace-nowrap">{title}</Paragraph>
+    </div>
+  );
+}
+
+function NumberShortcuts() {
+  return (
+    <div className="flex shrink-0 items-center gap-0.5">
+      <span className={cn(shortcutVariants.medium, "ml-0 mr-0")}>0</span>
+      <span className="text-[0.65rem] text-text-dimmed">–</span>
+      <span className={cn(shortcutVariants.medium, "ml-0 mr-0")}>9</span>
+      <Paragraph variant="extra-small" className="ml-1.5 whitespace-nowrap">Toggle level</Paragraph>
+    </div>
+  );
+}
+
 function AdjacentLink({ label, path, icon }: { label: string; path: string | null; icon: React.ReactElement }) {
   return path
-    ? <Link aria-label={label} title={label} to={path} replace className="flex size-6 max-w-6 items-center justify-center rounded hover:bg-background-raised">{icon}</Link>
-    : <span aria-label={`${label} unavailable`} className="flex size-6 max-w-6 items-center justify-center opacity-50">{icon}</span>;
+    ? <Link aria-label={label} title={label} to={path} replace className="group/button flex size-6 max-w-6 items-center justify-center rounded text-text-dimmed transition-colors hover:bg-tertiary hover:text-text-bright">{cloneElement(icon, { className: "size-3 transition-colors group-hover/button:text-text-bright" })}</Link>
+    : <span aria-label={`${label} unavailable`} className="flex size-6 max-w-6 items-center justify-center text-text-dimmed opacity-50">{cloneElement(icon, { className: "size-3" })}</span>;
 }
 
 function traceDuration(data: RouteData): number {
@@ -814,6 +917,10 @@ function nodeColor(node: TraceNode): string {
   return "bg-surface-control-active";
 }
 
+function nodeBorderColor(node: TraceNode): string {
+  return nodeColor(node).replace(/^bg-/, "border-");
+}
+
 function formatDuration(microseconds: number | null): string {
   if (microseconds === null) return "—";
   if (microseconds < 1_000) return `${Math.round(microseconds)}µs`;
@@ -828,6 +935,7 @@ function formatTimestamp(date: Date, includeDate: boolean): string {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
+    fractionalSecondDigits: 3,
   }).format(date);
 }
 

@@ -384,6 +384,7 @@ export class FixtureAdapter implements SkylineDtoAdapter {
       capabilities,
       run: {
         ...summary,
+        jobId: fixtureJobId(summary.name),
         traceId: String(rawNodes[0].metadata.traceId ?? "fixture-trace"),
         rootRunId,
         parentRunId: parentRunId ?? null,

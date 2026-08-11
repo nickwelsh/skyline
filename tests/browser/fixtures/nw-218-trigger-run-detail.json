@@ -8,7 +8,7 @@
     "treeName": "Run trace",
     "selectedNode": "run_run_01J8R4NQX6K3PV4W0A1H2Z7M9C",
     "nextNode": "attempt_run_01J8R4NQX6K3PV4W0A1H2Z7M9C_1",
-    "inspectorTabs": ["Overview", "Detail", "Metadata"],
+    "inspectorTabs": ["Overview", "Detail", "Context", "Metadata"],
     "queueHiddenAttemptRatio": 0.13677345938375352,
     "focusRole": "tree",
     "escapeClearsSelection": true

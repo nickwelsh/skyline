@@ -3,11 +3,12 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Skyline adaptation: local imports and a dependency-light modal copy button.
  */
-import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
+import { ArrowsPointingOutIcon, CodeBracketIcon, QueueListIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { Highlight, Prism, type Language, type PrismTheme } from "prism-react-renderer";
 import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
+import { JsonTree } from "./CapturePreview";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
 import { Paragraph } from "./components/primitives/Paragraph";
@@ -46,6 +47,7 @@ type CodeBlockProps = {
   regionLabel?: string;
   preClassName?: string;
   isolateModalEscape?: boolean;
+  jsonValue?: unknown;
 };
 
 const dimAmount = 0.5;
@@ -99,6 +101,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   regionLabel,
   preClassName,
   isolateModalEscape = false,
+  jsonValue,
 }, ref) {
   const expandButton = useRef<HTMLButtonElement>(null);
   const [mouseOver, setMouseOver] = useState(false);
@@ -106,7 +109,9 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   const [modalCopied, setModalCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isWrapped, setIsWrapped] = useState(wrap);
+  const [jsonMode, setJsonMode] = useState<"code" | "tree">("code");
   const code = rawCode?.trim() ?? "";
+  const canRenderTree = language === "json" && typeof jsonValue === "object" && jsonValue !== null;
 
   const copy = useCallback((modal: boolean) => {
     void navigator.clipboard.writeText(code);
@@ -136,7 +141,22 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
         {showChrome && <Chrome title={fileName} />}
         {rowTitle && <TitleRow title={rowTitle} />}
         <div className={cn("absolute right-3 top-2.5 z-50 flex gap-3", showChrome ? "right-1.5 top-1.5" : "top-2.5")}>
-          {showTextWrapping && (
+          {canRenderTree && (
+            <TooltipProvider>
+              <Tooltip disableHoverableContent>
+                <TooltipTrigger
+                  aria-label={label ? (jsonMode === "tree" ? `Show ${label} code` : `Show ${label} tree`) : undefined}
+                  aria-pressed={jsonMode === "tree"}
+                  onClick={() => setJsonMode((current) => current === "code" ? "tree" : "code")}
+                  className="transition-colors focus-custom hover:cursor-pointer hover:text-text-bright"
+                >
+                  {jsonMode === "tree" ? <CodeBracketIcon className="size-4" /> : <QueueListIcon className="size-4" />}
+                </TooltipTrigger>
+                <TooltipContent side="left" className="text-xs">{jsonMode === "tree" ? "Code" : "Tree"}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {showTextWrapping && jsonMode === "code" && (
             <TooltipProvider>
               <Tooltip disableHoverableContent>
                 <TooltipTrigger
@@ -178,7 +198,9 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
           )}
         </div>
 
-        {shouldHighlight
+        {canRenderTree && jsonMode === "tree"
+          ? <JsonTree value={jsonValue} label={label ?? "JSON"} />
+          : shouldHighlight
           ? <HighlightCode
               theme={theme}
               code={code}
@@ -221,17 +243,19 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
             </button>
           </DialogHeader>
           <div aria-label={label} className="min-h-0 flex-1 overflow-y-auto" role="region">
-            <HighlightCode
-              theme={theme}
-              code={code}
-              language={language}
-              showLineNumbers={showLineNumbers}
-              highlightLines={highlightLines}
-              maxLineWidth={maxLineWidth}
-              className={modalContent ? "" : "min-h-full"}
-              preClassName="text-sm leading-relaxed"
-              isWrapped={isWrapped}
-            />
+            {canRenderTree && jsonMode === "tree"
+              ? <JsonTree value={jsonValue} label={label ?? "JSON"} expanded />
+              : <HighlightCode
+                  theme={theme}
+                  code={code}
+                  language={language}
+                  showLineNumbers={showLineNumbers}
+                  highlightLines={highlightLines}
+                  maxLineWidth={maxLineWidth}
+                  className={modalContent ? "" : "min-h-full"}
+                  preClassName="text-sm leading-relaxed"
+                  isWrapped={isWrapped}
+                />}
             {modalContent}
           </div>
         </DialogContent>
