@@ -15,6 +15,8 @@ export type PresentedJob = {
   id: string;
   path: string;
   name: string;
+  displayName: string;
+  identifier: string;
   firstObservedAt: string;
   lastObservedAt: string;
   runCount: number;
@@ -62,7 +64,7 @@ export type JobActivity = {
 
 export function jobsQuery(request: Request): JobsQuery {
   const params = new URL(request.url).searchParams;
-  return compactQuery({ search: queryValue(params, "search"), period: period(params.get("period")), cursor: queryValue(params, "cursor") });
+  return compactQuery({ search: queryValue(params, "search"), cursor: queryValue(params, "cursor") });
 }
 
 export function jobRunsQuery(request: Request): JobRunsQuery {
@@ -77,7 +79,7 @@ export function jobRunsQuery(request: Request): JobRunsQuery {
 export function presentJobs(page: JobsPageDto): JobsRouteData {
   return {
     generatedAt: page.generatedAt,
-    jobs: page.jobs.map(presentJob),
+    jobs: page.jobs.map((job) => presentJob(job, page.generatedAt)),
     pagination: {
       previous: page.pagination.previous ?? undefined,
       next: page.pagination.next ?? undefined,
@@ -121,12 +123,30 @@ function presentJobActivity(activity: JobDetailDto["activity"]): JobActivity {
   };
 }
 
-function presentJob(job: JobsPageDto["jobs"][number]): PresentedJob {
+function presentJob(job: JobsPageDto["jobs"][number], activityEnd?: string): PresentedJob {
   return {
     ...job,
+    displayName: job.name.split("\\").at(-1) ?? job.name,
+    identifier: job.name,
+    activity: activityEnd ? hourlyActivity(job.activity, activityEnd) : job.activity,
     path: canonicalRoutePath(job.href, "jobs"),
     latestRun: { ...job.latestRun, path: canonicalRoutePath(job.latestRun.href, "runs") },
   };
+}
+
+function hourlyActivity(activity: PresentedJob["activity"], end: string): PresentedJob["activity"] {
+  const hour = 3_600_000;
+  const endAt = Math.floor(Date.parse(end) / hour) * hour;
+  const observed = new Map(activity.map((point) => [Date.parse(point.timestamp), point]));
+
+  return Array.from({ length: 24 }, (_, index) => {
+    const timestamp = endAt - (23 - index) * hour;
+    return observed.get(timestamp) ?? {
+      timestamp: new Date(timestamp).toISOString(),
+      total: 0,
+      statusCounts: { queued: 0, running: 0, retrying: 0, completed: 0, failed: 0 },
+    };
+  });
 }
 
 function period(value: string | null): JobsQuery["period"] {

@@ -52,11 +52,11 @@ test("source shell exposes only supported surfaces and persists customization", 
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.getByText("Application", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
+  await expect(page.getByRole("link", { name: "Jobs", exact: true })).toHaveAttribute("data-action", "tasks");
   await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
   await expect.poll(async () => (await page.getByTestId("side-menu-application").boundingBox())?.height).toBe(67);
   for (const label of [...baseline.contract.navigation, "Pinned Run"]) {
-    await expect(page.getByRole("link", { name: label, exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: label === "Tasks" ? "Jobs" : label, exact: true }).first()).toBeVisible();
   }
   for (const label of ["Query", "Dashboards", "Future Query", "Account", "Notifications"]) {
     await expect(page.getByText(label, { exact: true })).toHaveCount(0);
@@ -202,7 +202,7 @@ async function exerciseShell(page: Page, identity: "Application" | "Project") {
   await page.reload();
 
   await expect(page.getByText(identity, { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Tasks", exact: true })).toHaveAttribute("data-action", "tasks");
+  await expect(page.getByRole("link", { name: identity === "Project" ? "Tasks" : "Jobs", exact: true })).toHaveAttribute("data-action", "tasks");
   await expect(page.getByText("Application environment", { exact: true })).toHaveCount(0);
   for (const action of navigation) await expect(page.locator(`[data-action="${action}"]`).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Pinned Run", exact: true })).toBeVisible();

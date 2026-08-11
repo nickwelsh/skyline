@@ -204,7 +204,7 @@ export function SideMenu({ applicationName, brandMark, environmentLabel, capabil
   };
 
   const topItems: MenuItem[] = [
-    { id: "tasks", name: "Tasks", to: "/jobs", icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" },
+    { id: "tasks", name: "Jobs", to: "/jobs", icon: TasksIcon, activeIconColor: "text-tasks", capability: "jobs" },
     { id: "runs", name: "Runs", to: "/runs", icon: RunsIcon, activeIconColor: "text-runs", capability: "runs" },
     { id: "sessions", name: "Sessions", to: "/sessions", icon: Squares2X2Icon, activeIconColor: "text-text-bright", capability: "sessions" },
   ];

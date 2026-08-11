@@ -73,7 +73,7 @@ describe("Job detail source chrome", () => {
 });
 
 describe("Jobs list source chrome", () => {
-  it("omits unobserved task-definition columns and filters", async () => {
+  it("uses Laravel Job language, identifiers, and an all-time list", async () => {
     const adapter = new FixtureAdapter();
     const data = {
       ...presentJobs(await adapter.jobs()),
@@ -98,19 +98,21 @@ describe("Jobs list source chrome", () => {
       </OperatingSystemContextProvider>,
     ));
 
+    expect(container.querySelector("h2")?.textContent).toBe("Jobs");
     expect(Array.from(container.querySelectorAll("th"), (header) => header.textContent?.trim()))
-      .toEqual(["ID", "Running", "Activity (24h)", "Go to page"]);
+      .toEqual(["ID", "Identifier", "Running", "Activity (24h)", "Go to page"]);
     expect(container.querySelector('[role="group"][aria-label="Task type"]')).toBeNull();
     const boundaries = Array.from(container.querySelectorAll<HTMLElement>("[data-skyline-capability-boundary]"));
     expect(boundaries).toHaveLength(53);
     expect(boundaries.every((boundary) => boundary.getAttribute("aria-hidden") === "true" && boundary.className.includes("absolute") && boundary.className.includes("pointer-events-none") && boundary.childElementCount === 0)).toBe(true);
     expect(boundaries.every((boundary) => !boundary.querySelector("input, button, a, svg"))).toBe(true);
-    expect(container.querySelector('[data-skyline-protected="jobs-list-search"]')?.querySelector('input[placeholder="Search tasks…"]')).not.toBeNull();
-    expect(container.querySelector<HTMLSelectElement>('select[aria-label="Time range"]')?.value).toBe("all");
+    expect(container.querySelector('[data-skyline-protected="jobs-list-search"]')?.querySelector('input[placeholder="Search jobs…"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Time range"]')).toBeNull();
+    expect(container.querySelector("tbody tr td:nth-child(1)")?.textContent).toBe(data.jobs[0].displayName);
+    expect(container.querySelector("tbody tr td:nth-child(2)")?.textContent).toBe(data.jobs[0].identifier);
     expect(container.querySelector('[data-skyline-protected="jobs-list-pagination"]')?.querySelectorAll("a")).toHaveLength(1);
     expect(container.textContent).not.toContain("Standard");
     expect(container.textContent).not.toContain("New task…");
-    expect(container.textContent).not.toContain(".php");
     expect(container.querySelector('[data-status="running"]')?.getAttribute("fill"))
       .toBe("var(--color-run-executing)");
     expect(container.querySelector('[data-status="failed"]')?.getAttribute("fill"))

@@ -4,9 +4,9 @@ import { fixtureCapabilities } from "./FixtureAdapter";
 import { jobRunsQuery, jobsQuery, presentJobDetail, presentJobs } from "./JobsAdapter";
 
 describe("JobsAdapter", () => {
-  it("reads only valid URL-backed Job filters", () => {
+  it("reads search and pagination while always listing Jobs from all time", () => {
     expect(jobsQuery(new Request("https://example.test/jobs?search=invoice&period=24h&cursor=opaque")))
-      .toEqual({ search: "invoice", period: "24h", cursor: "opaque" });
+      .toEqual({ search: "invoice", cursor: "opaque" });
     expect(jobsQuery(new Request("https://example.test/jobs?period=invalid"))).toEqual({});
     expect(jobRunsQuery(new Request("https://example.test/jobs/id"))).toEqual({ period: "7d" });
     expect(jobRunsQuery(new Request("https://example.test/jobs/id?status=failed&status=unknown&cursor=opaque&period=7d")))
@@ -15,7 +15,7 @@ describe("JobsAdapter", () => {
 
   it("maps Job API data into stable source presenters", () => {
     const list = presentJobs(jobsPage());
-    expect(list.jobs[0]).toMatchObject({ id: "job_invoice", path: "/jobs/job_invoice", name: "App\\Jobs\\Invoice", runCount: 2 });
+    expect(list.jobs[0]).toMatchObject({ id: "job_invoice", path: "/jobs/job_invoice", displayName: "Invoice", identifier: "App\\Jobs\\Invoice", runCount: 2 });
     expect(list.pagination).toEqual({ previous: undefined, next: "next" });
     expect(list.hasFilters).toBe(true);
 
@@ -27,6 +27,28 @@ describe("JobsAdapter", () => {
       data: [{ bucket: 1_785_888_000_000, COMPLETED: 4, FAILED: 5, CANCELED: 0, RUNNING: 6 }],
       statuses: ["COMPLETED", "FAILED", "CANCELED", "RUNNING"],
     });
+  });
+
+  it("presents every Job activity graph as the same 24 hourly slots", () => {
+    const page = jobsPage();
+    page.jobs[0].activity = [
+      { timestamp: "2026-08-04T12:00:00Z", total: 9, statusCounts: { queued: 0, running: 0, retrying: 0, completed: 9, failed: 0 } },
+      { timestamp: "2026-08-05T10:00:00Z", total: 2, statusCounts: { queued: 0, running: 1, retrying: 0, completed: 0, failed: 1 } },
+    ];
+    page.jobs.push({ ...jobSummary(), id: "job_empty", name: "App\\Jobs\\Empty", activity: [] });
+
+    const jobs = presentJobs(page).jobs;
+    const activity = jobs[0].activity;
+
+    expect(jobs.every((job) => job.activity.length === 24)).toBe(true);
+    expect(activity).toHaveLength(24);
+    expect(activity[0]).toEqual({
+      timestamp: "2026-08-04T13:00:00.000Z",
+      total: 0,
+      statusCounts: { queued: 0, running: 0, retrying: 0, completed: 0, failed: 0 },
+    });
+    expect(activity[21]).toEqual(page.jobs[0].activity[1]);
+    expect(activity[23].timestamp).toBe("2026-08-05T12:00:00.000Z");
   });
 
   it("extracts canonical routes when the base path is also a route name", () => {

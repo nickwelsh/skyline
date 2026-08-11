@@ -56,7 +56,7 @@ export default function JobDetailRoute() {
       <NavBar>
         <div className="flex items-center gap-1">
           <PageTitle
-            backButton={{ to: "/jobs", text: "Tasks" }}
+            backButton={{ to: "/jobs", text: "Jobs" }}
             title={<span className="flex min-w-0 items-center gap-1"><TaskIcon className="size-4.5 shrink-0 text-tasks" /><span className="max-w-[50vw] truncate">{data.job.name}</span></span>}
           />
           <JobFavoriteButton id={data.job.id} label={shortName(data.job.name)} path={`/jobs/${data.job.id}`} />

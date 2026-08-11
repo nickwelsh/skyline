@@ -54,9 +54,9 @@ describe("SideMenu capabilities", () => {
 
     expect(container.querySelector('[data-testid="side-menu-application"]')?.textContent).toBe("Applicationtesting");
     expect(container.querySelector('[data-testid="side-menu-application"]')?.textContent).not.toContain("Project");
-    expect(container.querySelector('[data-action="tasks"]')?.textContent).toBe("Tasks");
+    expect(container.querySelector('[data-action="tasks"]')?.textContent).toBe("Jobs");
     expect(container.textContent).not.toContain("Application environment");
-    expect(container.textContent).not.toContain("Jobs");
+    expect(container.textContent).not.toContain("Tasks");
   });
 
   it("preserves the pinned Trigger shell geometry and resize seam", () => {

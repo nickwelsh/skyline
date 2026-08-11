@@ -4,11 +4,11 @@
  * Server, tenant, deployment, schedule, and source-definition concerns are external; Job guidance and test remain capability-dormant.
  */
 import { ClockIcon, PlusIcon, SparklesIcon } from "@heroicons/react/20/solid";
-import { Link, useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useNavigation } from "@remix-run/react";
 import type { PanelHandle } from "@window-splitter/react";
 import { useCallback, useRef, useState } from "react";
 import { Bar } from "recharts";
-import { HasNoTasksDeployed } from "~/components/BlankStatePanels";
+import { HasNoJobsDeployed } from "~/components/BlankStatePanels";
 import { MainCenteredContainer, PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ActivityBarChart } from "~/components/metrics/ActivityBarChart";
 import { ListPagination } from "~/components/ListPagination";
@@ -38,6 +38,7 @@ import {
 } from "~/components/primitives/Table";
 import { ExitIcon } from "~/assets/icons/ExitIcon";
 import { TaskIcon } from "~/assets/icons/TaskIcon";
+import { RunsIcon } from "~/assets/icons/RunsIcon";
 import { CodeBlock } from "~/CodeBlock";
 
 type RunStatus = "queued" | "running" | "retrying" | "completed" | "failed";
@@ -45,6 +46,8 @@ type PresentedJob = {
   id: string;
   path: string;
   name: string;
+  displayName: string;
+  identifier: string;
   firstObservedAt: string;
   lastObservedAt: string;
   runCount: number;
@@ -69,7 +72,6 @@ type JobsRouteData = {
 export default function JobsRoute() {
   const data = useLoaderData() as JobsRouteData;
   const navigation = useNavigation();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [showUsefulLinks, setShowUsefulLinks] = useState(data.showJobGuidance);
   const [isPanelAnimating, setIsPanelAnimating] = useState(false);
   const animatingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,41 +90,26 @@ export default function JobsRoute() {
     }
     data.onJobGuidanceChange(show);
   }, [data]);
-  const updatePeriod = (period: string) => {
-    const next = new URLSearchParams(searchParams);
-    period === "all" ? next.delete("period") : next.set("period", period);
-    next.delete("cursor");
-    next.delete("direction");
-    setSearchParams(next);
-  };
   return (
     <PageContainer>
-      <NavBar><PageTitle title="Tasks" accessory="What is a task?" /></NavBar>
+      <NavBar><PageTitle title="Jobs" accessory="What is a job?" /></NavBar>
       <PageBody scrollable={false}>
         <ResizablePanelGroup orientation="horizontal" className="max-h-full">
           <ResizablePanel id="jobs-main" min="100px" className="max-h-full">
             <div className="grid h-full min-w-0 grid-rows-1">
               {hasItems ? <div className="flex min-w-0 max-w-full flex-col overflow-hidden">
-              <div aria-label="Task filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
+              <div aria-label="Job filters" className="flex shrink-0 items-center justify-between gap-1.5 p-2">
                 <div data-skyline-protected="jobs-list-search" className="relative flex flex-1 items-center gap-1.5">
-                  <SearchInput placeholder="Search tasks…" resetParams={["cursor", "direction"]} />
+                  <SearchInput placeholder="Search jobs…" resetParams={["cursor", "direction", "period"]} />
                   <span aria-hidden="true" data-skyline-capability-boundary="jobs-list-task-type-filter" className="pointer-events-none absolute inset-y-0 left-0 w-1" />
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <select
-                    aria-label="Time range"
-                    className="h-6 rounded border border-grid-bright bg-background-bright px-2 text-xs text-text-bright focus-custom"
-                    value={data.filters.period}
-                    onChange={(event) => updatePeriod(event.currentTarget.value)}
-                  >
-                    {data.timeRanges.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                  </select>
                   {data.jobGuidance && !showUsefulLinks && <Button variant="primary/small" LeadingIcon={PlusIcon} leadingIconClassName="mr-[-0.7rem]" onClick={() => toggleUsefulLinks(true)} className="pl-1.5">New task…</Button>}
                   <div data-skyline-protected="jobs-list-pagination"><ListPagination list={data} /></div>
                 </div>
               </div>
               <JobsTable jobs={data.jobs} isPanelAnimating={isPanelAnimating} isLoading={isLoading} />
-              </div> : <MainCenteredContainer className="max-w-prose"><HasNoTasksDeployed environmentLabel={data.environmentLabel} /></MainCenteredContainer>}
+              </div> : <MainCenteredContainer className="max-w-prose"><HasNoJobsDeployed environmentLabel={data.environmentLabel} /></MainCenteredContainer>}
               {isLoading && !hasItems ? <LoadingState /> : null}
             </div>
           </ResizablePanel>
@@ -251,25 +238,27 @@ function JobsTable({ jobs, isPanelAnimating, isLoading }: { jobs: PresentedJob[]
     <Table containerClassName="min-h-0 flex-1" showTopBorder>
       <TableHeader><TableRow>
         <TableHeaderCell capabilityBoundary="jobs-list-type-header">ID</TableHeaderCell>
-        <TableHeaderCell capabilityBoundary="jobs-list-file-header">Running</TableHeaderCell>
+        <TableHeaderCell capabilityBoundary="jobs-list-file-header">Identifier</TableHeaderCell>
+        <TableHeaderCell>Running</TableHeaderCell>
         <TableHeaderCell>Activity (24h)</TableHeaderCell>
         <TableHeaderCell hiddenLabel>Go to page</TableHeaderCell>
       </TableRow></TableHeader>
       <TableBody>
         {jobs.length ? jobs.map((job, index) => <TaskRow key={job.id} job={job} row={index + 1} isPanelAnimating={isPanelAnimating} />) :
-          <TableBlankRow colSpan={4}><Paragraph variant="small">No tasks match your filters</Paragraph></TableBlankRow>}
+          <TableBlankRow colSpan={5}><Paragraph variant="small">No jobs match your filters</Paragraph></TableBlankRow>}
       </TableBody>
-      {isLoading ? <caption className="sr-only">Loading Tasks</caption> : null}
+      {isLoading ? <caption className="sr-only">Loading Jobs</caption> : null}
     </Table>
   );
 }
 
 function TaskRow({ job, row, isPanelAnimating }: { job: PresentedJob; row: number; isPanelAnimating: boolean }) {
   return <TableRow className="group h-[42px]">
-    <TableCell to={job.path} isTabbableCell capabilityBoundary={`jobs-list-type-row-${row}`}><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.name}</span></div></TableCell>
-    <TableCell to={job.path} capabilityBoundary={`jobs-list-file-row-${row}`}>{job.statusCounts.running ?? 0}</TableCell>
+    <TableCell to={job.path} isTabbableCell capabilityBoundary={`jobs-list-type-row-${row}`}><div className="flex items-center gap-2"><TaskIcon className="size-4 shrink-0 text-tasks" /><span>{job.displayName}</span></div></TableCell>
+    <TableCell to={job.path} capabilityBoundary={`jobs-list-file-row-${row}`}>{job.identifier}</TableCell>
+    <TableCell to={job.path}>{job.statusCounts.running ?? 0}</TableCell>
     <TableCell to={job.path} actionClassName="py-1.5"><div style={{ width: 146, height: 24 }}><div hidden={isPanelAnimating}><StatusActivity activity={job.activity} /></div></div></TableCell>
-    <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.name)}`} className="block rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright">View runs</Link>} />
+    <TableCellMenu isSticky popoverContent={<Link to={`/runs?job=${encodeURIComponent(job.identifier)}`} className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-text-dimmed hover:bg-background-raised hover:text-text-bright"><RunsIcon className="size-4 text-runs" />View runs</Link>} />
   </TableRow>;
 }
 
