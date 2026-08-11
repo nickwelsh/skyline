@@ -78,7 +78,7 @@ export default function JobDetailRoute() {
                 <ResizableHandle id="task-activity-handle" />
                 <ResizablePanel id="task-content" min="160px">
                   <section className="grid h-full grid-rows-[auto_1fr] overflow-hidden" aria-labelledby="task-runs-heading">
-                    <div className="-mt-px flex h-10 items-center justify-between border-b border-grid-dimmed bg-background-bright px-3">
+                    <div className="-mt-px flex h-10 items-center justify-between border-b border-grid-dimmed bg-background-dimmed px-2">
                       <h2 id="task-runs-heading" className="font-sans text-base leading-6 font-semibold tracking-tight text-text-bright">Runs</h2>
                       <ListPagination list={data} />
                     </div>

@@ -62,6 +62,9 @@ describe("Job detail source chrome", () => {
     expect(container.textContent).toContain("Runs:7 days");
     const runsHeading = container.querySelector<HTMLElement>("#task-runs-heading")!;
     expect(runsHeading.className).toBe("font-sans text-base leading-6 font-semibold tracking-tight text-text-bright");
+    expect(runsHeading.parentElement?.className).toContain("bg-background-dimmed");
+    expect(runsHeading.parentElement?.className).toContain("px-2");
+    expect(runsHeading.parentElement?.className).not.toContain("px-3");
     const jobCell = container.querySelector<HTMLElement>("tbody tr td:nth-child(2)")!;
     expect(jobCell.textContent).toContain(data.job.displayName);
     expect(jobCell.querySelector("svg")).not.toBeNull();
