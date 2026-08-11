@@ -101,7 +101,7 @@ describe("CodeBlock", () => {
     flushSync(() => root.unmount());
   });
 
-  it("highlights the throwing line without dimming surrounding code or covering the first line", async () => {
+  it("highlights the full overflowing throwing line with file-relative line numbers", async () => {
     document.body.innerHTML = '<div id="root"></div>';
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
@@ -111,6 +111,7 @@ describe("CodeBlock", () => {
         code={"public function handle(): void\n{\n    throw new RuntimeException('Payment failed.');\n}"}
         language="php"
         highlightedRanges={[[3, 3]]}
+        startingLine={26}
         label="application frame 1"
         showTextWrapping
       />,
@@ -121,8 +122,10 @@ describe("CodeBlock", () => {
     const lines = viewer.querySelectorAll<HTMLElement>("pre > div");
 
     expect(lines[2].className).toContain("bg-rose-500/10");
+    expect(lines[2].className).toContain("w-max");
+    expect(lines[2].className).toContain("min-w-full");
     expect([...lines].every((line) => line.style.opacity === "")).toBe(true);
-    expect(viewer.querySelector<HTMLElement>('div[dir="ltr"]')?.className).toContain("pt-10");
+    expect([...lines].map((line) => line.firstElementChild?.textContent)).toEqual(["26", "27", "28", "29"]);
 
     flushSync(() => root.unmount());
   });
@@ -146,11 +149,14 @@ describe("CodeBlock", () => {
     const container = document.querySelector<HTMLDivElement>("#root")!;
     const root = createRoot(container);
 
-    flushSync(() => root.render(<CodeBlock code="Invoice import delayed" rowTitle="Message" showOpenInModal={false} />));
+    flushSync(() => root.render(<CodeBlock code="Invoice import delayed" rowTitle="Message" label="Message" />));
 
     const title = container.querySelector("[translate='no'] > div:first-child > p");
     expect(title?.textContent).toBe("Message");
     expect(title?.className).toContain("font-medium");
+    expect(container.querySelector<HTMLElement>('div[dir="ltr"]')?.className).not.toContain("pt-10");
+    expect(container.querySelector('button[aria-label="Copy Message"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Expand Message"]')).not.toBeNull();
 
     flushSync(() => root.unmount());
   });

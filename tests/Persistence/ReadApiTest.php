@@ -693,11 +693,6 @@ it('returns curated relative exception details without raw stack metadata', func
         ->and($response->getContent())->not->toContain(str_replace('/', '\\/', base_path()))
         ->and($response->getContent())->not->toContain('exception.stacktrace');
 
-    config()->set('app.editor', [
-        'name' => 'vscode',
-        'base_path' => '/workspace/skyline',
-    ]);
-
     $mappedFile = base_path('composer.json');
     $mappedAttempt = (object) [
         ...(array) $attempt,
@@ -705,6 +700,17 @@ it('returns curated relative exception details without raw stack metadata', func
         'exception_line' => 1,
         'exception_trace' => "#0 {$mappedFile}(1): App\\Jobs\\FailingJob->handle()",
     ];
+    $directlyLinked = (new ExceptionPresenter(app(EditorLink::class)))
+        ->present($mappedAttempt, FailingJob::class);
+
+    expect($directlyLinked['frames'][0]['href'])
+        ->toBe('vscode://file/'.$mappedFile.':1');
+
+    config()->set('app.editor', [
+        'name' => 'vscode',
+        'base_path' => '/workspace/skyline',
+    ]);
+
     $linked = (new ExceptionPresenter(app(EditorLink::class)))
         ->present($mappedAttempt, FailingJob::class);
 

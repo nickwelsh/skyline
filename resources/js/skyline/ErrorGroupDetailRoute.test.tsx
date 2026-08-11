@@ -71,7 +71,13 @@ describe("Error-group detail source chrome", () => {
     expect(queueCells.some((cell) => cell.querySelector("a button"))).toBe(false);
     const sidebar = container.querySelector<HTMLElement>('aside[aria-label="Error group details"]')!;
     expect(sidebar.textContent).toContain(data.errorGroup.friendlyId);
-    expect(sidebar.querySelector(`a[href="${data.errorGroup.jobPath}"]`)).toBeNull();
+    const jobLink = sidebar.querySelector<HTMLAnchorElement>(`a[href="${data.errorGroup.jobPath}"]`)!;
+    expect(jobLink.textContent).toContain(data.errorGroup.jobType);
+    expect(jobLink.querySelector("svg")?.getAttribute("class")).toContain("text-tasks");
+    expect(jobLink.querySelector("[class*='clipboard']")).toBeNull();
+    const idItem = [...sidebar.querySelectorAll<HTMLElement>("div.flex.flex-col.gap-0.text-sm")].find((item) => item.firstElementChild?.textContent === "ID")!;
+    expect(idItem.lastElementChild?.className).toContain("truncate");
+    expect(idItem.querySelector('[data-state="closed"]')?.textContent).toBe(data.errorGroup.friendlyId);
     expect(sidebar.querySelector(".tabular-nums")?.textContent).toBe("2");
     expect(sidebar.textContent).toContain("About 16 hours ago");
     expect(sidebar.querySelector('[aria-label="Code"]')).toBeNull();

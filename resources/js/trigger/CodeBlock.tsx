@@ -35,6 +35,7 @@ type CodeBlockProps = {
   showCopyButton?: boolean;
   showTextWrapping?: boolean;
   showLineNumbers?: boolean;
+  startingLine?: number;
   highlightedRanges?: [number, number][];
   className?: string;
   theme?: PrismTheme;
@@ -86,6 +87,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   showCopyButton = true,
   showTextWrapping = false,
   showLineNumbers = true,
+  startingLine = 1,
   showOpenInModal = true,
   highlightedRanges,
   code: rawCode,
@@ -123,7 +125,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
   }, [code]);
 
   const lineCount = code.split("\n").length;
-  const maxLineWidth = lineCount.toString().length;
+  const maxLineWidth = (startingLine + lineCount - 1).toString().length;
   const maxHeight = maxLines && lineCount > maxLines
     ? `calc(${(maxLines + extraLinesWhenClipping) * 0.75 * 1.625}rem + 1.5rem)`
     : undefined;
@@ -142,7 +144,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
         translate="no"
       >
         {showChrome && <Chrome title={fileName} />}
-        {rowTitle && <TitleRow title={rowTitle} />}
+        {rowTitle && <TitleRow title={rowTitle} hasControls={hasInlineControls} />}
         <div className={cn("absolute right-3 top-2.5 z-50 flex gap-3", showChrome ? "right-1.5 top-1.5" : "top-2.5")}>
           {canRenderTree && (
             <TooltipProvider>
@@ -209,9 +211,10 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
               code={code}
               language={language}
               showLineNumbers={showLineNumbers}
+              startingLine={startingLine}
               highlightLines={highlightLines}
               maxLineWidth={maxLineWidth}
-              className={cn("px-2 py-3", hasInlineControls && "pt-10")}
+              className={cn("px-2 py-3", hasInlineControls && !showChrome && !rowTitle && "pt-10")}
               preClassName={preClassName ?? "text-xs"}
               isWrapped={isWrapped}
             />
@@ -253,6 +256,7 @@ export const CodeBlock = forwardRef<HTMLDivElement, CodeBlockProps>(function Cod
                   code={code}
                   language={language}
                   showLineNumbers={showLineNumbers}
+                  startingLine={startingLine}
                   highlightLines={highlightLines}
                   maxLineWidth={maxLineWidth}
                   className={modalContent ? "" : "min-h-full"}
@@ -289,15 +293,16 @@ function PlainCode({ code, maxHeight, isWrapped }: { code: string; maxHeight?: s
   );
 }
 
-function TitleRow({ title }: { title: ReactNode }) {
-  return <div className="flex items-center justify-between px-3"><Paragraph variant="small/bright" className="w-full border-b border-grid-dimmed py-2">{title}</Paragraph></div>;
+function TitleRow({ title, hasControls }: { title: ReactNode; hasControls: boolean }) {
+  return <div className="flex items-center justify-between px-3"><Paragraph variant="small/bright" className={cn("w-full border-b border-grid-dimmed py-2", hasControls && "pr-24")}>{title}</Paragraph></div>;
 }
 
-function HighlightCode({ theme, code, language, showLineNumbers, highlightLines, maxLineWidth, className, preClassName, isWrapped, maxHeight }: {
+function HighlightCode({ theme, code, language, showLineNumbers, startingLine, highlightLines, maxLineWidth, className, preClassName, isWrapped, maxHeight }: {
   theme: PrismTheme;
   code: string;
   language: Language;
   showLineNumbers: boolean;
+  startingLine: number;
   highlightLines?: number[];
   maxLineWidth: number;
   className?: string;
@@ -334,11 +339,12 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
             {tokens.map((line, index) => {
               if (index === tokens.length - 1 && line.length === 1 && line[0].content === "\n") return null;
               const lineNumber = index + 1;
+              const displayLineNumber = startingLine + index;
               const lineProps = getLineProps({ line });
               const highlighted = highlightLines?.includes(lineNumber);
               return (
-                <div key={lineNumber} {...lineProps} className={cn("flex w-full justify-start", lineProps.className, highlighted && "bg-rose-500/10 shadow-[inset_2px_0_0_var(--color-rose-500)]", isWrapped && "flex-wrap")} style={lineProps.style}>
-                  {showLineNumbers && <div className={cn("mr-2 flex-none select-none text-right text-text-faint", isWrapped && "sticky left-0")} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{lineNumber}</div>}
+                <div key={lineNumber} {...lineProps} className={cn("flex justify-start", lineProps.className, highlighted && "bg-rose-500/10 shadow-[inset_2px_0_0_var(--color-rose-500)]", isWrapped ? "w-full flex-wrap" : "w-max min-w-full")} style={lineProps.style}>
+                  {showLineNumbers && <div className={cn("mr-2 flex-none select-none text-right text-text-faint", isWrapped && "sticky left-0")} style={{ width: `calc(8 * ${maxLineWidth / 16}rem)` }}>{displayLineNumber}</div>}
                   <div className="flex-1">{line.map((token, key) => <span key={key} {...getTokenProps({ token })} />)}</div>
                   <div className="w-4 flex-none" />
                 </div>

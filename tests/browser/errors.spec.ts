@@ -9,6 +9,7 @@ import { readPinnedTriggerSource } from "./support/pinned-trigger-source";
 const primaryError = errorsScenario.errorGroups[0];
 const secondaryError = errorsScenario.errorGroups[1];
 const errorId = primaryError.id;
+const friendlyErrorId = `error_fp:${errorId}`;
 const jobType = primaryError.taskIdentifier;
 
 test("paired pinned Trigger Errors contract preserves geometry, filters, evidence, and observed links", async ({ page }) => {
@@ -75,18 +76,31 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
     .not.toEqual(initialTicks);
   const exceptionEvidence = page.getByRole("region", { name: "Exception" });
   await expect(exceptionEvidence).toContainText(primaryError.errorMessage);
+  await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: (value: string) => { (window as typeof window & { copiedException?: string }).copiedException = value; return Promise.resolve(); } } }));
+  const copyException = exceptionEvidence.getByRole("button", { name: "Copy exception as Markdown" });
+  await copyException.click();
+  await expect(page.getByRole("tooltip", { name: "Copied", exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as typeof window & { copiedException?: string }).copiedException)).toBe(exception().markdown);
+  await exceptionEvidence.getByRole("button", { name: "Expand exception" }).click();
+  const exceptionDialog = page.getByRole("dialog");
+  await expect(exceptionDialog).toContainText(primaryError.errorMessage);
+  await expect(exceptionDialog).toContainText("/srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
+  await exceptionDialog.getByRole("button", { name: "Close" }).click();
   await exceptionEvidence.getByRole("button", { name: "Show 3 frames" }).click();
   const frameToggle = exceptionEvidence.getByRole("button", { name: `${jobType}->handle` });
   await expect(frameToggle).toBeVisible();
   await frameToggle.hover();
-  await expect(page.getByRole("tooltip")).toHaveText(`${jobType}->handle`);
+  await expect(page.getByRole("tooltip", { name: `${jobType}->handle`, exact: true })).toBeVisible();
   const applicationFrame = frameToggle.locator("xpath=ancestor::article");
   const sourceLink = applicationFrame.getByRole("link", { name: /GenerateMonthlyInvoices\.php:42/ });
   await expect(sourceLink).toHaveAttribute("href", "vscode://file//srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
   await sourceLink.hover();
-  await expect(page.getByRole("tooltip")).toHaveText("/srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
+  await expect(page.getByRole("tooltip", { name: "/srv/application/app/Jobs/GenerateMonthlyInvoices.php:42", exact: true })).toBeVisible();
   const snippet = applicationFrame.locator('[translate="no"][aria-label="application frame 1"]');
+  await expect(snippet.locator(":scope > div").first()).toContainText("/srv/application/app/Jobs/GenerateMonthlyInvoices.php:42");
   await expect(snippet.locator(".token.keyword").first()).toHaveText("public");
+  await expect(snippet.locator("pre > div").first().locator(":scope > div").first()).toHaveText("40");
+  await expect(snippet.locator("pre > div").nth(2).locator(":scope > div").first()).toHaveText("42");
   const snippetVisuals = await snippet.evaluate((viewer) => {
     const viewport = viewer.querySelector<HTMLElement>('div[dir="ltr"]')!;
     const lines = viewer.querySelectorAll<HTMLElement>("pre > div");
@@ -96,22 +110,34 @@ test("paired pinned Trigger Errors contract preserves geometry, filters, evidenc
       paddingTop: getComputedStyle(viewport).paddingTop,
       highlightedBackground: highlighted.backgroundColor,
       highlightedShadow: highlighted.boxShadow,
+      highlightedWidth: lines[2].getBoundingClientRect().width,
+      viewportWidth: viewport.clientWidth,
       surroundingOpacity: getComputedStyle(lines[0]).opacity,
     };
   });
   expect(snippetVisuals).toMatchObject({
     borderWidth: "0px",
-    paddingTop: "40px",
+    paddingTop: "12px",
     surroundingOpacity: "1",
   });
+  expect(snippetVisuals.highlightedWidth).toBeGreaterThan(snippetVisuals.viewportWidth);
   expect(snippetVisuals.highlightedBackground).not.toBe("rgba(0, 0, 0, 0)");
   expect(snippetVisuals.highlightedShadow).toContain("inset");
   const vendorFrames = exceptionEvidence.getByRole("button", { name: "2 vendor frames" });
   await vendorFrames.click();
-  await expect(exceptionEvidence).toContainText("Illuminate\\Container\\BoundMethod::call");
+  const vendorCall = exceptionEvidence.getByText("Illuminate\\Container\\BoundMethod::call", { exact: true });
+  await expect(vendorCall).toBeVisible();
+  await vendorCall.hover();
+  await expect(page.getByRole("tooltip", { name: "Illuminate\\Container\\BoundMethod::call", exact: true })).toBeVisible();
   await expect(exceptionEvidence).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
   const details = page.getByRole("complementary", { name: "Error group details" });
   await expect(details.getByText("Task", { exact: true })).toBeVisible();
+  const errorIdValue = details.getByText(friendlyErrorId, { exact: true });
+  await errorIdValue.hover();
+  await expect(page.getByRole("tooltip", { name: friendlyErrorId, exact: true })).toBeVisible();
+  const jobLink = details.getByRole("link", { name: jobType });
+  await expect(jobLink).toHaveAttribute("href", "/skyline/jobs/job_invoice");
+  await expect(jobLink.locator("svg")).toHaveClass(/text-tasks/);
   await expect(page.locator('a[href="/skyline/runs/run_invoice?attempt=2"]')).not.toHaveCount(0);
   await expect(page.getByRole("button", { name: /resolve|ignore|assign|replay|cancel/i })).toHaveCount(0);
   expect(await errorDetailVisuals(page)).toEqual(triggerDetailVisuals);
@@ -434,6 +460,7 @@ function exception(): ExceptionDetails {
   const href = "vscode://file//srv/application/app/Jobs/GenerateMonthlyInvoices.php:42";
   if (value.location) value.location.href = href;
   value.frames[0].href = href;
+  if (value.frames[0].snippet) value.frames[0].snippet.code = `public function handle(): void\n{\n    throw new RuntimeException('${"Intentional demo failure ".repeat(20)}');\n}`;
   return value;
 }
 

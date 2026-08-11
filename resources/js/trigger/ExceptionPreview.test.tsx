@@ -3,13 +3,19 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ExceptionPreview, type ExceptionPreviewData } from "./ExceptionPreview";
 
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
 describe("ExceptionPreview", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.restoreAllMocks();
   });
 
-  it("preserves Trigger's failure composition with related frame disclosures", () => {
+  it("preserves Trigger's failure composition with related frame disclosures", async () => {
     const { container, root } = render(exception());
 
     expect(container.querySelectorAll('[data-skyline-extension="error-exception-evidence"][role="region"][aria-label="Exception"]')).toHaveLength(1);
@@ -29,8 +35,13 @@ describe("ExceptionPreview", () => {
     expect(application.getAttribute("aria-controls")).toBe("exception-frame-0");
     expect(container.querySelector("#exception-frame-0")).not.toBeNull();
     const applicationFrame = application.closest("article")!;
-    expect(applicationFrame.querySelector<HTMLAnchorElement>('a[href="vscode://file//workspace/app/Jobs/ChargeCard.php:42"]')).not.toBeNull();
-    expect(applicationFrame.querySelector<HTMLElement>('[aria-label="application frame 1"]')?.className).toContain("border-0");
+    expect(applicationFrame.className).toContain("bg-background-bright");
+    expect(application.parentElement?.querySelector("a")).toBeNull();
+    const snippet = applicationFrame.querySelector<HTMLElement>('[aria-label="application frame 1"]')!;
+    expect(snippet.className).toContain("border-0");
+    expect(snippet.firstElementChild?.textContent).toContain("app/Jobs/ChargeCard.php:42");
+    expect(snippet.querySelector<HTMLAnchorElement>('a[href="vscode://file//workspace/app/Jobs/ChargeCard.php:42"]')).not.toBeNull();
+    await vi.waitFor(() => expect([...snippet.querySelectorAll<HTMLElement>("pre > div")].map((line) => line.firstElementChild?.textContent)).toEqual(["40", "41", "42", "43"]));
 
     const vendor = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("1 vendor frame"))!;
     expect(vendor.getAttribute("aria-controls")).toBe("exception-vendor-1");
@@ -46,11 +57,27 @@ describe("ExceptionPreview", () => {
       value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
     });
     const { container, root } = render(exception());
-    const copy = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Copy as Markdown"))!;
+    const copy = container.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')!;
 
     await copy.click();
-    await vi.waitFor(() => expect(copy.textContent).toContain("Copy failed"));
-    expect(copy.getAttribute("title")).toBe("Copy failed");
+    expect(copy.textContent).toBe("");
+    await vi.waitFor(() => expect(document.body.textContent).toContain("Copy failed"));
+
+    flushSync(() => root.unmount());
+  });
+
+  it("opens the complete exception in a large dialog", async () => {
+    const { container, root } = render(exception());
+    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand exception"]')!;
+
+    flushSync(() => expand.click());
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!;
+    expect(dialog.className).toContain("sm:!w-[80vw]");
+    expect(dialog.textContent).toContain("RuntimeException");
+    expect(dialog.textContent).toContain("Payment failed.");
+    expect(dialog.textContent).toContain("app/Jobs/ChargeCard.php:42");
+    expect(dialog.querySelector('button[aria-label="Expand exception"]')).toBeNull();
 
     flushSync(() => root.unmount());
   });

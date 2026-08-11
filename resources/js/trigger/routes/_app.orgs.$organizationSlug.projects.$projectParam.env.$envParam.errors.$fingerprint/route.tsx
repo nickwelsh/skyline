@@ -6,19 +6,20 @@
  * Server, tenant, status, assignment, ignore, resolve, alerts, versions,
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
-import { useLoaderData, useSearchParams } from "@remix-run/react";
+import { Link, useLoaderData, useSearchParams } from "@remix-run/react";
 import { useMemo } from "react";
 import { CodeBlock } from "~/CodeBlock";
 import { ExceptionPreview, type ExceptionPreviewData } from "~/ExceptionPreview";
 import { RunsIcon } from "~/assets/icons/RunsIcon";
+import { TaskIcon } from "~/assets/icons/TaskIcon";
 import { PageBody, PageContainer } from "~/components/layout/AppLayout";
 import { ListPagination } from "~/components/ListPagination";
 import { LinkButton } from "~/components/primitives/Buttons";
-import { CopyableText } from "~/components/primitives/CopyableText";
 import { DateTime, RelativeDateTime } from "~/components/primitives/DateTime";
 import { Header2, Header3 } from "~/components/primitives/Headers";
 import { NavBar, PageTitle } from "~/components/primitives/PageHeader";
 import * as Property from "~/components/primitives/PropertyTable";
+import { SimpleTooltip } from "~/components/primitives/Tooltip";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -207,23 +208,31 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
             </Property.Item>
             <Property.Item>
               <Property.Label>ID</Property.Label>
-              <Property.Value><CopyableText value={data.errorGroup.friendlyId} /></Property.Value>
+              <Property.Value className="min-w-0 truncate"><TruncatedValue value={data.errorGroup.friendlyId} /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Task</Property.Label>
-              <Property.Value><CopyableText value={data.errorGroup.jobType} /></Property.Value>
+              <Property.Value className="min-w-0 truncate">
+                <SimpleTooltip
+                  asChild
+                  tabbable
+                  content={data.errorGroup.jobType}
+                  className="max-w-md break-all"
+                  button={<Link to={data.errorGroup.jobPath} className="flex min-w-0 items-center gap-1.5 text-text-link hover:text-text-bright focus-custom"><TaskIcon className="size-4 shrink-0 text-tasks" /><span className="truncate">{data.errorGroup.jobType}</span></Link>}
+                />
+              </Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Occurrences</Property.Label>
-              <Property.Value><span className="tabular-nums">{data.errorGroup.occurrenceCount.toLocaleString()}</span></Property.Value>
+              <Property.Value className="min-w-0 truncate"><TruncatedValue value={data.errorGroup.occurrenceCount.toLocaleString()} className="tabular-nums" /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>First seen</Property.Label>
-              <Property.Value><DateTime date={data.errorGroup.firstObservedAt} /></Property.Value>
+              <Property.Value className="min-w-0 truncate"><DateTime date={data.errorGroup.firstObservedAt} /></Property.Value>
             </Property.Item>
             <Property.Item>
               <Property.Label>Last seen</Property.Label>
-              <Property.Value><RelativeDateTime date={data.errorGroup.lastObservedAt} /></Property.Value>
+              <Property.Value className="min-w-0 truncate"><RelativeDateTime date={data.errorGroup.lastObservedAt} /></Property.Value>
             </Property.Item>
           </Property.Table>
           <ExceptionPreview exception={data.representative} />
@@ -231,4 +240,8 @@ function ErrorDetailSidebar({ data }: { data: ErrorGroupDetailData }) {
       </div>
     </aside>
   );
+}
+
+function TruncatedValue({ value, className }: { value: string; className?: string }) {
+  return <SimpleTooltip asChild content={value} className="max-w-md break-all" button={<span className={`block min-w-0 truncate ${className ?? ""}`}>{value}</span>} />;
 }

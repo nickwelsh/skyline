@@ -15,8 +15,10 @@ import {
   IconFolder,
   IconFolderOpen,
 } from "@tabler/icons-react";
+import { ArrowsPointingOutIcon } from "@heroicons/react/20/solid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CodeBlock } from "./CodeBlock";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
 import { Callout } from "./components/primitives/Callout";
 import { Header3 } from "./components/primitives/Headers";
 import { SimpleTooltip } from "./components/primitives/Tooltip";
@@ -46,9 +48,9 @@ export type ExceptionPreviewData = {
 
 type FrameEntry = { frame: ExceptionPreviewFrame; index: number };
 
-export function ExceptionPreview({ exception, extensionId = "error-exception-evidence" }: { exception: ExceptionPreviewData; extensionId?: string | null }) {
+export function ExceptionPreview({ exception, extensionId = "error-exception-evidence", modalView = false }: { exception: ExceptionPreviewData; extensionId?: string | null; modalView?: boolean }) {
   const exceptionKey = `${exception.class}\n${exception.message}\n${exception.markdown}`;
-  const [disclosure, setDisclosure] = useState({ key: exceptionKey, expanded: false });
+  const [disclosure, setDisclosure] = useState({ key: exceptionKey, expanded: modalView });
   const expanded = disclosure.key === exceptionKey && disclosure.expanded;
   const attemptPresenter = extensionId === "attempt-exception-evidence";
   const groups = useMemo(() => groupFrames(exception.frames), [exception.frames]);
@@ -126,7 +128,7 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
     <section data-skyline-extension={extensionId ?? undefined} role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
       <div className="flex min-w-0 items-center gap-2">
         <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
-        <MarkdownCopyButton value={exception.markdown} />
+        {!modalView && <div className="flex items-center gap-1"><MarkdownCopyButton value={exception.markdown} /><ExceptionExpandButton exception={exception} /></div>}
       </div>
       <Callout variant="error"><pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">{exception.message}</pre></Callout>
       {metadata}{trace}
@@ -136,6 +138,7 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
 
 function MarkdownCopyButton({ value }: { value: string }) {
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [hovered, setHovered] = useState(false);
   const timeout = useRef<number>();
 
   useEffect(() => () => window.clearTimeout(timeout.current), []);
@@ -151,17 +154,44 @@ function MarkdownCopyButton({ value }: { value: string }) {
     timeout.current = window.setTimeout(() => setStatus("idle"), 1_500);
   };
   const presentation = {
-    idle: { title: "Copy", text: "Copy as Markdown", color: "text-text-dimmed hover:text-text-bright", Icon: IconCopy },
-    copied: { title: "Copied", text: "Copied", color: "text-success", Icon: IconCheck },
-    failed: { title: "Copy failed", text: "Copy failed", color: "text-error", Icon: IconCopy },
+    idle: { title: "Copy as Markdown", color: "text-text-dimmed hover:text-text-bright", Icon: IconCopy },
+    copied: { title: "Copied", color: "text-success", Icon: IconCheck },
+    failed: { title: "Copy failed", color: "text-error", Icon: IconCopy },
   }[status];
   const StatusIcon = presentation.Icon;
 
   return (
-    <button type="button" aria-label="Copy as Markdown" title={presentation.title} onClick={() => void copy()} className={`inline-flex h-8 items-center gap-1 rounded-sm px-2 text-xs hover:bg-background-hover focus-custom ${presentation.color}`}>
-      <StatusIcon className="size-4" />
-      <span>{presentation.text}</span>
-    </button>
+    <SimpleTooltip
+      asChild
+      tabbable
+      open={hovered || status !== "idle"}
+      onOpenChange={setHovered}
+      content={presentation.title}
+      button={<button type="button" aria-label="Copy exception as Markdown" onClick={() => void copy()} className={`inline-flex size-8 items-center justify-center rounded-sm hover:bg-background-hover focus-custom ${presentation.color}`}><StatusIcon className="size-4" /></button>}
+    />
+  );
+}
+
+function ExceptionExpandButton({ exception }: { exception: ExceptionPreviewData }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <SimpleTooltip
+        asChild
+        tabbable
+        content="Expand"
+        button={<button type="button" aria-label="Expand exception" onClick={() => setOpen(true)} className="inline-flex size-8 items-center justify-center rounded-sm text-text-dimmed hover:bg-background-hover hover:text-text-bright focus-custom"><ArrowsPointingOutIcon className="size-4" /></button>}
+      />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="flex flex-col gap-0 p-0 pt-[2.9rem] sm:h-[80vh] sm:max-h-[80vh] sm:!w-[80vw] sm:!max-w-[80vw]">
+          <DialogHeader className="h-fit"><DialogTitle className="absolute left-3.5 top-2.5">Exception</DialogTitle></DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-surface-control">
+            <ExceptionPreview exception={exception} extensionId={null} modalView />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -172,7 +202,7 @@ function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntr
   const call = formatCall(frame);
 
   return (
-    <article className="shrink-0 overflow-hidden rounded border border-grid-bright bg-background-deep">
+    <article className="shrink-0 overflow-hidden rounded border border-grid-bright bg-background-bright">
       <div className="flex min-w-0 items-stretch">
         <SimpleTooltip
           asChild
@@ -193,9 +223,6 @@ function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntr
             </button>
           )}
         />
-        <div className="flex min-w-0 max-w-1/2 items-center border-l border-grid-bright px-3 text-xs text-text-faint">
-          <SourceLink file={frame.file} line={frame.line} href={frame.href} compact />
-        </div>
       </div>
       {expanded && frame.snippet && (
         <div id={panelId} className="border-t border-grid-bright bg-background-dimmed">
@@ -203,6 +230,8 @@ function ApplicationFrame({ entry, main, allowModal = true }: { entry: FrameEntr
             code={frame.snippet.code}
             className="rounded-none border-0"
             language="php"
+            rowTitle={<SourceLink file={frame.file} line={frame.line} href={frame.href} compact />}
+            startingLine={frame.snippet.startingLine}
             highlightedRanges={[[frame.snippet.highlightedLine - frame.snippet.startingLine + 1, frame.snippet.highlightedLine - frame.snippet.startingLine + 1]]}
             label={`application frame ${index + 1}`}
             maxLines={20}
@@ -237,7 +266,7 @@ function VendorFrames({ entries }: { entries: FrameEntry[] }) {
         <ol id={panelId} role="list" className="divide-y divide-grid-dimmed border-t border-grid-bright">
           {entries.map(({ frame, index }) => (
             <li key={`${frame.file}:${frame.line}:${index}`} className="flex min-w-0 flex-col gap-1 p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
-              <span className="min-w-0 truncate font-mono text-text-bright">{formatCall(frame)}</span>
+              <SimpleTooltip asChild content={formatCall(frame)} className="max-w-md break-all" button={<span className="min-w-0 truncate font-mono text-text-bright">{formatCall(frame)}</span>} />
               <SourceLink file={frame.file} line={frame.line} href={frame.href} compact />
             </li>
           ))}

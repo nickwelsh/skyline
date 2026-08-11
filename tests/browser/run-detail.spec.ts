@@ -237,10 +237,9 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
       value: { writeText: () => Promise.reject(new Error("denied")) },
     });
   });
-  const copy = page.getByRole("button", { name: "Copy as Markdown" });
+  const copy = page.getByRole("button", { name: "Copy exception as Markdown" });
   await copy.click();
-  await expect(copy).toContainText("Copy failed");
-  await expect(copy).toHaveAttribute("title", "Copy failed");
+  await expect(page.getByRole("tooltip")).toHaveText("Copy failed");
 });
 
 async function exerciseFailureSurface(page: Page) {
@@ -290,9 +289,9 @@ async function exerciseFailureSurface(page: Page) {
   const vendorPanel = evidence.locator(`#${vendorPanelId}`);
   await expect(vendorPanel).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
 
-  const copy = evidence.getByRole("button", { name: "Copy as Markdown" });
+  const copy = evidence.getByRole("button", { name: "Copy exception as Markdown" });
   await copy.click();
-  await expect(copy).toContainText("Copied");
+  await expect(page.getByRole("tooltip")).toHaveText("Copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(failureScenario.skylineException.markdown);
 
   const wrap = evidence.getByRole("button", { name: "Wrap application frame 1" });
@@ -313,7 +312,7 @@ async function exerciseFailureSurface(page: Page) {
     initialVendorExpanded,
     vendorPanelId,
     vendorExpanded: await vendor.getAttribute("aria-expanded"),
-    copied: (await copy.textContent())?.trim(),
+    copied: await page.getByRole("tooltip").textContent(),
     wrapped: await evidence.getByRole("button", { name: "Unwrap application frame 1" }).isVisible(),
     traceScrollable: await tracePanel.evaluate((element) => element.scrollHeight > element.clientHeight),
   };

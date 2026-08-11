@@ -192,7 +192,12 @@ final readonly class ExceptionPresenter
             $editor = config('skyline.editor');
         }
 
-        if (! is_array($editor) || ! is_string($editor['base_path'] ?? null) || $editor['base_path'] === '') {
+        $usesApplicationPath = is_string($editor) && $editor !== '';
+        $usesMappedPath = is_array($editor)
+            && is_string($editor['base_path'] ?? null)
+            && $editor['base_path'] !== '';
+
+        if (! $usesApplicationPath && ! $usesMappedPath) {
             return null;
         }
 
