@@ -2,6 +2,14 @@ import type { Page } from "@playwright/test";
 
 export type CaptureEnvironment = { width: number; height: number; theme: "classic" | "dark" | "light" | "system"; colorScheme: "light" | "dark" };
 
+export const loadingBarCaptureContract = {
+  className: "width-0 absolute left-0 top-0 h-full bg-linear-to-r from-transparent from-5% via-blue-500 to-transparent to-95%",
+  selector: '[class="width-0 absolute left-0 top-0 h-full bg-linear-to-r from-transparent from-5% via-blue-500 to-transparent to-95%"]',
+  candidateSelector: ".width-0.absolute.left-0.top-0.h-full",
+  styleMarker: "data-fidelity-loading-bar-capture",
+  styleText: '[class="width-0 absolute left-0 top-0 h-full bg-linear-to-r from-transparent from-5% via-blue-500 to-transparent to-95%"] { left: -100% !important; width: 100% !important; }',
+} as const;
+
 export function captureEnvironment(capture: string): CaptureEnvironment {
   const match = capture.match(/@(\d+)x(\d+)-(classic|dark|light|system)(?:-(light|dark))?$/);
   if (!match) throw new Error(`Invalid fidelity capture identifier: ${capture}`);
@@ -81,6 +89,27 @@ export async function settleCapture(page: Page) {
   });
   await page.clock.runFor(50);
   await settled;
+  await page.evaluate(stabilizeLoadingBarCapture, loadingBarCaptureContract);
+}
+
+export function stabilizeLoadingBarCapture(contract: typeof loadingBarCaptureContract) {
+  const candidates = document.querySelectorAll<HTMLElement>(contract.candidateSelector);
+  if (candidates.length === 0) return 0;
+  if (candidates.length !== 1 || candidates[0]?.className !== contract.className || !candidates[0].matches(contract.selector)) {
+    throw new Error("Fidelity capture changed the literal source LoadingBarDivider animation element.");
+  }
+
+  const styles = document.querySelectorAll<HTMLStyleElement>(`style[${contract.styleMarker}]`);
+  if (styles.length > 1 || (styles[0] && styles[0].textContent !== contract.styleText)) {
+    throw new Error("Fidelity capture changed the LoadingBarDivider stabilization rule.");
+  }
+  if (styles.length === 0) {
+    const style = document.createElement("style");
+    style.setAttribute(contract.styleMarker, "source-first-keyframe");
+    style.textContent = contract.styleText;
+    document.head.append(style);
+  }
+  return 1;
 }
 
 function opposite(scheme: "light" | "dark") {
