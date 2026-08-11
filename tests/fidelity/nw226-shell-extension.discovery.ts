@@ -41,6 +41,12 @@ for (const capture of captures) {
       await step("ready:trigger", () => trigger.locator("html[data-oracle-ready='true']").waitFor());
       if (scenario.state === "stale-refresh") {
         await step("state:stale-refresh", () => transitionToStaleRefresh(skyline, trigger, fixture, scenario));
+        if (scenario.surface === "error") {
+          await Promise.all([
+            step("state:skyline-stale-content-visible", () => expect(skyline.getByLabel("Loading Error group", { exact: true })).toHaveCount(0)),
+            step("state:trigger-stale-content-visible", () => expect(trigger.getByLabel("Loading Error group", { exact: true })).toHaveCount(0)),
+          ]);
+        }
       }
       if (scenario.id === "queues-filtering") {
         await Promise.all([

@@ -94,6 +94,17 @@ describe("pinned shell capability adapters", () => {
     expect(skyline).toContain("<ListPagination list={data} />");
   });
 
+  test("keeps resolved Error detail visible during stale page refresh", () => {
+    const reference = conditionErrorDetailCapabilities(readFileSync(referenceErrorDetail, "utf8"), policy.errors);
+    const skyline = readFileSync(skylineErrorDetail, "utf8");
+
+    for (const route of [reference, skyline]) {
+      expect(route).not.toContain("Loading Error group");
+      expect(route).not.toContain('bg-background-dimmed/80');
+    }
+    expect(skyline).toContain("isLoading={false}");
+  });
+
   test("routes pinned Queue metric queries through observed fixture resources", () => {
     const source = readFileSync(queueMetrics, "utf8");
     const list = readFileSync(queueList, "utf8");

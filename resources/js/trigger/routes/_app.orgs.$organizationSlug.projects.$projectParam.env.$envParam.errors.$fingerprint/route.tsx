@@ -7,7 +7,7 @@
  * replay, cancellation, and bulk actions are external or capability-hidden.
  */
 import { CalendarIcon } from "@heroicons/react/20/solid";
-import { useLoaderData, useNavigation, useSearchParams } from "@remix-run/react";
+import { useLoaderData, useSearchParams } from "@remix-run/react";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CodeBlock } from "~/CodeBlock";
@@ -28,7 +28,6 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "~/components/primitives/Resizable";
-import { Spinner } from "~/components/primitives/Spinner";
 import { TaskRunsTable, type PresentedRun } from "~/components/runs/v3/TaskRunsTable";
 
 type ErrorGroupSummary = {
@@ -83,7 +82,6 @@ export default function Page() {
 }
 
 function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
-  const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
   const updatePeriod = (period: string) => {
     const next = new URLSearchParams(searchParams);
@@ -122,18 +120,11 @@ function ErrorGroupDetail({ data }: { data: ErrorGroupDetailData }) {
                 total={data.failedRuns.length}
                 hasFilters={data.filters.period !== "all"}
                 runs={data.failedRuns}
+                isLoading={false}
                 presentation="error"
                 showVersions={data.canViewVersions}
                 showMachines={data.canViewMachines}
               />
-              {navigation.state !== "idle" && (
-                <div
-                  aria-label="Loading Error group"
-                  className="absolute inset-0 grid place-items-center bg-background-dimmed/80"
-                >
-                  <Spinner />
-                </div>
-              )}
             </div>
           </div>
         </div>
