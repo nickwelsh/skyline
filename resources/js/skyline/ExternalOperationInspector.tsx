@@ -6,14 +6,10 @@
  * evidence through the shared Run inspector tabs.
  */
 import { ClipboardCheckIcon, ClipboardIcon } from "lucide-react";
+import type { Language } from "prism-react-renderer";
 import { useState, type ReactNode } from "react";
-import {
-  HtmlCapturePreview,
-  JsonCapturePreview,
-  SqlCapturePreview,
-  TextCapturePreview,
-} from "../trigger/CapturePreview";
 import { CodeBlock } from "../trigger/CodeBlock";
+import { interpolateSql } from "../trigger/capture-formatting";
 import { Header3 } from "../trigger/components/primitives/Headers";
 import { DateTimeAccurate } from "../trigger/components/primitives/DateTime";
 import * as Property from "../trigger/components/primitives/PropertyTable";
@@ -242,15 +238,18 @@ function SqlInspector({ presentation }: { presentation: PresentationOf<"sql"> })
 
   return (
     <InspectorLayout title="SQL query" timing={presentation.timing} failure={presentation.failure}>
-      <SqlCapturePreview
-        sql={statement.value}
-        bindings={bindings?.items}
-        sqlTruncated={statement.isTruncated}
-        bindingsTruncated={bindings?.truncated}
-      />
+      <RecordedCode label="Parameterized SQL" code={statement.value} language="sql" truncated={statement.isTruncated} />
+      {bindings && bindings.items.length > 0 && (
+        <RecordedCode
+          label="SQL with bindings"
+          code={interpolateSql(statement.value, bindings.items)}
+          language="sql"
+          truncated={statement.isTruncated || bindings.truncated}
+        />
+      )}
       {!bindings && <Unavailable>Bindings not captured</Unavailable>}
       {result
-        ? <JsonCapturePreview label="Result preview" value={result} truncated={result.truncated} summary={result.kind === "rows" ? `${result.rowCount.toLocaleString()} rows` : `${result.affectedRows.toLocaleString()} affected`} />
+        ? <RecordedJson label="Result preview" value={result} truncated={result.truncated} summary={result.kind === "rows" ? `${result.rowCount.toLocaleString()} rows` : `${result.affectedRows.toLocaleString()} affected`} />
         : <Unavailable>Result not captured</Unavailable>}
     </InspectorLayout>
   );
@@ -320,10 +319,10 @@ function HttpInspector({ presentation, overview }: { presentation: PresentationO
         <Item label="URL" value={http.url} breakWords />
         <Item label="Status" value={http.statusCode} />
       </Property.Table>
-      {query && <JsonCapturePreview label="Query parameters" value={query} />}
+      {query && <RecordedJson label="Query parameters" value={query} />}
       <MessageCapture title="Request" capture={http.request} />
       <MessageCapture title="Response" capture={http.response} />
-      <JsonCapturePreview label="Context" value={overview} />
+      <RecordedJson label="Context" value={overview} />
     </InspectorLayout>
   );
 }
@@ -354,13 +353,13 @@ function DeliveryInspector({ presentation }: { presentation: PresentationOf<"del
         <Item label="Recipient count" value={delivery.recipientCount} />
       </Property.Table>
       {delivery.recipients
-        ? <JsonCapturePreview label="Recipients" value={delivery.recipients} />
+        ? <RecordedJson label="Recipients" value={delivery.recipients} />
         : <Unavailable>Recipients not captured</Unavailable>}
       <CapturedValuePreview label="Recipient identity" capture={delivery.recipientIdentity} />
       <TextPreview label="Subject" capture={delivery.subject} />
       <TextPreview label="Text body" capture={delivery.text} />
       {delivery.html
-        ? <HtmlCapturePreview label="HTML body" value={delivery.html.value} truncated={delivery.html.truncated} />
+        ? <RecordedCode label="HTML body" code={delivery.html.value} language="markup" truncated={delivery.html.truncated} />
         : <Unavailable>HTML body not captured</Unavailable>}
       <CapturedValuePreview label="Message data" capture={delivery.messageData} />
       <CapturedValuePreview label="Operation data" capture={delivery.operationData} />
@@ -387,7 +386,7 @@ function StorageInspector({ presentation }: { presentation: PresentationOf<"stor
         <LinkItem label="Destination file" href={storage.destinationLocalFile?.href ?? null} value={storage.destinationLocalFile?.path} />
       </Property.Table>
       <CapturedValuePreview label="Content" capture={storage.content} />
-      <JsonCapturePreview label="Recorded result" value={storage.result} />
+      <RecordedJson label="Recorded result" value={storage.result} />
     </InspectorLayout>
   );
 }
@@ -425,8 +424,8 @@ function BreadcrumbInspector({ presentation }: { presentation: PresentationOf<"b
         <Item label="Level" value={breadcrumb.level} />
         <Item label="Channel" value={breadcrumb.channel} />
       </Property.Table>
-      <TextCapturePreview label="Message" value={breadcrumb.message} />
-      <JsonCapturePreview label="Context" value={breadcrumb.context} />
+      <RecordedCode label="Message" code={breadcrumb.message} language="markup" />
+      <RecordedJson label="Context" value={breadcrumb.context} />
     </section>
   );
 }
@@ -435,7 +434,7 @@ function CustomInspector({ presentation }: { presentation: PresentationOf<"custo
   return (
     <InspectorLayout title="Custom operation" timing={presentation.timing} failure={presentation.failure}>
       <Property.Table><Item label="Name" value={presentation.custom.name} /></Property.Table>
-      <JsonCapturePreview label="Attributes" value={presentation.custom.attributes} />
+      <RecordedJson label="Attributes" value={presentation.custom.attributes} />
     </InspectorLayout>
   );
 }
@@ -451,7 +450,7 @@ function SummaryInspector({ presentation }: { presentation: PresentationOf<"summ
         <Item label="Memory change" value={formatSignedBytes(resources.memoryDeltaBytes)} />
         <Item label="CPU time" value={formatMicroseconds(resources.cpuTimeUs)} />
       </Property.Table>
-      <JsonCapturePreview label="Operations" value={operations} />
+      <RecordedJson label="Operations" value={operations} />
     </section>
   );
 }
@@ -460,7 +459,7 @@ function GenericInspector({ inspector, presentation }: { inspector: ExternalInsp
   return (
     <InspectorLayout title="Recorded operation" timing={presentation?.timing} failure={presentation?.failure}>
       {inspector.detailSections.length > 0
-        ? inspector.detailSections.map((section) => <JsonCapturePreview key={section.label} label={section.label} value={section.value} />)
+        ? inspector.detailSections.map((section) => <RecordedJson key={section.label} label={section.label} value={section.value} />)
         : <CodeBlock
             rowTitle="Recorded properties"
             label="Recorded properties"
@@ -502,12 +501,12 @@ function MessageCapture({ title, capture }: { title: string; capture: HttpMessag
     <section aria-label={`${title} evidence`} className="flex min-w-0 flex-col gap-3">
       <Header3>{title}</Header3>
       {capture.headers
-        ? <JsonCapturePreview label={`${title} headers`} value={capture.headers.items} truncated={capture.headers.truncated} />
+        ? <RecordedJson label={`${title} headers`} value={capture.headers.items} truncated={capture.headers.truncated} />
         : <Unavailable>{title} headers not captured</Unavailable>}
       {capture.body
         ? capture.body.isJson
-          ? <JsonCapturePreview label={`${title} body`} value={capture.body.json ?? capture.body.value} truncated={capture.body.truncated} summary={capture.body.contentType ?? undefined} />
-          : <TextCapturePreview label={`${title} body`} value={capture.body.value} truncated={capture.body.truncated} summary={capture.body.contentType ?? undefined} />
+          ? <RecordedJson label={`${title} body`} value={capture.body.json ?? capture.body.value} truncated={capture.body.truncated} summary={capture.body.contentType ?? undefined} />
+          : <RecordedCode label={`${title} body`} code={capture.body.value} language="markup" truncated={capture.body.truncated} summary={capture.body.contentType ?? undefined} />
         : <Unavailable>{title} body not captured</Unavailable>}
     </section>
   );
@@ -515,14 +514,67 @@ function MessageCapture({ title, capture }: { title: string; capture: HttpMessag
 
 function CapturedValuePreview({ label, capture }: { label: string; capture: CapturedValue | null }) {
   return capture
-    ? <JsonCapturePreview label={label} value={capture.value} truncated={capture.truncated} summary={capture.type} />
+    ? <RecordedJson label={label} value={capture.value} truncated={capture.truncated} summary={capture.type} />
     : <Unavailable>{label} not captured</Unavailable>;
 }
 
 function TextPreview({ label, capture }: { label: string; capture: TextCapture | null }) {
   return capture
-    ? <TextCapturePreview label={label} value={capture.value} truncated={capture.truncated} />
+    ? <RecordedCode label={label} code={capture.value} language="markup" truncated={capture.truncated} />
     : <Unavailable>{label} not captured</Unavailable>;
+}
+
+function RecordedJson({ label, value, summary, truncated = false }: { label: string; value: unknown; summary?: string; truncated?: boolean }) {
+  return (
+    <RecordedCode
+      label={label}
+      code={stringifyRecordedValue(value)}
+      language="json"
+      jsonValue={typeof value === "object" && value !== null ? value : undefined}
+      summary={summary}
+      truncated={truncated}
+    />
+  );
+}
+
+function RecordedCode({ label, code, language, jsonValue, summary, truncated = false }: {
+  label: string;
+  code: string;
+  language: Language;
+  jsonValue?: unknown;
+  summary?: string;
+  truncated?: boolean;
+}) {
+  return (
+    <CodeBlock
+      rowTitle={<RecordedTitle label={label} summary={summary} truncated={truncated} />}
+      label={label}
+      code={code}
+      language={language}
+      jsonValue={jsonValue}
+      maxLines={20}
+      showLineNumbers={false}
+      showTextWrapping
+    />
+  );
+}
+
+function RecordedTitle({ label, summary, truncated }: { label: string; summary?: string; truncated: boolean }) {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="truncate">{label}</span>
+      {summary && <span className="shrink-0 text-text-faint">· {summary}</span>}
+      {truncated && <span className="shrink-0 rounded border border-amber-500/40 bg-amber-500/10 px-1 text-amber-300">Truncated</span>}
+    </span>
+  );
+}
+
+function stringifyRecordedValue(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2) ?? String(value);
+  } catch {
+    return String(value);
+  }
 }
 
 function Unavailable({ children }: { children: ReactNode }) {

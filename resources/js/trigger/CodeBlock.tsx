@@ -3,12 +3,11 @@
  * at ca9a74e84abdf9483c234e82dc54b9ec2c00d8c0.
  * Skyline adaptation: local imports and a dependency-light modal copy button.
  */
-import { ArrowsPointingOutIcon, CodeBracketIcon, QueueListIcon } from "@heroicons/react/20/solid";
+import { ArrowsPointingOutIcon, ChevronRightIcon, CodeBracketIcon, QueueListIcon } from "@heroicons/react/20/solid";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { Highlight, Prism, type Language, type PrismTheme } from "prism-react-renderer";
-import { forwardRef, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
-import { JsonTree } from "./CapturePreview";
 import { TextInlineIcon } from "./TextInlineIcon";
 import { TextWrapIcon } from "./TextWrapIcon";
 import { Paragraph } from "./components/primitives/Paragraph";
@@ -353,4 +352,95 @@ function HighlightCode({ theme, code, language, showLineNumbers, highlightLines,
       )}
     </Highlight>
   );
+}
+
+function JsonTree({ value, label, expanded = false }: { value: unknown; label: string; expanded?: boolean }) {
+  return (
+    <div role="tree" aria-label={`${label} JSON tree`} tabIndex={0} className={`${expanded ? "h-full max-h-none" : "max-h-80"} overflow-auto py-2 font-mono text-xs`}>
+      <JsonTreeNode value={value} depth={0} siblingCount={1} path="$" />
+    </div>
+  );
+}
+
+function JsonTreeNode({ value, depth, siblingCount, path, name, isArrayItem = false, trailingComma = false }: {
+  value: unknown;
+  depth: number;
+  siblingCount: number;
+  path: string;
+  name?: string;
+  isArrayItem?: boolean;
+  trailingComma?: boolean;
+}) {
+  const container = typeof value === "object" && value !== null;
+  const [expanded, setExpanded] = useState(depth === 0 || (depth === 1 && siblingCount <= 5));
+  const rowStyle = { "--json-depth": depth } as CSSProperties;
+
+  if (!container) {
+    return (
+      <div role="treeitem" aria-label={path} className="flex min-w-max items-baseline py-0.5 pr-3 [padding-left:calc(var(--json-depth)*1rem+0.5rem)]" style={rowStyle}>
+        <span className="w-4 shrink-0" aria-hidden="true" />
+        {name !== undefined && <JsonKey name={name} isArrayItem={isArrayItem} />}
+        <JsonPrimitive value={value} />
+        {trailingComma && <span className="text-code-foreground">,</span>}
+      </div>
+    );
+  }
+
+  const entries = Array.isArray(value) ? value.map((item, index) => [String(index), item] as const) : Object.entries(value);
+  const open = Array.isArray(value) ? "[" : "{";
+  const close = Array.isArray(value) ? "]" : "}";
+  const summary = `${entries.length.toLocaleString()} ${Array.isArray(value) ? (entries.length === 1 ? "item" : "items") : (entries.length === 1 ? "key" : "keys")}`;
+
+  return (
+    <div role="treeitem" aria-expanded={expanded} aria-label={path}>
+      <button
+        type="button"
+        onClick={() => setExpanded((current) => !current)}
+        className="flex min-w-full items-baseline py-0.5 pr-3 text-left hover:bg-background-hover [padding-left:calc(var(--json-depth)*1rem+0.5rem)]"
+        style={rowStyle}
+      >
+        <ChevronRightIcon className={`size-4 h-lh shrink-0 text-text-faint transition-transform ${expanded ? "rotate-90" : ""}`} />
+        {name !== undefined && <JsonKey name={name} isArrayItem={isArrayItem} />}
+        <span className="text-code-foreground">{open}</span>
+        <span className="pl-1 text-code-muted">{summary}</span>
+        {!expanded && <span className="pl-1 text-code-foreground">…{close}{trailingComma ? "," : ""}</span>}
+      </button>
+      {expanded && (
+        <div role="group">
+          {entries.map(([entryName, item], index) => (
+            <JsonTreeNode
+              key={`${path}.${entryName}`}
+              value={item}
+              depth={depth + 1}
+              siblingCount={entries.length}
+              path={Array.isArray(value) ? `${path}[${entryName}]` : `${path}.${entryName}`}
+              name={entryName}
+              isArrayItem={Array.isArray(value)}
+              trailingComma={index < entries.length - 1}
+            />
+          ))}
+          <div className="min-w-max py-0.5 pr-3 text-code-foreground [padding-left:calc(var(--json-depth)*1rem+1.5rem)]" style={rowStyle}>
+            {close}{trailingComma ? "," : ""}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function JsonKey({ name, isArrayItem }: { name: string; isArrayItem: boolean }) {
+  return (
+    <>
+      <span className={isArrayItem ? "text-code-number" : "text-code-object-key"}>{isArrayItem ? name : JSON.stringify(name)}</span>
+      <span className="pr-1 text-code-foreground">: </span>
+    </>
+  );
+}
+
+function JsonPrimitive({ value }: { value: unknown }) {
+  if (value === null) return <span className="text-code-keyword">null</span>;
+  if (typeof value === "string") return <span className="text-code-string">{JSON.stringify(value)}</span>;
+  if (typeof value === "number") return <span className="text-code-number">{String(value)}</span>;
+  if (typeof value === "boolean") return <span className="text-code-keyword">{String(value)}</span>;
+  return <span className="text-code-muted">{String(value)}</span>;
 }

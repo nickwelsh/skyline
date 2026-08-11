@@ -1,6 +1,6 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ExternalOperationInspector } from "./ExternalOperationInspector";
 import type { RunDetailInspector } from "./RunDetailAdapter";
 
@@ -51,7 +51,7 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
-  it("presents SQL statement, bindings, result, and capture limits", () => {
+  it("presents SQL statement, bindings, result, and capture limits", async () => {
     const { container, root } = renderInspector({
       type: "sql",
       timing: timing(),
@@ -65,11 +65,11 @@ describe("ExternalOperationInspector", () => {
 
     expect(container.textContent).toContain("SQL query");
     expect(container.textContent).toContain("125 ms");
-    expect(container.querySelector('[role="tablist"][aria-label="SQL display"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="SQL with bindings"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Copy Parameterized SQL"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Wrap Parameterized SQL"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Expand Parameterized SQL"]')).not.toBeNull();
-    expect(container.querySelector('[role="tablist"][aria-label="Result preview display"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Show Result preview tree"]')).not.toBeNull();
     expect(container.textContent).toContain("Truncated");
     expect(container.querySelector('[aria-label="SQL query detail"]')).not.toBeNull();
     expect(container.querySelector('[data-skyline-extension="database-state-operation-inspector"]')).toBeNull();
@@ -77,6 +77,7 @@ describe("ExternalOperationInspector", () => {
       "2026-08-05T12:00:00.000000000Z",
       "2026-08-05T12:00:00.125000000Z",
     ]);
+    await vi.waitFor(() => expect(container.querySelector('[aria-label="Parameterized SQL"] .token.keyword')?.textContent).toBe("select"));
 
     flushSync(() => root.unmount());
   });
@@ -135,7 +136,7 @@ describe("ExternalOperationInspector", () => {
     flushSync(() => root.unmount());
   });
 
-  it("uses roving focus and keyboard navigation for capture display tabs", () => {
+  it("uses the same titled CodeBlock for parameterized and interpolated SQL", async () => {
     const { container, root } = renderInspector({
       type: "sql",
       timing: timing(),
@@ -146,23 +147,15 @@ describe("ExternalOperationInspector", () => {
         result: null,
       },
     });
-    const tablist = container.querySelector<HTMLElement>('[role="tablist"][aria-label="SQL display"]')!;
-    const tabs = [...tablist.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-
-    expect(tablist.getAttribute("aria-orientation")).toBe("horizontal");
-    expect(tabs.map((tab) => tab.tabIndex)).toEqual([0, -1]);
-    tabs[0].focus();
-    flushSync(() => tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
-    expect(tabs.map((tab) => tab.getAttribute("aria-selected"))).toEqual(["false", "true"]);
-    expect(tabs.map((tab) => tab.tabIndex)).toEqual([-1, 0]);
-    expect(document.activeElement).toBe(tabs[1]);
-
-    flushSync(() => tabs[1].dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true })));
-    expect(document.activeElement).toBe(tabs[0]);
-    flushSync(() => tabs[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })));
-    expect(document.activeElement).toBe(tabs[1]);
-    flushSync(() => tabs[1].dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true })));
-    expect(document.activeElement).toBe(tabs[1]);
+    const parameterized = container.querySelector<HTMLElement>('[aria-label="Parameterized SQL"]')!;
+    const interpolated = container.querySelector<HTMLElement>('[aria-label="SQL with bindings"]')!;
+    expect(parameterized.getAttribute("translate")).toBe("no");
+    expect(interpolated.getAttribute("translate")).toBe("no");
+    expect(parameterized.querySelector("p")?.textContent).toBe("Parameterized SQL");
+    expect(interpolated.querySelector("p")?.textContent).toBe("SQL with bindings");
+    expect(interpolated.textContent).toContain("42");
+    expect(container.querySelector('[role="tablist"][aria-label="SQL display"]')).toBeNull();
+    await vi.waitFor(() => expect(interpolated.querySelector(".token.number")?.textContent).toBe("42"));
 
     flushSync(() => root.unmount());
   });
@@ -181,7 +174,7 @@ describe("ExternalOperationInspector", () => {
 
     expect(container.textContent).toContain("Bindings not captured");
     expect(container.textContent).toContain("Result not captured");
-    expect(container.querySelector('[role="tablist"][aria-label="SQL display"]')).toBeNull();
+    expect(container.querySelector('[aria-label="SQL with bindings"]')).toBeNull();
 
     flushSync(() => root.unmount());
   });
@@ -255,7 +248,7 @@ describe("ExternalOperationInspector", () => {
     expect(container.textContent).toContain("Redis command");
     expect(container.textContent).toContain("SET");
     expect(container.textContent).toContain("Connection lost");
-    expect(container.querySelector('[role="tablist"][aria-label="Arguments display"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Show Arguments tree"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Copy Arguments"]')).not.toBeNull();
     expect(container.textContent).toContain("Truncated");
 

@@ -43,7 +43,7 @@ describe("ExceptionPreview", () => {
       value: { writeText: vi.fn().mockRejectedValue(new Error("denied")) },
     });
     const { container, root } = render(exception());
-    const copy = container.querySelector<HTMLButtonElement>('button[aria-label="Copy exception as Markdown"]')!;
+    const copy = [...container.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Copy as Markdown"))!;
 
     await copy.click();
     await vi.waitFor(() => expect(copy.textContent).toContain("Copy failed"));

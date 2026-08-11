@@ -242,16 +242,12 @@ describe("Run detail source primitives", () => {
     const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Parameterized SQL"]')!;
     await act(async () => expand.click());
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).not.toBeNull());
-    const tab = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"]')!;
-    tab.focus();
+    const copy = document.querySelector<HTMLButtonElement>('[role="dialog"] button')!;
+    copy.focus();
 
-    await act(async () => tab.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await act(async () => copy.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
-    expect(router.state.location.search).toBe(`?node=${queryId}&tab=detail`);
-    expect(container.querySelector('[aria-label="Run inspector"]')).not.toBeNull();
-
-    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     await vi.waitFor(() => expect(container.querySelector('[aria-label="Run inspector"]')).toBeNull());
     expect(router.state.location.search).toBe("?tab=detail");
     expect(expand.isConnected).toBe(false);

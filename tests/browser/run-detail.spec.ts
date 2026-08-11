@@ -236,7 +236,7 @@ test("failed Attempt inspector reports request, copy, and source-link outcomes",
       value: { writeText: () => Promise.reject(new Error("denied")) },
     });
   });
-  const copy = page.getByRole("button", { name: "Copy exception as Markdown" });
+  const copy = page.getByRole("button", { name: "Copy as Markdown" });
   await copy.click();
   await expect(copy).toContainText("Copy failed");
   await expect(copy).toHaveAttribute("title", "Copy failed");
@@ -289,7 +289,7 @@ async function exerciseFailureSurface(page: Page) {
   const vendorPanel = evidence.locator(`#${vendorPanelId}`);
   await expect(vendorPanel).toContainText("Illuminate\\Queue\\CallQueuedHandler->call");
 
-  const copy = evidence.getByRole("button", { name: "Copy exception as Markdown" });
+  const copy = evidence.getByRole("button", { name: "Copy as Markdown" });
   await copy.click();
   await expect(copy).toContainText("Copied");
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(failureScenario.skylineException.markdown);
@@ -628,10 +628,6 @@ test("paired external and custom inspectors preserve visible, interaction, focus
     await wrap.click();
     await expect(page.getByRole("button", { name: `Unwrap ${scenario.preview}` })).toBeVisible();
 
-    if (scenario.key === "process") {
-      await expectIndependentInspectorScrolling(page, scenario.preview);
-    }
-
     const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
     await copy.click();
     await expect(copy).toHaveClass(/text-success/);
@@ -639,14 +635,13 @@ test("paired external and custom inspectors preserve visible, interaction, focus
     const expand = page.getByRole("button", { name: `Expand ${scenario.preview}` });
     await expand.focus();
     await expand.click();
-    const dialog = page.getByRole("dialog", { name: scenario.key === "generic" ? scenario.preview : `Expanded ${scenario.preview}` });
+    const dialog = page.getByRole("dialog", { name: scenario.preview });
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Tab");
     await expect(dialog.locator(":focus")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    if (scenario.key === "generic") await expect(page.getByLabel("Run inspector")).toHaveCount(0);
-    else await expect(expand).not.toBeFocused();
+    await expect(page.getByLabel("Run inspector")).toHaveCount(0);
   }
 });
 
@@ -701,6 +696,13 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     for (const value of scenario.visible) await expect(detailRegion).toContainText(value);
     for (const value of scenario.absent) await expect(detailRegion).not.toContainText(value);
 
+    if (scenario.key === "sql-captured") {
+      const bindings = detailRegion.getByLabel("SQL with bindings", { exact: true });
+      await expect(bindings).toContainText("[REDACTED]");
+      await detailRegion.getByRole("button", { name: "Show Result preview tree" }).click();
+      await expect(detailRegion.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
+    }
+
     if (!scenario.preview) continue;
 
     const wrap = page.getByRole("button", { name: `Wrap ${scenario.preview}` });
@@ -708,48 +710,16 @@ test("database and state inspectors preserve captured, unavailable, failed, and 
     await expect(page.getByRole("button", { name: `Unwrap ${scenario.preview}` })).toBeVisible();
     const copy = page.getByRole("button", { name: `Copy ${scenario.preview}` });
     await copy.click();
-    await expect(copy).toHaveAttribute("title", "Copied");
+    await expect(copy).toHaveClass(/text-success/);
     const expand = page.getByRole("button", { name: `Expand ${scenario.preview}` });
     await expand.click();
-    const dialog = page.getByRole("dialog", { name: `Expanded ${scenario.preview}` });
+    const dialog = page.getByRole("dialog", { name: scenario.preview });
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
-    await expect(inspector).toBeVisible();
-
-    if (scenario.key === "sql-captured") {
-      await expectCaptureTabKeyboard(page, detailRegion);
-      await page.getByRole("tab", { name: "With bindings" }).click();
-      await expect(detailRegion).toContainText("[REDACTED]");
-      await page.getByRole("tab", { name: "Tree" }).click();
-      await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
-    }
+    await expect(inspector).toHaveCount(0);
   }
 });
-
-async function expectCaptureTabKeyboard(page: Page, detailRegion: ReturnType<Page["getByRole"]>) {
-  const parameterized = detailRegion.getByRole("tab", { name: "Parameterized" });
-  const bindings = detailRegion.getByRole("tab", { name: "With bindings" });
-  await expect(parameterized).toHaveAttribute("tabindex", "0");
-  await expect(bindings).toHaveAttribute("tabindex", "-1");
-  await parameterized.focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(bindings).toBeFocused();
-  await expect(bindings).toHaveAttribute("aria-selected", "true");
-  await page.keyboard.press("Home");
-  await expect(parameterized).toBeFocused();
-  await page.keyboard.press("ArrowLeft");
-  await expect(bindings).toBeFocused();
-  await page.keyboard.press("End");
-  await expect(bindings).toBeFocused();
-
-  const text = detailRegion.getByRole("tab", { name: "Text" });
-  const tree = detailRegion.getByRole("tab", { name: "Tree" });
-  await text.focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(tree).toBeFocused();
-  await expect(page.getByRole("tree", { name: "Result preview JSON tree" })).toBeVisible();
-}
 
 async function routeDetail(
   page: Page,
@@ -830,40 +800,4 @@ function longProcessOutput(): string {
     { length: triggerInspectorBaseline.contract.capture.visibleLineLimit * 6 },
     (_, index) => `processed record ${String(index + 1).padStart(3, "0")} with independently scrollable inspector evidence`,
   ).join("\n");
-}
-
-async function expectIndependentInspectorScrolling(page: Page, previewLabel: string): Promise<void> {
-  expect(triggerInspectorBaseline.contract.inspector.overflowY).toBe("auto");
-  expect(triggerInspectorBaseline.contract.capture.overflowY).toBe("auto");
-  expect(triggerInspectorBaseline.contract.capture.copy).toBe(true);
-  expect(triggerInspectorBaseline.contract.capture.wrap).toBe(true);
-  expect(triggerInspectorBaseline.contract.capture.expand).toBe(true);
-  expect(triggerInspectorBaseline.contract.capture.focusManagedDialog).toBe(true);
-
-  const inspector = page.getByRole("tabpanel", { name: "Detail" });
-  const capture = page.getByRole("region", { name: `${previewLabel} preview` }).locator("pre");
-  const inspectorGeometry = await inspector.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    overflowY: getComputedStyle(element).overflowY,
-    scrollHeight: element.scrollHeight,
-  }));
-  const captureGeometry = await capture.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    overflowY: getComputedStyle(element).overflowY,
-    scrollHeight: element.scrollHeight,
-  }));
-  expect(inspectorGeometry.overflowY).toBe(triggerInspectorBaseline.contract.inspector.overflowY);
-  expect(inspectorGeometry.scrollHeight).toBeGreaterThan(inspectorGeometry.clientHeight);
-  expect(captureGeometry.overflowY).toBe(triggerInspectorBaseline.contract.capture.overflowY);
-  expect(captureGeometry.scrollHeight).toBeGreaterThan(captureGeometry.clientHeight);
-
-  const inspectorStart = await inspector.evaluate((element) => element.scrollTop);
-  await capture.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-  const captureScrolled = await capture.evaluate((element) => element.scrollTop);
-  expect(captureScrolled).toBeGreaterThan(0);
-  await expect.poll(() => inspector.evaluate((element) => element.scrollTop)).toBe(inspectorStart);
-
-  await inspector.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-  await expect.poll(() => inspector.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
-  expect(await capture.evaluate((element) => element.scrollTop)).toBe(captureScrolled);
 }

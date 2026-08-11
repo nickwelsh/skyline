@@ -8,13 +8,14 @@
 import {
   IconChevronDown,
   IconChevronUp,
+  IconCheck,
   IconCode,
+  IconCopy,
   IconExternalLink,
   IconFolder,
   IconFolderOpen,
 } from "@tabler/icons-react";
-import { useMemo, useState } from "react";
-import { CopyButton } from "./CapturePreview";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CodeBlock } from "./CodeBlock";
 import { Callout } from "./components/primitives/Callout";
 import { Header3 } from "./components/primitives/Headers";
@@ -60,7 +61,7 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
           ? <SourceLink file={exception.location.file} line={exception.location.line} href={exception.location.href} />
           : <span>Source location not captured</span>}
         {exception.code && <span>Code {exception.code}</span>}
-        {attemptPresenter && <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />}
+        {attemptPresenter && <MarkdownCopyButton value={exception.markdown} />}
       </div>
     </>
   );
@@ -124,11 +125,42 @@ export function ExceptionPreview({ exception, extensionId = "error-exception-evi
     <section data-skyline-extension={extensionId ?? undefined} role="region" aria-label="Exception" className="flex flex-col gap-2 rounded-sm border border-rose-500/50 px-3 pb-3 pt-2">
       <div className="flex min-w-0 items-center gap-2">
         <Header3 className="min-w-0 flex-1 truncate text-rose-500">{exception.class}</Header3>
-        <CopyButton value={exception.markdown} label="exception as Markdown" idleText="Copy as Markdown" />
+        <MarkdownCopyButton value={exception.markdown} />
       </div>
       <Callout variant="error"><pre className="text-wrap font-sans text-sm font-normal text-rose-500 dark:text-rose-200 [word-break:break-word]">{exception.message}</pre></Callout>
       {metadata}{trace}
     </section>
+  );
+}
+
+function MarkdownCopyButton({ value }: { value: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const timeout = useRef<number>();
+
+  useEffect(() => () => window.clearTimeout(timeout.current), []);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+    window.clearTimeout(timeout.current);
+    timeout.current = window.setTimeout(() => setStatus("idle"), 1_500);
+  };
+  const presentation = {
+    idle: { title: "Copy", text: "Copy as Markdown", color: "text-text-dimmed hover:text-text-bright", Icon: IconCopy },
+    copied: { title: "Copied", text: "Copied", color: "text-success", Icon: IconCheck },
+    failed: { title: "Copy failed", text: "Copy failed", color: "text-error", Icon: IconCopy },
+  }[status];
+  const StatusIcon = presentation.Icon;
+
+  return (
+    <button type="button" aria-label="Copy as Markdown" title={presentation.title} onClick={() => void copy()} className={`inline-flex h-8 items-center gap-1 rounded-sm px-2 text-xs hover:bg-background-hover focus-custom ${presentation.color}`}>
+      <StatusIcon className="size-4" />
+      <span>{presentation.text}</span>
+    </button>
   );
 }
 

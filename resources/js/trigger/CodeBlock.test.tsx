@@ -1,7 +1,6 @@
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SqlCapturePreview } from "./CapturePreview";
 import { CodeBlock } from "./CodeBlock";
 
 globalThis.ResizeObserver = class ResizeObserver {
@@ -122,7 +121,7 @@ describe("CodeBlock", () => {
           code="select * from users"
           showTextWrapping
           isolateModalEscape
-          modalContent={<SqlCapturePreview sql="select * from users where id = ?" bindings={[{ position: 0, column: null, value: 1 }]} />}
+          modalContent={<button type="button">Operation evidence</button>}
         />
       </div>,
     ));
@@ -134,16 +133,13 @@ describe("CodeBlock", () => {
     expect(document.body.textContent).toContain("Copied");
     flushSync(() => viewer.querySelector<HTMLButtonElement>('button[aria-label="Expand Properties"]')!.click());
     await new Promise((resolve) => window.setTimeout(resolve, 0));
-    const parameterized = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"][aria-selected="true"]')!;
-    parameterized.focus();
-    flushSync(() => parameterized.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true })));
-    const bindings = document.querySelector<HTMLButtonElement>('[role="dialog"] [role="tab"][aria-selected="true"]')!;
-    expect(bindings.textContent).toBe("With bindings");
-    expect(document.activeElement).toBe(bindings);
+    const evidence = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((button) => button.textContent === "Operation evidence")!;
+    evidence.focus();
+    expect(document.activeElement).toBe(evidence);
     await new Promise((resolve) => window.setTimeout(resolve, 1_600));
     expect(document.body.textContent).not.toContain("Copied");
     onParentKeyDown.mockClear();
-    flushSync(() => bindings.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    flushSync(() => evidence.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
 
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     expect(onParentKeyDown).not.toHaveBeenCalled();
